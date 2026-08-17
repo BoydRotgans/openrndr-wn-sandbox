@@ -11,3 +11,9 @@ gui-parameters/
 ffmpegOutput.txt
 ShaderError.glsl
 
+# native libs extracted into the project dir at runtime
+libEGL.dylib
+libGLESv2.dylib
+libMoltenVK.dylib
+.DS_Store
+

@@ -174,6 +174,9 @@ application {
         "${property("openrndr.application")}"
     else
         applicationMainClass
+
+    // use native OpenGL instead of the ANGLE (GL ES over Metal) default
+    applicationDefaultJvmArgs = listOf("-Dorg.openrndr.gl3.gl_type=gl")
 }
 
 tasks {
