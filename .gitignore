@@ -11,9 +11,26 @@ gui-parameters/
 ffmpegOutput.txt
 ShaderError.glsl
 
+# local configuration and secrets; .env.example is the committed template
+.env
+
+# Everything in data/ is an asset rather than source: collected map data (refetched
+# by MapData.kt), the catalogue geometry and the Figma svg exports, the raw Figma
+# response written by FigmaApi.file(). Hundreds of megabytes, and all of it
+# reproducible. The bundled font and the template images stay, because the sketches
+# fall back to them.
+data/*
+!data/fonts/
+!data/images/
+
+# Client material and renders, not source.
+export/
+pre-work/
+
 # native libs extracted into the project dir at runtime
 libEGL.dylib
 libGLESv2.dylib
 libMoltenVK.dylib
 .DS_Store
-
+.venv/
+export/pptx-images/

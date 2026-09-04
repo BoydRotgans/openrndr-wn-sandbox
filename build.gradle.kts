@@ -43,17 +43,17 @@ val orxFeatures = setOf<String>(
 //  "orx-kotlin-parser",
 //  "orx-marching-squares",
 //  "orx-math",
-//  "orx-mesh-generators",
+    "orx-mesh-generators",
 //  "orx-midi",
 //  "orx-minim",
     "orx-no-clear",
     "orx-noise",
-//  "orx-obj-loader",
+    "orx-obj-loader",
     "orx-olive",
 //  "orx-osc",
 //  "orx-palette",
     "orx-panel",
-//  "orx-parameters",
+    "orx-parameters",
 //  "orx-poisson-fill",
 //  "orx-property-watchers",
 //  "orx-quadtree",
@@ -149,6 +149,9 @@ dependencies {
             runtimeOnly(libs.jackson.json)
         }
     }
+    /* local source dependency, substituted by the included build in settings.gradle.kts */
+    implementation("org.openrndr:figma-rest:0.1-SNAPSHOT")
+
     implementation(kotlin("stdlib-jdk8"))
     testImplementation(libs.junit)
 }

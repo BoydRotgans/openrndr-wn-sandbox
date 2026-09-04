@@ -1,0 +1,49 @@
+{
+  "name": "WN — Narratief to SHEETS",
+  "id": "wn-narratief-to-sheets",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  },
+  "menu": [
+    {
+      "name": "1 · Copy Narratief → SHEETS",
+      "command": "copy"
+    },
+    {
+      "name": "2 · Widen to 3908 with title panel",
+      "command": "widen"
+    },
+    {
+      "name": "3 · Space chapters",
+      "command": "chapters"
+    },
+    {
+      "name": "4 · Tidy up",
+      "command": "tidy"
+    },
+    {
+      "name": "5 · Left panel",
+      "command": "panel"
+    },
+    {
+      "name": "6 · Adopt new slides",
+      "command": "adopt"
+    },
+    {
+      "name": "7 · Full cleanup",
+      "command": "cleanup"
+    },
+    {
+      "name": "8 · Speaker notes",
+      "command": "notes"
+    }
+  ]
+}
