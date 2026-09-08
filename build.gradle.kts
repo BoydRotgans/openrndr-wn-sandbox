@@ -136,6 +136,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.kotlinx.serialization.json)
+    // The OpenAL bindings. openrndr-openal already carries these at *runtime* (and the
+    // natives with them), but as its own implementation dependency — so without this the
+    // AL calls do not resolve at compile time. No new artifact is downloaded: Gradle
+    // resolves the very jar the openal module already pulls in.
+    implementation(libs.lwjgl.openal)
+
     implementation(libs.slf4j.api)
     implementation(libs.kotlin.logging)
 

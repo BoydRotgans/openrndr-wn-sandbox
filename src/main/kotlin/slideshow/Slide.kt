@@ -41,6 +41,19 @@ abstract class Slide {
     open val background: ColorRGBa get() = ColorRGBa.WHITE
 
     /**
+     * What this slide sounds like when it arrives, or null for a silent one.
+     *
+     * It sits here beside [transition] and [background] because it is the same kind of
+     * thing — what the slide *is*, declared once and read by the driver — rather than
+     * anything [draw] does. A slide never plays its own sound, for the reason it never
+     * reads a clock: the deck can be clicked backwards, jumped into and filmed, and only
+     * the driver knows which of those is happening.
+     *
+     * Stated in `Slideshow.kt` at the slide it belongs to. See [Sound].
+     */
+    open val sound: Sound? get() = null
+
+    /**
      * How this slide arrives, and by default it does not — it is simply there.
      *
      * The default was a [Fade] once and every slide in the deck has since been asked to stop

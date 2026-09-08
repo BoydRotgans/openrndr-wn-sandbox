@@ -57,6 +57,16 @@ data class Settings(
     val stills: Boolean = false,
 
     /**
+     * Whether the deck makes any sound at all — the cues a slide or a chapter card declares.
+     *
+     * On by default and turned off for a rehearsal, or on a machine where the audio would go
+     * somewhere it should not. It is a *load* switch as well as a mute: off, no device is
+     * opened and nothing is decoded. Stills are silent whatever this says — that run jumps
+     * through every slide in the deck on a timer and would fire the whole cue sheet at it.
+     */
+    val sound: Boolean = true,
+
+    /**
      * Width of the left pane, the one carrying the chapter. Null is a single-pane show,
      * where the slide has the whole canvas.
      */

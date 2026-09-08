@@ -1660,6 +1660,73 @@ The window is the card's own size and the canvas is fitted into it rather than s
 still, a filmed frame and what is on screen are the same pixels; `CARD_WINDOW` scales the
 window and the recorder's `contentScale` puts the resolution back.
 
+### Sound
+
+The deck makes a noise. A slide — a chapter card included — declares a cue, and the driver
+fires it: `1-01.wav` under every chapter, off `data/sounds/WN-0909`.
+
+**A cue is a value, not a player.** [`Sound`](src/main/kotlin/slideshow/Sound.kt) names a
+file, a gain and whether it loops, and says nothing about when it is heard;
+`Slide.sound` carries it beside `transition` and `background`, because it is the same kind of
+thing — what the slide *is*, declared once and read by the driver. **A slide never plays its
+own sound**, for the reason it never reads a clock: the deck can be clicked backwards, jumped
+into, filmed and stepped, and only `present` knows which of those is happening.
+
+It is stated in `Slideshow.kt` rather than in a drawer, the way `title` and `notes` are: a cue
+is direction. `chapterCue` is one value handed to every card, so the four cannot drift apart —
+a chapter that wants its own is `chapterCard` passing a different `sound`, keyed on
+`section.number` the way it already keys its picture.
+
+**A cue is a buffer, not a stream**, and that is the whole of
+[`Speakers`](src/main/kotlin/slideshow/Speakers.kt). Each file is decoded whole at load into
+one OpenAL buffer and triggered with one call — no thread, no streaming, nothing to keep in
+step. The two obvious things to reach for are both the wrong shape:
+
+- **`openrndr-openal` is already a dependency and is not a file player.** It has no decoder at
+  all — `AudioData` takes raw PCM — and every `AudioQueueSource.play()` spawns a daemon thread
+  whose loop never exits, one per call. It is built for streaming synthesis.
+- **The discourse audio-player example** (and the `VorbisTrack` in `celest-telescope`) is a
+  *streaming* player with seek, position and FFT. Right for scrubbing a soundtrack; 400 lines
+  of thread-per-track to fire a five-second sting, and OGG-only besides.
+
+**The JDK is the decoder.** `javax.sound.sampled` reads wav *and* converts as it goes, which
+this cue sheet needs — it is 24-bit and OpenAL takes 16. Ask `getAudioInputStream` for 16-bit
+little-endian and it inserts the converter. That is why there is no decoding library here.
+
+**No new artifact was downloaded.** `openrndr-openal` already pulls `lwjgl-openal` and its
+natives at runtime — but as its own `implementation` dependency, so the AL calls do not resolve
+at *compile* time. `libs.lwjgl.openal` in `build.gradle.kts` names the very jar that was
+already being resolved, and nothing else changed.
+
+**Which arrivals announce, and which stay silent.** A card's cue fires only where it is
+genuinely arriving — a section entered forward, or one replayed by `0`. Stepping **back** into
+an earlier chapter is a retrace and lands the card already across, mid-chapter, so it is
+silent: a cue there would announce a chapter the talk is leaving. Opening straight into a
+chapter passes through neither branch, because nothing changed and the card was simply already
+there, so the boot case is handled on its own.
+
+**Nothing about it may stop the show.** No audio device, no file, an unreadable wav — every one
+of them lands the deck in silence and leaves it running, the same way a missing sheet falls
+back to plain type. A talk that will not start because it cannot find a wav is worse than a
+talk with no sound in it.
+
+`SLIDES_SOUND=false` mutes it, and it is a *load* switch as well as a mute: off, no device is
+opened and nothing is decoded. A `SLIDES_STILLS` run is silent whatever it says — that run
+jumps through every slide in the deck on a timer and would fire the whole cue sheet at it.
+
+**A recorded run has no audio in the file.** `ScreenRecorder` writes video only, and under it
+the draw loop is on video time while the sound plays on wall time, so the two drift exactly as
+the note under demo01 describes. Audio goes in at the edit.
+
+Two things about the assets: all four cards name the same file, so it is decoded **once** — the
+`sound: 1 cues` at startup is that, not a fault — and `clic.wav` is byte-identical to
+`1-09.wav`. The whole sheet is uniformly 24-bit stereo 44.1k and about 31 MB decoded, so
+holding all of it is cheaper than reading any of it late.
+
+[`SoundProbe.kt`](src/main/kotlin/SoundProbe.kt) plays one wav and quits, naming the device it
+opened. Run it on the projector machine before a show: it is the one thing a silent deck cannot
+tell you.
+
 ### Writing one from scratch
 
 Whatever a sketch does in `extend { }` goes in `draw`, and whatever it loads at startup

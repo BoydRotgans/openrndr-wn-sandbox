@@ -80,6 +80,14 @@ fun present(show: Show) = application {
         val deck = Deck(slides, startSlide, show.outline)
         val clock = Clock()
 
+        // The cues, decoded before the first frame for the same reason the slides are —
+        // a show must not stall on a click. Silent under `stills`, which jumps through
+        // every slide of the deck on a timer and would fire every cue in the show at it.
+        val speakers = Speakers()
+        if (settings.sound && !settings.stills) {
+            speakers.load(slides.mapNotNull { it.sound } + show.panels.mapNotNull { it.sound })
+        }
+
         // --- two panes -------------------------------------------------------------- //
         //
         // Without panels the slide has the whole canvas, exactly as before. With them,
@@ -108,6 +116,19 @@ fun present(show: Show) = application {
 
         /** The card's resting step: on the left, out of the slide's way. */
         fun closed(panel: Int) = show.panels.getOrNull(panel)?.let { it.steps - 1 } ?: 0
+
+        /**
+         * The sting a chapter opens on, fired as its card is announced.
+         *
+         * Only where the card is genuinely *arriving* — a new section entered forward, or one
+         * replayed. Stepping **back** into an earlier chapter is a retrace and lands the card
+         * already across, mid-chapter, so it is silent: a cue there would announce a chapter
+         * the talk is leaving rather than one it is opening.
+         */
+        fun announce(panel: Int) = speakers.play(show.panels.getOrNull(panel)?.sound)
+
+        /** A slide's own cue, where it has one. Cards are announced separately, above. */
+        var soundedSlide = -1
 
         // A contact sheet is a record of the *slides*, and the card standing open is a move
         // rather than a state of one — left open it would cover the first slide of every
@@ -217,6 +238,8 @@ fun present(show: Show) = application {
             if (target < 0) return
             if (panel.index == target) panel.replay() else panel.goTo(target, 0, cut = true)
             shownPanel = target
+            // `0` puts the deck back exactly as it boots, the card's own cue included
+            announce(target)
         }
 
         // Key handlers move the slide deck and nothing else — they never read a clock,
@@ -231,7 +254,7 @@ fun present(show: Show) = application {
                 event.key == KEY_ARROW_LEFT -> backward()
                 event.key == KEY_ARROW_DOWN -> deck.nextSlide()
                 event.key == KEY_ARROW_UP -> deck.previousSlide()
-                event.key == KEY_ESCAPE -> application.exit()
+                event.key == KEY_ESCAPE -> { speakers.close(); application.exit() }
 
                 event.name == "0" -> { deck.home(); openCard() }
                 event.name == "r" -> deck.replay()
@@ -305,12 +328,17 @@ fun present(show: Show) = application {
                     // so stepping back into the section finds the card as it was left.
                     wanted < 0 -> {}
 
-                    fromBackdrop && opening ->
+                    fromBackdrop && opening -> {
                         if (wanted != panelDeck.index) panelDeck.goTo(wanted, 0, cut = true)
                         else panelDeck.replay()
+                        announce(wanted)
+                    }
 
-                    wanted != shownPanel ->
+                    wanted != shownPanel -> {
                         panelDeck.goTo(wanted, if (opening) 0 else closed(wanted), cut = false)
+                        // forward into a new chapter announces; stepping back retraces, silent
+                        if (opening) announce(wanted)
+                    }
 
                     // up/down cross whole slides without ever offering the card its click,
                     // so it would be left standing over a slide it does not belong to.
@@ -319,6 +347,16 @@ fun present(show: Show) = application {
                 }
                 if (wanted >= 0) shownPanel = wanted
                 shownSlide = deck.index
+            }
+
+            // A slide's own cue, where it declares one, as it comes up. Also the card the
+            // show *boots* on: opening straight into a chapter passes through none of the
+            // branches above, because nothing changed — the card was simply already there.
+            if (deck.index != soundedSlide) {
+                val first = soundedSlide < 0
+                soundedSlide = deck.index
+                speakers.play(deck.slide.sound)
+                if (first && startPanel >= 0 && deck.slide !is Backdrop) announce(startPanel)
             }
 
             fps = mix(fps, 1.0 / (seconds - lastSeconds).coerceAtLeast(1e-4), 0.1)

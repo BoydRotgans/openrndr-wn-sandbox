@@ -13,6 +13,9 @@ kotlinxSerialization = "1.9.0"
 kotlinLogging = "7.0.13"
 kotlinCsvJvm = "1.9.3"
 jsoup = "1.17.1"
+# matches what openrndr-openal already pulls in; declared so the AL bindings
+# are on the *compile* classpath as well as the runtime one
+lwjgl = "3.3.6"
 shadow = "9.1.0"
 runtime = "1.13.1"
 versions = "0.52.0"
@@ -44,6 +47,7 @@ kotlin-logging = { group = "io.github.oshai", name = "kotlin-logging", version.r
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 csv = { group = "com.github.doyaaaaaken", name = "kotlin-csv-jvm", version.ref = "kotlinCsvJvm" }
+lwjgl-openal = { group = "org.lwjgl", name = "lwjgl-openal", version.ref = "lwjgl" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

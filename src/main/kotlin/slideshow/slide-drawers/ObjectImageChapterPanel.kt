@@ -27,6 +27,7 @@ import org.openrndr.shape.Rectangle
 import slideshow.Cut
 import slideshow.Section
 import slideshow.Slide
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.Type
 import slideshow.drawers.advanceOf
@@ -177,6 +178,11 @@ class ObjectImageChapterPanel(
     private val stage: Double = Env["SLIDES_CARD_STAGE"]?.toDoubleOrNull() ?: 0.45,
     /** The pause between the two passes, as a share of the arrival. */
     private val delay: Double = Env["SLIDES_CARD_DELAY"]?.toDoubleOrNull() ?: 0.12,
+    /**
+     * The cue this chapter opens on, or null for a silent card. Stated in `Slideshow.kt` —
+     * see [Sound], and `chapterCue` there for the value every chapter is given.
+     */
+    override val sound: Sound? = null,
     private val paneWidth: Int = 1920,
     private val paneHeight: Int = 1080
 ) : Slide(), MosaicCard {

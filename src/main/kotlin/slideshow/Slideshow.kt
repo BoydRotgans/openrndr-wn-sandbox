@@ -121,6 +121,30 @@ val openingTexture = Env["SLIDES_OPENING_TEXTURE"]?.let { File(it) }
 val openingDetails = Env["SLIDES_OPENING_DETAILS"]?.let { File(it) }
 
 /**
+ * Where the evening's cues live. `WN-0909` is the sound design as delivered: numbered
+ * one-shots, a `base-loop` bed and a `clic`.
+ *
+ * A path, so it is in `.env`; *which* cue is played where is content and is stated below —
+ * see [chapterCue].
+ */
+val soundFolder = File(Env["SLIDES_SOUNDS"] ?: "data/sounds/WN-0909")
+
+/**
+ * The cue a chapter opens on — the sting under its card, fired as the section arrives.
+ *
+ * **One cue, under every chapter.** A card is the same event each time it comes up: the
+ * talk has changed subject and the wall says so. So the sound that marks it is the mark
+ * itself rather than a label on which chapter this is — the same argument as the cards
+ * cutting rather than crossfading, and as `Cut` being the deck's default transition.
+ *
+ * Naming it once here is also what keeps the four in step: a cue given out card by card
+ * drifts the moment one of them is retuned, and this way there is one value to change.
+ * A chapter that eventually wants its own is [chapterCard] taking a different `sound`,
+ * keyed on `section.number` the way it already keys its picture.
+ */
+val chapterCue = slideshow.Sound(File(soundFolder, "1-01.wav"))
+
+/**
  * The card for one section: the chapter's own drawn title, packed into components.
  *
  * **Every chapter is a picture rather than type the card sets itself.** `data/slides` holds
@@ -150,7 +174,7 @@ val openingDetails = Env["SLIDES_OPENING_DETAILS"]?.let { File(it) }
  */
 fun chapterCard(section: slideshow.Section): slideshow.Slide {
     val image = File("data/slides/chapter-${section.number.substringBefore('.')}-title.png")
-    if (!image.isFile) return ObjectChapterPanel(section, cardFont)
+    if (!image.isFile) return ObjectChapterPanel(section, cardFont, sound = chapterCue)
 
     return ObjectImageChapterPanel(
         section,
@@ -162,7 +186,8 @@ fun chapterCard(section: slideshow.Section): slideshow.Slide {
         solid = 0.62,                       // let a mostly-covered cell stand, so thin strokes get big marks
         ground = ColorRGBa.fromHex("#2E2E2E"),
         reveal = slideshow.frames(2.8),     // two passes and a pause need longer than the typeset 1.2s
-        sweep = 1.0, stage = 0.45, delay = 0.12   // ground up from the foot, then ink down from the head
+        sweep = 1.0, stage = 0.45, delay = 0.12,  // ground up from the foot, then ink down from the head
+        sound = chapterCue                        // the sting every chapter opens on
     )
 }
 
@@ -504,6 +529,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,
-        stills = Env.boolean("${prefix}_STILLS")
+        stills = Env.boolean("${prefix}_STILLS"),
+        sound = Env["${prefix}_SOUND"]?.let { Env.boolean("${prefix}_SOUND") } ?: settings.sound
     )
 )
