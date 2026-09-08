@@ -796,7 +796,9 @@ open on a slide while working on it.
 
 The folder is in three parts. **`Slideshow.kt` is the show** — the one file to open, and
 the only one to edit to change what the talk is. **`slide-drawers/` is a file per slide**,
-so adding one is adding a file rather than growing a list. Everything else is the engine,
+so adding one is adding a file rather than growing a list, and **`backdrop-drawers/` is a
+file per backdrop** — the full-wall pictures around the talk (see [backdrops](#backdrops)).
+Everything else is the engine,
 which never mentions configuration: it takes a `Show` value, which is what lets a deck be
 run from a second launcher, or from a test, with no `.env` anywhere near it.
 
@@ -959,6 +961,411 @@ never something you have to navigate.
    2.1  In a loop
        3  Loop                 2 clicks  0.45s  loop 5.0s  push
 ```
+
+### One slide on its own
+
+[`SlideStudio.kt`](src/main/kotlin/SlideStudio.kt) runs a single drawer at the size of the pane
+it composes for — the drawer to work on rather than the show to click through, and the twin of
+`CardStudio` for the other half of the canvas:
+
+```
+SLIDE=Stack ./gradlew run -Popenrndr.application=SlideStudioKt
+```
+
+`->` `<-` are the clicks, `up`/`down` the slides, `r` replays, `p` holds the clock and `.` `,`
+step it, `s` writes a still, `d` the overlay, `esc` quits.
+
+**The slides are the deck's own** — `show.slides`, the very objects the talk is made of — so
+what is on screen here is what is on screen in the show and not a second arrangement of it that
+has to be kept in step. It is also **a real `Deck` of one slide** rather than a hand-rolled
+stage, so `position` eases over the slide's own `stepFrames`, `stepName` reads as it does in the
+talk, and the debug overlay is the show's. A click here is the click the audience sees.
+
+**Only the slide you ask for loads, and the seconds are the smaller half of why that matters.**
+`present` loads all thirteen slides and the four mosaic cards before the first frame, because a
+show must not hitch on a click; measured, that is about 3s against 0.1–0.3s for one slide. The
+rest of the loop is the real saving — no clicking to reach the slide, a 1920 window rather than
+a 3840 canvas beside a card you are not working on, and `s` / `SLIDE_AT` / `SLIDE_STILLS` scoped
+to the one drawer instead of the deck. `up`/`down` load a neighbour the first time it is asked
+for, so the slide next door costs a keypress rather than another JVM.
+
+**The pane size is read off the show, never stated** — the canvas less the chapter card's half
+and the gutter. A drawer lays out against `stage.bounds`, so handing it any other shape is
+detailing it at a size it will never be seen at; stated here it would also go quietly wrong the
+day the card changes width.
+
+**`SLIDE` matches three things, and it has to be three.** A slide's `name` (`Cut`), its class
+(`HardCutSlide`), and its title in the running order (`catalogue`). The class is the one
+`SLIDES_START` cannot reach and the one that matters most here: **every** drawer in this deck
+overrides `name`, so you would be editing `HardCutSlide.kt` with no way to ask for it but by
+knowing it answers to "Cut". Detailing a drawer means navigating by file, so the file has to be
+an address.
+
+**It goes on the wall the way the show does, and lands where the slide does.** The projector
+arrangement is inherited whole — `SLIDES_UNDECORATED`, `SLIDES_WINDOW_X/_Y`,
+`SLIDES_WINDOW_SCALE` — so hanging the talk hangs the studio with it. The one thing it adds is
+the offset: the show's window starts at the chapter card and the slide pane is the half beyond
+it, so the studio is placed a card's width along and stands on the drawer's own projector.
+`SLIDE_UNDECORATED` and `SLIDE_WINDOW_X/_Y` override that for one projector rather than two.
+
+It reads `show.withEnv()` and not `show.settings`, and that is not a detail: the canvas size and
+the whole projector arrangement live in `.env`, and the raw show carries only what
+`Slideshow.kt` declares. Read raw it silently ignored every placement key and opened a full-size
+window in the middle of the desk.
+
+### Backdrops
+
+The talk is one part of the evening's draaiboek, and the wall carries pictures around it: a
+scene to arrive to, one to leave by, later the courses in between. Those are **backdrops**. A
+[`Backdrop`](src/main/kotlin/slideshow/Backdrop.kt) is a `Slide` that takes the **whole wall** —
+both projectors, 3840x1080 on the committed show — with no chapter card beside it. They are
+declared with `backdrop(...)` in `Slideshow.kt`, outside the chapters, and drawn in
+`backdrop-drawers/`, a file to a scene, the way slides are drawn in `slide-drawers/`.
+
+**A backdrop is in the same deck as the slides, and that is the whole of how it is driven.**
+`→` off the opening scene is the first slide, `→` off the last slide is the closing scene, `←`
+retraces either, and `SLIDES_START=Opening` opens on one. There is nothing new to navigate and
+no second set of keys. What differs is only the frame it composes for, which the engine asks
+at the one place the two differ: `slide is Backdrop`.
+
+**A handover with a backdrop on either side is composed on the wall, not pane by pane.** A
+slide composes for its 1920 pane and a backdrop for the 3840 canvas, so the leaving and
+arriving pictures are different shapes and the per-pane handover cannot mix them. `present`
+instead renders the leaving picture *as the whole wall showed it* — a slide beside its card, or
+a backdrop edge to edge — and the arriving one likewise, and the transition mixes those two.
+Between two slides nothing changed: each pane still hands over on its own. It costs two
+canvas-sized buffers, allocated only for a show that has a backdrop. The committed show cuts
+into and out of both scenes, so none of this is visible there; it is what lets a backdrop
+declare a `Fade` or a `Push` and have it work — `ObjectScene` takes a `transition` — and it
+was checked on film rather than assumed: a one-second fade into the closing scene mixes the
+card and the slide *as one picture* into the scene, with the elements rising through it.
+Stills cannot show a handover (they are all taken on cuts), which is why it had to be filmed.
+
+**The card arrives with its chapter when the show steps forward out of a backdrop.** While a
+backdrop is up the panel deck holds where it is and is not drawn — not even asked to, since a
+mosaic card repaints its plate every frame — but it has been *ticking* since the show booted,
+so its title fade and its element reveal ran an hour before anyone saw them. Stepping forward
+into a section from a backdrop therefore replays the card, so it builds as the chapter opens.
+Stepping *back* into a section finds the card as it was left, the same rule as stepping back
+within the deck. `0` on a backdrop leaves the card alone; it arrives with the first slide.
+`Show.panelOf` carries `-1` for a backdrop, and every guard the two-step card needs
+(`cardHoldsTheFrame`, `atSectionStart`, `openCard`) is off while one is up.
+
+**The two ends of the evening are two drawers, and they have nothing in common but the sheet
+loader.** That split is the point: the closing wall is a *kind* of wall and the opening is an
+*occasion*, and keeping the second as a configuration of the first would mean every change made
+for the opening landing on the closing one too.
+
+- **`ObjectScene` is the kind**: a row of components standing on a wall, and then holding. The
+  draaiboek's Uitloop is one — two elements off the subset, large, in the house colours on a
+  light ground — and the courses between the talk and the exit will be others. Elements **7 and
+  3**, the panel on two feet and the wider one on three, are the blocks it draws; the survey
+  that picked them is one temporary edit of the picks to `(0 until 15).toList()` and
+  `SLIDE=Opening SLIDE_AT=8` in the studio. Every element is one height, laid on one line a
+  fixed gap apart and centred, rising from below the wall a beat apart and then standing.
+  `standingRow` is its layout — a pure function of the wall and the shapes, `packBoxes` and
+  `stateAt` again — and it sits *beside* the drawer the way `stackRows` sits in `StackUp.kt`,
+  because it now has one caller. Lifting it out when a second wants it is one move.
+
+- **`OpeningScene` is the occasion**: the wall the room arrives to, up for the better part of an
+  hour, and the first thing anyone sees of the evening. It is black, and **the catalogue draws
+  itself on it**. A single white line travels the whole edge of a piece, and the moment the
+  outline closes the shape floods to solid white; it holds, slides up out of frame, and the next
+  piece is drawn — right through `objects-front.svg`, so every one of the 112 variants gets its
+  turn.
+
+**The two halves of the opening wall are not a pair; they are two clocks.** Each 1920x1080 half
+runs its own turn — draw, fill, hold, leave — and the right runs half a turn behind the left, so
+the wall alternates left, right, left, right, with a new piece beginning as the one across from
+it stands finished. Nothing on it is ever synchronised, which is what keeps it from reading as a
+slideshow of pairs: there is always one piece being drawn and one standing to look at. `phase` is
+the whole of that — 0.5 is the alternation, 0 puts the two back in step and draws them as a pair.
+A turn is 19s a side, so a piece lands every 9.5s — the trace alone is 12.6s, and the piece then
+stands finished for 4.8s, which is the only part of the turn that is reading time: the trace is
+watched and the exit is a move, but the register can only be read once the piece has stopped. That is deliberate: the drawing is the wall's one moving
+part and it is watched by a room that is *arriving* rather than attending, so a piece drawn
+slowly enough to follow reads as a thing being made rather than a thing appearing. The halves take the sheet in turns, so the pieces still come up in reading order across
+the wall — 0 left, 1 right, 2 left, 3 right — and the left only returns to the first piece after
+`n / 2` turns, or after `n` when the sheet is odd, since an odd sheet swaps which side each piece
+falls on every pass.
+
+**The pen moves at a constant speed, and the contour's own parameter cannot give it that.**
+`ShapeContour.sub(0, t)` walks the *segments* evenly, so on a piece whose corners are a cluster
+of short edges the line crawls through the detail and races down the long sides. Each outline is
+therefore resampled at load into equally spaced points, and the trace is the first `t` of them —
+so a piece with 40 segments draws no faster than a rectangle with 4. A piece with a hole is
+drawn as **one** pen rather than two at once: its outlines are laid end to end and the travel
+runs through them in turn, so a doorway's opening is drawn after the panel around it closes.
+
+**Once a piece floods, a caption arrives under it.** The sheet's name letter-spaced along the
+top, where the piece stands in the pass ranged right, and one line beneath — and that is all of
+it. **White**, so the wall is one ink: the lettering is the same white as the piece it stands
+under, and the only other value on the wall is the black it is all drawn on. The house red is one
+argument away and reads as a drawing marked *up*, where the white reads as a drawing captioned.
+
+It is set in **pane pixels rather than in the piece's own space**, and has to be: the fit scale
+runs from a 5cm plate to a 24m beam, so type inside that transform would be a hairline on one
+piece and enormous on the next. `BlueprintLabel` takes the box the piece occupies *on the pane*
+and places everything against that.
+
+**Nothing is drawn on the piece and nothing points at it.** Two further layers are built and
+**off**, each because it makes a materially different picture rather than a slightly busier one —
+a decision to take rather than a default to inherit:
+
+- `grid`, a ruled field over the whole pane. It goes over the piece rather than under it, which
+  makes the white read as a plate being measured rather than as a shape with a background behind
+  it; ruled off the *pane's* corner rather than the piece's, so it holds still as pieces pass
+  through it.
+- `marks`, the bracket: hairlines level with the piece's top and bottom run out to the frame,
+  with `(A)` and `(B)` naming their ends. One switch and not two, because the letters say nothing
+  without the lines to point at.
+
+**There is deliberately little text.** A backdrop is read across a room and at a glance, so the
+layer carries the drawing's title, the number in the run, and a single fact — the part name when
+one is known, the proportion when it is not. An earlier version set a block of four fields with
+the value column stated at a fixed offset, which the letter-spaced keys ran straight through
+(`RATIO1:2.20`); measuring the column off the widest tracked key fixed that, and then cutting the
+block to one line made the column unnecessary.
+
+**The face is stated rather than inherited.** It was reaching Rockwell either way, but only
+because `Slideshow.kt` happens to point the deck's furniture (`Type.file`) there — repoint the
+talk's family and this wall's lettering would have followed it somewhere it was never designed
+for. `fontPath` is now a constructor argument, and the show hands it the **regular** weight:
+the bold read as a heading standing beside a piece rather than as a caption under it.
+
+**The pieces are named from the catalogue's own register, and the pairing was proved before it
+was trusted.** `data/csv/objects-115-details.csv` carries a row a piece — name, the assembly it
+belongs to and that assembly's tag, the IFC class, the profile, and the box in millimetres. It is
+paired with the sheet **by index**, which is only honest because the order was checked: an
+isometric drawing's on-screen proportion is predictable from the piece's box — a base of
+`(W + D) · cos 30` against a height of `(W + D) · sin 30 + H` — so the file can be tested against
+the sheet directly. Taken in `obj_no` order the predicted proportion tracks the measured one at a
+**correlation of 0.971**, 92 of the 115 within 12%. The two other ways of reading the columns as
+a box correlate at **-0.275** and **-0.707**, so which column is width, depth and height is
+settled by the same test rather than assumed from the header.
+
+**A count mismatch drops the register entirely**, and that guard is the point of it. The iso
+sheet recovers 115 and the *front* sheet recovers 112, so pointing the wall at the front sheet
+with these details still attached would shift every name one place from the first gap onwards and
+never say so. A wall of mislabelled components is worse than a wall of unlabelled ones, so when
+the counts disagree the pieces fall back to carrying their proportion and the run says why.
+
+Before the register arrived none of this was possible, and it is worth recording why rather than
+re-attempting it: both sheets carry their captions as *outlined* type — `<path>` and not a single
+`<text>` — so no name can be read out of the svg; the sheet is drawn cell by cell rather than to
+one scale, so no real dimension can be recovered from it either (implied units-per-metre across
+aspect-matched pairs runs 44.8 to 3152.9, an 11 911x spread); pairing the silhouettes to the 115
+named meshes in `data/objects` by shape fails on the ground the sort failed on in `Objects.kt` —
+91 of 112 match at an IoU of 0.90 or better but only **27** are clear of their runner-up, because
+most of the catalogue is plain rectangles and every rectangle matches every other one perfectly;
+and the sheet order matches no natural ordering of those meshes either, every candidate
+correlating at essentially zero.
+
+**No weight, and that is a decision rather than an omission.** The register carries none, and
+multiplying a mesh's volume by a density would be confidently wrong for a good share of the
+catalogue: `HPKM39` is a steel column shoe and is exported as `IfcBeam`, so the IFC class cannot
+separate the steel fittings from the concrete elements. A density or material column is all it
+would take.
+
+**The fields are distributed to the corners rather than stacked in a block.** The maker along the
+top and the piece's place in the pass opposite it; halfway down either side, what it belongs to
+and what it is; at the foot, its name with its profile under it and its box opposite. Nothing is
+repeated — each field is said once, in the place its length suits — so the pane is held at its
+edges and the piece stands in clear space in the middle.
+
+**The character set has to be named.** The default atlas has no `×`, so the size line came out as
+`170  10  60 MM` — the glyph missing and its advance zero, which reads as a spacing bug rather
+than an absent character. `TYPE_CHARACTERS` is the deck's own set and carries the figures this
+wall sets. `IfcDiscreteAccessory` is split on its camel case for the same sort of reason: dropping
+the prefix alone leaves `DISCRETEACCESSORY`, which nobody can read across a room.
+
+**The face is stated rather than inherited.** It was reaching Rockwell either way, but only
+because `Slideshow.kt` happens to point the deck's furniture (`Type.file`) there — repoint the
+talk's family and this wall's lettering would have followed it somewhere it was never designed
+for. `fontPath` is now a constructor argument, and the show hands it the **regular** weight:
+the bold read as a heading standing beside a piece rather than as a caption under it.
+
+**The pieces cannot be named, and the label says nothing it cannot prove.** Both sheets carry
+their captions as *outlined* type — `<path>` and not a single `<text>` — so a part name cannot
+be read out of the svg. Pairing the silhouettes to the 115 named meshes in `data/objects` does
+not work either, and it was measured rather than assumed: the front sheet's aspect distribution
+matches theirs closely (p50 2.15 against 2.00), so it is the same set of pieces, but the sheet is
+drawn **cell by cell rather than to one scale** — implied units-per-metre across aspect-matched
+pairs runs 44.8 to 3152.9, a 11 911x spread — so no real dimension can be recovered from it. And
+matching by silhouette fails on the same ground the sort failed on in `Objects.kt`: rasterised
+and compared by IoU, 91 of 112 pieces match a mesh at 0.90 or better but only **27** are clear of
+their runner-up, because most of the catalogue is plain rectangles and every rectangle matches
+every other one perfectly. So `PieceMeta.name` is nullable and stays empty unless a
+`<sheet>.names.txt` beside the svg gives one name a line in reading order — a wall of
+mislabelled components is worse than a wall of unlabelled ones. Everything else on the label is
+read off the drawing and is exact: number in the sheet, proportion, how many contours it has, and
+how much of its own box it fills.
+
+**The stroke weight is divided back out of the transform.** The piece is fitted to its half by a
+scale, and a scale takes the stroke with it, so a 5cm plate would be drawn with a hairline and a
+24m beam with a slab. Dividing the weight by that scale is what makes every piece read as the
+same hand drawing it.
+
+The whole scene is a pure function of `stage.frame` — the turn is a division and the phase a
+remainder — so it can be scrubbed, jumped into, paused or filmed and shows the same picture at
+the same frame, which is the rule every drawer here is written to.
+
+**The front sheet is mostly plain silhouettes, which is why the wall runs the iso one.** In
+elevation a slab really is a rectangle and `DRST_M24_1500` really is a hairline — the asset
+rather than a fault, but a poor thing to draw slowly. `objects-iso.svg` gives the same catalogue
+as objects, and its 115 read as pieces of concrete rather than as boxes. Using a full sheet
+either way is what shows every variant; `subset.svg` is the picked few. The closing wall reads
+`SLIDES_BACKDROP_SHEET` separately, because the two want different sheets.
+
+Splitting the scenes was checked to be a no-op both times it moved: the opening's still after
+the class split was byte-identical to the one before it, and the closing wall's still is
+byte-identical across folding `standingRow` back in.
+
+- **`ConveyorScene` is the belt**, and the show stands two of them up straight after the opening:
+  the draaiboek's *Opening / Welcome* and *Eerste gang*. The catalogue goes past on **two rows
+  running against each other**, flat in the house pair on black. It is a *kind*, like
+  `ObjectScene`, not an occasion, and the two differ only in which colour they open on and how
+  fast they run.
+
+**The rows fill the height and run alternately against each other**, two of them as committed —
+`rows` is the whole of it, and the layout follows from it: the rule between them and the piece
+height are both fractions of a row's share, so five or fifteen compose the same way. A single belt is a queue; two crossing is a
+plant. They share one strip of pieces and start a share of it apart, so no two rows carry the same
+piece at the same moment.
+
+**The rows are spread across the whole height with a rule between them and no margin at the ends.**
+`piece` a shade under 1 is what does it: at exactly 1 the rows close into a single field and stop
+reading as rows, and above it they ride over one another — the one overlap this wall does not want.
+`piece` at exactly 1 is what the committed wall runs: the rows **meet**, so what separates one from
+the next is the pieces' own notches and steps rather than a line of wall. Under 1 puts a rule back
+between them — measured, 21/20/20/21 pixels at five rows, 5 and 6 at fifteen, a single 86 at two —
+and above 1 they ride over one another, which is the one overlap this wall does not want.
+
+**The depth comes from stacking, not from spacing.** Laid at one pitch the row is a line of
+things; in runs of two to `stack`, each set back a sliver from the one in front, it becomes stock
+leaning against itself. The run length is hashed from where the run starts, so the same frame
+always draws the same wall, and the set-back is measured against the *row's* height rather than
+the piece's — so a 3:1 slab and a square panel step back by the same amount and a stack keeps one
+rhythm. Measured along a scan line, a row went from about 5–7 visible faces to **18–19**, the
+narrowest 24 pixels of sliver and the widest a full 1509.
+
+**The pieces cast a shadow on the ones they lap, and it costs nothing on the ground because the
+ground is black.** The shadow is black too, so it is invisible where it falls on the wall and only
+tells where it lands on another piece — which is precisely the overlap it is there to describe. No
+mask, no second buffer, no test for what is underneath: draw it before the piece and it appears
+only where there is something to fall on. Measured against the same frame with it off, it touches
+**2.29% of the frame** and takes a red piece from 255 to 188 where it lands.
+
+It is thrown **left**, against the stacking rather than with the travel — pieces are drawn in the
+order they sit along the row, so the one on top is always the one to the right and its shadow has
+to fall left to land on its neighbour. Which way the row is running has nothing to do with it.
+
+**The overlap is along the row, never up it.** `gap` is negative, so pieces lap past one another
+as they go — a row is a run of stock overlapping itself, and the rows are still rows. Positive
+opens the belt out into separate components going past on black, which is the other picture this
+drawer can make; the committed wall is the dense one, about a quarter black.
+
+**The belt indexes rather than runs.** One piece advances a stride, opening a gap behind it, and
+the piece behind closes that gap, and so on down the row: only one is moving at a time, which
+reads as *machinery* where a constant scroll reads as a picture being slid past. A wave is one
+move each, after which every piece has advanced the same stride and the row stands exactly as it
+did, so it loops — and it is all a function of the frame, nothing carried between them. Measured
+across one move: exactly two edges shift per frame, which is one piece, and the shifts run
+79 → 234 → 320 → 142 px as the ease takes it up and sets it down.
+
+**The cascade runs with the motion, not against it, and that is what makes a row's direction
+readable.** Stepping the *leading* piece first is what a real queue must do — it is the only one
+with room ahead — but then the disturbance sweeps backwards while the pieces go forwards, and the
+eye follows the disturbance: a row travelling left reads as moving right. These pieces lap over one
+another, so there is no queue to respect and the trailing piece can go first. Measured per row
+before and after, ignoring the wrap at the seam: the rows were 12/0 left, 0/12 right, 13/3, 0/16
+and an ambiguous 7/8; with the wave turned they read 12/0, 0/12, 12/0, 0/15 and 11/3 — clean
+alternation, and the ambiguity gone.
+
+**The scatter is what stops it being clockwork.** Every row runs the same wave off the same frame
+count, so without it all five step at the same instant and stop at the same instant — and pieces
+this heavy moving in perfect unison read as a mechanism rather than as stock being handled. Each
+row is given a phase of its own and each piece a delay of its own inside its slot, both **hashed
+from where they are** rather than drawn from a running random: scattered, but the same frame always
+draws the same wall. The delay is bounded by the rest, so every piece still moves exactly once a
+wave and the row still comes round to itself. Measured over 21 samples the rows moving at once run
+1, 2 or 3 of the five — and never all five, which was the whole complaint.
+
+**One cascade is not enough, and the reason is spatial rather than mechanical.** A single gap
+travelling the row is what an indexing conveyor really does — but the row is far longer than the
+frame, fifteen pieces of which about five are on screen, so the moving piece is out of shot two
+thirds of the time and the wall simply sits there. `gaps` spaces several cascades a share of the
+row apart so one is always in view; on screen it still reads as one piece moving and then the one
+behind it, because the others are a screen's width away. Measured: with one cascade the frame was
+still for most samples, with three it is still for 24% — which is the `rest` between steps, and
+deliberate.
+
+**The gap between pieces is generous on purpose.** Closed up they butt into one another and the
+belt reads as a mosaic of red and blue blocks rather than as separate components going past — it
+is the black between them that makes them things rather than a pattern.
+
+**The belt is one strip, not a screen of separate objects.** Every piece is laid end to end a
+fixed gap apart, the whole strip is offset by the clock, and what falls inside the frame is drawn.
+112 pieces at this size is far more belt than the frame can hold, so it never repeats within a
+pass, and it crosses the two projectors as one continuous run rather than as two halves doing the
+same thing. The offset is a multiplication and a remainder, so it is where it is at any frame with
+nothing carried between them.
+
+**The belts are the whole frame, and that is a correction.** It was a band across the middle
+first, the way the draaiboek draws it — but the draaiboek is a page, where a row among several
+reads as a row. Across 3840x1080 the same band is a letterbox: two pale strips and a stripe, and
+the eye takes the strips for a fault rather than for a margin. Full height, the belts simply *are*
+the wall.
+
+**A piece is drawn at the belt's height unless that would make it enormously long.** `DRST_M24_1500`
+is 63 times wider than it is tall, which at belt height is a single piece thirty thousand pixels
+long — a quarter of an hour to pass, and it reads as a bar rather than as a component. Anything
+wider than `widest` of the frame is scaled down whole instead, keeping its proportions and losing
+height.
+
+**Drawing the pieces to their real relative size is possible and is off, and the arithmetic is
+why.** The register carries the real millimetres, so the belt can scale every piece against the
+tallest instead of fitting each to the row — a column shoe standing beside a wall at the size it
+really is. But the catalogue runs from a 1mm shim to a 14.3m wall, a ratio of **14 259**: with the
+tallest filling a row the shortest is a fortieth of a pixel, and **50 of the 112 pieces come out
+under seven pixels**. Flooring the small ones does not rescue it either — a floor generous enough
+to see puts **72 of the 112 at the floor**, so most of the belt is no longer to scale and the idea
+has been given up to keep the pieces. The way that does work is to carry the components and not
+the fittings: at a metre and up it is 45 pieces across a 13x range with the smallest still some 27
+pixels. `smallest` is that cut, and `details` is what enables any of it.
+
+The committed show runs `subset.svg` instead — the fifteen hand-picked shapes, all at one height.
+The full sheet to scale is a stronger *idea* and a weaker *picture*: two thirds of the catalogue
+drops off the belt to make it work, and what is left is mostly long low slabs.
+
+**Names are dropped rather than shrunk or clipped**, on two tests. The type is one size along the
+whole belt — a row of components all labelled the same way — so a name set smaller on a narrow
+piece would read as a different kind of thing. They are off in the committed show (`labels`), and when on they are
+dropped where the piece is **too narrow** to hold it, and where the piece is **too hollow**: a good part of the catalogue is a ring of section
+in elevation, `HALFEN_38/17_L=15` among them, and a white name set on one lies across the belt
+showing through its middle. `solidity` is measured off the drawing, so that test is exact. A third trap is in the placement:
+the inset has to be measured against **the size the face was asked for**, never against
+`FontImageMap.height` — the map reports the atlas's metrics, the same trap as `FontImageMap.size`
+being an em scale rather than a point size, and an inset taken from it came out a few pixels and
+jammed every name against its piece's top edge.
+
+**The front sheet can be named at all because the gap in it was measured.** The register is 115
+rows and `objects-front.svg` recovers 112, so pairing by index would shift every name from the
+first gap onwards and never say so. An order-preserving alignment of drawn proportions against the
+register lands on rows **103, 113 and 114** being the ones it does not draw — and with that skip
+applied, **all 112** drawings match their row's proportion to within 12%, allowing either width or
+depth to be the horizontal since some pieces are drawn as a side elevation. `alignedTo` holds that
+and returns nothing for any other pairing of counts, so an unknown sheet goes unnamed rather than
+mislabelled.
+
+Neither drawer has a `package` declaration, for the reason `ObjectChapterPanel` has none: they
+stand on `loadObjectSheet`, which is in the default package, and so does `standingRow` because
+they do. A backdrop that stands on nothing there can be `package slideshow.backdrops`.
+
+The studio opens a backdrop at the wall's size — `SLIDE=Opening` — and gives it no projector
+offset, since it stands on both. Each kind is drawn into a canvas of its own and fitted into the
+window, so `up`/`down` between a slide and a backdrop letterboxes rather than resizing. In the
+running order a backdrop line carries `backdrop` and stands apart from the chapters.
 
 ### Putting a sketch in the deck
 
@@ -1460,8 +1867,31 @@ rather than failing. `ChapterPanel` is still there and still the plain version.
 itself. Everything downstream of the plate is unchanged — the same field, the same coverage
 rule, the same arrival — because the field never knew it was reading letters. So a title that
 was *drawn* rather than set, or a mark that is not type at all, can still be made of
-components. `SLIDES_CARD_IMAGE` names the file (`data/slides/chapter0.png`), and every other
-`SLIDES_CARD_*` key still steers the field.
+components. `SLIDES_CARD_IMAGE` names the file, and every other `SLIDES_CARD_*` key still
+steers the field.
+
+**Every chapter in the committed show is one of these**, and `chapterCard(section)` in
+`Slideshow.kt` is the whole of the wiring: it takes the chapter's number off the running order
+and reads `data/slides/chapter-<n>-title.png`. So the four titles are *drawn* — set full bleed
+in a condensed grotesque, broken and packed the way the design asks rather than the way
+`setToFit` would — and adding a chapter needs nothing in the code but the png beside the others.
+A chapter with no picture falls back to `ObjectChapterPanel` setting its title as type, which
+is what keeps a checkout without `data/` running rather than showing blank cards.
+
+**These need no `levels`, and that is measured rather than assumed.** The earlier
+`chapter0.png` set "DE" and "VAN" as grey outlines — its lit pixels averaged 106 — so a black
+and white point had to be pulled in before anything read it. The four chapter titles are drawn
+at one weight: 30–41% of each image is pure 251–255 white and under 1% of it falls in any
+middle band, the outlined words included. There is nothing to correct, and correcting anyway
+would only pull the antialiasing up into the ink. The rest of the recipe is `ImageCardStudio`'s
+unchanged — coarse 32 down to finest 8, `solid` 0.62, `shrink` 1.0 — because the two-grain
+problem is the same: these titles mix solid words with hairline outlined ones ("DE"/"VAN",
+"EN", "EEN"), and no coarse cell is ever wholly inside a hairline.
+
+**A still of one of these cards has to be taken late.** The reveal runs 2.8s and `STILL_HOLD`
+is 95 frames, so the contact sheet catches every card mid-sweep — the ink half way down, the
+words below it standing as holes in the ground. It looks like a fault in the packing and is a
+fault in the timing. `CARD=1 CARD_AT=4.0` is how to see a finished one.
 
 **The picture must be white on black**, which is what the mask means everywhere else here:
 white is ink, black is ground. `SLIDES_CARD_IMAGE_INVERT` reads one that is the other way
@@ -1729,3 +2159,50 @@ being too big. A line that will not fit is now set smaller instead.
 initialise in the order they are written, and the `panel { }` lambda is called *while*
 `show` is being built, as the slides go in. Written underneath it is still null when the
 cards are made.
+
+## circle mosaic
+
+[`CircleMosaic.kt`](src/main/kotlin/CircleMosaic.kt) is the chapter card's field with **nothing
+behind it but a growing circle**:
+
+```
+./gradlew run -Popenrndr.application=CircleMosaicKt
+```
+
+`j`/`k` step the mark size, `b` switches between the field and the plate it reads, `p` holds the
+clock and `.` `,` step it, `r` restarts, `s` writes a still.
+
+**It is `ObjectImageChapterPanel` with the picture replaced by a render target**, and that is the
+whole of it — the same `mosaicField`, the same coverage rule, the same arrival. Which is the
+point of doing any of it through a plate: **the field never knew it was reading letters.** A png
+off disk, type set to the frame and a circle drawn a frame at a time are all one thing to it, a
+black and white mask with a mip chain on it.
+
+**What comes out is a ring, not a disc, and that is the packing rather than anything asked for.**
+Cells wholly inside the circle stand a big mark and cells wholly outside stand a small one; only
+the cells the edge crosses subdivide. So the travelling edge is a band of fine marks moving
+outward through a field of coarse ones, and at the top of the swing — every cell inside the ink —
+the frame is one uniform field with no subdivision anywhere.
+
+Three things it does differently from the card it came from:
+
+- **The plate is repainted every frame and its mip chain rebuilt with it**, which is the *typeset*
+  card's arrangement rather than the picture card's. A picture off disk cannot move; a circle does
+  nothing else.
+- **The ground has to stand.** A cell outside the circle is as settled as one inside it, so it
+  stands its element too — `CIRCLE_SHRINK` of the size, in `CIRCLE_GROUND`. Left at the show's own
+  values (a ground that barely shows) it reads as a disc on empty paper and the piece is a shape;
+  at a grey that shows, the circle is passing *through* a standing field and swelling the marks it
+  crosses, which is the thing worth looking at.
+- **No sweep.** The staged arrival sorts cells by whether they stand in ink, and here that answer
+  moves every frame — so a staged field restages itself under the circle for as long as the reveal
+  lasts. The field arrives in its own baked random order and the circle starts from there.
+
+`CIRCLE_RETURN` grows the circle and brings it back rather than cutting: at full size every cell
+is inside the ink, so restarting from nothing throws the whole field down a size in one frame. A
+cosine turns at either end instead and **closes the loop exactly** — measured, not judged: the
+frames at 2s and 8s of the 6s period are byte-identical.
+
+The keys are its own `CIRCLE_*` rather than `SLIDES_CARD_*`, for the reason `ImageCardStudio`
+states its own: those are the typeset card's, tuned for a 1.85:1 cell off `subset.svg` and a
+ground that barely shows, and two of the three are wrong here.

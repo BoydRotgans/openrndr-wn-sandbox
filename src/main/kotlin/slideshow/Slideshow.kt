@@ -20,6 +20,7 @@ import slideshow.Settings
 import slideshow.Show
 import slideshow.present
 import slideshow.slideshow
+import java.io.File
 import slideshow.drawers.BuildSlide
 import slideshow.drawers.ChapterPanel
 import slideshow.drawers.GlobeSlide
@@ -82,6 +83,90 @@ val cardFont: String = Env["SLIDES_CARD_FONT"]?.takeIf { it.isNotBlank() }
 val city = CityMapSlide(pace = 12.0)
 
 /**
+ * The house colours, as the draaiboek draws them: navy and red on a light ground. Named
+ * here so a backdrop says `wnBlue` and the value lives in one place. The Figma export
+ * carries `#FF0000` and a lighter `#4674D6` for the same pair; the navy is the draaiboek's.
+ */
+val wnBlue = ColorRGBa.fromHex("1E3A72")
+val wnRed = ColorRGBa.fromHex("FF0000")
+val wnPaper = ColorRGBa.fromHex("E8E8E8")
+
+/**
+ * The sheet the backdrops stand their elements off. A path, so it is in `.env`; which
+ * elements stand on which wall is content and is stated in the show below.
+ */
+val backdropSheet = File(Env["SLIDES_BACKDROP_SHEET"] ?: "data/svg/subset.svg")
+
+/**
+ * The opening wall reads a sheet of its own, and needs to: it draws the catalogue *entire*,
+ * one piece after another, so it wants the full front sheet rather than the picked subset
+ * the rest of the deck stands on.
+ */
+val openingSheet = File(Env["SLIDES_OPENING_SHEET"] ?: "data/svg/objects-front.svg")
+
+/**
+ * The sheet the conveyor walls run: the **elevations**, because a piece on a belt is seen
+ * square on. The iso sheet is drawn at an angle and would not sit on one.
+ */
+val beltSheet = File(Env["SLIDES_BELT_SHEET"] ?: "data/svg/objects-front.svg")
+
+/** The concrete the opening wall's pieces are cut out of. Empty fills them flat. */
+val openingTexture = Env["SLIDES_OPENING_TEXTURE"]?.let { File(it) }
+
+/**
+ * The catalogue's register, which is what lets the wall name a piece and quote its box.
+ * Paired with the sheet by index, and only when the two are the same length — see
+ * [OpeningScene], which drops it rather than shifting every name along by one.
+ */
+val openingDetails = Env["SLIDES_OPENING_DETAILS"]?.let { File(it) }
+
+/**
+ * The card for one section: the chapter's own drawn title, packed into components.
+ *
+ * **Every chapter is a picture rather than type the card sets itself.** `data/slides` holds
+ * one png a chapter — `chapter-1-title.png` and so on, white on black, at the pane's own
+ * 1920x1080 — and [ObjectImageChapterPanel] reads it as the mask a field of catalogue
+ * elements stands in. So the titles are *drawn*: set full-bleed in a condensed grotesque,
+ * broken and packed the way the design asks rather than the way [setToFit] would, with
+ * "DE" and "VAN" outlined and the rest solid. Nothing downstream knows the difference —
+ * the field never knew it was reading letters — so all of that survives being made of
+ * components.
+ *
+ * The number comes off the running order (`chapter { }` numbers itself), so adding a
+ * chapter needs nothing here: drop `chapter-5-title.png` in and it is read. A section with
+ * subchapters carries "1.2", and the chapter's own picture is what stands behind all of
+ * them, so only the part before the dot is used.
+ *
+ * A chapter with no picture falls back to setting its title as type, which is the honest
+ * equivalent of the picture card's own fallback — `data/` is not committed, so a checkout
+ * without it still runs the show rather than showing four blank cards.
+ *
+ * The recipe is [ImageCardStudio]'s, with one difference from the version tuned for
+ * `chapter0.png`: **no `levels`.** That picture set "DE" and "VAN" in grey — its lit pixels
+ * averaged 106 — so a black and white point had to be pulled in before anything read it.
+ * These are drawn at one weight: measured, 30–41% of each is pure 251–255 white and under
+ * 1% falls in any middle band, outlined words included. There is nothing to correct, and
+ * correcting it anyway would only pull the antialiasing up into the ink.
+ */
+fun chapterCard(section: slideshow.Section): slideshow.Slide {
+    val image = File("data/slides/chapter-${section.number.substringBefore('.')}-title.png")
+    if (!image.isFile) return ObjectChapterPanel(section, cardFont)
+
+    return ObjectImageChapterPanel(
+        section,
+        image = image.path,
+        coarse = 32.0, finest = 8.0,        // several sizes: big through a stroke, small on its edge
+        fill = 1.0, gap = 2.0,              // pieces meet, held 2px apart at every level
+        uniform = false,                    // each piece fitted to its own cell, so none overflows
+        shrink = 1.0,                       // nothing shrunk: the words are carried by colour alone
+        solid = 0.62,                       // let a mostly-covered cell stand, so thin strokes get big marks
+        ground = ColorRGBa.fromHex("#2E2E2E"),
+        reveal = slideshow.frames(2.8),     // two passes and a pause need longer than the typeset 1.2s
+        sweep = 1.0, stage = 0.45, delay = 0.12   // ground up from the foot, then ink down from the head
+    )
+}
+
+/**
  * Everything a build answers to, declared once and used twice: the tree hangs them off the
  * element the city closes on, and the globe then turns them up one at a time. Reword a line
  * here and both slides follow — in each of them the layout is a function of the list rather
@@ -121,43 +206,83 @@ val show = slideshow {
     // 3840 canvas above: two keynote-sized sides, meeting with no gutter, so the
     // two grounds are what divide the frame rather than a bar between them.
     //
-    // A lambda rather than `::ChapterPanel` so the card can be handed the face:
-    // `data/fonts` holds one weight of IBM Plex and no bold, so a bold serif has
-    // to come from outside the project. SLIDES_PANEL_FONT names another, and an
-    // unusable one falls back to the bundled face rather than stopping the show.
-    panel({ ObjectChapterPanel(it, cardFont) }, width = 1920, gap = 0)
+    // Every chapter's card is its own drawn title off data/slides, packed into
+    // catalogue elements — see chapterCard above, which picks the picture off the
+    // section number and falls back to setting the title as type where there is
+    // none. So adding a chapter needs nothing here but the png.
+    panel(::chapterCard, width = 1920, gap = 0)
 
     // --- the running order ------------------------------------------------- //
     //
+    // The talk is one part of the evening's draaiboek, and the wall carries
+    // pictures around it: backdrops, taking both projectors with no chapter card
+    // beside them. They are in the same deck as the slides, so `->` off the
+    // opening scene is the first slide and `->` off the last slide is the closing
+    // scene. See ObjectScene in backdrop-drawers/ for the drawing.
+    //
+    // 18:30, Aanvang: a black wall on which the catalogue draws itself. A piece to
+    // the left half and one to the right, each drawn as a single travelling white
+    // line and flooded solid the moment its outline closes; the pair holds, slides
+    // up, and the next two are drawn — right through objects-front.svg, so every
+    // variant has its turn while the room comes in.
+    //
+    // Its own drawer rather than the plain ObjectScene below: this wall is up for
+    // the better part of an hour and is the first thing anyone sees, so it is the
+    // one that grew an arrangement of its own. The two share no code but the sheet
+    // loader, so work here cannot land on the closing wall.
+    backdrop(
+        // The annotation is white — one ink on the wall. `label = wnRed` marks it up in
+        // the house red instead, and `label = null` drops it entirely.
+        OpeningScene(
+            sheet = openingSheet,
+            // The regular weight, not the deck's bold: the annotation is a caption on a
+            // drawing, and the bold read as a heading beside a piece rather than under it.
+            fontPath = textFont,
+            concrete = openingTexture,
+            details = openingDetails
+        ),
+        title = "Opening scene",
+        notes = "Aanvang. Draws the whole catalogue, two pieces a turn, and repeats; " +
+                "-> goes to the first chapter whenever the talk starts."
+    )
+
+    // 19:30 and 19:45, Opening/Welcome and Eerste gang: the light walls, after the black
+    // one the room arrived to. The catalogue goes by on a belt, each piece flat and named
+    // — the same drawer twice, because the picture is one idea and the palette is what
+    // tells the two moments apart. See ConveyorScene in backdrop-drawers/.
+    backdrop(
+        ConveyorScene(
+            // The register is what makes the belt draw the pieces to scale against one
+            // another; `labels = true` puts their names back on them.
+            "Welcome", beltSheet, details = openingDetails, concrete = openingTexture,
+            // The house pair and nothing else, on black.
+            palette = listOf(wnRed, wnBlue),
+            fontPath = boldFont
+        ),
+        title = "Welcome",
+        notes = "Introduction of objects. The catalogue on a belt, running left."
+    )
+
+    backdrop(
+        ConveyorScene(
+            "Eerste gang", beltSheet, details = openingDetails, concrete = openingTexture,
+            // The same pair the other way round, so the two belts open on different
+            // colours rather than being the same picture at another speed.
+            palette = listOf(wnBlue, wnRed),
+            // The rows run the other way round, and a touch slower: the same belt seen later
+            // in the evening rather than the same picture shown twice.
+            reversed = true, move = 2.2, rest = 1.2,
+            fontPath = boldFont
+        ),
+        title = "Eerste gang",
+        notes = "The belt again in the second palette, running right."
+    )
+
     // Slides hang straight off their chapter here, with no subchapter over them.
     // A chapter can still hold `subchapter("...") { }` where a section needs
     // dividing — the card then carries its name and number at the foot.
 
-    // The first chapter's card is the *drawn* title rather than a set one:
-    // ObjectImageChapterPanel reads data/slides/chapter0.png and packs the same field of
-    // components into it. Everything it is made of is stated here rather than left to
-    // `.env`, and has to be — the SLIDES_CARD_* keys are the typeset card's and are tuned
-    // for it, so a picture read through them comes up wrong in every particular: square-ish
-    // marks shrunk away from a 1.85 cell, no levels on a picture that needs them, and a
-    // strict `solid` that draws the thin lettering in the smallest marks the field has.
-    //
-    // The numbers are ImageCardStudio's, which is where they were arrived at. See the
-    // chapter card notes in CLAUDE.md for what each of them is doing.
-    chapter("De wereld van bouwen", panel = {
-        ObjectImageChapterPanel(
-            it,
-            image = "data/slides/chapter0.png",
-            coarse = 32.0, finest = 8.0,        // several sizes: big through a stroke, small on its edge
-            fill = 1.0, gap = 2.0,              // pieces meet, held 2px apart at every level
-            uniform = false,                    // each piece fitted to its own cell, so none overflows
-            shrink = 1.0,                       // nothing shrunk: the words are carried by colour alone
-            solid = 0.62,                       // let a mostly-covered cell stand, so thin strokes get big marks
-            levels = 0.06 to 0.38,              // the png sets DE/VAN in grey; this brings them to full ink
-            ground = ColorRGBa.fromHex("#2E2E2E"),
-            reveal = slideshow.frames(2.8),   // qualified: bare `frames` is figma-rest's Node.Canvas.frames()               // two passes and a pause need longer than the typeset 1.2s
-            sweep = 1.0, stage = 0.45, delay = 0.12   // ground up from the foot, then ink down from the head
-        )
-    }) {
+    chapter("De wereld van bouwen") {
         slide(
             QuoteSlide(
                 "“Hoe bouw je een wereld die vandaag stevig overeind blijft, " +
@@ -321,6 +446,20 @@ val show = slideshow {
         )
         slide(HardCutSlide(), notes = "No handover at all — the slide is simply there.")
     }
+
+    // 22:00, Uitloop: the opening scene with the colours the other way round — the
+    // same two elements in the same places, red then navy — which is how the
+    // draaiboek draws the exit against the arrival.
+    backdrop(
+        ObjectScene(
+            "Closing", backdropSheet,
+            objects = listOf(7, 3),
+            palette = listOf(wnRed, wnBlue),
+            paper = wnPaper
+        ),
+        title = "Closing scene",
+        notes = "Uitloop. The opening scene, colours swapped. The last -> lands here."
+    )
 }
 
 fun main() {
@@ -353,6 +492,9 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         height = Env["${prefix}_HEIGHT"]?.toIntOrNull() ?: settings.height,
         windowScale = Env["${prefix}_WINDOW_SCALE"]?.toDoubleOrNull() ?: settings.windowScale,
         fullscreen = Env["${prefix}_FULLSCREEN"]?.let { Env.boolean("${prefix}_FULLSCREEN") } ?: settings.fullscreen,
+        undecorated = Env["${prefix}_UNDECORATED"]?.let { Env.boolean("${prefix}_UNDECORATED") } ?: settings.undecorated,
+        windowX = Env["${prefix}_WINDOW_X"]?.toIntOrNull() ?: settings.windowX,
+        windowY = Env["${prefix}_WINDOW_Y"]?.toIntOrNull() ?: settings.windowY,
         title = Env["${prefix}_TITLE"] ?: settings.title,
         start = Env["${prefix}_START"] ?: settings.start,
         debug = Env["${prefix}_DEBUG"]?.let { Env.boolean("${prefix}_DEBUG") } ?: settings.debug,

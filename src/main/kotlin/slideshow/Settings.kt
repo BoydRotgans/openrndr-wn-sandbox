@@ -16,6 +16,22 @@ data class Settings(
     /** How much of the screen the window takes. The canvas is unaffected. */
     val windowScale: Double = 0.6,
     val fullscreen: Boolean = false,
+    /**
+     * Drop the title bar and let the window sit exactly where it is put.
+     *
+     * This, rather than [fullscreen], is what puts the show on a wall of projectors:
+     * fullscreen takes **one** display, so a 3840x1080 canvas spanning two of them has to be
+     * an undecorated window placed across both. Decorations would also shift the canvas down
+     * by the bar's height and leave it there.
+     */
+    val undecorated: Boolean = false,
+    /**
+     * Where the window's top-left corner goes, in screen points — not pixels, so on a Retina
+     * laptop the offset to a display beside it is that laptop's *logical* width and not its
+     * native one. Null leaves the placement to the window manager.
+     */
+    val windowX: Int? = null,
+    val windowY: Int? = null,
     val title: String = "slideshow",
     /** Slide to open on: a number from 1, or a slide's name. Empty starts at the first. */
     val start: String? = null,

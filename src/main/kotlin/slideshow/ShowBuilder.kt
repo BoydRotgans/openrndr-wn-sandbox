@@ -36,7 +36,8 @@ fun slideshow(build: ShowBuilder.() -> Unit): Show = ShowBuilder().apply(build).
  * [panels] is the second track — the chapter cards standing in the left pane, one per
  * subchapter, and [panelOf] says which of them belongs beside each slide. Two tracks
  * rather than one composite drawing, because they change on different things: the slide
- * changes on a click, the panel only when the chapter or subchapter does.
+ * changes on a click, the panel only when the chapter or subchapter does. A [Backdrop]
+ * has no card beside it and carries `-1` there.
  */
 data class Show(
     val slides: List<Slide>,
@@ -166,6 +167,21 @@ class ShowBuilder internal constructor() {
     fun slide(slide: Slide, title: String? = null, notes: String? = null) =
         add(slide, Placement(0, "", 0, "", title, notes))
 
+    /**
+     * A backdrop: a picture that takes the whole wall, standing outside the chapters.
+     *
+     * It goes into the same deck as the slides, in the order it is declared — so one
+     * before the first chapter is what the show opens on and what `->` leaves for the first
+     * slide, and one after the last chapter is where the last slide's `->` lands. It has no
+     * chapter card beside it and touches no section: a backdrop between two slides of one
+     * chapter leaves that chapter's card standing for the slide after it.
+     */
+    fun backdrop(backdrop: Backdrop, title: String? = null, notes: String? = null) {
+        slides += backdrop
+        places += Placement(0, "", 0, "", title, notes)
+        panelOf += -1
+    }
+
     internal fun add(slide: Slide, place: Placement, panel: PanelDrawer? = null) {
         slides += slide
         places += place
@@ -177,12 +193,14 @@ class ShowBuilder internal constructor() {
             section = here
             (panel ?: panelDrawer)?.let { panels += it(place.section()) }
         }
-        if (panels.isNotEmpty()) panelOf += panels.size - 1
+        panelOf += if (panels.isNotEmpty()) panels.size - 1 else -1
     }
 
     internal fun build(): Show {
         require(slides.isNotEmpty()) { "a show needs at least one slide" }
-        require(panelOf.isEmpty() || panelOf.size == slides.size) {
+        // Once any slide has a card, every slide that is not a backdrop must have one.
+        val carded = panelOf.any { it >= 0 }
+        require(!carded || slides.indices.all { panelOf[it] >= 0 || slides[it] is Backdrop }) {
             "a chapter sets its own panel but the show has none. Call panel(::YourPanel) " +
                     "in the show, then override it on the chapters that need another card."
         }
@@ -244,6 +262,8 @@ fun Show.runningOrder(): String = buildString {
             chapter = place.chapter
             subchapter = Int.MIN_VALUE
             if (place.chapterTitle.isNotBlank()) appendLine("\n${place.chapter}  ${place.chapterTitle}")
+            // a backdrop after a chapter stands apart from it
+            else if (index > 0) appendLine()
         }
         if (place != null && place.subchapter != subchapter) {
             subchapter = place.subchapter
@@ -255,6 +275,7 @@ fun Show.runningOrder(): String = buildString {
                 index + 1,
                 place?.title ?: slide.name,
                 buildList {
+                    if (slide is Backdrop) add("backdrop")
                     add(if (slide.steps == 1) "1 click" else "${slide.steps} clicks")
                     add("%.2fs".format(seconds(slide.stepFrames)))
                     if (slide.loop > 0) add("loop %.1fs".format(seconds(slide.loop)))

@@ -45,6 +45,9 @@ class Deck(
     val step: Int get() = current.step
     val count: Int get() = slides.size
 
+    /** The slide on its way out while a handover runs; null once one slide has the frame. */
+    val leavingSlide: Slide? get() = leaving?.slide
+
     /** 0..1 across the handover between two slides; 1 when one slide has the frame. */
     val handover: Double get() = ramp(frame - transitionAt, transition.length)
 

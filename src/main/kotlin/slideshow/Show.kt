@@ -16,6 +16,7 @@ import org.openrndr.draw.isolatedWithTarget
 import org.openrndr.draw.loadFont
 import org.openrndr.draw.renderTarget
 import org.openrndr.ffmpeg.ScreenRecorder
+import org.openrndr.math.IntVector2
 import org.openrndr.shape.Rectangle
 import java.io.File
 import kotlin.math.min
@@ -31,6 +32,10 @@ import kotlin.math.min
  * With [Show.panels] set, there are **two** decks side by side rather than one — the
  * slides on the right and, on the left, a card per chapter/subchapter standing beside
  * them. See "two panes" below.
+ *
+ * A [Backdrop] takes the whole canvas instead — no card, no pane — and the deck steps into
+ * and out of one like any other slide. See "the wall" in the draw loop for how a handover
+ * between the two shapes is composed.
  *
  *     ->                            next click, running on into the next slide
  *     <-                            back
@@ -56,7 +61,9 @@ fun present(show: Show) = application {
         width = (settings.width * settings.windowScale).toInt()
         height = (settings.height * settings.windowScale).toInt()
         title = settings.title
-        if (settings.fullscreen) fullscreen = Fullscreen.CURRENT_DISPLAY_MODE
+        hideWindowDecorations = settings.undecorated
+        settings.windowX?.let { position = IntVector2(it, settings.windowY ?: 0) }
+        //if (settings.fullscreen) fullscreen = Fullscreen.CURRENT_DISPLAY_MODE
     }
 
     program {
@@ -89,10 +96,13 @@ fun present(show: Show) = application {
         val slideWidth = settings.width - (if (hasPanels) panelWidth + gap else 0)
         val slideBounds = Rectangle(0.0, 0.0, slideWidth.toDouble(), settings.height.toDouble())
         val panelBounds = Rectangle(0.0, 0.0, panelWidth.toDouble(), settings.height.toDouble())
+        val canvasBounds = Rectangle(0.0, 0.0, settings.width.toDouble(), settings.height.toDouble())
         val slideOffsetX = if (hasPanels) (panelWidth + gap).toDouble() else 0.0
 
+        // -1 when the show opens on a backdrop: no card is wanted yet, and the panel deck
+        // stands at the first one, unseen, until a slide asks for it.
         val startPanel = show.panelOf.getOrElse(startSlide) { 0 }
-        val panelDeck = if (hasPanels) Deck(show.panels, startPanel) else null
+        val panelDeck = if (hasPanels) Deck(show.panels, startPanel.coerceAtLeast(0)) else null
         var shownPanel = startPanel
         var shownSlide = startSlide
 
@@ -102,7 +112,7 @@ fun present(show: Show) = application {
         // A contact sheet is a record of the *slides*, and the card standing open is a move
         // rather than a state of one — left open it would cover the first slide of every
         // chapter. So stills start with it already across.
-        if (settings.stills) panelDeck?.goTo(startPanel, closed(startPanel), cut = true)
+        if (settings.stills) panelDeck?.let { it.goTo(it.index, closed(it.index), cut = true) }
 
         fun buffer(w: Int, h: Int) = renderTarget(w, h) {
             colorBuffer()
@@ -120,6 +130,13 @@ fun present(show: Show) = application {
         val panelCanvas = if (hasPanels) buffer(panelWidth, settings.height) else null
         val panelLeaving = if (hasPanels) buffer(panelWidth, settings.height) else null
         val panelArriving = if (hasPanels) buffer(panelWidth, settings.height) else null
+
+        // A backdrop composes for the whole canvas, and a handover with one on either side
+        // is composed there too (see "the wall" below), so that needs a leaving and
+        // arriving pair at canvas size. Only a show that has a backdrop pays for them.
+        val hasBackdrops = slides.any { it is Backdrop }
+        val wallLeaving = if (hasBackdrops) buffer(settings.width, settings.height) else null
+        val wallArriving = if (hasBackdrops) buffer(settings.width, settings.height) else null
 
         // Only the outer canvas is ever minified — into the window — so it is the only
         // one that needs mipmaps; the panes are blitted into it at their native size.
@@ -172,13 +189,14 @@ fun present(show: Show) = application {
          * Whether the chapter card is still holding the frame — a card that declares two
          * steps and has not been opened yet. While it is, the arrows belong to *it*: the
          * card is over the slide pane and the click that carries it across is its own beat,
-         * not a click of the slide underneath.
+         * not a click of the slide underneath. Never under a backdrop: there is no card on
+         * the wall to hold it.
          */
-        fun cardHoldsTheFrame(): Boolean =
-            panelDeck != null && panelDeck.slide.steps > 1 && panelDeck.step == 0
+        fun cardHoldsTheFrame(): Boolean = deck.slide !is Backdrop &&
+                panelDeck != null && panelDeck.slide.steps > 1 && panelDeck.step == 0
 
-        /** True when the slide deck is on the very first click of its section. */
-        fun atSectionStart(): Boolean = deck.step == 0 && (deck.index == 0 ||
+        /** True when the slide deck is on the very first click of its section. A backdrop has none. */
+        fun atSectionStart(): Boolean = deck.slide !is Backdrop && deck.step == 0 && (deck.index == 0 ||
                 show.panelOf.getOrElse(deck.index) { -1 } != show.panelOf.getOrElse(deck.index - 1) { -2 })
 
         fun forward() = if (cardHoldsTheFrame()) panelDeck!!.next() else deck.next()
@@ -189,10 +207,14 @@ fun present(show: Show) = application {
                 panelDeck.step > 0 && atSectionStart()) panelDeck.back() else deck.back()
         }
 
-        /** `0` puts the card back over the slide, fresh, so the show is exactly as it boots. */
+        /**
+         * `0` puts the card back over the slide, fresh, so the show is exactly as it boots.
+         * On a backdrop there is no card to put back; it arrives with the first slide.
+         */
         fun openCard() {
             val panel = panelDeck ?: return
             val target = show.panelOf.getOrElse(deck.index) { 0 }
+            if (target < 0) return
             if (panel.index == target) panel.replay() else panel.goTo(target, 0, cut = true)
             shownPanel = target
         }
@@ -270,7 +292,23 @@ fun present(show: Show) = application {
             if (panelDeck != null) {
                 val wanted = show.panelOf.getOrElse(deck.index) { shownPanel }
                 val opening = atSectionStart() && !settings.stills
+
+                // Forward out of a backdrop into a section. There was no card on the wall,
+                // so the one wanted now *arrives* — from its first frame, with its own
+                // entrance — rather than standing there already built: it has been ticking
+                // unseen since the show booted or last left it, and an opening scene may
+                // have stood for an hour.
+                val fromBackdrop = deck.index > shownSlide && slides[shownSlide] is Backdrop
+
                 when {
+                    // A backdrop wants no card. The panel deck holds where it is, unseen,
+                    // so stepping back into the section finds the card as it was left.
+                    wanted < 0 -> {}
+
+                    fromBackdrop && opening ->
+                        if (wanted != panelDeck.index) panelDeck.goTo(wanted, 0, cut = true)
+                        else panelDeck.replay()
+
                     wanted != shownPanel ->
                         panelDeck.goTo(wanted, if (opening) 0 else closed(wanted), cut = false)
 
@@ -279,7 +317,7 @@ fun present(show: Show) = application {
                     deck.index != shownSlide && !opening && panelDeck.step != closed(wanted) ->
                         panelDeck.goTo(wanted, closed(wanted), cut = false)
                 }
-                shownPanel = wanted
+                if (wanted >= 0) shownPanel = wanted
                 shownSlide = deck.index
             }
 
@@ -303,12 +341,28 @@ fun present(show: Show) = application {
                 forward()
             }
 
-            val slideStage = renderPane(slideCanvas, slideLeaving, slideArriving, deck, slideBounds)
-            val panelStage = if (panelDeck != null)
+            // --- the wall ------------------------------------------------------------ //
+            //
+            // A slide composes for its pane and a backdrop for the whole canvas, so a
+            // handover with a backdrop on either side cannot be composed pane by pane: the
+            // two sides are different shapes. It is composed on the wall instead — the
+            // leaving picture is whatever the whole frame showed, a slide beside its card
+            // or a backdrop edge to edge, the arriving picture likewise, and the transition
+            // mixes those two. Between two slides nothing changes: each pane still hands
+            // over on its own.
+            val arriving = deck.slide
+            val leaving = deck.leavingSlide
+            val wide = leaving != null && (arriving is Backdrop || leaving is Backdrop)
+
+            // The card is rendered whenever it can be seen: beside a slide, or in a wall a
+            // slide is leaving or arriving as. Under a backdrop standing alone it is not
+            // asked for — a mosaic card repaints its plate every frame, for nobody.
+            val panelStage = if (panelDeck != null && (wide || arriving !is Backdrop))
                 renderPane(panelCanvas!!, panelLeaving!!, panelArriving!!, panelDeck, panelBounds) else null
 
-            drawer.isolatedWithTarget(canvas) {
-                drawer.ortho(canvas)
+            /** The two panes composed into [target]: the wall as the presentation shows it. */
+            fun composePanes(target: RenderTarget) = drawer.isolatedWithTarget(target) {
+                drawer.ortho(target)
                 // shows in the gutter, and behind a pane that does not fill the canvas
                 drawer.clear(settings.gutter)
 
@@ -330,9 +384,47 @@ fun present(show: Show) = application {
                 }
             }
 
+            /** The whole wall for one shot: a backdrop edge to edge, or a slide beside its card. */
+            fun wall(target: RenderTarget, shot: Deck.Shot) {
+                if (shot.slide is Backdrop) paint(target, shot)
+                else {
+                    paint(slideCanvas, shot)
+                    composePanes(target)
+                }
+            }
+
+            fun boundsOf(slide: Slide) = if (slide is Backdrop) canvasBounds else slideBounds
+
+            val slideStage: Stage = when {
+                wide -> {
+                    val from = deck.leavingShot(boundsOf(leaving!!))!!
+                    val to = deck.shot(boundsOf(arriving))
+                    wall(wallLeaving!!, from)
+                    wall(wallArriving!!, to)
+                    drawer.isolatedWithTarget(canvas) {
+                        drawer.ortho(canvas)
+                        // the ground a push slides over; a fade never shows it
+                        drawer.clear(to.slide.background)
+                        deck.composite(drawer, wallLeaving.colorBuffer(0), wallArriving.colorBuffer(0))
+                    }
+                    to.stage
+                }
+
+                arriving is Backdrop -> {
+                    val to = deck.shot(canvasBounds)
+                    paint(canvas, to)
+                    to.stage
+                }
+
+                else -> {
+                    val stage = renderPane(slideCanvas, slideLeaving, slideArriving, deck, slideBounds)
+                    composePanes(canvas)
+                    stage
+                }
+            }
+
             // The canvas is fitted into the window rather than stretched to it, so a
             // projector of another shape letterboxes instead of distorting the slides.
-            val canvasBounds = Rectangle(0.0, 0.0, settings.width.toDouble(), settings.height.toDouble())
             val fit = min(width / canvasBounds.width, height / canvasBounds.height)
             val shown = Rectangle.fromCenter(
                 Rectangle(0.0, 0.0, width.toDouble(), height.toDouble()).center,
