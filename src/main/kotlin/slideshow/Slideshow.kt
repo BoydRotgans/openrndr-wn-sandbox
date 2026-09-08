@@ -229,6 +229,12 @@ val openingSheet = File(Env["SLIDES_OPENING_SHEET"] ?: "data/svg/objects-front.s
  */
 val beltSheet = File(Env["SLIDES_BELT_SHEET"] ?: "data/svg/objects-front.svg")
 
+/**
+ * The catalogue as meshes — the same 115 pieces the sheets hold flat, as real geometry — which
+ * is what the yard wall stacks. A path, so it is in `.env`.
+ */
+val yardObjects = File(Env["SLIDES_YARD_OBJECTS"] ?: "data/objects")
+
 /** The concrete the opening wall's pieces are cut out of. Empty fills them flat. */
 val openingTexture = Env["SLIDES_OPENING_TEXTURE"]?.let { File(it) }
 
@@ -638,6 +644,27 @@ val show = slideshow {
                     "close together — five blocks against four makes twenty slab-widths."
         )
     }
+
+    // The yard: the catalogue's pieces in the round, side by side at one height on a
+    // white ground, each turning slowly on the spot under a low sun as the row drifts
+    // across the wall. The second course wall, after the belt — the same catalogue the
+    // belt shows flat, now as things. See YardScene in backdrop-drawers/.
+    backdrop(
+        YardScene(objects = yardObjects, ink = wnRed, shadow = wnBlue),   // the house pair: red pieces, navy shadow
+        title = "Yard",
+        notes = "The pieces laid end to end at one height, one colour with a long sharp " +
+                "shadow, passing slowly and each turning on its own axis."
+    )
+
+    // The gallery: the whole catalogue on a dense grid, every piece once, all turning slowly
+    // with the phase rippling across the field — calm, because nothing starts or stops.
+    // See GalleryMode in backdrop-drawers/.
+    backdrop(
+        GalleryMode(objects = yardObjects, ink = wnRed, shadow = wnBlue),   // no picks: the whole catalogue
+        title = "Gallery",
+        notes = "All 115 pieces once each on a 23x5 grid on the white ground, every one " +
+                "turning slowly, the phase rippling across the field as a sine."
+    )
 
     // 22:00, Uitloop: the opening scene with the colours the other way round — the
     // same two elements in the same places, red then navy — which is how the

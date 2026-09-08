@@ -1359,6 +1359,116 @@ depth to be the horizontal since some pieces are drawn as a side elevation. `ali
 and returns nothing for any other pairing of counts, so an unknown sheet goes unnamed rather than
 mislabelled.
 
+- **`YardScene` is the catalogue in the round**: the 115 `.obj` pieces of `data/objects` — the
+  same catalogue the sheets hold flat, as the real geometry — laid in one row at one height on a
+  white ground, in one colour with a long sharp shadow, each turning slowly on its own vertical
+  axis as the row drifts across the wall. The belt wall's arrangement in three dimensions, and
+  the last wall before the exit — the catalogue the belt showed flat at the start, now as things.
+  It stands on `loadObjMeshes` and so has no `package` declaration either.
+
+**The row is one strip, laid end to end at each piece's own width plus a gap**, the offsets
+cumulative and worked out once at load; the strip wraps, and where a piece is on any frame is a
+multiplication and a remainder, its angle another — nothing carried between frames, so it scrubs
+and films. The pieces stand where they are; an earlier version dropped each one in from above as
+its place entered the wall, and was taken out for being more than the wall needed.
+
+**Because the pieces turn, they are spaced and fitted by what they reach at any angle, not by
+what they show at one.** A 24 m beam turning on its centre sweeps a circle its own length
+across; measured at its home angle it fitted its slot and would have swung through both
+neighbours. So a piece's width is its sweep, `2 · spinRadius`, the same whatever the angle, and
+its height is the most that sweep can reach up the screen at the iso pitch — `halfHeight ·
+cos(pitch) + spinRadius · sin(pitch)`, a bound rather than a measurement, so the row holds still
+while the pieces turn. That is the rule `Objects` keeps for the same reason. The width cap is the
+belt's `widest`, for the belt's reason: to scale, the catalogue runs from a 5 cm plate to a 144 m
+floor. The pieces are a golden turn out of phase with one another, so the row does not rotate as
+one thing.
+
+**The fit has to be measured on the screen, not in Y.** At the iso pitch a piece's *depth*
+projects onto the screen's vertical as well as its height does, so a 24 m beam lying away from
+the viewer is short in Y and a wall tall on screen: fitted by `halfHeight` alone it came out
+1016 px against the 540 asked for. Everything vertical here is measured along the view's own up
+vector, the same measurement the Objects grid spaces with.
+
+**The shadow is a shear, sharp, and drawn before the pieces.** A parallel light on a parallel
+camera makes laying a piece flat on its floor one matrix — `Objects`' poster shadow. It is
+applied *between* the placement and the rotation, in world orientation, so the shadow lies along
+the light however the piece has turned; applied in the piece's own frame it turns with the
+piece. Every shadow is drawn before any piece, with no depth written, so a piece always stands on
+a shadow and never under one — the whole of the depth sorting needed. The ground is a plane,
+world `y = G`, and every piece stands and turns on it; the wall's ground line is where that plane
+crosses the screen.
+
+**Shadows come in exactly two tones — one layer, and more than one — and that is a count in
+the stencil buffer, not a blend.** A flattened piece laps *itself* wherever it doubles back, so
+alpha would darken a single shadow's own overlaps as if they were two; that is why the first
+version was opaque, and why `Objects` renders its shadow to a buffer and blurs it. Counting
+does it sharp: each shadow is drawn twice with the colour channels shut, the first pass setting
+a flag bit over its footprint, the second incrementing the pixel wherever the flag is set — an
+increment clears the flag *and* bumps the count in one operation, so a second fragment of the
+same shadow finds no flag and counts nothing. Two fills across the wall then read the count
+back: exactly one shadow paints the house navy, two or more paint black. The stencil holds
+twice the count, the flag being its low bit, and the two fills test it with `EQUAL` and
+`NOT_EQUAL` under bit masks — the one-shadow fill `EQUAL 2` masked `0xfe`, the more-than-one
+fill `NOT_EQUAL 0` masked `0xfc` — because those read the same whichever way round the
+comparison runs. An ordered test was tried first, `LESS_OR_EQUAL` against 4 for "two or more",
+and it passed on the untouched wall as well: the whole wall went black under the pieces. A
+translucent version was built before that, navy at 0.55 over white, and measured as two tones;
+it was too faint and went. Measured as it stands: white 78%, navy 9%, red 8%, black 5%, and
+nothing else.
+
+**A piece is drawn a whole wall's width before it reaches the wall.** Its shadow, thrown left, lies
+on the wall long before the piece does; culled at the edge the shadow *popped* in as the piece
+arrived. The body is clipped by the window and only the shadow shows, which is the point.
+
+**The lean direction matters, and only along the wall works.** `Objects` leans its shadow
+toward −x −z, which at yaw 45 is straight *away* from the viewer: the shadow lies entirely behind
+the piece and the piece covers it — measured, 0% of the wall was shadow. Toward the viewer it
+runs off the bottom edge. So the light stands to one side and the shadow lies **along the wall**:
+`light = 135` leans it to screen-left, back over the pieces that came before, and −45 is the
+mirror. A turning light was tried — the shadow sweeps round and passes behind each piece once a
+turn, measured going 0.6% → 4.9% of the wall and back — and dropped for a fixed low sun:
+`slant = 5`, eleven degrees up, so a shadow is five times the height of what casts it and runs
+under the next several pieces. It is the *world* height that casts, so a standing column throws
+a long one and a beam lying down a short one. White ground rather than black, because a shadow
+has nowhere to fall on black.
+
+- **`GalleryMode` is the yard's picture without the yard's drift**: the whole catalogue, every
+  one of the 115 pieces once, on a dense grid across the white ground, every piece turning
+  slowly on its own axis — and **each offset in phase by a sine of where it stands**, so a wave
+  of "facing" runs across the wall and no two pieces show the same face at once. Calm, because
+  nothing moves quickly and nothing starts or stops.
+
+**Everything is a function of the frame.** A piece's angle is the frame times one slow rate
+plus its phase, and the phase is a sine of its column (`ripple` waves across the wall) shifted a
+share of a turn per row — nothing scheduled, nothing carried between frames. The wall began as a
+grid where one piece at a time turned a quarter and came to rest in a shuffled order, and that
+was measured working (exactly one cell changing per beat); it was replaced by the continuous
+field, which the same three dials describe with less machinery.
+
+**The grid is read off the count, not stated.** Given the pieces and the wall's proportion it
+takes the row count that leaves the fewest cells empty and, among those, the cell nearest
+square: 115 on this wall comes out 23 by 5 exactly. The pieces are shuffled onto the cells from
+the seed, because the catalogue is alphabetical and thirty-odd `WAND_n` would otherwise stand in
+a block; a short `picks` list repeats to fill the grid instead, which is how the wall began —
+three pieces on 6x2, then 9x3 — before it was asked for everything.
+
+**A piece's ground plane is not at the foot of its cell, and the bottom row fell off the wall
+until it was moved.** A turning piece's near corner swings toward the viewer and so *below* the
+plane it stands on, by up to its sweep radius times `sin(pitch)`; stood on the cell's foot, the
+bottom row reached past y = 1080. So the plane sits that far up from the box's foot, and the
+whole any-angle box — that much under the plane and the rest above — is the middle `fill` of the
+cell, with the gutter split evenly above and below. Measured: red from 18 to 1062 on a 1080 wall,
+and no piece leaving its cell. The fill is 0.84 and the sweep cap 0.86 of the cell's width so the
+gutters match across and down, which is what makes it read as a collection rather than a field,
+and the whole grid stands inside a margin of 7% of the wall's height on every side;
+and the gallery's sun is lower than the yard's (`slant` 2.2 against 5) so each piece's shadow
+stays mostly in its own cell — black, the two-or-more tone, went from 8% of the wall to 1.5%.
+
+**Everything below the layout is [`IsoPieces`](src/main/kotlin/slideshow/backdrop-drawers/IsoPieces.kt)**,
+shared by the yard and the gallery: the iso camera, the any-angle fit, the shear, the two-tone
+shadow count in the stencil. One implementation rather than two that drift; the two walls differ
+only in where they put the pieces and what they do with the frame.
+
 Neither drawer has a `package` declaration, for the reason `ObjectChapterPanel` has none: they
 stand on `loadObjectSheet`, which is in the default package, and so does `standingRow` because
 they do. A backdrop that stands on nothing there can be `package slideshow.backdrops`.
