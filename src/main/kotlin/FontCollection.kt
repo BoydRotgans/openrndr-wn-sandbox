@@ -60,6 +60,30 @@ private fun faceName(b: ByteBuffer, offset: Int): String? {
     return null
 }
 
+/**
+ * Which face of a collection [wanted] names: an exact name first, then a loose one.
+ *
+ * **A loose match must not slide into an italic when none was asked for.** Rockwell's
+ * collection holds `Rockwell-Bold` and `Rockwell Bold Italic`, and "Rockwell Bold" is
+ * contained in the second before it is contained in the first — so the obvious `contains`
+ * hands back the italic, which is a thing you notice on a slide and not in a path. Naming the
+ * italic still finds it, because then the ask says so.
+ */
+private fun pickFace(names: List<String?>, wanted: String?): Int {
+    val w = wanted?.trim()?.takeIf { it.isNotBlank() } ?: return 0
+
+    val exact = names.indexOfFirst { it != null && it.equals(w, true) }
+    if (exact >= 0) return exact
+
+    val italic = w.contains("italic", true)
+    val upright = names.indexOfFirst {
+        it != null && it.contains(w, true) && (italic || !it.contains("italic", true))
+    }
+    if (upright >= 0) return upright
+
+    return names.indexOfFirst { it != null && it.contains(w, true) }.coerceAtLeast(0)
+}
+
 /** Every face in [file], in the order the collection lists them. */
 fun fontCollectionFaces(file: File): List<String> {
     val b = buffer(file)
@@ -67,25 +91,27 @@ fun fontCollectionFaces(file: File): List<String> {
 }
 
 /**
- * Writes the face of [file] whose name contains [wanted] to [into], as a standalone font,
- * and returns it. Falls back to the first face when nothing matches. Existing output newer
- * than the collection is left alone, so this costs nothing after the first run.
+ * Writes the face of [file] that [wanted] names to [into], as a standalone font, and returns
+ * it. Falls back to the first face when nothing matches.
+ *
+ * **The cache is checked by name, not by date**, and it has to be. [into] is named after the
+ * *wanted* string flattened to something a filesystem will take, and two different requests
+ * flatten to the same name — "Rockwell Bold" and "Rockwell-Bold" both give `Rockwell-Bold.ttf`
+ * and resolve to different faces of the collection. On a date check the second request
+ * silently gets whatever the first one left there, and the only symptom is a deck set in the
+ * wrong weight. Comparing the face already written against the face now asked for costs one
+ * name table and cannot go wrong that way.
  */
 fun extractFontFace(file: File, wanted: String?, into: File): File {
-    if (into.isFile && into.lastModified() >= file.lastModified()) return into
-
     val b = buffer(file)
     val offsets = faceOffsets(b)
     val names = offsets.map { faceName(b, it) }
-    val chosen = wanted
-        ?.takeIf { it.isNotBlank() }
-        ?.let { w -> names.indexOfFirst { it != null && it.equals(w, true) } }
-        ?.takeIf { it >= 0 }
-        ?: wanted?.takeIf { it.isNotBlank() }
-            ?.let { w -> names.indexOfFirst { it != null && it.contains(w, true) } }
-            ?.takeIf { it >= 0 }
-        ?: 0
+    val chosen = pickFace(names, wanted)
     val face = offsets[chosen]
+
+    val already = if (into.isFile && into.lastModified() >= file.lastModified())
+        runCatching { faceName(buffer(into), 0) }.getOrNull() else null
+    if (already != null && already == names[chosen]) return into
 
     // The tables this face names, in the order it names them.
     val tables = b.u16(face + 4)

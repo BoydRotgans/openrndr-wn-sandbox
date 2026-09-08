@@ -241,6 +241,13 @@ fun present(show: Show) = application {
 
         val autoStepFrames = frames(settings.autoStep)
         var lastAutoStep = 0
+
+        // A written run: hold this many frames, click, hold the next many. Nothing here reads
+        // a clock — the cue is measured against the frame the last one was taken on, so a
+        // filmed run and a watched one are the same run.
+        val cueFrames = settings.cues.map { frames(it) }
+        var cue = 0
+        var cueAt = 0
         var fps = 0.0
         var lastSeconds = 0.0
 
@@ -284,6 +291,12 @@ fun present(show: Show) = application {
                 if (deck.index != slide || deck.step != step) {
                     deck.goTo(slide, step, cut = true)
                     heldSince = frame
+                }
+            } else if (cueFrames.isNotEmpty()) {
+                if (cue < cueFrames.size && frame - cueAt >= cueFrames[cue]) {
+                    cueAt = frame
+                    cue++
+                    forward()
                 }
             } else if (autoStepFrames > 0 && frame - lastAutoStep >= autoStepFrames) {
                 lastAutoStep = frame
@@ -346,8 +359,13 @@ fun present(show: Show) = application {
     }
 }
 
-/** Frames a still waits before it is taken, so an opening ramp has finished moving. */
-private const val STILL_HOLD = 40
+/**
+ * Frames a still waits before it is taken, so an opening ramp has finished moving.
+ *
+ * Long enough for the slowest of them: the chapter card sets its title out an element at a
+ * time over 1.4s, and at the 40 frames this was it caught every card half built.
+ */
+private const val STILL_HOLD = 95
 
 /**
  * Resolves `SLIDES_START`: a number counting from 1, or a slide's name — "3" and

@@ -22,17 +22,15 @@ import slideshow.frames
  * click. [Section] is read off the show's own structure in `Slideshow.kt`, so nothing here
  * needs telling twice what the chapters already say.
  *
- * **It opens the chapter before it stands beside it.** A card has two clicks: it arrives
- * *over the slide pane*, holding the whole right-hand frame with nothing else on it, and
- * the first click carries it across to the left and leaves it there for the rest of the
- * chapter. So a chapter is announced and then opened, rather than appearing already half
- * spent beside a slide nobody has seen yet.
+ * **It stands on the left and stays there.** One step, so it is simply the left pane for as
+ * long as the show is in its section — no entrance across the frame, nothing for the show to
+ * click past before the first slide of a chapter can be seen.
  *
- * The move itself is not drawn here and cannot be: a pane is 1920 wide and the card has to
- * cross 3840, so where the card *is* belongs to whatever composes the panes. `present`
- * reads `stage.on(1)` off this card and slides the finished pane across with it — see
- * "two panes" in CLAUDE.md. A card that declares one step never moves and sits on the left
- * from the first frame, exactly as before.
+ * The engine still carries the other arrangement, and a card opts into it by declaring
+ * **two** steps: it then arrives over the slide pane holding the whole right-hand frame, and
+ * the first click carries it across to the left. That move cannot be drawn here — a pane is
+ * 1920 wide and the card would have to cross 3840 — so `present` reads `stage.on(1)` off the
+ * card and slides the finished pane with it. See "two panes" in CLAUDE.md.
  *
  * The type fades up over [FADE] as the card arrives, which is the one eased thing on it.
  * The card still cuts between chapters — a heading is *there* rather than dissolved into —
@@ -46,19 +44,11 @@ class ChapterPanel(
     private val section: Section,
     private val fontPath: String = "data/fonts/default.otf",
     /** Break the chapter over exactly this many lines, rather than over however many let it be biggest. */
-    private val lines: Int? = null,
-    /** Seconds the card takes to cross from the slide pane to its own. */
-    private val pace: Double = 0.9
+    private val lines: Int? = null
 ) : Slide() {
     override val name get() = section.chapter.ifBlank { "Panel" }
     override val background = ColorRGBa.BLACK
     override val transition = Cut
-
-    /** Held over the slide, then carried across. Declaring one step keeps a card still. */
-    override val steps = 2
-    override val stepFrames = frames(pace)
-
-    override fun stepName(step: Int) = if (step == 1) "open" else null
 
     private val ink = ColorRGBa.WHITE
     private lateinit var face: FontImageMap

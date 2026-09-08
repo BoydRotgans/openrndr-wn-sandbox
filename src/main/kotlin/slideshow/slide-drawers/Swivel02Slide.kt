@@ -20,6 +20,7 @@ import kotlin.math.PI
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.min
 
 /**
  * What one slab carries. Everything is optional, so a blank block leaves a slab empty and
@@ -154,17 +155,31 @@ class Swivel02Slide(
             if (block.items.isNotEmpty()) items(drawer, block.items)
 
             if (block.text.isNotBlank()) {
-                val scale = HEADLINE / ATLAS
-                val lines = face.wrapped(block.text, INNER / scale)
+                val (lines, scale) = fitted(block.text, HEADLINE)
                 TypeBlock(lines, scale, ATLAS, LEADING, face).draw(drawer, Vector2.ZERO)
             }
 
             block.note?.takeIf { it.isNotBlank() }?.let {
-                val scale = NOTE / ATLAS
-                val lines = face.wrapped(it, INNER / scale)
+                val (lines, scale) = fitted(it, NOTE)
                 TypeBlock(lines, scale, ATLAS, LEADING, face).draw(drawer, Vector2(0.0, HEIGHT * 0.30))
             }
         }
+    }
+
+    /**
+     * [text] wrapped to the face, and set smaller than [size] if it still will not fit.
+     *
+     * Wrapping alone is not enough, because it can only break at a space: "Betonproductie" is
+     * one word and wider than a slab at the stated size, so it hangs off both edges — and in
+     * a scene with depth the slab in front of it clips the overhang, which reads as the word
+     * having lost its first letter rather than as type being too big. Changing the face is
+     * what surfaced it: the same copy fitted in the sans it was set in before.
+     */
+    private fun fitted(text: String, size: Double): Pair<List<String>, Double> {
+        val stated = size / ATLAS
+        val lines = face.wrapped(text, INNER / stated)
+        val widest = lines.maxOf { face.advanceOf(it) }.coerceAtLeast(1.0)
+        return lines to min(stated, INNER / widest)
     }
 
     /**
@@ -175,7 +190,8 @@ class Swivel02Slide(
      * silently comes out in another slide's face and another slide's size.
      */
     private fun items(drawer: Drawer, items: List<String>) {
-        val scale = ITEM / ATLAS
+        val widest = items.maxOf { face.advanceOf(it) }.coerceAtLeast(1.0)
+        val scale = min(ITEM / ATLAS, INNER / widest)
         val step = ITEM_LEADING * ATLAS
         val top = -(items.size * step) / 2.0
         val left = -INNER / 2.0 / scale

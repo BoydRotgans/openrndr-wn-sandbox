@@ -40,8 +40,15 @@ abstract class Slide {
     /** Cleared to this before [draw]. */
     open val background: ColorRGBa get() = ColorRGBa.WHITE
 
-    /** How this slide arrives. [Cut] is the hard cut; the default eases the two together. */
-    open val transition: Transition get() = Fade()
+    /**
+     * How this slide arrives, and by default it does not — it is simply there.
+     *
+     * The default was a [Fade] once and every slide in the deck has since been asked to stop
+     * doing it, one at a time, which is the deck saying what it wants: a talk moves between
+     * subjects and a dissolve reads as one picture becoming another. A slide that *should*
+     * hand over — a [Push], or a fade between two states of the same thing — says so.
+     */
+    open val transition: Transition get() = Cut
 
     /**
      * What click [step] does, for the debug overlay — "build down", "reveal the plan",

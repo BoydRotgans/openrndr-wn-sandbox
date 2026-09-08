@@ -23,6 +23,17 @@ data class Settings(
     val debug: Boolean = false,
     /** Seconds between automatic clicks, for recording a run hands-off. 0 leaves it to the keys. */
     val autoStep: Double = 0.0,
+
+    /**
+     * Seconds to hold at each stop before clicking on — one number per click, in order.
+     *
+     * [autoStep]'s single interval cannot film this deck: a click of the city takes twelve
+     * seconds and a click of the stack takes half of one, so any interval that lets the first
+     * finish holds the second for twenty times longer than it needs. A cue list is the same
+     * hands-off run with the pauses written out. It wins over [autoStep] when set, and when it
+     * runs out the deck simply stops where it is.
+     */
+    val cues: List<Double> = emptyList(),
     val record: Boolean = false,
     val fps: Int = FPS,
     val duration: Double? = null,

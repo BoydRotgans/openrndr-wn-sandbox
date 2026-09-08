@@ -18,7 +18,6 @@ import slideshow.frames
 class TitleSlide : Slide() {
     override val name = "Title"
     override val background = ColorRGBa.fromHex("F0EBE1")
-    override val transition = Cut
 
     private val ink = ColorRGBa.fromHex("161616")
 

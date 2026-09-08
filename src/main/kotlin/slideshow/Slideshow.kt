@@ -15,6 +15,7 @@
 //  to sit in it too. Everything else in this folder is `package slideshow`.
 // ============================================================================ //
 
+import org.openrndr.color.ColorRGBa
 import slideshow.Settings
 import slideshow.Show
 import slideshow.present
@@ -26,34 +27,55 @@ import slideshow.drawers.HardCutSlide
 import slideshow.drawers.LoopSlide
 import slideshow.drawers.QuoteSlide
 import slideshow.drawers.RevealSlide
+import slideshow.drawers.StackUp
+import slideshow.drawers.row
 import slideshow.drawers.Swivel01Slide
 import slideshow.drawers.Swivel02Slide
 import slideshow.drawers.SwivelBlock
-import slideshow.drawers.TitleSlide
+import slideshow.drawers.Type
 import slideshow.drawers.TreeSlide
 import slideshow.drawers.nodes
 
 /**
- * The chapter card's face — see [usableFont] for what standing up a system font involves.
+ * The talk is set in one family, in two weights.
+ *
+ * `data/fonts` holds one weight of IBM Plex and no bold, so the family comes from the
+ * machine — and Rockwell lives in a `.ttc`, which `loadFont` will not open at all. See
+ * [usableFont]: it lifts the named face out of the collection into a standalone font under
+ * `build/`, and falls back to the bundled face rather than stopping the show when the file is
+ * not there. The face is named exactly, because the collection holds *Rockwell-Bold* and
+ * *Rockwell Bold Italic* and a loose match takes the italic.
  *
  * Declared **above** `show` on purpose: top-level values initialise in the order they are
  * written, and the `panel { }` lambda below is called *while* `show` is being built, as
  * the slides go in. Written underneath, this would still be null at the moment the cards
  * are made.
  */
-val panelFont: String = usableFont(
-    Env["SLIDES_PANEL_FONT"] ?: "/System/Library/Fonts/Supplemental/Georgia Bold.ttf"
-)
+private val family: String = Env["SLIDES_FONT"] ?: "/System/Library/Fonts/Supplemental/Rockwell.ttc"
 
-/** The face the swivel slabs carry their copy in — a bold sans, against the card's serif. */
-val blockFont: String = usableFont(
-    Env["SLIDES_BLOCK_FONT"] ?: "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-)
+/** Headings, chapter cards, quotes, the copy on the slabs — everything set large. */
+val boldFont: String = usableFont(family, Env["SLIDES_FONT_BOLD"] ?: "Rockwell-Bold")
+
+/** The small furniture: captions, slide numbers, the subchapter line. */
+val textFont: String = usableFont(family, Env["SLIDES_FONT_TEXT"] ?: "Rockwell")
+
+/**
+ * The chapter cards' own face, where the talk's family is not what the card wants.
+ *
+ * A card's title is never drawn as type — it is drawn into a plate and rebuilt out of
+ * catalogue elements — so what the face decides is the *shape of the strokes* the mosaic has
+ * to fill. A grotesque comes apart into parts better than a slab does: even weights, flat
+ * terminals, no serifs to lose to a cell.
+ *
+ * Empty falls back to [boldFont], so a machine without the face set still runs the show.
+ */
+val cardFont: String = Env["SLIDES_CARD_FONT"]?.takeIf { it.isNotBlank() }
+    ?.let { usableFont(it, Env["SLIDES_CARD_FACE"], fallback = boldFont) } ?: boldFont
 
 /**
  * Held in a value of its own because the slide after it opens on its last frame: the tree
  * asks the city for the element it closed on, so the cut between them is invisible. It has
- * to be declared before `show` for the same reason [panelFont] does, and it has to be
+ * to be declared before `show` for the same reason [boldFont] does, and it has to be
  * declared before the tree *in the running order* too — the handover is read in the tree's
  * `load`, and slides load in the order they are declared.
  */
@@ -91,7 +113,7 @@ val show = slideshow {
     canvas(3840, 1080)      // the frame everything is composed at: two 1920x1080
                             // sides, flush against each other
     window(1.0)             // how much of the screen the window takes
-    title("slideshow")
+    title("openrndr")
 
     // The left pane: the chapter, set as large as it will go, white on black. One
     // card per section, standing for as long as the show is in it — see
@@ -103,7 +125,7 @@ val show = slideshow {
     // `data/fonts` holds one weight of IBM Plex and no bold, so a bold serif has
     // to come from outside the project. SLIDES_PANEL_FONT names another, and an
     // unusable one falls back to the bundled face rather than stopping the show.
-    panel({ ChapterPanel(it, panelFont) }, width = 1920, gap = 0)
+    panel({ ObjectChapterPanel(it, cardFont) }, width = 1920, gap = 0)
 
     // --- the running order ------------------------------------------------- //
     //
@@ -111,14 +133,36 @@ val show = slideshow {
     // A chapter can still hold `subchapter("...") { }` where a section needs
     // dividing — the card then carries its name and number at the foot.
 
-    // Three lines rather than the two that would let the type be bigger: the break
-    // is the design, so it is stated here. See ChapterPanel's `lines`.
-    chapter("De wereld van bouwen", panel = { ChapterPanel(it, panelFont, lines = 3) }) {
+    // The first chapter's card is the *drawn* title rather than a set one:
+    // ObjectImageChapterPanel reads data/slides/chapter0.png and packs the same field of
+    // components into it. Everything it is made of is stated here rather than left to
+    // `.env`, and has to be — the SLIDES_CARD_* keys are the typeset card's and are tuned
+    // for it, so a picture read through them comes up wrong in every particular: square-ish
+    // marks shrunk away from a 1.85 cell, no levels on a picture that needs them, and a
+    // strict `solid` that draws the thin lettering in the smallest marks the field has.
+    //
+    // The numbers are ImageCardStudio's, which is where they were arrived at. See the
+    // chapter card notes in CLAUDE.md for what each of them is doing.
+    chapter("De wereld van bouwen", panel = {
+        ObjectImageChapterPanel(
+            it,
+            image = "data/slides/chapter0.png",
+            coarse = 32.0, finest = 8.0,        // several sizes: big through a stroke, small on its edge
+            fill = 1.0, gap = 2.0,              // pieces meet, held 2px apart at every level
+            uniform = false,                    // each piece fitted to its own cell, so none overflows
+            shrink = 1.0,                       // nothing shrunk: the words are carried by colour alone
+            solid = 0.62,                       // let a mostly-covered cell stand, so thin strokes get big marks
+            levels = 0.06 to 0.38,              // the png sets DE/VAN in grey; this brings them to full ink
+            ground = ColorRGBa.fromHex("#2E2E2E"),
+            reveal = slideshow.frames(2.8),   // qualified: bare `frames` is figma-rest's Node.Canvas.frames()               // two passes and a pause need longer than the typeset 1.2s
+            sweep = 1.0, stage = 0.45, delay = 0.12   // ground up from the foot, then ink down from the head
+        )
+    }) {
         slide(
             QuoteSlide(
                 "“Hoe bouw je een wereld die vandaag stevig overeind blijft, " +
                         "maar licht genoeg is om de toekomst niet te belasten?”",
-                panelFont,
+                boldFont,
                 lines = 4
             ),
             title = "Hoe bouw je een wereld",
@@ -147,7 +191,7 @@ val show = slideshow {
                 left = nodes(leftFactors),
                 right = nodes(rightFactors),
                 opening = { city.closingMark },
-                fontPath = panelFont
+                fontPath = boldFont
             ),
             title = "Everything a build answers to",
             notes = "The element the city closed on becomes the root. Nesting a label " +
@@ -161,22 +205,71 @@ val show = slideshow {
         slide(
             GlobeSlide(
                 labels = leftFactors + rightFactors,
-                fontPath = panelFont
+                fontPath = boldFont
             ),
             title = "The globe",
             notes = "Builds off its own frame count rather than clicks, so it fills " +
                     "while you talk over it and keeps turning once it is full."
         )
+
+        // A band a click, the newest arriving underneath and the ones already up
+        // closing ranks above it — demo01's packBoxes as a slide. The rows are the
+        // whole of the content: reword one, add one, split one in two, and the
+        // stack re-proportions itself. A row given one label runs the full width
+        // and stands taller than a row split in two, which is where the shape of
+        // the drawing comes from without any of it being stated in pixels.
         slide(
-            TitleSlide(),
-            notes = "Held on a cut. The rule draws itself in over 0.9s off the " +
-                    "slide's own frame count, not off a click."
+            StackUp(
+                title = "Willy Naessens Build",
+                subtitle = "Verticale integratie",
+                rows = listOf(
+                    row("Eigen ontwerp- en engineeringafdeling", "Eigen prefabricatie"),
+                    row("Eigen grond en- omgevingswerken", "Eigen funderingsploegen en paalmachines"),
+                    row("Eigen transport", "Eigen Montageploegen"),
+                    row("Eigen Dakdichtingsbedrijf", "Eigen AluSchrijn- en Glasbedrijf"),
+                    row("Eigen technische afdeling"),
+                    row("Eigen after sales", accent = true)
+                ),
+                fontPath = boldFont
+            ),
+            title = "Verticale integratie",
+            notes = "Six clicks, a band each. The last is picked out in red."
+        )
+        // The same drawer as the slabs in chapter 4, carrying different figures in
+        // a different palette — which is the whole point of the copy being a list
+        // the show hands in rather than anything the drawer knows.
+        slide(
+            Swivel02Slide(
+                blocks = listOf(
+                    SwivelBlock("350.000 M\u00B3 Betonproductie"),
+                    SwivelBlock("950.000 M\u00B2 Gewelven"),
+                    SwivelBlock("210 miljoen omzet")
+                ),
+                front = ColorRGBa.fromHex("3D5AE0"),
+                side = ColorRGBa.fromHex("3550C4"),
+                fontPath = boldFont
+            ),
+            title = "De cijfers",
+            notes = "A slab a figure, blue on black. Three blocks against the " +
+                    "four-slab swing makes a twelve slab-width turn."
         )
     }
 
     // "verantwoor-delijkheid" is hyphenated so the card may break it there; written
     // whole it is one unbreakable word and the type shrinks to carry it on a line.
     chapter("Waardekader en verantwoor-delijkheid") {
+        slide(
+            QuoteSlide(
+                "\u201CESG is geen checklist, maar de systemische manier waarop we " +
+                        "elke dag opnieuw beslissen hoe we bouwen, leveren, investeren " +
+                        "en verbeteren\u201D",
+                boldFont,
+                lines = 4
+            ),
+            title = "ESG is geen checklist",
+            notes = "The chapter's own opening question, set the same way as the one " +
+                    "that opens the talk."
+        )
         slide(
             RevealSlide(),
             title = "Circle, then square",
@@ -214,7 +307,7 @@ val show = slideshow {
                     SwivelBlock("950 medewerkers"),
                     SwivelBlock("19 bedrijven")
                 ),
-                fontPath = blockFont
+                fontPath = boldFont
             ),
             title = "Slabs travelling",
             notes = "One block to a slab, taken in turn and repeated. The turn is as long " +
@@ -230,7 +323,11 @@ val show = slideshow {
     }
 }
 
-fun main() = present(show.withEnv())
+fun main() {
+    // The furniture picks up the family here, before any slide loads — see [Type.file].
+    Type.file = textFont
+    present(show.withEnv())
+}
 
 // ---------------------------------------------------------------------------- //
 
@@ -260,6 +357,8 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         start = Env["${prefix}_START"] ?: settings.start,
         debug = Env["${prefix}_DEBUG"]?.let { Env.boolean("${prefix}_DEBUG") } ?: settings.debug,
         autoStep = Env["${prefix}_AUTOSTEP"]?.toDoubleOrNull() ?: settings.autoStep,
+        cues = Env["${prefix}_CUES"]?.split(",")?.mapNotNull { it.trim().toDoubleOrNull() }
+            ?.takeIf { it.isNotEmpty() } ?: settings.cues,
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,

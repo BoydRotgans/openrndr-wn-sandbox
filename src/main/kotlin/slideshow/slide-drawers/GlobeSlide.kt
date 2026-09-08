@@ -9,37 +9,36 @@ import org.openrndr.draw.loadFont
 import slideshow.Slide
 import slideshow.Stage
 import slideshow.seconds
-import slideshow.smoothstep
+import slideshow.mix
 import kotlin.math.PI
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 
 /**
  * A dot that swells into a turning globe, gaining a word at a time: each label arrives at
  * the right, and the ones already round it close up to let it in.
  *
- * **The ring is rigid and turns as one body.** Every word sits at a fixed angle of its own —
- * `i` places back from the first — and the whole ring is rotated by a spin that is linear in
- * time, so everything on it moves at exactly one rate for the whole slide. Words are added at
- * the trailing end of the arc, which grows a word at a time until it closes.
+ * **The ring is closed from the first frame and stays closed.** It opens carrying
+ * [opening] words all the way round, and every word added after that is taken in by the ring
+ * drawing tighter: the pitch narrows, the type comes down with it, and the disc grows to
+ * carry the extra. At no point is it an arc filling in — it is always a complete ring, only
+ * finer.
  *
- * That is worth stating because the obvious arrangement is not rigid, and looks it. Anchoring
- * the *newest* word at a fixed point on screen and counting the others back from it makes
- * every angle a function of how many have arrived — so the arrival rate leaks into the
- * rotation, and with arrivals that quicken the ring visibly unwinds early and settles late.
- * The spin was constant the whole time; what was moving was the ring deforming under it.
+ * **The size and the radius are not settings; they are read off the count.** At any number of
+ * words there is one radius where the ring's own spacing and the room the longest word needs
+ * out to the frame ask for the same size of type, and that is the largest the type can be:
+ * bigger and the frame binds, smaller and the ring does. Thirty words want a 171px disc and
+ * 29px type; a hundred want 312px and 16px. Everything between follows from the same
+ * expression, so the composition is never tuned — it is solved, every frame.
  *
- * **The type is one size and never changes**, and the pitch between two words is the angle
- * one line of that size takes at the full radius. Those two being constants is what leaves
- * the rotation as the only thing moving.
- *
- * **The globe swells from a dot into that ring** over [swell] — an entrance rather than a
- * growth that runs through the piece, and it has to be. A globe that goes on growing has to
- * go on packing its words tighter to keep them shoulder to shoulder, and packing them tighter
- * is a deformation: the ring stops being rigid and the rotation stops being one motion. The
- * swell is over before the second word lands, so there is nothing on the ring to deform.
+ * **Nothing accelerates.** The pitch is what runs linearly in time, not the word count: each
+ * word's angle is `spin - i * pitch` with both terms linear, so every word on the ring has a
+ * constant angular velocity for the whole slide. Running the *count* linearly instead makes
+ * the pitch go as 1/t, which winds the ring hard at the start and barely at the end — the
+ * spin is constant either way, and what reads as it changing is the ring deforming under it.
+ * A pitch linear in time also means words arrive slowly at first and quicken, which is the
+ * pacing wanted, without anything being asked for it twice.
  *
  * **It builds on its own frame count, not on clicks.** Twenty-odd clicks to set out
  * twenty-odd words would be a slide nobody could talk over; this one arrives and fills while
@@ -52,11 +51,9 @@ import kotlin.math.pow
  * is the piece rather than an oversight: they are fixed to the thing that is spinning, and
  * flipping them to stay upright would mean each one snapping over as it crossed the bottom.
  *
- * **The one size is worked out from the finished globe**, off two limits that meet there:
- * the ring's own spacing at full radius, and the room the longest word in the list needs
- * between that radius and the frame. `size` is at the value where the two are equal, which
- * is where the type is as large as it can be — smaller and the ring binds, larger and the
- * frame does.
+ * The one thing a closed ring cannot avoid is that its words shift as it tightens: a closed
+ * loop of thirty cannot become a closed loop of a hundred with everything standing still.
+ * They flow gently towards the first word and new ones come in behind it.
  */
 class GlobeSlide(
     /**
@@ -65,10 +62,10 @@ class GlobeSlide(
      * and what keeps the ring dense without inventing copy for it.
      */
     private val labels: List<String> = emptyList(),
-    /** How many are already on the ring on the first frame. */
-    private val opening: Int = 30,
+    /** How many are already on the ring on the first frame, closed all the way round. */
+    private val opening: Int = 15,
     /** How many it ends with. */
-    private val fill: Int = 100,
+    private val fill: Int = 50,
     private val fontPath: String = "data/fonts/default.otf",
     private val disc: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
     private val ink: ColorRGBa = ColorRGBa.WHITE,
@@ -76,31 +73,18 @@ class GlobeSlide(
     /** Seconds a word, averaged — `pace * (fill - opening)` is the whole build. */
     private val pace: Double = 0.3,
     /**
-     * How the arrivals are paced across that time. Below 1 they start slow and quicken,
-     * which is what gives the early words room to be read before the ring closes on them;
-     * 1 is an even rate throughout.
+     * Seconds the globe takes to come round once. Its own number rather than the length of
+     * the build: the ring goes on turning long after the last word has landed, and tying the
+     * two together makes a slide that fills quickly also spin quickly, which is backwards.
      */
-    private val ramp: Double = 0.7,
+    private val turn: Double = 40.0,
 
     /**
-     * The disc's radius as a fraction of the pane's height. Left null it is *worked out*:
-     * the radius at which the ring's own spacing and the room the longest word needs out to
-     * the frame give the same size of type, which is the largest the type can be. Bigger and
-     * the frame binds, smaller and the ring does. Stating one overrides that.
+     * The disc's radius as a fraction of the pane's height. Left null it is solved for, every
+     * frame, from the words on the ring — see the note above. Stating one fixes it, and the
+     * type is then whatever that radius will carry.
      */
-    private val size: Double? = null,
-    /**
-     * The dot it opens on, as a fraction of the full disc. 1.0 opens at full size, which is
-     * what a ring that already carries [opening] words has to do — they are at the finished
-     * pitch from the first frame, and a smaller disc cannot hold them apart.
-     */
-    private val from: Double = 1.0,
-    /**
-     * Seconds the dot takes to swell into the globe. Kept shorter than the wait for the
-     * second word: while it is growing the pitch is still tightening, and that is only
-     * harmless while there is nothing on the ring to tighten.
-     */
-    private val swell: Double = 2.2
+    private val size: Double? = null
 ) : Slide() {
     override val name = "Globe"
 
@@ -117,59 +101,47 @@ class GlobeSlide(
     override fun draw(drawer: Drawer, stage: Stage) {
         val elapsed = seconds(stage.frame)
         val count = words.size
+        if (count == 0) return
 
-        // The largest the type can be is a radius, not a number: the ring's spacing gives a
-        // size that grows with the disc, the room out to the frame gives one that shrinks
-        // with it, and where the two cross is the answer. Worked out rather than stated, so
-        // a hundred words compose as readily as forty — the disc simply comes out bigger.
+        val opened = opening.coerceIn(1, count)
+
+        // **The pitch is what runs linearly in time**, not the count. Both terms of a word's
+        // angle are then linear, so every word turns at a constant rate and nothing on the
+        // ring accelerates. The count follows from it — a closed ring holds exactly as many
+        // words as its pitch divides the circle into — and arrives quickening, which is the
+        // pacing wanted and comes free rather than being asked for twice.
+        val build = pace * (count - opened).coerceAtLeast(1)
+        val phase = (elapsed / build).coerceIn(0.0, 1.0)
+        val pitch = mix(360.0 / opened, 360.0 / count, phase)
+        val arrived = (360.0 / pitch).coerceIn(1.0, count.toDouble())
+
+        // The radius at which the ring's own spacing and the room the longest word needs out
+        // to the frame ask for the same size of type — the largest it can be. Solved for the
+        // words on the ring *now*, so the disc grows as the ring takes more in.
         val reach = min(stage.width, stage.height) / 2.0 - INSET - GAP
-        val measure = (words.maxOfOrNull { face.advanceOf(it) } ?: 1.0).coerceAtLeast(1.0) / ATLAS
-        val fitted = if (count == 0) reach / 2.0
-                     else reach / (1.0 + 2.0 * PI * TIGHT * measure / count)
-        val full = size?.let { stage.height * it } ?: fitted
+        val measure = (words.maxOf { face.advanceOf(it) } / ATLAS).coerceAtLeast(0.01)
+        val radius = size?.let { stage.height * it }
+            ?: (reach / (1.0 + 2.0 * PI * TIGHT * measure / arrived))
 
-        // Swells only if it opens on fewer words than the ring can hold apart; a ring that
-        // starts loaded is at full size from the first frame.
-        val radius = full * (from + (1.0 - from) * smoothstep(elapsed / swell))
+        // ...and the type that radius carries. The two limits are equal at the solved radius,
+        // so the min only bites when `size` has been stated by hand.
+        val scale = min(2.0 * PI * radius * TIGHT / arrived, (reach - radius) / measure) / ATLAS
 
         drawer.stroke = null
         drawer.fill = disc
         drawer.circle(stage.center, radius)
-        if (count == 0) return
-
-        // How many are on the ring: the ones it opened with, and the rest arriving slowly at
-        // first and quickening.
-        val added = (count - opening).coerceAtLeast(0)
-        val build = pace * added.coerceAtLeast(1)
-        val arrived = (opening + added * (elapsed / build).coerceAtLeast(0.0).pow(1.0 / ramp))
-            .coerceIn(0.0, count.toDouble())
-        val shown = floor(arrived).toInt().coerceIn(0, count)
-        if (shown < 1) return
-
-        // One size for the whole slide, off the finished globe and the whole ring, so it is a
-        // constant: nothing here depends on the frame it is read on, which is what makes the
-        // type never move.
-        val room = reach - full
-        val scale = min(2.0 * PI * full * TIGHT / count / ATLAS, room / (measure * ATLAS))
-
-        // The pitch is the type, not a division of the circle: exactly the angle one line of
-        // this size takes at this radius, so a word always sits against its neighbour. It is
-        // floored at the finished ring's own spacing, which is what closes the circle exactly
-        // on the last word rather than a degree or two either side of it.
-        val pitch = max(scale * ATLAS / (radius * TIGHT), 2.0 * PI / count) * 180.0 / PI
-
-        // The only thing that moves: one turn over the build, linear in time, and it goes on
-        // at that rate once the ring is full.
-        val spin = 360.0 * elapsed / build
 
         drawer.fill = ink
         drawer.fontMap = face
 
+        val shown = floor(arrived).toInt().coerceIn(1, count)
+        val spin = 360.0 * elapsed / turn
+
         for (i in 0 until shown) {
             drawer.isolated {
                 drawer.translate(stage.center)
-                // `i` places back from the first word, not forward from the newest: a fixed
-                // angle on a ring that the spin turns as one body.
+                // `i` places back from the first word, so the ring closes on itself: the last
+                // one sits one pitch behind the first, wherever the spin has taken them.
                 drawer.rotate(spin - i * pitch)
                 drawer.translate(radius + GAP, 0.0)
                 drawer.scale(scale)

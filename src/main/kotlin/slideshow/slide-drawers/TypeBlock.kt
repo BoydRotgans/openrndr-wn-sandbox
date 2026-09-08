@@ -21,12 +21,20 @@ import org.openrndr.shape.Rectangle
  * The characters every face here is baked with.
  *
  * Stated rather than left to `loadFont`'s default, because the default is built lazily and
- * a character missing from the atlas does not fail — it draws nothing. The curly quotes
+ * a character missing from the atlas does not fail — **it draws nothing**. The curly quotes
  * around a pull quote are exactly the kind of thing to go silently missing, and so are the
  * diaereses Dutch is full of.
+ *
+ * It has caught a real one since: `350.000 M³` set as `350.000 M`, which reads as a figure
+ * rather than as a fault. Anything a figure might carry — superscripts, a degree sign, a
+ * euro — belongs here, because there is nothing to see when it does not.
  */
-val TYPE_CHARACTERS: Set<Char> =
-    (' '..'~').toSet() + "“”‘’—–…·áàäâéèëêíìïîóòöôúùüûñçÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛÑÇ".toSet()
+val TYPE_CHARACTERS: Set<Char> = (' '..'~').toSet() + (
+        "“”‘’—–…·" +                        // quotes, dashes, an ellipsis
+        "áàäâéèëêíìïîóòöôúùüûñç" +          // the accents Dutch and its neighbours use
+        "ÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛÑÇ" +
+        "²³°€×½¼¾±"                         // figures: M², M³, degrees, euros
+        ).toSet()
 
 /**
  * How wide [text] sets in this face.

@@ -12,7 +12,6 @@ import slideshow.Stage
 class HardCutSlide : Slide() {
     override val name = "Cut"
     override val background = ColorRGBa.fromHex("F2C14E")
-    override val transition = Cut
 
     private val ink = ColorRGBa.fromHex("101010")
 

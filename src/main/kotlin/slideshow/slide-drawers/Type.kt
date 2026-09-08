@@ -16,7 +16,14 @@ import slideshow.Stage
  */
 object Type {
 
-    private const val FILE = "data/fonts/default.otf"
+    /**
+     * The face the furniture is set in, and a `var` rather than a constant for one reason:
+     * standing up a family that lives in a `.ttc` collection is [usableFont]'s job, and
+     * `usableFont` is in the default package, which this one cannot import from. So the show
+     * hands the path in — `Slideshow.kt` sets it once before the first slide loads — and the
+     * bundled face is what it falls back to.
+     */
+    var file: String = "data/fonts/default.otf"
 
     lateinit var display: FontImageMap
         private set
@@ -38,11 +45,11 @@ object Type {
      */
     fun load(program: Program) {
         if (::display.isInitialized) return
-        display = program.loadFont(FILE, 108.0, contentScale = 1.0)
-        caption = program.loadFont(FILE, 22.0, contentScale = 1.0)
-        panelNumber = program.loadFont(FILE, 32.0, contentScale = 1.0)
-        panelChapter = program.loadFont(FILE, 96.0, contentScale = 1.0)
-        panelSub = program.loadFont(FILE, 44.0, contentScale = 1.0)
+        display = program.loadFont(file, 108.0, contentScale = 1.0)
+        caption = program.loadFont(file, 22.0, contentScale = 1.0)
+        panelNumber = program.loadFont(file, 32.0, contentScale = 1.0)
+        panelChapter = program.loadFont(file, 96.0, contentScale = 1.0)
+        panelSub = program.loadFont(file, 44.0, contentScale = 1.0)
     }
 }
 
