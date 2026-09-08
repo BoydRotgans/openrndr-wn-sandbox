@@ -1221,11 +1221,12 @@ Splitting the scenes was checked to be a no-op both times it moved: the opening'
 the class split was byte-identical to the one before it, and the closing wall's still is
 byte-identical across folding `standingRow` back in.
 
-- **`ConveyorScene` is the belt**, and the show stands two of them up straight after the opening:
-  the draaiboek's *Opening / Welcome* and *Eerste gang*. The catalogue goes past on **two rows
-  running against each other**, flat in the house pair on black. It is a *kind*, like
-  `ObjectScene`, not an occasion, and the two differ only in which colour they open on and how
-  fast they run.
+- **`ConveyorScene` is the belt**, and the show stands one up straight after the opening: the
+  draaiboek's *Opening / Welcome*. The catalogue goes past on **two rows running against each
+  other**, flat in the house pair on black. It is a *kind*, like `ObjectScene`, not an occasion,
+  which is what makes a second moment in the evening — *Eerste gang* — another `backdrop(...)`
+  with the palette reversed and `reversed = true, move = 2.2, rest = 1.2` rather than anything
+  new in the drawer. The show carried both for a while and runs one for now.
 
 **The rows fill the height and run alternately against each other**, two of them as committed —
 `rows` is the whole of it, and the layout follows from it: the rule between them and the piece
@@ -1677,6 +1678,80 @@ is direction. `chapterCue` is one value handed to every card, so the four cannot
 a chapter that wants its own is `chapterCard` passing a different `sound`, keyed on
 `section.number` the way it already keys its picture.
 
+**Looping is off by default, and most cues want it off.** A sting is a transition — it is over
+when it is over, and holding it under the slide would be a different kind of thing entirely.
+`ambience` under the opening wall is the one exception in the show, and it has to be: that
+scene is up for the better part of an hour while the room comes in, so its sound is a *room*
+rather than an event.
+
+**What decides whether a cue fades is bed against sting, not loop against one-shot.** `fadeIn`
+and `fadeOut` are frames on the `Sound`, and they exist because a bed switched on at full gain
+reads as a fault and one cut off mid-phrase reads as the machine being turned off. A sting has
+nothing to fade: it is a shape in its own right, and taking the front off it takes the attack
+with it. The ambience is six seconds in and two and a half out — longer in than out, because a
+room fills slowly and is left briskly. The **map's** cue does not loop and still wants both,
+which is what keeps the two questions apart.
+
+**A `fadeOut` is what says a cue belongs to its slide.** `Sound.sustained` is that test, and it
+decides two things at once: whether the driver takes the cue away as the slide is left, and
+whether it gets a voice of its own instead of a place in the shared one-shot pool — a pooled
+voice is reused by the next cue, so there would be nothing left to find when the fade has to
+run. It matters most for the long ones: `1-02.wav` runs 25s against the map's 12-second click,
+so without it the cue would still be playing two slides later, under the tree and the globe.
+A sting declares no fade, is never held, and rings out — cutting a half-second mark off at the
+click would be more noticeable than letting it finish.
+
+**A fade picks up from wherever the gain got to**, rather than from the value the cue declares.
+Clicking off the opening wall four seconds into a six-second fade-in was measured doing exactly
+that: up to 0.2, then down from 0.2 to silence, with no jump to full gain first.
+
+**A built slide marks its clicks as well as its arrival.** `Slide.sound` is what a slide says on
+coming up; `stepCues` is what each click says after that, and the stack is the case it exists
+for — `1-09` as the slide arrives over the opening band, then `1-09A` to `E` as each of the five
+remaining bands lands. Five cues for six rows is right rather than one short: the opening band
+is the slide arriving, not a click. A short list simply runs out, so a row can be added without
+a cue having to be found for it, and `stepSound(step)` is there to override where the cue has to
+be worked out rather than listed.
+
+**The tree is the other case, and it is why a cue on the arrival is not always what is wanted.**
+That slide opens on the city's own last frame — the same element, at the same size, in the same
+place — and holds there, which is a cut built to be invisible. A cue on its arrival would mark
+nothing anyone can see. `1-05` sits on click 1 instead, where the fan comes apart and the labels
+are dealt down either side, so the sound arrives with the thing it is describing.
+
+**`load` and the release must agree on what a slide's cues are**, and they did not at first — in
+a way nothing reported. `load` gathered `slide.sound` and stopped there, so the stack's five
+click marks reached `play` with no buffer to their name and did nothing at all. A step cue hangs
+off a *method*, so a `mapNotNull` over the slides cannot see it. `cuesOf(slide)` is now the one
+definition both use. The tell was the count in the startup line — 7 cues where there should have
+been 12 — which is worth watching: a cue that fails to load is otherwise indistinguishable from
+one that is playing too quietly.
+
+Those marks are **forward only**, the same rule the chapter cards follow: clicking back through
+a build is a correction, and re-firing the marks on the way would say something is being built
+when it is being taken apart.
+
+**The sheet's numbering is the running order**, which is the one thing that makes the cues
+placeable at all: 1-02 is the map, 1-05 the tree, 1-07 the globe, 1-09 the stack and 1-10 the
+figures — slides four to eight of the first chapter, in order. That is what settles which
+`Swivel02Slide` takes 1-10, there being two of them in the show: the one in the first chapter,
+not the one in the fourth. `cueGain` levels the whole sheet in one place; the ambience is set
+separately, because a bed under people talking is a different job from a mark on a click.
+
+**The fade is the sound's, not the picture's.** The opening scene arrives on a `Cut`, so there
+is no handover to hang anything on — the wall is simply there, and the bed comes up underneath
+it. That is why the fade lives on the cue rather than being derived from `stage.enter`.
+
+**A fade is a function of the frame, not something integrated per tick.** `from + (to - from) *
+ramp(frame - at, length)`, the same shape as everything else the deck animates, which buys the
+same things: a dropped frame does not shorten a fade, pausing holds it where it stands, and the
+draw loop running at 120 Hz against a 60 fps clock ticks the same frame twice with no effect,
+because asking twice for frame 412 gives 412 both times.
+
+**A bed spanning two slides is not dipped between them.** The driver releases the leaving
+slide's loop only when the arriving slide is not standing on the same file, so a room that
+carries across a slide boundary keeps playing rather than fading out and back in.
+
 **A cue is a buffer, not a stream**, and that is the whole of
 [`Speakers`](src/main/kotlin/slideshow/Speakers.kt). Each file is decoded whole at load into
 one OpenAL buffer and triggered with one call — no thread, no streaming, nothing to keep in
@@ -1718,10 +1793,17 @@ jumps through every slide in the deck on a timer and would fire the whole cue sh
 the draw loop is on video time while the sound plays on wall time, so the two drift exactly as
 the note under demo01 describes. Audio goes in at the edit.
 
-Two things about the assets: all four cards name the same file, so it is decoded **once** — the
-`sound: 1 cues` at startup is that, not a fault — and `clic.wav` is byte-identical to
-`1-09.wav`. The whole sheet is uniformly 24-bit stereo 44.1k and about 31 MB decoded, so
-holding all of it is cheaper than reading any of it late.
+Three things about the assets. All four cards name the same file, so it is decoded **once** —
+the cue count at startup is files, not cards. `clic.wav` is byte-identical to `1-09.wav`. And
+the two sources are **not one format**: the `WN-0909` sheet is 24-bit 44.1k and the ambience is
+32-bit float 48k, which is why the load report measures each file against its own rate rather
+than one constant, and why the decoder asks for 16-bit at *the source's* sample rate rather
+than a fixed one. `javax.sound.sampled` converts `PCM_FLOAT` as readily as 24-bit, so neither
+needed a converter written by hand.
+
+The bed alone is 57 MB decoded (five minutes of 48k stereo) against 31 MB for the whole cue
+sheet, and it is still held whole rather than streamed: a buffer costs memory once, where a
+stream costs a thread and a refill loop for as long as the wall is up.
 
 [`SoundProbe.kt`](src/main/kotlin/SoundProbe.kt) plays one wav and quits, naming the device it
 opened. Run it on the projector machine before a show: it is the one thing a silent deck cannot

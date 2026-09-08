@@ -12,6 +12,7 @@ import org.openrndr.shape.contour
 import slideshow.Cut
 import slideshow.Mark
 import slideshow.Slide
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
 import slideshow.smoothstep
@@ -79,7 +80,15 @@ class TreeSlide(
     private val accent: ColorRGBa? = ColorRGBa.fromHex("3D5AE0"),
     /** Pane pixels the root settles at, once it is a node rather than the whole subject. */
     private val rootHeight: Double = 94.0,
-    private val pace: Double = 1.2
+    private val pace: Double = 1.2,
+    /**
+     * The cue as the fan opens, on click 1 — **not** on arrival.
+     *
+     * This slide opens on the city's own last frame, one element on an empty pane, and holds
+     * there: a cue on the arrival would mark a cut nobody can see. What it should mark is the
+     * fan coming apart, which is the click after.
+     */
+    override val stepCues: List<Sound> = emptyList()
 ) : Slide() {
     override val name = "Tree"
 

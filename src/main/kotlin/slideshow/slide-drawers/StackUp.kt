@@ -9,6 +9,7 @@ import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import slideshow.Slide
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
 import kotlin.math.ceil
@@ -70,12 +71,17 @@ class StackUp(
     private val accent: ColorRGBa = ColorRGBa.fromHex("ED1C24"),
     private val ink: ColorRGBa = ColorRGBa.WHITE,
     override val background: ColorRGBa = ColorRGBa.BLACK,
-    private val pace: Double = 0.55
+    private val pace: Double = 0.55,
+    /** The cue as the slide comes up, over the opening band. */
+    override val sound: Sound? = null,
+    /** A mark as each band after the first lands; the first arrives with the slide. */
+    override val stepCues: List<Sound> = emptyList()
 ) : Slide() {
     override val name = "Stack up"
 
     /** The first band is up before anything is clicked, so a click a band leaves this many. */
     override val steps = rows.size.coerceAtLeast(1)
+
     override val stepFrames = frames(pace)
 
     private lateinit var face: FontImageMap

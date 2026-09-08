@@ -13,9 +13,11 @@ import javax.sound.sampled.AudioSystem
  * Proves the machine can make a noise, and proves the path the deck will use:
  *
  *     ./gradlew run -Popenrndr.application=SoundProbeKt
+ *     ./gradlew run -Popenrndr.application=SoundProbeKt --args="data/sounds/<file>.wav"
  *
- * A wav decoded by the **JDK's own reader** (`javax.sound.sampled`, which handles the 24-bit
- * to 16-bit conversion these files need) into one **OpenAL buffer**, played by one source.
+ * A wav decoded by the **JDK's own reader** (`javax.sound.sampled`, which converts whatever the
+ * file is into the 16-bit OpenAL takes — the cue sheet is 24-bit and the ambience bed is 32-bit
+ * float) into one **OpenAL buffer**, played by one source.
  * No new artifact: `openrndr-openal` already carries the LWJGL AL bindings and their natives,
  * and the JDK carries the wav reader — see the note beside `libs.lwjgl.openal` in
  * build.gradle.kts for why the binding still has to be named there.
@@ -24,11 +26,11 @@ import javax.sound.sampled.AudioSystem
  * says which audio device is being opened and whether anything comes out of it, which is the
  * one thing a silent deck cannot tell you.
  */
-fun main() {
-    val file = File("data/sounds/WN-0909/1-01.wav")
+fun main(args: Array<String>) {
+    val file = File(args.firstOrNull() ?: "data/sounds/WN-0909/1-01.wav")
     require(file.isFile) { "no such file: ${file.path}" }
 
-    // --- decode, with the JDK's own reader. 24-bit in, 16-bit little-endian out. ---
+    // --- decode, with the JDK's own reader. Whatever the file is in, 16-bit LE out. ---
     val encoded = AudioSystem.getAudioInputStream(file)
     val from = encoded.format
     println("file:   ${from.sampleSizeInBits}-bit, ${from.channels}ch, ${from.sampleRate.toInt()}Hz, ${from.encoding}")

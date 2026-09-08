@@ -14,6 +14,7 @@ import org.openrndr.extra.meshgenerators.boxMesh
 import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import slideshow.Slide
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
 import kotlin.math.PI
@@ -70,7 +71,9 @@ class Swivel02Slide(
     private val across: Double = 1440.0,
     /** Seconds one slab-width of travel takes, which is also one swing. */
     private val pace: Double = 10.0,
-    private val fontPath: String = "data/fonts/default.otf"
+    private val fontPath: String = "data/fonts/default.otf",
+    /** The cue as the train arrives. Stated in `Slideshow.kt`. */
+    override val sound: Sound? = null
 ) : Slide() {
     override val name = "Swivel02"
 

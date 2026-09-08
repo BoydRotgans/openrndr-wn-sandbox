@@ -7,6 +7,7 @@ import org.openrndr.draw.FontImageMap
 import org.openrndr.draw.isolated
 import org.openrndr.draw.loadFont
 import slideshow.Slide
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.seconds
 import slideshow.mix
@@ -84,7 +85,9 @@ class GlobeSlide(
      * frame, from the words on the ring — see the note above. Stating one fixes it, and the
      * type is then whatever that radius will carry.
      */
-    private val size: Double? = null
+    private val size: Double? = null,
+    /** The cue as the ring comes up. Stated in `Slideshow.kt`. */
+    override val sound: Sound? = null
 ) : Slide() {
     override val name = "Globe"
 

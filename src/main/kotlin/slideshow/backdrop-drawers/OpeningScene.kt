@@ -14,6 +14,7 @@ import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import slideshow.Backdrop
 import slideshow.Cut
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.Transition
 import slideshow.drawers.TYPE_CHARACTERS
@@ -180,7 +181,13 @@ class OpeningScene(
     /** Seconds that beat takes: out to black, up to [highlight], back to [ink]. */
     private val pulse: Double = 1.4,
     /** How the scene arrives. A cut; a fade here is composed on the whole wall. */
-    override val transition: Transition = Cut
+    override val transition: Transition = Cut,
+    /**
+     * The bed under the wall — the one cue here that loops, because this scene is up for the
+     * better part of an hour. Its fade is the sound's own, not the transition's: the picture
+     * cuts and the ambience comes up under it.
+     */
+    override val sound: Sound? = null
 ) : Backdrop() {
 
     override val background: ColorRGBa get() = paper

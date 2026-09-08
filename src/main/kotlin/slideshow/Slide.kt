@@ -54,6 +54,35 @@ abstract class Slide {
     open val sound: Sound? get() = null
 
     /**
+     * The cue click [step] makes as it lands, or null for a silent click.
+     *
+     * The counterpart to [sound] for a slide that is *built* rather than simply arrived at:
+     * [sound] is what the slide says on coming up, this is what each click says after that.
+     * The stack is the case it exists for — a band a click, each one landing.
+     *
+     * The tree is the other case, and a different one: it opens on the city's own last frame
+     * and holds there, so its cue belongs to the click that fans the labels out rather than
+     * to an arrival nobody can see.
+     *
+     * Only ever fired going **forward**, the same rule the chapter cards follow. Clicking
+     * back through a build is a correction, and re-firing the marks on the way would say
+     * something is being built when it is being taken apart.
+     *
+     * Defaults to reading [stepCues], which is what a slide usually wants; override the
+     * function itself where the cue has to be worked out rather than listed.
+     */
+    open fun stepSound(step: Int): Sound? = stepCues.getOrNull(step - 1)
+
+    /**
+     * A cue a click, **from click 1 on** — click 0 is the slide arriving, and that is [sound].
+     *
+     * Short of the step count it simply runs out, so a slide can gain a click without a cue
+     * having to be found for it. It is the list behind [stepSound]; a slide whose cue depends
+     * on more than the step number overrides that instead.
+     */
+    open val stepCues: List<Sound> get() = emptyList()
+
+    /**
      * How this slide arrives, and by default it does not — it is simply there.
      *
      * The default was a [Fade] once and every slide in the deck has since been asked to stop

@@ -16,6 +16,7 @@ import org.openrndr.shape.Rectangle
 import slideshow.Cut
 import slideshow.Mark
 import slideshow.Slide
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.easeInOutCubic
 import slideshow.frames
@@ -90,7 +91,9 @@ class CityMapSlide(
      * same reason: a pane of another shape should letterbox rather than distort.
      */
     private val paneWidth: Int = 1920,
-    private val paneHeight: Int = 1080
+    private val paneHeight: Int = 1080,
+    /** The cue under the flight. Stated in `Slideshow.kt` — see `mapCue` there. */
+    override val sound: Sound? = null
 ) : Slide() {
     override val name = "City"
     override val steps = 3

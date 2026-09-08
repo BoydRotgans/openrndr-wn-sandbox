@@ -21,8 +21,8 @@ import slideshow.Show
 import slideshow.present
 import slideshow.slideshow
 import java.io.File
-import slideshow.drawers.BuildSlide
 import slideshow.drawers.ChapterPanel
+import slideshow.drawers.BuildSlide
 import slideshow.drawers.GlobeSlide
 import slideshow.drawers.HardCutSlide
 import slideshow.drawers.LoopSlide
@@ -74,13 +74,121 @@ val cardFont: String = Env["SLIDES_CARD_FONT"]?.takeIf { it.isNotBlank() }
     ?.let { usableFont(it, Env["SLIDES_CARD_FACE"], fallback = boldFont) } ?: boldFont
 
 /**
+ * Where the evening's cues live. `WN-0909` is the sound design as delivered: numbered
+ * one-shots, a `base-loop` bed and a `clic`.
+ *
+ * A path, so it is in `.env`; *which* cue is played where is content and is stated below —
+ * see [chapterCue], [ambience] and [mapCue].
+ *
+ * The cues sit **above** [city] on purpose, and it is the same trap [boldFont] carries: top
+ * level values initialise in the order they are written, and `city` takes [mapCue] as a
+ * constructor argument. Declared underneath, it would be handed null and the map would run
+ * silent — with nothing to say so.
+ */
+val soundFolder = File(Env["SLIDES_SOUNDS"] ?: "data/sounds/WN-0909")
+
+/**
+ * How loud the numbered cues are set. One value rather than seven, so the sheet is levelled
+ * in one place — [ambience] is separate because a bed under people talking is a different
+ * job from a mark on a click.
+ */
+val cueGain = Env["SLIDES_CUE_GAIN"]?.toDoubleOrNull() ?: 0.8
+
+/**
+ * A cue off the sheet, at the level they are all set to. Fades in seconds, for reading — the
+ * value keeps them in frames, like everything the deck is timed in.
+ *
+ * **A fade out is what says a cue belongs to its slide** rather than ringing on into the next
+ * one; see [slideshow.Sound.sustained]. The long ones need it — `1-07` runs 13s and `1-10`
+ * nearly 12 — and the short marks do not, because cutting a two-second sting off at the click
+ * would be more noticeable than letting it finish.
+ */
+fun cue(file: String, fadeIn: Double = 0.0, fadeOut: Double = 0.0) = slideshow.Sound(
+    File(soundFolder, file), gain = cueGain,
+    fadeIn = slideshow.frames(fadeIn), fadeOut = slideshow.frames(fadeOut)
+)
+
+/**
+ * The cue a chapter opens on — the sting under its card, fired as the section arrives.
+ *
+ * **One cue, under every chapter.** A card is the same event each time it comes up: the
+ * talk has changed subject and the wall says so. So the sound that marks it is the mark
+ * itself rather than a label on which chapter this is — the same argument as the cards
+ * cutting rather than crossfading, and as `Cut` being the deck's default transition.
+ *
+ * Naming it once here is also what keeps the four in step: a cue given out card by card
+ * drifts the moment one of them is retuned, and this way there is one value to change.
+ * A chapter that eventually wants its own is [chapterCard] taking a different `sound`,
+ * keyed on `section.number` the way it already keys its picture.
+ */
+val chapterCue = cue("1-01.wav")
+
+/**
+ * The bed under the opening wall: the one cue in the show that **loops**.
+ *
+ * Everything else here is a transition — a sting, over when it is over — and looping is off by
+ * default for exactly that reason. This is the exception, and it has to be: the opening scene
+ * is up for the better part of an hour while the room comes in, so its sound is a room rather
+ * than an event.
+ *
+ * **It fades, and the fade is the sound's own rather than the picture's.** The scene arrives on
+ * a `Cut`, so there is no handover to hang anything on: the wall is simply there, and the
+ * ambience comes up under it over [slideshow.Sound.fadeIn] and goes out over
+ * [slideshow.Sound.fadeOut] as the talk steps off into the first chapter. Longer in than out —
+ * a room fills slowly and is left briskly.
+ *
+ * At 0.6 rather than [cueGain]: it is a bed under a wall people are talking over, so it wants
+ * to sit where you notice it having stopped rather than where you notice it playing.
+ */
+val ambience = slideshow.Sound(
+    File(Env["SLIDES_AMBIENCE"] ?: "data/sounds/ambiencebackingtrackV2.wav"),
+    gain = 0.6,
+    loop = true,
+    fadeIn = slideshow.frames(6.0),
+    fadeOut = slideshow.frames(2.5)
+)
+
+/**
+ * The cues the talk itself is marked with, and **the sheet's numbering is the running order**:
+ * 1-02 is the map, 1-05 the tree, 1-07 the globe, 1-09 the stack and 1-10 the figures — slides
+ * four to eight of the first chapter, in order. That is what settles which `Swivel02Slide` gets
+ * 1-10, there being two of them in the show: the one in this chapter, not the one in the fourth.
+ *
+ * The long ones fade out so they do not play on under the slide after them. `1-02` runs 25s
+ * against a 12-second click, which is the case that made [slideshow.Sound.sustained] necessary.
+ */
+val mapCue = cue("1-02.wav", fadeIn = 1.5, fadeOut = 2.0)
+
+/**
+ * The tree's, and it hangs off the **click** rather than the arrival — see the slide below.
+ * It opens on the city's own last frame and holds there, so a cue on the arrival would mark a
+ * cut that was built to be invisible; what it marks instead is the fan coming apart.
+ */
+val treeCue = cue("1-05.wav", fadeOut = 1.0)
+val globeCue = cue("1-07.wav", fadeOut = 2.0)
+val swivelCue = cue("1-10.wav", fadeOut = 2.0)
+
+/** The stack's own arrival, over the opening band. */
+val stackCue = cue("1-09.wav", fadeOut = 1.5)
+
+/**
+ * A mark a band, from the second on — the first arrives with the slide and is [stackCue].
+ *
+ * Five of them for six rows, which is exactly right rather than one short: the opening band is
+ * the slide coming up, not a click. They are stings and take no fade — the stack's clicks are
+ * 0.55s apart and these run about two seconds, so they overlap by design, which is what the
+ * eight-voice pool is for.
+ */
+val stackSteps = listOf("A", "B", "C", "D", "E").map { cue("1-09$it.wav") }
+
+/**
  * Held in a value of its own because the slide after it opens on its last frame: the tree
  * asks the city for the element it closed on, so the cut between them is invisible. It has
  * to be declared before `show` for the same reason [boldFont] does, and it has to be
  * declared before the tree *in the running order* too — the handover is read in the tree's
  * `load`, and slides load in the order they are declared.
  */
-val city = CityMapSlide(pace = 12.0)
+val city = CityMapSlide(pace = 12.0, sound = mapCue)
 
 /**
  * The house colours, as the draaiboek draws them: navy and red on a light ground. Named
@@ -119,30 +227,6 @@ val openingTexture = Env["SLIDES_OPENING_TEXTURE"]?.let { File(it) }
  * [OpeningScene], which drops it rather than shifting every name along by one.
  */
 val openingDetails = Env["SLIDES_OPENING_DETAILS"]?.let { File(it) }
-
-/**
- * Where the evening's cues live. `WN-0909` is the sound design as delivered: numbered
- * one-shots, a `base-loop` bed and a `clic`.
- *
- * A path, so it is in `.env`; *which* cue is played where is content and is stated below —
- * see [chapterCue].
- */
-val soundFolder = File(Env["SLIDES_SOUNDS"] ?: "data/sounds/WN-0909")
-
-/**
- * The cue a chapter opens on — the sting under its card, fired as the section arrives.
- *
- * **One cue, under every chapter.** A card is the same event each time it comes up: the
- * talk has changed subject and the wall says so. So the sound that marks it is the mark
- * itself rather than a label on which chapter this is — the same argument as the cards
- * cutting rather than crossfading, and as `Cut` being the deck's default transition.
- *
- * Naming it once here is also what keeps the four in step: a cue given out card by card
- * drifts the moment one of them is retuned, and this way there is one value to change.
- * A chapter that eventually wants its own is [chapterCard] taking a different `sound`,
- * keyed on `section.number` the way it already keys its picture.
- */
-val chapterCue = slideshow.Sound(File(soundFolder, "1-01.wav"))
 
 /**
  * The card for one section: the chapter's own drawn title, packed into components.
@@ -264,17 +348,23 @@ val show = slideshow {
             // drawing, and the bold read as a heading beside a piece rather than under it.
             fontPath = textFont,
             concrete = openingTexture,
-            details = openingDetails
+            details = openingDetails,
+            // the room the wall stands in, fading up under it and out as the talk starts
+            sound = ambience
         ),
         title = "Opening scene",
         notes = "Aanvang. Draws the whole catalogue, two pieces a turn, and repeats; " +
                 "-> goes to the first chapter whenever the talk starts."
     )
 
-    // 19:30 and 19:45, Opening/Welcome and Eerste gang: the light walls, after the black
-    // one the room arrived to. The catalogue goes by on a belt, each piece flat and named
-    // — the same drawer twice, because the picture is one idea and the palette is what
-    // tells the two moments apart. See ConveyorScene in backdrop-drawers/.
+    // 19:30, Opening/Welcome: the belt, after the black wall the room arrived to. The
+    // catalogue goes by flat and named, two rows running against each other. See
+    // ConveyorScene in backdrop-drawers/.
+    //
+    // One of these for now. The drawer is a *kind* rather than an occasion, so a second
+    // moment in the evening — Eerste gang — is another backdrop(...) with the palette
+    // reversed and `reversed = true, move = 2.2, rest = 1.2` to run it the other way and
+    // a touch slower, rather than anything new in the drawer.
     backdrop(
         ConveyorScene(
             // The register is what makes the belt draw the pieces to scale against one
@@ -286,21 +376,6 @@ val show = slideshow {
         ),
         title = "Welcome",
         notes = "Introduction of objects. The catalogue on a belt, running left."
-    )
-
-    backdrop(
-        ConveyorScene(
-            "Eerste gang", beltSheet, details = openingDetails, concrete = openingTexture,
-            // The same pair the other way round, so the two belts open on different
-            // colours rather than being the same picture at another speed.
-            palette = listOf(wnBlue, wnRed),
-            // The rows run the other way round, and a touch slower: the same belt seen later
-            // in the evening rather than the same picture shown twice.
-            reversed = true, move = 2.2, rest = 1.2,
-            fontPath = boldFont
-        ),
-        title = "Eerste gang",
-        notes = "The belt again in the second palette, running right."
     )
 
     // Slides hang straight off their chapter here, with no subchapter over them.
@@ -341,7 +416,10 @@ val show = slideshow {
                 left = nodes(leftFactors),
                 right = nodes(rightFactors),
                 opening = { city.closingMark },
-                fontPath = boldFont
+                fontPath = boldFont,
+                // On the click, not the arrival: this slide opens on the city's own last
+                // frame and holds there, so what the cue marks is the fan coming apart.
+                stepCues = listOf(treeCue)
             ),
             title = "Everything a build answers to",
             notes = "The element the city closed on becomes the root. Nesting a label " +
@@ -355,7 +433,8 @@ val show = slideshow {
         slide(
             GlobeSlide(
                 labels = leftFactors + rightFactors,
-                fontPath = boldFont
+                fontPath = boldFont,
+                sound = globeCue
             ),
             title = "The globe",
             notes = "Builds off its own frame count rather than clicks, so it fills " +
@@ -380,7 +459,9 @@ val show = slideshow {
                     row("Eigen technische afdeling"),
                     row("Eigen after sales", accent = true)
                 ),
-                fontPath = boldFont
+                fontPath = boldFont,
+                sound = stackCue,          // the slide coming up, over the opening band
+                stepCues = stackSteps      // then a mark as each of the five lands
             ),
             title = "Verticale integratie",
             notes = "Six clicks, a band each. The last is picked out in red."
@@ -397,7 +478,8 @@ val show = slideshow {
                 ),
                 front = ColorRGBa.fromHex("3D5AE0"),
                 side = ColorRGBa.fromHex("3550C4"),
-                fontPath = boldFont
+                fontPath = boldFont,
+                sound = swivelCue
             ),
             title = "De cijfers",
             notes = "A slab a figure, blue on black. Three blocks against the " +

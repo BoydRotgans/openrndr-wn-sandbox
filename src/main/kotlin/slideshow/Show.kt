@@ -85,7 +85,11 @@ fun present(show: Show) = application {
         // every slide of the deck on a timer and would fire every cue in the show at it.
         val speakers = Speakers()
         if (settings.sound && !settings.stills) {
-            speakers.load(slides.mapNotNull { it.sound } + show.panels.mapNotNull { it.sound })
+            // Every cue the deck can reach: a slide's own, the marks its clicks make, and the
+            // chapter cards'. The step cues have to be asked for by name — they hang off
+            // `stepSound(step)` rather than a property, so a `mapNotNull` over the slides
+            // misses them and they arrive at `play` with no buffer to their name.
+            speakers.load(slides.flatMap { cuesOf(it) } + show.panels.mapNotNull { it.sound })
         }
 
         // --- two panes -------------------------------------------------------------- //
@@ -129,6 +133,9 @@ fun present(show: Show) = application {
 
         /** A slide's own cue, where it has one. Cards are announced separately, above. */
         var soundedSlide = -1
+
+        /** The click its cue was last fired on, so a build marks each one exactly once. */
+        var soundedStep = -1
 
         // A contact sheet is a record of the *slides*, and the card standing open is a move
         // rather than a state of one — left open it would cover the first slide of every
@@ -303,6 +310,9 @@ fun present(show: Show) = application {
             val frame = clock.advance(seconds)
             deck.tick(frame)
             panelDeck?.tick(frame)
+            // fades run off the same frame count as everything else, so a bed comes up over
+            // the same six seconds whether the show is watched, filmed or stepped
+            speakers.tick(frame)
 
             // Drive the panel from the slide deck's own position: it only moves when the
             // chapter or subchapter changes, never on an ordinary click — a soft handover
@@ -354,9 +364,31 @@ fun present(show: Show) = application {
             // branches above, because nothing changed — the card was simply already there.
             if (deck.index != soundedSlide) {
                 val first = soundedSlide < 0
+                val leaving = slides.getOrNull(soundedSlide)
                 soundedSlide = deck.index
+
+                // Every cue that belongs to the slide being left goes out — its arrival cue and
+                // any of its click marks, since either may be sustained. Held back only where
+                // the slide arriving stands on the same file, so a bed spanning two slides
+                // keeps playing rather than dipping between them. A sting declares no fade, so
+                // it is not sustained and is left to ring out.
+                if (leaving != null) {
+                    val arrivingFiles = cuesOf(deck.slide).mapTo(mutableSetOf()) { it.file }
+                    cuesOf(leaving)
+                        .filter { it.sustained && it.file !in arrivingFiles }
+                        .forEach { speakers.release(it) }
+                }
+
                 speakers.play(deck.slide.sound)
+                soundedStep = deck.step
                 if (first && startPanel >= 0 && deck.slide !is Backdrop) announce(startPanel)
+
+            } else if (deck.step != soundedStep) {
+                // A built slide marks its clicks: a band landing on the stack, and so on.
+                // Forward only — clicking back through a build is a correction, and re-firing
+                // the marks would say it is being built when it is being taken apart.
+                if (deck.step > soundedStep) speakers.play(deck.slide.stepSound(deck.step))
+                soundedStep = deck.step
             }
 
             fps = mix(fps, 1.0 / (seconds - lastSeconds).coerceAtLeast(1e-4), 0.1)
@@ -496,6 +528,18 @@ fun present(show: Show) = application {
  * time over 1.4s, and at the 40 frames this was it caught every card half built.
  */
 private const val STILL_HOLD = 95
+
+/**
+ * Every cue a slide can reach: the one it arrives on and the mark each of its clicks makes.
+ *
+ * One definition rather than two, because the two callers must agree — `load` decodes this set
+ * and the driver releases out of it. They disagreed once, and silently: `load` gathered only
+ * `slide.sound`, so the stack's five click marks reached `play` with no buffer to their name
+ * and did nothing at all. A step cue hangs off a *method*, so a `mapNotNull` over the slides
+ * cannot see it; it has to be asked for by step.
+ */
+private fun cuesOf(slide: Slide): List<Sound> =
+    listOfNotNull(slide.sound) + (0 until slide.steps).mapNotNull { slide.stepSound(it) }
 
 /**
  * Resolves `SLIDES_START`: a number counting from 1, or a slide's name — "3" and
