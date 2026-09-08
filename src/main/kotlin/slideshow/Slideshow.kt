@@ -18,16 +18,20 @@
 import org.openrndr.color.ColorRGBa
 import slideshow.Settings
 import slideshow.Show
+import slideshow.backdrops.NameTag
 import slideshow.present
 import slideshow.slideshow
 import java.io.File
 import slideshow.drawers.ChapterPanel
-import slideshow.drawers.BuildSlide
+import slideshow.drawers.EsgFramework
 import slideshow.drawers.GlobeSlide
-import slideshow.drawers.HardCutSlide
-import slideshow.drawers.LoopSlide
+import slideshow.drawers.LcaMark
+import slideshow.drawers.LcaSource
+import slideshow.drawers.LifeCycle
+import slideshow.drawers.LifeCycleAnalysis
+import slideshow.drawers.LifePhase
+import slideshow.drawers.LifeStep
 import slideshow.drawers.QuoteSlide
-import slideshow.drawers.RevealSlide
 import slideshow.drawers.StackUp
 import slideshow.drawers.row
 import slideshow.drawers.Swivel01Slide
@@ -122,6 +126,13 @@ fun cue(file: String, fadeIn: Double = 0.0, fadeOut: Double = 0.0) = slideshow.S
  * keyed on `section.number` the way it already keys its picture.
  */
 val chapterCue = cue("1-01.wav")
+
+/**
+ * What both life-cycle databases know about what they hold — the same five either way, which
+ * is the point: the analysis can only add them up because they are asked the same questions.
+ * One list handed in twice, so rewording it moves both fans.
+ */
+val lcaFields = listOf("Materiaal", "Leverancier", "Transportwijze", "Herkomst", "Co2 impact")
 
 /**
  * The bed under the opening wall: the one cue in the show that **loops**.
@@ -382,6 +393,25 @@ val show = slideshow {
     // A chapter can still hold `subchapter("...") { }` where a section needs
     // dividing — the card then carries its name and number at the foot.
 
+    // Who is speaking. It stands **before** the first chapter, which is what makes it a
+    // backdrop rather than a slide: a slide belongs to a chapter and would be announced by
+    // that chapter's card, and there is no chapter yet — the talk has not started. A
+    // backdrop takes the whole wall with no card beside it, which is exactly the frame a
+    // title card wants. See NameTag in backdrop-drawers/.
+    backdrop(
+        NameTag(
+            presenter = "Erik Koremans",
+            organisation = "Willy Naessens NEDERLAND",
+            role = "Chief Commercial and Sustainability Officer (CCSO)",
+            fontPath = boldFont,
+            accent = wnRed
+        ),
+        title = "Who is speaking",
+        notes = "Opens the talk, ahead of the first chapter. Builds on its own frame count " +
+                "— name, rule, company, title — so it finishes while it is being said " +
+                "rather than on a click."
+    )
+
     chapter("De wereld van bouwen") {
         slide(
             QuoteSlide(
@@ -502,11 +532,77 @@ val show = slideshow {
             notes = "The chapter's own opening question, set the same way as the one " +
                     "that opens the talk."
         )
+        // The three pillars as three cut pieces: one a click, and a fourth click that
+        // closes the joint so their teeth mesh. Where they sit when closed is read off the
+        // svgs' own teeth rather than tuned — see EsgFramework.
         slide(
-            RevealSlide(),
-            title = "Circle, then square",
-            notes = "Three clicks: circle, square, on. Both shapes are stage.on(n), " +
-                    "so clicking back plays them out again."
+            EsgFramework(fontPath = boldFont, ink = wnRed),
+            title = "ESG Beoordelingskader",
+            notes = "Environmental, then Social, then Governance, then they connect. " +
+                    "Drie pijlers \u2014 niet als modewoorden, maar als kompas."
+        )
+        // The linear life cycle drawn in full, a phase a click, and then contradicted: the
+        // end-of-life column is taken away and The Circle put in its place. Read off
+        // data/ref/Levenscyclus van betonproducten.pdf, whose six states are these six
+        // clicks. See LifeCycle for the layout, which is a function of the column count.
+        slide(
+            LifeCycle(
+                phases = listOf(
+                    LifePhase("A1-A3", "Productfase", listOf(
+                        LifeStep("A1", "Grondstof winning"),
+                        LifeStep("A2", "Transport naar fabricage plek"),
+                        LifeStep("A3", "Fabricage")
+                    )),
+                    LifePhase("A4-A5", "Constructiefase", listOf(
+                        LifeStep("A4", "Transport naar constructie plek"),
+                        LifeStep("A5", "Installatie")
+                    )),
+                    LifePhase("B4-B5", "Gebruiksfase", listOf(
+                        LifeStep("B1", "Gebruik"),
+                        LifeStep("B2", "Onderhoud"),
+                        LifeStep("B3", "Reparatie"),
+                        LifeStep("B4", "Vervanging"),
+                        LifeStep("B5", "Verbouwing")
+                    )),
+                    LifePhase("C1-C4", "End-of-life fase", listOf(
+                        LifeStep("C1", "Demonteren en sloop"),
+                        LifeStep("C2", "Transport"),
+                        LifeStep("C3", "Afvalverwerking"),
+                        LifeStep("C4", "Ontdoen van")
+                    ))
+                ),
+                // No code on these: they are not a phase of the linear cycle, they are what
+                // replaces its last one.
+                closing = LifePhase("", "The Circle", listOf(
+                    LifeStep("", "Elementen demonteren"),
+                    LifeStep("", "Transport"),
+                    LifeStep("", "Opslag"),
+                    LifeStep("", "Opnieuw gebruiken")
+                )),
+                boldPath = boldFont,
+                textPath = textFont
+            ),
+            title = "Levenscyclus van betonproducten",
+            notes = "Four phases, a click each, then the end-of-life column is replaced by " +
+                    "The Circle and its four steps arrive. Zonder sloop: demonteren, " +
+                    "transport, opslag, opnieuw gebruiken."
+        )
+        // The B half of the same reference: the two databases feeding one calculation, and
+        // what that calculation is for. Off data/ref/Levenscyclus van betonproducten-2.pdf,
+        // whose two states are the first and the last of these five clicks.
+        slide(
+            LifeCycleAnalysis(
+                sources = listOf(
+                    LcaSource("Database van aangekocht materialen", lcaFields, LcaMark.ELEMENT),
+                    LcaSource("Database betonmengsels", lcaFields, LcaMark.MIX)
+                ),
+                boldPath = boldFont,
+                textPath = textFont,
+                ink = wnRed
+            ),
+            title = "Levenscyclus analyse",
+            notes = "The two databases arrive, are gathered into the analysis, and then what " +
+                    "the analysis makes possible \u2014 materiaalgebonden CO\u2082-uitstoot."
         )
     }
 
@@ -516,11 +612,6 @@ val show = slideshow {
             title = "Panels turning",
             notes = "A wave crosses the row once on arrival and settles — 7.5s, off the " +
                     "slide's own frame count rather than a clock."
-        )
-        slide(
-            LoopSlide(),
-            notes = "Five seconds a turn, running whether or not anyone clicks. The " +
-                    "second click adds a mark half a turn behind."
         )
     }
 
@@ -546,12 +637,6 @@ val show = slideshow {
                     "as it has to be for the copy, the swing and the four-slab pattern to " +
                     "close together — five blocks against four makes twenty slab-widths."
         )
-        slide(
-            BuildSlide(),
-            notes = "Five clicks. The last is the build down and runs at 0.70s " +
-                    "against the deck's 0.45s."
-        )
-        slide(HardCutSlide(), notes = "No handover at all — the slide is simply there.")
     }
 
     // 22:00, Uitloop: the opening scene with the colours the other way round — the
