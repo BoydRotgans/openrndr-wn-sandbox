@@ -100,6 +100,9 @@ class CityMapSlide(
     override val steps = 3
     override val stepFrames = frames(pace)
 
+    /** The opening state stands still — the whole town, every element on its plan — so a written run need not wait a click's length on it. */
+    override val settle: Int get() = frames(0.5)
+
     /**
      * A hard cut, not the deck's default fade.
      *

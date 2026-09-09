@@ -51,6 +51,14 @@ abstract class Slide {
     /** Frames one click takes to play. */
     open val stepFrames: Int get() = frames(0.45)
 
+    /**
+     * Frames the slide takes to finish its own opening once it is up, for a run that writes
+     * its cues itself (`SLIDES_CUES=auto`): a hold is this plus a reading time. The click
+     * length by default, which is right for a slide that only moves on clicks; a slide that
+     * builds on its own frame count — the globe — says how long that takes.
+     */
+    open val settle: Int get() = stepFrames
+
     /** Frames in one turn of the slide's loop, or 0 for a slide that holds still. */
     open val loop: Int get() = 0
 

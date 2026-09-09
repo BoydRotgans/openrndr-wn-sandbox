@@ -9,6 +9,7 @@ import org.openrndr.draw.loadFont
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
+import slideshow.frames
 import slideshow.seconds
 import slideshow.mix
 import kotlin.math.PI
@@ -90,6 +91,9 @@ class GlobeSlide(
     override val sound: Sound? = null
 ) : Slide() {
     override val name = "Globe"
+
+    /** The whole build, so a written run holds until the ring is full. */
+    override val settle: Int get() = frames(pace * (fill - opening).coerceAtLeast(1))
 
     private lateinit var face: FontImageMap
 

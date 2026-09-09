@@ -52,7 +52,18 @@ import kotlin.math.min
  * There is no mouse binding and no jump-to-any-slide key: `SLIDES_START` opens on a slide,
  * and the arrows are the whole of it.
  */
-fun present(show: Show) = application {
+fun present(show: Show) {
+    // What a filmed run leaves to do once the window has closed and the film is on disk:
+    // the soundtrack, rendered from the cue log, and the mix. Set inside the program, run
+    // after it — `ScreenRecorder` only finishes its file as the program ends.
+    var afterwards: (() -> Unit)? = null
+    application {
+        present(show) { afterwards = it }
+    }
+    afterwards?.invoke()
+}
+
+private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Unit) -> Unit) {
     val settings = show.settings
     val slides = show.slides
     val hasPanels = show.panels.isNotEmpty() && settings.panelWidth != null
@@ -277,11 +288,16 @@ fun present(show: Show) = application {
 
         if (settings.record) {
             extend(ScreenRecorder().apply {
+                outputFile = settings.video
                 frameRate = settings.fps
                 // so the clip comes out at the canvas size, not the window's
                 contentScale = 1.0 / settings.windowScale
                 settings.duration?.let { maximumDuration = it }
             })
+            // The soundtrack is rendered from the log once the film is on disk, which is
+            // after the program ends — so it is handed out rather than done here. The
+            // frame count is the clock's last, which is the film's length in deck frames.
+            leave { Soundtrack.export(speakers.log.toList(), clock.frame, File(settings.video), settings.mix) }
         }
 
         // One png per click of every slide, then quit: the whole deck as a contact sheet,
@@ -296,10 +312,15 @@ fun present(show: Show) = application {
 
         // A written run: hold this many frames, click, hold the next many. Nothing here reads
         // a clock — the cue is measured against the frame the last one was taken on, so a
-        // filmed run and a watched one are the same run.
-        val cueFrames = settings.cues.map { frames(it) }
+        // filmed run and a watched one are the same run. Written by hand, or by the deck
+        // itself off what each state needs; either way the last hold is how long the final
+        // state stands before a filmed run ends.
+        val holds = if (settings.cuesAuto) autoCues(slides, startSlide, settings) else settings.cues.map { frames(it) }
+        val cueFrames = if (settings.cuesAuto) holds.dropLast(1) else holds
+        val finalHold = holds.lastOrNull() ?: 0
         var cue = 0
         var cueAt = 0
+        var ended = false
         var fps = 0.0
         var lastSeconds = 0.0
 
@@ -400,11 +421,18 @@ fun present(show: Show) = application {
                     deck.goTo(slide, step, cut = true)
                     heldSince = frame
                 }
-            } else if (cueFrames.isNotEmpty()) {
-                if (cue < cueFrames.size && frame - cueAt >= cueFrames[cue]) {
-                    cueAt = frame
-                    cue++
-                    forward()
+            } else if (holds.isNotEmpty()) {
+                if (cue < cueFrames.size) {
+                    if (frame - cueAt >= cueFrames[cue]) {
+                        cueAt = frame
+                        cue++
+                        forward()
+                    }
+                } else if (settings.record && !ended && frame - cueAt >= finalHold) {
+                    // A filmed run ends one hold after its last click; a watched one stands.
+                    ended = true
+                    speakers.close()
+                    application.exit()
                 }
             } else if (autoStepFrames > 0 && frame - lastAutoStep >= autoStepFrames) {
                 lastAutoStep = frame
@@ -519,6 +547,29 @@ fun present(show: Show) = application {
             }
         }
     }
+}
+
+/**
+ * The cue list the deck writes for itself: one hold per state from [start] to the end, each
+ * long enough for the state to finish moving — its click, or its own opening — plus a reading
+ * time, longer for a wall that is one picture. Printed, so it can be copied into
+ * `SLIDES_CUES` and tuned by hand where a state wants more or less than the rule gives it.
+ */
+private fun autoCues(slides: List<Slide>, start: Int, settings: Settings): List<Int> {
+    val holds = mutableListOf<Int>()
+    for (s in start until slides.size) {
+        val slide = slides[s]
+        val read = if (slide.wide && slide.steps == 1) settings.holdWide else settings.hold
+        for (step in 0 until slide.steps) {
+            val settle = if (step == 0) slide.settle else slide.stepFrames
+            holds += settle + frames(read)
+        }
+    }
+    println(
+        "cues: auto — " + holds.joinToString(", ") { "%.1f".format(seconds(it)) } +
+                "  (%d states, %.0fs in all)".format(holds.size, seconds(holds.sum()))
+    )
+    return holds
 }
 
 /**

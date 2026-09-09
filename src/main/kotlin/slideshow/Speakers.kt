@@ -30,6 +30,7 @@ import org.lwjgl.openal.ALC10.alcDestroyContext
 import org.lwjgl.openal.ALC10.alcGetString
 import org.lwjgl.openal.ALC10.alcMakeContextCurrent
 import org.lwjgl.openal.ALC10.alcOpenDevice
+import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.IntBuffer
@@ -81,10 +82,6 @@ class Speakers(
     private val levelled: Boolean = true
 ) {
 
-    /** The loudness every cue is brought to, and the peak it may not pass, in dBFS. */
-    private val targetRms = 10.0.pow(-23.0 / 20.0)
-    private val ceiling = 10.0.pow(-6.0 / 20.0)
-
     private var device = 0L
     private var context = 0L
 
@@ -115,6 +112,18 @@ class Speakers(
 
     /** The frame the driver last ticked to — the deck's own, never a wall clock. */
     private var frame = 0
+
+    /** One thing the driver asked, at the frame it asked it: a cue fired, or a sustained one let go. */
+    class Cue(val frame: Int, val sound: Sound, val release: Boolean)
+
+    /**
+     * Everything the driver asked, in order, whether or not there was a device to hear it.
+     *
+     * This is what a film's soundtrack is rendered from — see [Soundtrack]. Every entry is on
+     * a deck frame, which under `ScreenRecorder` is video time, so a soundtrack rendered from
+     * it lands on the picture frame for frame however far the encoder fell behind.
+     */
+    val log = mutableListOf<Cue>()
 
     /**
      * A gain ramp on a held source, as a *function of the frame* rather than something
@@ -195,7 +204,9 @@ class Speakers(
      * like one continuous bed rather than two.
      */
     fun play(sound: Sound?) {
-        if (!ready || sound == null) return
+        if (sound == null) return
+        log += Cue(frame, sound, release = false)
+        if (!ready) return
         val buffer = buffers[sound.file.path] ?: return
 
         if (sound.sustained) {
@@ -236,7 +247,9 @@ class Speakers(
      * declares no fade, is never held, and needs none of this — it is over when it is over.
      */
     fun release(sound: Sound?) {
-        if (!ready || sound == null) return
+        if (sound == null) return
+        log += Cue(frame, sound, release = true)
+        if (!ready) return
         val key = sound.file.path
         val source = held[key] ?: return
         val from = level[key] ?: sound.gain
@@ -258,9 +271,8 @@ class Speakers(
      * or stepped, and pausing the deck holds it where it stands.
      */
     fun tick(frame: Int) {
-        if (!ready) return
         this.frame = frame
-        if (fading.isEmpty()) return
+        if (!ready || fading.isEmpty()) return
 
         val finished = mutableListOf<String>()
         for ((key, fade) in fading) {
@@ -350,63 +362,94 @@ class Speakers(
      * peaks at -11, so it is held at the ceiling and stays quieter than the rest, which is right
      * — it is an impact, not a tone.
      */
-    private fun decode(file: java.io.File): Pcm {
-        val source = AudioSystem.getAudioInputStream(file).use { it.format }
-        val float = AudioFormat(
-            AudioFormat.Encoding.PCM_FLOAT, source.sampleRate, 32,
-            source.channels, source.channels * 4, source.sampleRate, false
-        )
-        require(AudioSystem.isConversionSupported(float, source)) {
-            "${file.name}: no converter from ${source.encoding}/${source.sampleSizeInBits} to float"
-        }
-
-        // pass one — what is actually on the file
-        var square = 0.0
-        var peak = 0.0
-        var count = 0L
-        samples(file, float) { v ->
-            square += v.toDouble() * v
-            val size = abs(v.toDouble())
-            if (size > peak) peak = size
-            count++
-        }
-        val rms = if (count > 0) sqrt(square / count) else 0.0
-        val boost = when {
-            !levelled || rms <= 0.0 -> 1.0
-            peak <= 0.0 -> 1.0
-            else -> min(targetRms / rms, ceiling / peak)
-        }
+    private fun decode(file: File): Pcm {
+        val read = level(file, levelled)
 
         // pass two — scale in float, then quantise
-        val data = ByteBuffer.allocateDirect((count * 2).toInt()).order(ByteOrder.nativeOrder())
+        val data = ByteBuffer.allocateDirect((read.frames * read.channels * 2).toInt()).order(ByteOrder.nativeOrder())
         val shorts = data.asShortBuffer()
-        samples(file, float) { v ->
-            val scaled = (v * boost).coerceIn(-1.0, 1.0) * Short.MAX_VALUE
-            shorts.put(scaled.toInt().toShort())
-        }
+        read.each { v -> if (shorts.hasRemaining()) shorts.put((v * Short.MAX_VALUE).toInt().toShort()) }
 
         return Pcm(
             data = data,
-            format = if (source.channels == 1) AL_FORMAT_MONO16 else AL_FORMAT_STEREO16,
-            rate = source.sampleRate.toInt(),
-            frames = count / source.channels,
-            boost = boost,
-            rms = rms
+            format = if (read.channels == 1) AL_FORMAT_MONO16 else AL_FORMAT_STEREO16,
+            rate = read.rate,
+            frames = read.frames,
+            boost = read.boost,
+            rms = read.rms
         )
     }
+}
 
-    /** Every sample of [file] as a float, in [want]'s format, without holding the file. */
-    private inline fun samples(file: java.io.File, want: AudioFormat, sink: (Float) -> Unit) {
-        AudioSystem.getAudioInputStream(file).use { encoded ->
-            AudioSystem.getAudioInputStream(want, encoded).use { stream ->
-                val bytes = ByteArray(1 shl 16)
-                val view = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-                while (true) {
-                    // AudioInputStream reads whole frames, so this never splits a float
-                    val read = stream.read(bytes)
-                    if (read <= 0) break
-                    for (i in 0 until read / 4) sink(view.getFloat(i * 4))
-                }
+// ------------------------------------------------------------------------------ //
+//  The decoder, shared with the soundtrack
+// ------------------------------------------------------------------------------ //
+
+/** The loudness every cue is brought to, and the peak it may not pass, in dBFS. */
+internal const val LEVEL_DB = -23.0
+internal const val CEILING_DB = -6.0
+
+/**
+ * A cue as pass one found it — its rate, its length, what levelling will do to it — and the
+ * levelled samples themselves on demand, read off the file again rather than held.
+ *
+ * Two callers: [Speakers] quantises them into an AL buffer, [Soundtrack] mixes them in float.
+ * One reading of the file rather than two that drift, so a film sounds as the room did.
+ */
+internal class Levelled(
+    val file: File,
+    val channels: Int,
+    val rate: Int,
+    val frames: Long,
+    val boost: Double,
+    val rms: Double,
+    internal val format: AudioFormat
+) {
+    /** Every sample, interleaved, levelled and held within full scale, without holding the file. */
+    internal inline fun each(sink: (Float) -> Unit) =
+        samples(file, format) { v -> sink((v * boost).toFloat().coerceIn(-1f, 1f)) }
+}
+
+/** Pass one over [file]: measures it and decides the boost. The samples come from [Levelled.each]. */
+internal fun level(file: File, levelled: Boolean): Levelled {
+    val source = AudioSystem.getAudioInputStream(file).use { it.format }
+    val float = AudioFormat(
+        AudioFormat.Encoding.PCM_FLOAT, source.sampleRate, 32,
+        source.channels, source.channels * 4, source.sampleRate, false
+    )
+    require(AudioSystem.isConversionSupported(float, source)) {
+        "${file.name}: no converter from ${source.encoding}/${source.sampleSizeInBits} to float"
+    }
+
+    var square = 0.0
+    var peak = 0.0
+    var count = 0L
+    samples(file, float) { v ->
+        square += v.toDouble() * v
+        val size = abs(v.toDouble())
+        if (size > peak) peak = size
+        count++
+    }
+    val rms = if (count > 0) sqrt(square / count) else 0.0
+    val boost = when {
+        !levelled || rms <= 0.0 -> 1.0
+        peak <= 0.0 -> 1.0
+        else -> min(10.0.pow(LEVEL_DB / 20.0) / rms, 10.0.pow(CEILING_DB / 20.0) / peak)
+    }
+    return Levelled(file, source.channels, source.sampleRate.toInt(), count / source.channels, boost, rms, float)
+}
+
+/** Every sample of [file] as a float, in [want]'s format, without holding the file. */
+internal inline fun samples(file: File, want: AudioFormat, sink: (Float) -> Unit) {
+    AudioSystem.getAudioInputStream(file).use { encoded ->
+        AudioSystem.getAudioInputStream(want, encoded).use { stream ->
+            val bytes = ByteArray(1 shl 16)
+            val view = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+            while (true) {
+                // AudioInputStream reads whole frames, so this never splits a float
+                val read = stream.read(bytes)
+                if (read <= 0) break
+                for (i in 0 until read / 4) sink(view.getFloat(i * 4))
             }
         }
     }

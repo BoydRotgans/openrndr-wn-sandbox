@@ -50,9 +50,25 @@ data class Settings(
      * runs out the deck simply stops where it is.
      */
     val cues: List<Double> = emptyList(),
+    /**
+     * Write the cue list off the deck instead: every state held for as long as it takes to
+     * finish moving plus a reading time — [hold] for a slide, [holdWide] for a wall of one
+     * state — and a filmed run ends after the last. The list is printed at startup, to be
+     * copied into [cues] and tuned by hand.
+     */
+    val cuesAuto: Boolean = false,
+    val hold: Double = 3.5,
+    val holdWide: Double = 12.0,
     val record: Boolean = false,
     val fps: Int = FPS,
     val duration: Double? = null,
+    /**
+     * Where a filmed run goes. The soundtrack is rendered beside it, in line with the picture
+     * frame for frame, and with [mix] on and ffmpeg on the path the two are mixed into one
+     * file beside those — see [Soundtrack].
+     */
+    val video: String = "video/presentation.mp4",
+    val mix: Boolean = true,
     /** Write one png per click of every slide to screenshots/ and quit. */
     val stills: Boolean = false,
 

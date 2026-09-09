@@ -1979,6 +1979,44 @@ The window is the card's own size and the canvas is fitted into it rather than s
 still, a filmed frame and what is on screen are the same pixels; `CARD_WINDOW` scales the
 window and the recorder's `contentScale` puts the resolution back.
 
+### The export
+
+`SLIDES_RECORD=true SLIDES_CUES=auto` films the whole deck hands-off and leaves four files in
+`video/`: the film, a `.cues` log of every cue the run fired and the frame it fired on, a
+`.wav` rendered from that log, and — with ffmpeg on the path — the two mixed into
+`presentation-mixed.mp4`. `SLIDES_VIDEO` names the film and the rest stand beside it.
+
+**The soundtrack is rendered, not recorded, and that is what makes it in line.** Under
+`ScreenRecorder` the draw loop runs on video time while the speakers play on wall time, so
+whatever the machine puts out during filming drifts from the picture the moment the encoder
+falls behind — at 3840 wide it always does. But every cue is fired on a *deck frame*, and a
+deck frame is video time by construction. `Speakers` keeps a log of what it was asked and
+when, whether or not a device was there to hear it, and [`Soundtrack`](src/main/kotlin/slideshow/Soundtrack.kt)
+replays the driver's own rules over that log — the same two-pass levelling, the same fade
+as a function of the frame, one voice per sustained cue picking a fade up from wherever the
+gain had got to, loops wrapping, one-shots ringing out — into a wav of exactly the film's
+length. Each cue lands on the sample its frame maps to, however slowly the film was made.
+
+**The log is the deliverable behind the deliverable.** `MixSoundtrackKt` renders and mixes
+again from the `.cues` file alone — no window, no device, no deck — which is how to change a
+level in `Slideshow.kt` without filming again, or to mix on a machine where ffmpeg was
+missing when the film was made. The mix is held under full scale rather than clipped: cues
+are levelled to -23 dBFS with a -6 dB ceiling each, two landing together can pass 0, and the
+whole track is brought down by whatever the loudest moment needs, and the report says by
+how much.
+
+**A written cue list is holds, and `auto` writes it off the deck.** One number per state:
+long enough for the state to finish moving — its click, or the slide's own opening, which is
+`Slide.settle` and which the globe overrides with the length of its build — plus a reading
+time, `SLIDES_HOLD` for a slide and `SLIDES_HOLD_WIDE` for a wall that is one picture. The
+list it wrote is printed at startup, to copy into `SLIDES_CUES` and tune by hand where a state
+wants more or less than the rule gives it. A filmed run ends one hold after its last click; a
+watched one stands where the list ran out, as before.
+
+**The mux runs after the window closes, and has to.** `ScreenRecorder` finishes its file as
+the program ends, so `present` hands the export out of the program as a closure and runs it
+once `application {}` has returned — the film is on disk by then and not before.
+
 ### Sound
 
 The deck makes a noise. A slide — a chapter card included — declares a cue, and the driver

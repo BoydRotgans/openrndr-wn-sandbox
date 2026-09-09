@@ -813,9 +813,14 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         autoStep = Env["${prefix}_AUTOSTEP"]?.toDoubleOrNull() ?: settings.autoStep,
         cues = Env["${prefix}_CUES"]?.split(",")?.mapNotNull { it.trim().toDoubleOrNull() }
             ?.takeIf { it.isNotEmpty() } ?: settings.cues,
+        cuesAuto = Env["${prefix}_CUES"]?.trim().equals("auto", ignoreCase = true),
+        hold = Env["${prefix}_HOLD"]?.toDoubleOrNull() ?: settings.hold,
+        holdWide = Env["${prefix}_HOLD_WIDE"]?.toDoubleOrNull() ?: settings.holdWide,
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,
+        video = Env["${prefix}_VIDEO"]?.takeIf { it.isNotBlank() } ?: settings.video,
+        mix = Env["${prefix}_MIX"]?.let { Env.boolean("${prefix}_MIX") } ?: settings.mix,
         stills = Env.boolean("${prefix}_STILLS"),
         sound = Env["${prefix}_SOUND"]?.let { Env.boolean("${prefix}_SOUND") } ?: settings.sound
     )
