@@ -19,4 +19,7 @@ package slideshow
  * Backdrops live in `backdrop-drawers/`, a file to a scene, the way slides live in
  * `slide-drawers/`.
  */
-abstract class Backdrop : Slide()
+abstract class Backdrop : Slide() {
+    override val wide get() = true
+    override val kind get() = "backdrop"
+}

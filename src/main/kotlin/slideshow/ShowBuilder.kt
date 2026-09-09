@@ -182,6 +182,19 @@ class ShowBuilder internal constructor() {
         panelOf += -1
     }
 
+    /**
+     * A scene standing outside the chapters, next to the backdrops.
+     *
+     * It composes exactly as a backdrop does — the whole wall, no card — and what the two
+     * still say differently is what the thing *is*: a backdrop is a wall around the talk and a
+     * scene is part of the talk that happens to take the wall. The running order prints which.
+     */
+    fun scene(scene: Scene, title: String? = null, notes: String? = null) {
+        slides += scene
+        places += Placement(0, "", 0, "", title, notes)
+        panelOf += -1
+    }
+
     internal fun add(slide: Slide, place: Placement, panel: PanelDrawer? = null) {
         slides += slide
         places += place
@@ -193,14 +206,17 @@ class ShowBuilder internal constructor() {
             section = here
             (panel ?: panelDrawer)?.let { panels += it(place.section()) }
         }
-        panelOf += if (panels.isNotEmpty()) panels.size - 1 else -1
+        // A wide slide covers the whole wall, so no card can be seen beside it — read off
+        // the slide rather than off which builder function declared it, which is what lets a
+        // new wide kind arrive without this line changing.
+        panelOf += if (slide.wide || panels.isEmpty()) -1 else panels.size - 1
     }
 
     internal fun build(): Show {
         require(slides.isNotEmpty()) { "a show needs at least one slide" }
         // Once any slide has a card, every slide that is not a backdrop must have one.
         val carded = panelOf.any { it >= 0 }
-        require(!carded || slides.indices.all { panelOf[it] >= 0 || slides[it] is Backdrop }) {
+        require(!carded || slides.indices.all { panelOf[it] >= 0 || slides[it].wide }) {
             "a chapter sets its own panel but the show has none. Call panel(::YourPanel) " +
                     "in the show, then override it on the chapters that need another card."
         }
@@ -225,6 +241,13 @@ class ChapterBuilder internal constructor(
     /** A slide directly under the chapter, with no subchapter. */
     fun slide(slide: Slide, title: String? = null, notes: String? = null) =
         show.add(slide, Placement(index, chapterTitle, 0, "", title, notes), panel)
+
+    /**
+     * A scene: the whole wall, from inside this chapter. The chapter's card is not drawn
+     * while it is up and arrives again with the next slide — see [Scene].
+     */
+    fun scene(scene: Scene, title: String? = null, notes: String? = null) =
+        show.add(scene, Placement(index, chapterTitle, 0, "", title, notes), panel)
 }
 
 @ShowDsl
@@ -238,6 +261,10 @@ class SubchapterBuilder internal constructor(
 ) {
     fun slide(slide: Slide, title: String? = null, notes: String? = null) =
         show.add(slide, Placement(chapter, chapterTitle, index, subchapterTitle, title, notes), panel)
+
+    /** A scene: the whole wall, from inside this subchapter. See [Scene]. */
+    fun scene(scene: Scene, title: String? = null, notes: String? = null) =
+        show.add(scene, Placement(chapter, chapterTitle, index, subchapterTitle, title, notes), panel)
 }
 
 // ------------------------------------------------------------------------------ //
@@ -275,7 +302,7 @@ fun Show.runningOrder(): String = buildString {
                 index + 1,
                 place?.title ?: slide.name,
                 buildList {
-                    if (slide is Backdrop) add("backdrop")
+                    if (slide.wide) add(slide.kind)
                     add(if (slide.steps == 1) "1 click" else "${slide.steps} clicks")
                     add("%.2fs".format(seconds(slide.stepFrames)))
                     if (slide.loop > 0) add("loop %.1fs".format(seconds(slide.loop)))

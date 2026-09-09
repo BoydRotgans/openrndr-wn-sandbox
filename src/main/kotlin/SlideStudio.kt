@@ -16,7 +16,6 @@ import org.openrndr.draw.renderTarget
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.IntVector2
 import org.openrndr.shape.Rectangle
-import slideshow.Backdrop
 import slideshow.Clock
 import slideshow.Deck
 import slideshow.DebugOverlay
@@ -114,7 +113,7 @@ fun main() = application {
     val opening = slideIndex(show.slides, Env["SLIDE"] ?: Env["SLIDES_START"]) {
         show.outline[it]?.title ?: show.slides[it].name
     }
-    val wide = show.slides[opening] is Backdrop
+    val wide = show.slides[opening].wide
     val openWidth = if (wide) settings.width else paneWidth
 
     // How much of the screen the window takes, inherited from the show so that one dial —
@@ -233,8 +232,8 @@ fun main() = application {
         // one kind onto the other letterboxes rather than resizing the window, and a still
         // is always at the composition's own size.
         val paneCanvas = buffer(paneWidth, paneHeight)
-        val wallCanvas = if (slides.any { it is Backdrop }) buffer(settings.width, settings.height) else null
-        fun canvasOf(slide: Slide) = if (slide is Backdrop) wallCanvas!! else paneCanvas
+        val wallCanvas = if (slides.any { it.wide }) buffer(settings.width, settings.height) else null
+        fun canvasOf(slide: Slide) = if (slide.wide) wallCanvas!! else paneCanvas
         fun boundsOf(slide: Slide) =
             canvasOf(slide).let { Rectangle(0.0, 0.0, it.width.toDouble(), it.height.toDouble()) }
 

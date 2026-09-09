@@ -31,6 +31,23 @@ abstract class Slide {
     /** How many clicks this slide holds. 1 is a slide you click straight past. */
     open val steps: Int get() = 1
 
+    /**
+     * Whether this takes the **whole wall** rather than the pane beside a chapter card.
+     *
+     * The one thing the driver has to know to compose a kind, and it is asked as a property
+     * rather than by type because it is asked in fourteen places: the buffers it needs, the
+     * bounds it draws into, whether a card can be seen beside it, whether a card must replay
+     * when the show steps out of it, and how a handover with something narrower is composed.
+     * Every one of those was `slide is Backdrop` before there was a second wide kind, which is
+     * exactly the check a third kind has to go and edit. Set it and the engine follows.
+     *
+     * A wide slide is never given a chapter card — see `ShowBuilder.add`, which reads this.
+     */
+    open val wide: Boolean get() = false
+
+    /** What kind of thing this is, for the running order to report: `backdrop`, `scene`. */
+    open val kind: String get() = "slide"
+
     /** Frames one click takes to play. */
     open val stepFrames: Int get() = frames(0.45)
 

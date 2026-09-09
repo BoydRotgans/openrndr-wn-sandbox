@@ -18,6 +18,7 @@
 import org.openrndr.color.ColorRGBa
 import slideshow.Settings
 import slideshow.Show
+import slideshow.Scene
 import slideshow.backdrops.NameTag
 import slideshow.present
 import slideshow.slideshow
@@ -209,6 +210,16 @@ val city = CityMapSlide(pace = 12.0, sound = mapCue)
 val wnBlue = ColorRGBa.fromHex("1E3A72")
 val wnRed = ColorRGBa.fromHex("FF0000")
 val wnPaper = ColorRGBa.fromHex("E8E8E8")
+
+/**
+ * The playful set, for the collage. The house red and navy open it and the other four are
+ * picked to stand beside them — a warm amber, a green, a coral and the Figma export's lighter
+ * blue. They are a proposal rather than a brand palette: nothing in the exports names them.
+ */
+val wnAmber = ColorRGBa.fromHex("F2B705")
+val wnTeal = ColorRGBa.fromHex("2E9E5B")
+val wnCoral = ColorRGBa.fromHex("FF6B4A")
+val wnSky = ColorRGBa.fromHex("4674D6")
 
 /**
  * The sheet the backdrops stand their elements off. A path, so it is in `.env`; which
@@ -666,6 +677,62 @@ val show = slideshow {
                 "turning slowly, the phase rippling across the field as a sine."
     )
 
+    // The sectors, last before the exit: the whole wall, no card, the set laid out at once
+    // and then each case taken full frame in turn. A scene rather than a backdrop because
+    // it is part of the talk rather than a wall around it — see CaseStudy in scene-drawers/,
+    // and Scene for what a third kind of slide costs the engine.
+    scene(
+        CaseStudy(
+            objects = yardObjects,
+            // **A piece stands for a sector, not for itself**: the title is what is
+            // built, the note is the element that builds it, and the image is the project
+            // itself, blended in as the camera closes. Six of these sectors are the
+            // draaiboek's own words — the notes to slides 4, 39 and 40 name scholen,
+            // logistieke centra, voedingsbedrijven, zwembaden, distributiehubs and
+            // productiehallen — and the rest are a proposal to be corrected. The three
+            // placeholders are dealt round until there is a photograph a sector.
+            cases = listOf(
+                Case("WAND_27", "Industriebouw", "Wandpaneel met sparing",
+                    "data/case-studies/placeholder01.jpg"),
+                Case("TC-BALK", "Logistiek & distributie", "TC-balk, 23,8 m overspanning",
+                    "data/case-studies/placeholder02.png"),
+                Case("TT-590-2400-120", "Voedingsindustrie", "TT-plaat, 2,4 m breed",
+                    "data/case-studies/placeholder03.png"),
+                Case("KOLOM", "Agrarische bouw", "Kolom",
+                    "data/case-studies/placeholder01.jpg"),
+                Case("PREDAL", "Zwembaden", "Breedplaatvloer",
+                    "data/case-studies/placeholder02.png"),
+                Case("KONZOLE", "Scholen & onderwijs", "Konsole",
+                    "data/case-studies/placeholder03.png"),
+                Case("TANDBALK", "Utiliteitsbouw", "Tandbalk",
+                    "data/case-studies/placeholder01.jpg"),
+                Case("FUND", "Woningbouw", "Prefab poer",
+                    "data/case-studies/placeholder02.png"),
+                Case("PAAL", "Sport & recreatie", "Geheide fundering",
+                    "data/case-studies/placeholder03.png"),
+                Case("RT-BALK", "Retail", "Randbalk",
+                    "data/case-studies/placeholder01.jpg"),
+                Case("X-BALK", "Datacenters", "Zware overspanning",
+                    "data/case-studies/placeholder02.png"),
+                Case("KANTA", "Kantoren", "Randafwerking",
+                    "data/case-studies/placeholder03.png"),
+            ),
+            columns = 4, rows = 3,   // more, smaller cells: six on this wall left it 89% white, and a full-height
+                                     // overview would make the zoom a zoom out
+            fill = 1.25,             // the pieces fill their cells and lap a little; the width cap allows for the scatter's largest
+            fills = 0.88, collage = 0.45,
+            fontPath = boldFont,
+            // A collage rather than one ink. The navy is deliberately *not* in it: it is
+            // what the shadows are drawn in, and a navy piece beside a navy shadow reads
+            // as a hole rather than as a colour — measured, it was 10% of the wall and
+            // the eye took it for one thing.
+            palette = listOf(wnRed, wnAmber, wnTeal, wnCoral, wnSky),
+            shadow = wnBlue
+        ),
+        title = "De sectoren",
+        notes = "A collage of the sectors, each stood for by a precast element; a click " +
+                "takes each full frame in turn, the camera pulling back between them."
+    )
     // 22:00, Uitloop: the opening scene with the colours the other way round — the
     // same two elements in the same places, red then navy — which is how the
     // draaiboek draws the exit against the arrival.

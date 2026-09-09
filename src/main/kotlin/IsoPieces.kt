@@ -1,12 +1,15 @@
 // ============================================================================ //
 //  No `package` declaration: this stands on ObjMesh, which lives in the default
-//  package. It is what the yard and the gallery share — everything below the
-//  layout — so there is one implementation of the camera, the fit, the shear and
-//  the shadow count rather than two that drift.
+//  package. It sits at the root beside ObjectFabric and ObjectMosaic rather than
+//  in backdrop-drawers/, because it is no longer a backdrop's alone — the yard,
+//  the gallery and the case study all draw through it, so there is one
+//  implementation of the camera, the fit, the shear and the shadow count rather
+//  than three that drift.
 // ============================================================================ //
 
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.ChannelMask
+import org.openrndr.draw.ColorBuffer
 import org.openrndr.draw.DepthTestPass
 import org.openrndr.draw.DrawPrimitive
 import org.openrndr.draw.Drawer
@@ -16,6 +19,7 @@ import org.openrndr.draw.StencilTest
 import org.openrndr.draw.isolated
 import org.openrndr.draw.shadeStyle
 import org.openrndr.math.Matrix44
+import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import org.openrndr.shape.Rectangle
 import kotlin.math.atan
@@ -26,8 +30,29 @@ import kotlin.math.sqrt
 /** A piece fitted to one height that holds at any angle: its scale, and its sweep, in piece heights. */
 class IsoFitted(val mesh: ObjMesh, val scale: Double, val sweep: Double)
 
-/** A piece on the wall this frame: where its centre is, how big, and how far it has turned. */
-class IsoPlaced(val mesh: ObjMesh, val centre: Vector3, val scale: Double, val angle: Double)
+/**
+ * A piece on the wall this frame: where its centre is, how big, how far it has turned, and
+ * what it is drawn in.
+ *
+ * [tint] is null for a wall in one colour — the yard and the gallery — and the ink passed to
+ * [IsoPieces.draw] stands for it. A collage gives every piece its own.
+ */
+class IsoPlaced(
+    val mesh: ObjMesh, val centre: Vector3, val scale: Double, val angle: Double,
+    val tint: ColorRGBa? = null,
+    /**
+     * Whether this piece is a window onto [IsoPieces.window]'s picture. One piece at a time,
+     * as a rule: a picture showing through every piece on the wall is a texture, where showing
+     * through one is that piece being *about* something.
+     */
+    val window: Boolean = false,
+    /**
+     * Whether this piece throws a shadow. False for one that has faded into the wall: there is
+     * one stencil count for the whole wall, so a shadow cannot be faded piece by piece — it is
+     * cast or it is not, and a piece dissolved to nothing must stop.
+     */
+    val casts: Boolean = true
+)
 
 /**
  * Catalogue pieces in the round, on a white ground, in one colour under a low sun.
@@ -98,10 +123,49 @@ class IsoPieces(
     val up: Vector3 = right.cross((-eye).normalized).normalized
 
     private lateinit var flat: ShadeStyle
+    private lateinit var windowed: ShadeStyle
+    private var picture: ColorBuffer? = null
 
     /** Needs a GL context, so it is called from a slide's `load` rather than at construction. */
     fun load() {
         flat = shadeStyle { fragmentTransform = "x_fill = p_tint;" }
+
+        // A piece as a **window onto a picture nailed to the wall**: the picture is sampled in
+        // *wall pixels*, not in the piece's own space, so it does not slide when the piece
+        // slides and two pieces side by side are cut from one image. The opening wall's trick
+        // for cutting its pieces out of concrete — and the reason no unwrapping is needed,
+        // since these meshes carry no texture coordinates at all.
+        //
+        // What comes through is a **duotone in the piece's own colour**: the picture's
+        // luminance drives the value and the tint keeps the hue, so a piece reads as itself
+        // with the project inside it rather than as a photograph in the shape of a piece.
+        windowed = shadeStyle {
+            fragmentTransform = """
+                // gl_FragCoord counts up the screen and a loaded image already comes back the
+                // way `drawer.image` draws it, so the two agree and no flip belongs here. One
+                // was put in on the strength of the render-target rule under the chapter card,
+                // where a target *is* drawn y-down — and it turned every photograph over.
+                vec2 uv = (gl_FragCoord.xy - p_corner) / p_span;
+                vec3 shot = texture(p_photo, uv).rgb;
+                float lum = dot(shot, vec3(0.2126, 0.7152, 0.0722));
+                vec3 duo = p_tint.rgb * (p_floor + (1.0 - p_floor) * lum * p_gain);
+                x_fill = vec4(mix(p_tint.rgb, duo, p_blend), 1.0);
+            """.trimIndent()
+        }
+    }
+
+    /**
+     * The picture the pieces are windows onto, and how far through it comes. [corner] and
+     * [span] are where it lies on the wall in pixels, so an image can be fitted to cover.
+     */
+    fun window(photo: ColorBuffer?, corner: Vector2, span: Vector2, blend: Double) {
+        picture = photo
+        windowed.parameter("corner", corner)
+        windowed.parameter("span", span)
+        windowed.parameter("blend", blend)
+        windowed.parameter("floor", 0.22)
+        windowed.parameter("gain", 1.25)
+        photo?.let { windowed.parameter("photo", it) }
     }
 
     /** [mesh] fitted to one piece height, held back where its sweep would pass [widest] piece heights. */
@@ -124,8 +188,19 @@ class IsoPieces(
         return IsoPlaced(fitted.mesh, right * x + Vector3.UNIT_Y * (g + fitted.mesh.halfHeight * scale), scale, angle)
     }
 
-    /** Everything on the wall: the shadows counted and painted in two tones, then the pieces. */
-    fun draw(drawer: Drawer, w: Double, h: Double, placed: List<IsoPlaced>, ink: ColorRGBa, shadow: ColorRGBa, deep: ColorRGBa) {
+    /**
+     * Everything on the wall: the shadows counted and painted in two tones, then the pieces.
+     *
+     * [onTheGround] is drawn between the two, which is the only place anything can go: the
+     * shadow fills are opaque sheets across the whole wall, so something drawn before them is
+     * painted over, and something drawn after the pieces is painted over *them*. A photograph
+     * blending in under the pieces goes here.
+     */
+    fun draw(
+        drawer: Drawer, w: Double, h: Double, placed: List<IsoPlaced>,
+        ink: ColorRGBa, shadow: ColorRGBa, deep: ColorRGBa,
+        onTheGround: () -> Unit = {}
+    ) {
         val lean = Math.toRadians(light)
 
         // 1. The stencil zeroed across the wall, so the count starts from nothing each frame.
@@ -138,7 +213,7 @@ class IsoPieces(
 
         // 2. Every shadow counted into the stencil, once per pixel per piece.
         view(drawer, w, h) {
-            for (p in placed) piece(drawer, p, ColorRGBa.BLACK, asShadow = true, lean = lean)
+            for (p in placed) if (p.casts) piece(drawer, p, ColorRGBa.BLACK, asShadow = true, lean = lean)
         }
 
         // 3. The count read back as two colours. The stencil holds twice the count, the flag
@@ -159,9 +234,16 @@ class IsoPieces(
             drawer.rectangle(Rectangle(0.0, 0.0, w, h))
         }
 
-        // 4. The pieces, standing on their shadows.
+        // 4. Anything laid on the ground, over the shadows and under the pieces.
+        wall(drawer, w, h) {
+            drawer.drawStyle.stencil.stencilTest = StencilTest.DISABLED
+            drawer.fill = ColorRGBa.WHITE
+            onTheGround()
+        }
+
+        // 5. The pieces, standing on their shadows.
         view(drawer, w, h) {
-            for (p in placed) piece(drawer, p, ink, asShadow = false, lean = lean)
+            for (p in placed) piece(drawer, p, p.tint ?: ink, asShadow = false, lean = lean)
         }
     }
 
@@ -200,7 +282,10 @@ class IsoPieces(
             if (asShadow) drawer.model = drawer.model * flattened(-p.mesh.halfHeight * p.scale, lean)
             drawer.rotate(Vector3.UNIT_Y, Math.toDegrees(p.angle))
             drawer.scale(p.scale)
-            flat.parameter("tint", tint)
+            // Per piece, not per pass: only the one that asked for it is a window.
+            val style = if (!asShadow && p.window && picture != null) windowed else flat
+            drawer.shadeStyle = style
+            style.parameter("tint", tint)
 
             if (!asShadow) {
                 drawer.drawStyle.stencil.stencilTest = StencilTest.DISABLED

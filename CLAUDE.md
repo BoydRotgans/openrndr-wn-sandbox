@@ -1478,6 +1478,124 @@ offset, since it stands on both. Each kind is drawn into a canvas of its own and
 window, so `up`/`down` between a slide and a backdrop letterboxes rather than resizing. In the
 running order a backdrop line carries `backdrop` and stands apart from the chapters.
 
+### A third kind of slide
+
+`Slide`, `Backdrop` and now [`Scene`](src/main/kotlin/slideshow/Scene.kt). A slide composes for
+the pane beside its chapter card; a backdrop takes the whole wall and is a picture *around* the
+talk; a **scene takes the whole wall and is part of** it. It is what a full-bleed moment is: the
+subject fills the room and the furniture gets out of the way.
+
+Declared with `scene(...)` in a chapter it is listed under that chapter and the card is simply
+not drawn while it is up, arriving again with the next slide. Declared at the top level it
+stands beside the backdrops and composes exactly as one does — whole wall, no card — so what
+the two kinds still say differently is what the thing *is*, and the running order prints which.
+The case study stands there, last before the closing wall.
+
+**Adding a kind used to mean editing the driver in fourteen places, and now costs one
+property.** Every `slide is Backdrop` in `Show.kt`, `ShowBuilder.kt` and `SlideStudio.kt` — the
+buffers to allocate, the bounds to draw into, whether a card can be seen beside it, whether one
+must replay when the show steps out, how a handover with something narrower is composed — was
+really asking *does this take the whole wall*. That is `Slide.wide`, and both wide kinds set it;
+a fourth would set it and edit nothing. `Slide.kind` is the name the running order prints.
+
+**A wide slide is never given a card, and that is now read off the slide** rather than off which
+builder function declared it: `ShowBuilder.add` checks `slide.wide`. Before, `backdrop(...)`
+appended `-1` by hand, which is the sort of thing a new kind silently gets wrong.
+
+#### The case study
+
+[`CaseStudy`](src/main/kotlin/slideshow/scene-drawers/CaseStudy.kt) is the first scene: the
+catalogue's pieces pasted up as a collage, then each one taken full frame in turn. Twelve cases
+on a 4x3 grid, each in its own colour out of a playful palette, and a click takes the first
+piece full frame, the next click the second, to the end.
+
+**A piece stands for a sector, not for itself.** The caption is the subject — what is built —
+and the element is demoted to a note under it, because the wall is about the sectors and the
+catalogue is only how they are said. Six of the sector names are the draaiboek's own words, out
+of the notes to slides 4, 39 and 40; the rest are a proposal. Swapping which element stands for
+a sector is one word in the show.
+
+**Zooming is a scale and a shift, because the projection is parallel.** No frustum to move and
+no second camera: putting a piece full frame is scaling every piece's position and size about
+that piece's centre, which lands it at the middle of the wall at whatever size is asked for —
+the same fact the Objects grid rests on. It also keeps the ground one plane through the zoom, so
+the shadows go on landing on it: a piece's foot is `(g − focus.y) · z` whatever piece it is.
+
+**Between two cases the camera pulls back before it goes in, and that costs no click.** The zoom
+is interpolated in log space — the only way a scale reads as even — with a dip toward the
+overview at the half way point, so the move is out, across and in again. A click spent on the way
+out would double the length of the set and say nothing. The caption fades with how far in the
+camera is, so one number drives both rather than a second schedule.
+
+**The overview's grid is stated, not derived, and it has to be.** The rule that reads a grid off
+the count picks the cell nearest square, which on a 3.56:1 wall put all six cases in *one row* of
+886-pixel cells: a piece was already 704 px tall in the overview and "full frame" was 662 — a
+zoom *out*. More rows, smaller cells. Six cases also left the wall 89% white; twelve at `fill`
+1.35 — over 1, so they overflow their cells and lap — brings it to 74% and still zooms 2.38x.
+
+**The photograph is seen *through* the piece, and only there.** As the camera closes, a piece
+stops being flat colour and becomes a window onto its project's photograph; the wall around it
+stays paper. The picture is sampled in **wall pixels** rather than in the piece's own space, so
+it is nailed to the wall and the piece is a window onto it rather than a thing wrapped in it —
+the opening wall's trick for cutting its pieces out of concrete, and what makes this possible at
+all, since these meshes carry no texture coordinates to unwrap. What comes through is a
+**duotone in the piece's own colour**: the picture's luminance drives the value and the tint
+keeps the hue, so a piece reads as itself with the project inside it rather than as a photograph
+in the shape of a piece. It blends on the same number the caption fades on.
+
+**A piece the scatter would push through a neighbour is walked back toward its own cell until
+it clears.** Solids seen in the round passing through one another read as a fault rather than as
+a collage, and scatter alone produced exactly that. The test is between the pieces' any-angle
+boxes rather than their contours — the city's rule for packing plans, deliberately strict, since
+a contour always lies inside its box. The cap on a piece's width has to allow for the *largest*
+the scatter may size it to (`1 + collage/2`), not the nominal size: capped without that, a wide
+beam scaled up came out broader than its own cell and crossed into its neighbours wherever it
+stood, which no amount of walking back could clear. Measured on the overview: 217 pixels of 4.1
+million where two different pieces touch, at 75% white.
+
+**The picture is not flipped, and the rule that says so is not the render-target rule.**
+`gl_FragCoord` counts up the screen and a loaded image already comes back the way `drawer.image`
+draws it, so the two agree and no flip belongs in the sampler. One was put in on the strength of
+the chapter card's note — where a *render target* really is drawn y-down — and it turned every
+photograph over. Checked by measuring the source's top and bottom bands against the rendered
+piece's, in the centre column only and ignoring clipped pixels: both brighter at the top.
+
+**One piece at a time, and the picture is sized to that piece.** Only the case the camera has
+centred is a window; its neighbours stay flat colour, because a picture showing through every
+piece on the wall is a *texture*, where showing through one is that piece being *about*
+something. The style is therefore chosen per piece rather than per pass. And the picture is laid
+over the focused piece's own box rather than over the wall, so what fills it is the whole
+photograph rather than the crop of it that happened to fall where the piece stood. Measured:
+5–12% of the wall is still pure palette colour when a case is closed — the neighbours — while
+the tone count is over a hundred.
+
+A whole-wall version was built first, the photograph laid on the ground between the shadows and
+the pieces — `IsoPieces.draw` still takes an `onTheGround` block for that, the only place
+anything can go between opaque shadow fills and the pieces. It worked and was the wrong picture:
+the wall became a photograph with a shape standing on it, where the point is the shape. Measured
+on the window version: the overview is 8 tones and the corners stay white, and a closed case is
+113 to 232 tones with the wall still paper.
+
+`data/case-studies` holds three placeholders, dealt round until there is a photograph a sector.
+
+**`steps` has to be knowable before `load` runs.** `present` prints the running order first,
+so a step count taken from the loaded meshes reported a thirteen-click scene as two clicks — it
+is counted off the declared cases instead, and everything that indexes by step clamps.
+
+**The navy is deliberately not in the palette.** It is what the shadows are drawn in, and a navy
+piece beside a navy shadow reads as a hole rather than as a colour: measured, it was 10% of the
+wall and the eye took the two for one thing.
+
+**Every piece keeps its own little ground.** The shear casts each shadow from the piece's own
+bottom, so shifting a piece up or down takes its shadow with it — which is what a collage wants,
+each cutting pasted at its own height with its own shadow under it, rather than one horizon
+everything stands on. The scatter is drawn from a seed, so the same frame always draws the same
+collage.
+
+`IsoPieces` moved from `backdrop-drawers/` to the root beside `ObjectFabric` and `ObjectMosaic`,
+because it is no longer a backdrop's alone: the yard, the gallery and the case study all draw
+through it. `IsoPlaced` gained a `tint`, null meaning "the one ink this wall runs".
+
 ### Putting a sketch in the deck
 
 `Swivel01Slide` and `Swivel02Slide` are `demos/Swivel01.kt` and `demos/Swivel02.kt` moved
