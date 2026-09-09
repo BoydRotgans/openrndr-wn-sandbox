@@ -206,3 +206,70 @@ class TypeBlock(
     }
 
 }
+
+// ------------------------------------------------------------------------------ //
+//  Subscripts, set rather than asked for
+// ------------------------------------------------------------------------------ //
+
+/**
+ * Rockwell has no subscript glyphs — checked in the face's own cmap, not guessed — so `CO₂`
+ * cannot simply be put in [TYPE_CHARACTERS]: a character missing from the face draws nothing
+ * and advances nothing, and the line comes out as "CO -uitstoot", which reads as a spacing
+ * bug rather than an absent glyph. It is the trap the `×` fell into, one step further along.
+ * So a subscript digit is **set** — drawn as the ordinary digit at [SUB] of the size, dropped
+ * [SUB_DROP] of an em — which is what setting one means. Shared by every slide that says CO₂.
+ */
+const val SUBSCRIPTS = "₀₁₂₃₄₅₆₇₈₉"
+const val SUB = 0.62
+const val SUB_DROP = 0.13
+
+/** [piece] split into ordinary and subscript runs, the subscripts as plain digits. */
+fun subscriptRuns(piece: String): List<Pair<String, Boolean>> {
+    val out = mutableListOf<Pair<String, Boolean>>()
+    val run = StringBuilder()
+    var lowered = false
+    for (c in piece) {
+        val digit = SUBSCRIPTS.indexOf(c)
+        val low = digit >= 0
+        if (low != lowered && run.isNotEmpty()) {
+            out += run.toString() to lowered; run.clear()
+        }
+        lowered = low
+        run.append(if (low) '0' + digit else c)
+    }
+    if (run.isNotEmpty()) out += run.toString() to lowered
+    return out
+}
+
+/** How wide [piece] sets in this face, in font units, its subscripts counted at their own size. */
+fun FontImageMap.advanceWithSubscripts(piece: String): Double =
+    subscriptRuns(piece).sumOf { (run, lowered) -> advanceOf(run) * if (lowered) SUB else 1.0 }
+
+/**
+ * One line of [piece] in [face] at [size] pane pixels, its subscripts set, ranged by [align]
+ * about [at] — 0 for left, 0.5 for centred, 1 for right. [em] is the size the face was loaded
+ * at, which is what the scale is taken against.
+ */
+fun Drawer.setLine(piece: String, face: FontImageMap, at: Vector2, size: Double, em: Double, align: Double = 0.0) {
+    if (piece.isEmpty()) return
+    val scale = size / em
+    fontMap = face
+    isolated {
+        translate(at)
+        scale(scale)
+        var x = -face.advanceWithSubscripts(piece) * align
+        for ((run, lowered) in subscriptRuns(piece)) {
+            if (lowered) {
+                isolated {
+                    translate(x, em * SUB_DROP)
+                    scale(SUB)
+                    text(run, 0.0, 0.0)
+                }
+                x += face.advanceOf(run) * SUB
+            } else {
+                text(run, x, 0.0)
+                x += face.advanceOf(run)
+            }
+        }
+    }
+}

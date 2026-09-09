@@ -23,6 +23,7 @@ import slideshow.backdrops.NameTag
 import slideshow.present
 import slideshow.slideshow
 import java.io.File
+import slideshow.drawers.CarbonLadder
 import slideshow.drawers.ChapterPanel
 import slideshow.drawers.Crowd
 import slideshow.drawers.EsgFramework
@@ -558,6 +559,19 @@ val show = slideshow {
             title = "ESG Beoordelingskader",
             notes = "Environmental, then Social, then Governance, then they connect. " +
                     "Drie pijlers \u2014 niet als modewoorden, maar als kompas."
+        )
+        // The CO₂-prestatieladder: three rungs climbing to the right, each sliding a run into
+        // place as it fades up, and then the certificate pointing at the top one. Read off
+        // data/ref/CO₂-prestatieladder.pdf, a click a frame. See CarbonLadder.
+        slide(
+            CarbonLadder(boldPath = boldFont, textPath = textFont),
+            title = "CO\u2082-prestatieladder",
+            notes = "Onder Environment wordt verteld hoe CO\u2082-uitstoot systematisch in kaart " +
+                    "wordt gebracht, reductie geen eenmalig project is maar een continue opdracht, " +
+                    "en groene stroom en eigen energieproductie geen bijzaak zijn maar structurele " +
+                    "keuzes. CO\u2082-uitstoot is voor WN niet alleen een getal, maar een instelling: " +
+                    "elke liter brandstof, elke kilowattuur, elke gereden kilometer vertaalt zich " +
+                    "in impact \u2014 en dus ook in kansen om te verbeteren."
         )
         // Social and governance as a crowd of people: one, the group around them, the lines
         // between them, the group as an arrow with one out ahead, and the whole with a share

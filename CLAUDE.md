@@ -1853,6 +1853,40 @@ frame — enormous and shrink it click by click, so the reveal would read as the
 rather than as the stack filling. One size means the type is right at the end, which is the
 state the slide is held on.
 
+#### The ladder
+
+`CarbonLadder` is the CO₂-prestatieladder as a staircase: three white rungs on black, each
+standing on the one below and a run to the right of it, climbing from bottom-left to
+top-right, and then the certificate pointing at the top one. Four states a click apart,
+read off `data/ref/CO₂-prestatieladder.pdf`, between the ESG framework and the crowd.
+
+**Each rung arrives by taking its step.** It comes in from one run to the *left* of where it
+will stand — which is directly over the rung below — and slides right into place as it fades
+up, so the click shows the ladder gaining a step rather than a block appearing. Travel and
+fade are the deck's own eased `on(n)`, undoubled, and the same number, so they cannot come
+apart. The first rung has no click to arrive on, the slide opening on a cut, so it takes its
+step on the slide's own clock over one click's length — and only while the slide is still on
+its first state, so stepping back into it from the crowd finds the ladder built rather than
+the bottom rung sliding in again under a finished top.
+
+**The top rung is fitted, not clipped.** Three runs carry its right edge past the pane, and
+the reference holds it inside a small margin by drawing it narrower: a rung's width is the
+lesser of the ladder's width and what is left to the margin from where it *rests* — from
+where it rests and not from where it is, or it would grow as it slid.
+
+**The lettering was measured wrong once, by a third.** The sizes were first read off the
+reference's word boxes as 1.25 em a box; Rockwell's boxes in that file are 1.6 em, and the
+type came out a third too large — the rung's line spanning 736 px against the reference's
+570, and the certificate's leader line left with no room between the note and the rung. The
+widths are what settle a size, not the box heights.
+
+**CO₂ is set, not asked for.** Rockwell has no U+2082 — checked in the face's own cmap — and a
+missing glyph draws nothing and advances nothing, so the line reads "CO -reductie" and looks
+like a spacing bug. The subscript is set as an ordinary digit at 0.62 of the size, dropped
+0.13 em. That was the analysis slide's private trick; it now lives in `TypeBlock.kt` as
+`setLine` and `advanceWithSubscripts`, shared by every slide that says CO₂, and the analysis
+slide's stills are byte-identical across the move.
+
 #### The crowd
 
 `Crowd` is the social and governance pillars told as people: one figure, then the group

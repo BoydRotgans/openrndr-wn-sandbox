@@ -98,7 +98,7 @@ class LifeCycleAnalysis(
     override fun draw(drawer: Drawer, stage: Stage) {
         drawer.stroke = null
         drawer.fill = ColorRGBa.WHITE
-        line(drawer, title, bold, Vector2(stage.center.x, stage.height * 0.058), stage.height * TITLE, CENTRE)
+        drawer.setLine(title, bold, Vector2(stage.center.x, stage.height * 0.058), stage.height * TITLE, SIZE, CENTRE)
 
         val markX = stage.width * MARK_X
         val braceX = stage.width * BRACE_X
@@ -125,13 +125,13 @@ class LifeCycleAnalysis(
             }
             drawer.stroke = null
             drawer.fill = ColorRGBa.WHITE.opacify(gather)
-            line(drawer, analysis, bold, Vector2(braceX + stage.width * 0.018, analysisY), stage.height * ANALYSIS, LEFT)
+            drawer.setLine(analysis, bold, Vector2(braceX + stage.width * 0.018, analysisY), stage.height * ANALYSIS, SIZE, LEFT)
         }
 
         // What the analysis is for, on its own click, and what it means on the next.
         val says = stage.on(concluded)
         if (says > 0.0) {
-            val from = Vector2(braceX + stage.width * 0.018 + width(bold, analysis) * (stage.height * ANALYSIS / SIZE) + stage.width * 0.012, analysisY)
+            val from = Vector2(braceX + stage.width * 0.018 + bold.advanceWithSubscripts(analysis) * (stage.height * ANALYSIS / SIZE) + stage.width * 0.012, analysisY)
             val to = Vector2(stage.width * SAYS_X - stage.width * 0.010, analysisY)
             drawer.stroke = ColorRGBa.WHITE
             drawer.strokeWeight = stage.height * RULE
@@ -148,7 +148,7 @@ class LifeCycleAnalysis(
         if (means > 0.0) {
             drawer.fill = ColorRGBa.WHITE.opacify(means)
             val box = Rectangle(stage.width * SAYS_X, 0.0, stage.width * (0.985 - SAYS_X), stage.height)
-            line(drawer, "=", text, Vector2(box.corner.x, analysisY + stage.height * 0.100), stage.height * MEANS, LEFT)
+            drawer.setLine("=", text, Vector2(box.corner.x, analysisY + stage.height * 0.100), stage.height * MEANS, SIZE, LEFT)
             block(drawer, definition, text, box, stage.height * MEANS, analysisY + stage.height * 0.145, up = false)
         }
     }
@@ -165,7 +165,7 @@ class LifeCycleAnalysis(
         // that is already there.
         drawer.fill = ColorRGBa.WHITE.opacify(shown)
         source.attributes.forEachIndexed { i, attribute ->
-            line(drawer, attribute, text, Vector2(right, top + i * leading + size * 0.34), size, RIGHT)
+            drawer.setLine(attribute, text, Vector2(right, top + i * leading + size * 0.34), size, SIZE, RIGHT)
         }
 
         val meet = Vector2(markX - stage.width * 0.012, middle)
@@ -181,10 +181,10 @@ class LifeCycleAnalysis(
         mark(drawer, stage, source.mark, markX, middle, shown)
 
         drawer.fill = ColorRGBa.WHITE.opacify(shown)
-        line(
-            drawer, source.caption, bold,
+        drawer.setLine(
+            source.caption, bold,
             Vector2(stage.width * CAPTION_X, middle + stage.height * CAPTION_DROP),
-            stage.height * CAPTION, LEFT
+            stage.height * CAPTION, SIZE, LEFT
         )
     }
 
@@ -257,7 +257,7 @@ class LifeCycleAnalysis(
         var line = ""
         for (word in passage.split(" ")) {
             val candidate = if (line.isEmpty()) word else "$line $word"
-            if (line.isNotEmpty() && width(face, candidate) > measure) {
+            if (line.isNotEmpty() && face.advanceWithSubscripts(candidate) > measure) {
                 lines += line; line = word
             } else line = candidate
         }
@@ -275,67 +275,10 @@ class LifeCycleAnalysis(
         val leading = size * 1.3
         var y = if (up) at - (lines.size - 1) * leading else at
         lines.forEach {
-            line(drawer, it, face, Vector2(box.corner.x, y), size, LEFT)
+            drawer.setLine(it, face, Vector2(box.corner.x, y), size, SIZE, LEFT)
             y += leading
         }
     }
-
-    /**
-     * One line set at [size] pane pixels, ranged by [align], with **subscripts set rather than
-     * asked for**.
-     *
-     * CO₂ is the subject of this slide and Rockwell has no U+2082 at all — checked in the face's
-     * own cmap, not guessed — so putting it in `TYPE_CHARACTERS` would not have helped: the
-     * glyph would come back missing with a zero advance and the line would read "CO -uitstoot",
-     * which looks like a spacing bug rather than an absent character. It is the same trap the
-     * `×` hit, one step further along. So a subscript digit is drawn as an ordinary digit at
-     * [SUB] of the size, dropped [SUB_DROP] of an em — which is what setting one means.
-     */
-    private fun line(drawer: Drawer, piece: String, face: FontImageMap, at: Vector2, size: Double, align: Double) {
-        if (piece.isEmpty()) return
-        val scale = size / SIZE
-        drawer.fontMap = face
-        drawer.isolated {
-            drawer.translate(at)
-            drawer.scale(scale)
-            var x = -width(face, piece) * align
-            for ((run, lowered) in runs(piece)) {
-                if (lowered) {
-                    drawer.isolated {
-                        drawer.translate(x, SIZE * SUB_DROP)
-                        drawer.scale(SUB)
-                        drawer.text(run, 0.0, 0.0)
-                    }
-                    x += face.advanceOf(run) * SUB
-                } else {
-                    drawer.text(run, x, 0.0)
-                    x += face.advanceOf(run)
-                }
-            }
-        }
-    }
-
-    /** [piece] split into ordinary and subscript runs, the subscripts as plain digits. */
-    private fun runs(piece: String): List<Pair<String, Boolean>> {
-        val out = mutableListOf<Pair<String, Boolean>>()
-        val run = StringBuilder()
-        var lowered = false
-        for (c in piece) {
-            val digit = SUBSCRIPTS.indexOf(c)
-            val low = digit >= 0
-            if (low != lowered && run.isNotEmpty()) {
-                out += run.toString() to lowered; run.clear()
-            }
-            lowered = low
-            run.append(if (low) '0' + digit else c)
-        }
-        if (run.isNotEmpty()) out += run.toString() to lowered
-        return out
-    }
-
-    /** How wide [piece] sets, subscripts counted at their own size. */
-    private fun width(face: FontImageMap, piece: String): Double =
-        runs(piece).sumOf { (run, lowered) -> face.advanceOf(run) * if (lowered) SUB else 1.0 }
 
     private companion object {
         const val SIZE = 150.0
@@ -364,10 +307,6 @@ class LifeCycleAnalysis(
         const val MEANS = 0.022
         const val RULE = 0.0022
 
-        /** Rockwell has no subscript glyphs, so these are set as small dropped digits. */
-        const val SUBSCRIPTS = "₀₁₂₃₄₅₆₇₈₉"
-        const val SUB = 0.62
-        const val SUB_DROP = 0.13
 
         const val MIX_SEED = 7
         const val MIX_GRAINS = 17
