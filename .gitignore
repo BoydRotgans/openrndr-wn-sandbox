@@ -23,9 +23,10 @@ data/*
 !data/fonts/
 !data/images/
 
-# Client material and renders, not source.
+# Client material, references and renders, not source.
 export/
 pre-work/
+inspiration/
 
 # native libs extracted into the project dir at runtime
 libEGL.dylib
