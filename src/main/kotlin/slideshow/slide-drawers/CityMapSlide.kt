@@ -20,6 +20,7 @@ import slideshow.Sound
 import slideshow.Stage
 import slideshow.easeInOutCubic
 import slideshow.frames
+import slideshow.linear
 import slideshow.smoothstep
 import java.io.File
 import kotlin.math.min
@@ -333,19 +334,6 @@ class CityMapSlide(
                 }
             }
         }
-    }
-
-    /**
-     * The click's own even ramp, recovered from the eased [Stage.position] the slide is
-     * handed — the exact inverse of the deck's [easeInOutCubic], so `linear(on(n))` is the
-     * fraction of the click that has actually elapsed.
-     *
-     * A slide only ever sees the eased number, which is right for anything that moves and
-     * wrong for anything that is counted. This is how the second kind asks for the other.
-     */
-    private fun linear(eased: Double): Double {
-        val y = eased.coerceIn(0.0, 1.0)
-        return if (y < 0.5) Math.cbrt(y / 4.0) else 1.0 - Math.cbrt(2.0 * (1.0 - y)) / 2.0
     }
 
     private companion object {

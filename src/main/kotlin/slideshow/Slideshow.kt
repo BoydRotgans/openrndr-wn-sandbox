@@ -24,6 +24,7 @@ import slideshow.present
 import slideshow.slideshow
 import java.io.File
 import slideshow.drawers.ChapterPanel
+import slideshow.drawers.Crowd
 import slideshow.drawers.EsgFramework
 import slideshow.drawers.GlobeSlide
 import slideshow.drawers.LcaMark
@@ -557,6 +558,17 @@ val show = slideshow {
             title = "ESG Beoordelingskader",
             notes = "Environmental, then Social, then Governance, then they connect. " +
                     "Drie pijlers \u2014 niet als modewoorden, maar als kompas."
+        )
+        // Social and governance as a crowd of people: one, the group around them, the lines
+        // between them, the group as an arrow with one out ahead, and the whole with a share
+        // marked out. Read off data/ref/social.pdf, a click a frame. See Crowd.
+        slide(
+            Crowd(fontPath = boldFont, many = wnSky, share = wnRed),
+            title = "ESG Social & Governance",
+            notes = "Opleiding, veiligheid en werkzekerheid vormen de basis, en hoe de groep ook " +
+                    "nadenkt over levenskwaliteit. Then governance: transparante rapportering, " +
+                    "externe audits, certificering en lange-termijnrelaties met partners als " +
+                    "de structuur achter de waarden."
         )
         // The linear life cycle drawn in full, a phase a click, and then contradicted: the
         // end-of-life column is taken away and The Circle put in its place. Read off

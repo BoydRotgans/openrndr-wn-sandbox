@@ -80,6 +80,19 @@ fun ramp(elapsed: Int, length: Int): Double =
 fun easeInOutCubic(t: Double): Double =
     if (t < 0.5) 4.0 * t * t * t else 1.0 - (-2.0 * t + 2.0).pow(3.0) / 2.0
 
+/**
+ * The fraction of a click that has really elapsed, given the eased number a slide is handed —
+ * the closed-form inverse of [easeInOutCubic], so `linear(stage.on(n))` is click time.
+ *
+ * A slide only ever sees the eased number, which is right for anything that *travels* and
+ * wrong for anything that is *counted* out along the click — removals, arrivals, one thing
+ * after another — which on an eased number crowd into the middle and read as a swell.
+ */
+fun linear(eased: Double): Double {
+    val y = eased.coerceIn(0.0, 1.0)
+    return if (y < 0.5) Math.cbrt(y / 4.0) else 1.0 - Math.cbrt(2.0 * (1.0 - y)) / 2.0
+}
+
 fun smoothstep(t: Double): Double = t.coerceIn(0.0, 1.0).let { it * it * (3.0 - 2.0 * it) }
 
 fun mix(a: Double, b: Double, t: Double): Double = a + (b - a) * t

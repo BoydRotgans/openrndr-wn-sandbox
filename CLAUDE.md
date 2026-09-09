@@ -1853,6 +1853,62 @@ frame — enormous and shrink it click by click, so the reveal would read as the
 rather than as the stack filling. One size means the type is right at the end, which is the
 state the slide is held on.
 
+#### The crowd
+
+`Crowd` is the social and governance pillars told as people: one figure, then the group
+around it, then the lines between them, then the group as an arrow with one out in front,
+then the whole as a disc with a share of it marked out. Five states a click apart, read off
+`data/ref/social.pdf`, and the slide after the ESG framework in the second chapter.
+
+**Every figure is a slot, and a slot keeps its figure for the whole slide.** Each state is a
+*formation* — a place per slot — and `position` says which two the slide is between. A slot
+in both travels from the one place to the other; a slot only in the later one stands up at
+its place, nearest the middle first, so a formation grows out of the figures already there
+rather than being dealt over them. That is what makes it one crowd re-forming rather than
+five pictures of crowds, and it is `packBoxes` and `stateAt` again. Slot 0 is the individual
+the slide opens on: it stays exactly where it is while the group forms around it, is one of
+the white kin, is the one out ahead of the arrow, and comes back to the middle of the whole.
+
+**Which figure goes where is matched, not ranked.** Both formations order their places
+nearest-the-middle first, but handing rank *n* of the one to rank *n* of the other sends a
+figure from the left of the crowd to the right of the arrow and the paths cross. Each figure
+already standing takes the free place nearest to where it is, in figure heights from the
+formation's own middle — Decision's pairing rule, greedy because the disc runs to seven
+hundred.
+
+**A click with travel in it has two phases, and the arrivals wait for the travel.** Run
+together, the arrow's new figures sprouted through a crowd that had barely begun to shrink —
+measured off a frame a quarter of the way in. So the figures already standing travel over the
+first `TRAVEL` of the click and the new ones stand up from `ARRIVE_AT`, each phase keyed off an
+interval of the click's *linear* time with a smoothstep of its own, the city's rule for its
+grid. Where nothing travels — the one standing still while the crowd forms — the arrivals
+take the whole click. `linear()` moved to `Timing.kt` for this; it was the city's alone.
+
+**The silhouettes are the 3D people flattened, not drawings of people.**
+`data/ref/silhouette_people_lowpoly_obj.obj` carries 114 low-poly figures, Y up with the feet
+on the ground; each is projected along the direction that shows it *widest* — the principal
+axis of its footprint — so a standing figure is seen from the front and a striding one from
+the side, which is the mix the reference has. The 40 under three quarters of the tallest are
+the seated and the children, and are left out. The 73 that remain go into one vertex buffer,
+normalised to adult heights rather than each to its own so a short figure stays short, and
+every figure on the wall is an instance of one of them — a disc of 732 is 73 draw calls, not
+732, with each instance carrying its foot, its size (negative across for a mirrored one) and
+its colour. Measured, the whole pass is 3 ms at the disc.
+
+**They are drawn into a multisampled buffer of their own and laid on the pane as a picture.**
+At 26 pixels tall a silhouette is all edge, and the deck's buffers are not multisampled; the
+resolve is `copyTo`, which blits and so resolves. The lines of the network are drawn on the
+pane *under* that picture, from one figure's chest to another's, so a line is covered wherever
+it crosses a body and what shows is the stretch between them, ending at the silhouettes'
+edges with nothing measured — the belt wall's shadow trick, inverted.
+
+The arrow is a polygon — a shaft four rows deep, a head eight — and a grid cell is in it if
+its centre is; the head's rows shorten toward the tip by themselves. The share of the disc is
+the part of it outside a second circle standing left of the middle, which is a crescent along
+the right edge, widest at the middle and tapering to nothing top and bottom, as the reference
+draws it. Titles are a list, one a state, so a run of the same title holds and a change
+crossfades on the click.
+
 #### The card on its own
 
 [`CardStudio.kt`](src/main/kotlin/CardStudio.kt) runs one chapter card at 1920x1080 — the card
