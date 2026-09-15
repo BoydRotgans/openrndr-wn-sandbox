@@ -27,6 +27,8 @@ data/*
 export/
 pre-work/
 inspiration/
+# the IFC model and the licensed dinner music the show reads from
+input/
 
 # native libs extracted into the project dir at runtime
 libEGL.dylib
@@ -35,3 +37,5 @@ libMoltenVK.dylib
 .DS_Store
 .venv/
 export/pptx-images/
+__pycache__/
+*.pyc

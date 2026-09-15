@@ -141,6 +141,8 @@ dependencies {
     // AL calls do not resolve at compile time. No new artifact is downloaded: Gradle
     // resolves the very jar the openal module already pulls in.
     implementation(libs.lwjgl.openal)
+    // The QR code on the ending wall. Small, pure Java, no natives.
+    implementation("com.google.zxing:core:3.5.3")
 
     implementation(libs.slf4j.api)
     implementation(libs.kotlin.logging)

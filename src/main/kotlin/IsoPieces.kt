@@ -51,7 +51,15 @@ class IsoPlaced(
      * one stencil count for the whole wall, so a shadow cannot be faded piece by piece — it is
      * cast or it is not, and a piece dissolved to nothing must stop.
      */
-    val casts: Boolean = true
+    val casts: Boolean = true,
+    /**
+     * A horizontal plane, world y, under which the piece is drawn in [cutTint] instead of its
+     * tint — a share of the piece coloured from its foot up. Null for a piece in one colour.
+     * Exact because the plane is world-horizontal and a piece only ever turns about a vertical
+     * axis, so a vertex's world y is its centre's plus its own, whatever the angle.
+     */
+    val cut: Double? = null,
+    val cutTint: ColorRGBa? = null
 )
 
 /**
@@ -107,7 +115,14 @@ class IsoPieces(
      * Where the light stands, as an angle on the ground plane in degrees: 0 is world +x, 90
      * world +z. 135 leans the shadow to screen-left at this camera, −45 is the mirror.
      */
-    private val light: Double = 135.0
+    private val light: Double = 135.0,
+    /**
+     * How much a face's tone follows which way it points: 0 is one flat colour, the walls'
+     * picture, where the shadow does the telling apart; 1 keys three tones to the three axes
+     * a corner shows, `Objects`' poster rule, for a pane with no shadow on it. At 0 the shader
+     * takes the flat branch and the walls come out to the pixel as before.
+     */
+    private val shade: Double = 0.0
 ) {
     val pitch: Double = atan(1.0 / sqrt(2.0))
 
@@ -128,7 +143,20 @@ class IsoPieces(
 
     /** Needs a GL context, so it is called from a slide's `load` rather than at construction. */
     fun load() {
-        flat = shadeStyle { fragmentTransform = "x_fill = p_tint;" }
+        // Two branches rather than a mix, so that with the shade at 0 and no cut the fill is
+        // p_tint to the bit — a mix by 0 of a NaN normal is NaN, and a wall drawn that way
+        // would have holes where a face carried no normal.
+        flat = shadeStyle {
+            fragmentTransform = """
+                vec4 tint = (p_cut > -1.0e8 && v_worldPosition.y < p_cut) ? p_cutTint : p_tint;
+                if (p_shade > 0.0) {
+                    vec3 n = abs(normalize(v_worldNormal));
+                    float tone = n.y + n.x * 0.82 + n.z * 0.64;
+                    tint = vec4(tint.rgb * mix(1.0, tone, p_shade), tint.a);
+                }
+                x_fill = tint;
+            """.trimIndent()
+        }
 
         // A piece as a **window onto a picture nailed to the wall**: the picture is sampled in
         // *wall pixels*, not in the piece's own space, so it does not slide when the piece
@@ -248,7 +276,7 @@ class IsoPieces(
     }
 
     /** The iso camera: parallel, in wall pixels, so a wall width is a wall width on screen. */
-    private fun view(drawer: Drawer, w: Double, h: Double, body: () -> Unit) = drawer.isolated {
+    fun view(drawer: Drawer, w: Double, h: Double, body: () -> Unit) = drawer.isolated {
         drawer.ortho(-w / 2.0, w / 2.0, -h / 2.0, h / 2.0, -20000.0, 20000.0)
         drawer.lookAt(eye * 5000.0, Vector3.ZERO, Vector3.UNIT_Y)
         drawer.shadeStyle = flat
@@ -286,6 +314,11 @@ class IsoPieces(
             val style = if (!asShadow && p.window && picture != null) windowed else flat
             drawer.shadeStyle = style
             style.parameter("tint", tint)
+            if (style === flat) {
+                style.parameter("shade", shade)
+                style.parameter("cut", p.cut ?: -1.0e9)
+                style.parameter("cutTint", p.cutTint ?: tint)
+            }
 
             if (!asShadow) {
                 drawer.drawStyle.stencil.stencilTest = StencilTest.DISABLED

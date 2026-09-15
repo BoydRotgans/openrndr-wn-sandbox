@@ -139,6 +139,13 @@ the caption colour is derived per file rather than named. If a sheet is ever re-
 with Figma's "Include id attribute" enabled, the `obj_` groups survive and all of this can
 be replaced by reading the names.
 
+`tools/split_sheet.py` does the same reading in Python and writes each object to its own svg
+— `data/svg/subset.svg` to `data/svg/subset_svg/00.svg` … `14.svg`, numbered by the index
+`DECISION_OBJECTS` and the scenes' picks use. The path data is copied as written, shifted to
+a 0,0 frame in decimal so no coordinate picks up float noise, and the result was checked
+pixel for pixel against the same crop of the sheet: 0 differing pixels on all 15. `data/` is
+not committed, so the script is how that folder comes back.
+
 The objects are precast components, so the full front sheet is mostly plain silhouettes —
 a slab is a rectangle, `DRST_M24_1500` is a hairline. That is the asset, not a parsing
 fault; `subset.svg` picks the ones with more profile to them.
@@ -962,6 +969,187 @@ never something you have to navigate.
        3  Loop                 2 clicks  0.45s  loop 5.0s  push
 ```
 
+### The organizer, and the order file
+
+`SLIDES_ORGANIZER=true` makes the running show serve a web page — `http://localhost:8765/`,
+or the next free port, and on a Mac it opens by itself — that lists every slide with three
+preview frames, arranges the running order by dragging, and steers the show window: clicking
+a slide there jumps the window to it, `←`/`→` click it, and the page follows wherever the
+window goes. It is [`Remote.kt`](src/main/kotlin/slideshow/Remote.kt) behind and
+`src/main/resources/organizer/index.html` in front — one file, no framework, read off disk
+while the source tree is there so it can be edited and reloaded without a rebuild.
+
+```
+SLIDES_ORGANIZER=true ./gradlew run -Popenrndr.application=SlideshowKt
+```
+
+**The order is a file and the slides are still Kotlin, and that is the whole design.** The
+argument under [declaring the show](#declaring-the-show) stands — a json deck can only carry
+a slide's *name*, so it needs a registry — and the order file does not carry the slides. It
+carries their *order*: which play, under which chapter, on or off, each by an id the show
+gives it. [`Order.kt`](src/main/kotlin/slideshow/Order.kt) reads and writes it and
+`Show.arranged(order)` rearranges the show the builder made — the same slide objects, the
+same cards — so a slide the Kotlin does not declare cannot be conjured, and one it does
+declare needs nothing in the file to play: an id the file does not mention is appended at
+the end in its declared place, and an id the show no longer has is skipped, each with a line
+at startup saying so.
+
+```json
+{ "order": [
+    "opening-scene",
+    { "id": "welcome", "on": false },
+    { "chapter": "De wereld van bouwen", "slides": [ "hoe-bouw-je-een-wereld", "the-catalogue-city" ] },
+    "closing-scene"
+] }
+```
+
+**The evening is moments and chapters in turn.** `{ "moment": "Aperitif", "slides": [ "yard" ] }`
+names a part of the evening around the talk — the arrival, the opening, a course between two
+chapters, the exit — and holds the walls that play in it. It is the chapter's counterpart for
+what takes the whole wall: headed, ordered and dragged as one, but with no card, no number and
+nothing in `Slideshow.kt`, because a moment is only a name for a stretch of the order. So the
+file reads the way the draaiboek does, and which wall plays in a course is a drag rather than an
+edit to the show. The committed order is Arrival, Opening (welcome, who is speaking, the
+programme), Aperitif, chapter 1, Opening course, chapter 2, First course, chapter 3, Second
+course, chapter 4, Questions (the sectors), Dessert and Exit; the walls in the courses are a
+first deal of the ones built, to be swapped. A slide in a moment plays exactly as it would on the
+top level — only walls may go in one, for the same reason only walls stand outside a chapter —
+and the running order and the debug view head it with `—  Aperitif`. The organizer adds one with
+`+ moment` (or `m`; a loose wall selected goes into it), renames it by double-clicking its head,
+and dissolves it with `×`, leaving its walls where they stood; a module made inside one is a wall.
+`reset` goes back to the declared order, which has no moments.
+
+`"archive"` is the shelf: a slide there is out of the order altogether — not played, and not
+appended at the end as an unmentioned slide would be — and kept, so it can be dragged back in
+later. It is a different thing from `"on": false`, which keeps a slide in its place and skips
+it. The page draws the shelf at the foot of the navigator, `a` puts the selected slide on it
+or takes it off again, and a slide taken off lands where it was declared, to be dragged from
+there.
+
+`SLIDES_ORDER` names it (`show-order.json`, committed: it is the talk). No file there plays
+the show as declared. **A save is played at once**: writing the file also queues an `Apply`,
+and the draw loop rearranges the deck in place — `Deck.rearrange` swaps the slide list under
+the playhead, keeping the slide on screen at its new index with its click and its frame
+count, so a looping wall does not jump; a slide taken out from under the show moves it to
+the nearest slide after it that survived. The page and the window share one state, and the
+only thing the launch reads the file for is where to begin. That is possible because, with
+the organizer on, **every declared slide is loaded** whether or not the order plays it — an
+archived slide dragged back in has to be there to be shown — which is also why every slide
+gets previews, on, off or shelved.
+
+**An id is the slug of the slide's title in the running order**, or of its name where it has
+none, with `-2`, `-3` on a repeat; `runningOrder()` prints them as `#the-catalogue-city`.
+Title-based rather than index-based because an index does not survive a reorder, and
+title-based rather than class-based because two `Swivel02Slide`s stand in the show under two
+titles. Retitle a slide and its id changes, so its line in the file goes stale — the startup
+lines say which.
+
+**A chapter is named by its title, and that is what lets a slide move between chapters.** A
+slide dropped into "Waardekader" takes that chapter's card — the card the builder made for
+it, found by the title — and the chapters are renumbered in the order they now come, while
+each card keeps the number it was built with, which keeps a chapter's picture with its
+chapter. A slide that composes beside a card belongs inside a chapter; the page will not
+drop one at the top level, and the file, if edited by hand to do so, leaves it standing
+beside whatever card was last shown. A backdrop or a scene goes anywhere.
+
+**The previews are the wall as the show composes it, three frames a slide**, rendered by the
+draw loop itself into `build/previews/` at 768 wide: a slide with clicks at its first, its
+middle and its last click, each settled; a slide that loops a sixth, a half and five sixths
+of the way round — never at its very start, which on a wall that draws itself is an empty
+wall; and a slide with neither half way through its own opening, settled, and eight seconds
+on, so a wall that never stops moving shows how far it has gone. A normal slide is composed
+beside its chapter's card, closed and settled, so the preview is the frame the audience sees.
+They are rendered one a frame, on the first launch and on `refresh previews`, so the show
+never stalls for them; hovering a thumbnail plays its three frames. A slide is previewed in
+the running order first, so one moved into another chapter shows beside its new card, and in
+its declared place when it is off or shelved.
+
+**The server never touches the deck.** It answers on threads of its own and the deck belongs
+to the draw loop, so a command from the page goes into a queue the draw loop drains at the
+foot of each frame, and the page is told where the show stands from a snapshot the draw loop
+writes there. The same rule as a slide never reading a clock, for the same reason.
+
+The page is light by default, with a switch in the top bar that is remembered, and
+`?theme=dark` or `?theme=light` on the address for one load — which is how it is
+screenshotted in either from a headless browser.
+
+It is off under `SLIDES_STILLS` and `SLIDES_RECORD`, and off in the committed `.env`: a
+show that is being projected should not be opening browser tabs.
+
+### Style guide and completion plan
+
+`style-guide/` is the house style written down — `visual.md`, `motion.md`, `pacing.md` — with `workflow.md`
+for taking one slide from pink module to finished, `completion-plan.md` for every unfinished slide in build
+order with its blockers, and `prompt.md` to start a session on one. Read it before building a slide.
+
+### Modules: the slides still to be built
+
+`show-modules.json` is the other half of the comparison with the client's deck: every slide
+that is **not built yet**, as a module — a title, the frames of `export/wn-speaker-notes.pptx`
+it stands for, and an implementation brief — and, under `covered`, which frames each
+*implemented* slide stands for. Between the two, every frame of the deck is covered, in a
+module, or unplaced, and the organizer lists which.
+
+**A module plays in the show as a pink placeholder, a click a frame.** `PlaceholderSlide`
+clears to a pink nothing in the house palette could be mistaken for, and shows the frames of the
+client's deck it stands for, one per click, crossfading off `stage.position` like everything
+else here — so the talk can be clicked through whole while the gaps are still gaps, and each
+gap says what it is. A frame drawn beside its chapter card is shown as its own pane, cut from
+the frame at pane size; one drawn as a plain 16:9 slide — most of the deck — is that slide,
+which is the pane's own shape; one that painted across the whole wall would be shown whole and
+fitted, which on a pane slide means small. `"wide": true` on a module makes the placeholder take
+the wall.
+
+**This is the one place a slide is conjured from a file**, against the argument under
+[declaring the show](#declaring-the-show), and it is allowed because a placeholder is one class
+with one job: the file carries nothing a placeholder needs beyond its title, its frames and its
+brief. `Show.withModules()` stands them in the declared show at the end of the chapter each
+names, in the order listed; the order file then places them like any other slide. The day a
+drawer replaces one, the module is deleted from the file and the drawer declared in
+`Slideshow.kt` like any other slide — the id in the order file can stay, if the drawer's title
+slugs to it.
+
+**The frames come off the deck itself.** `tools/reference_frames.py` cuts the pptx into
+`export/references/`: one `frames.json` with every frame's name, chapter, speaker note and
+kind, a small picture of the whole frame for the organizer, and the slide's own pane at
+1920x1080 for the placeholder. **The deck holds two kinds of frame, and the file says which.**
+21 are drawn at the wall's size — 7816x2160 at 2x, a chapter card on the left and the pane on
+the right — and the pane is cut out of those. The other 53 are drawn as a single 1920x1080
+slide with no card and no wall around it, which is what a pptx page is; those are the pane
+whole, and `pane_only` marks them. None paints across the wall, though a wall frame that did
+would be read off the gutter between card and pane — the deck's grey on a card frame, black
+across it — and marked `wide`. The first version of the tool assumed every frame was a wall
+and called the 53 plain slides *wide* because their gutter was off the edge of the picture;
+the pictures came out right by accident and the labels wrong. The folder is client material
+under `export/`, so it is not committed; run the tool after a checkout and it comes back.
+
+**The organizer edits the file, and adds and removes modules.** A module's card in the
+navigator is marked pink; its detail shows the reference frames with their speaker notes, the
+title, chapter and brief in place, and the frames as chips that can be taken off or added from
+a picker of every frame in the deck — an implemented slide's `covered` frames are edited the
+same way. `+ module` (or `n`) makes a new one after the selected slide; `remove` deletes a
+module, and `merge into…` folds one module's frames and brief into another, which is how two
+of the client's slides that say the same thing become one slide to build. The shelf under the
+archive lists the frames no slide accounts for. **A save writes both files and plays them at
+once**: `PUT /api/modules` stands the new set of placeholders in the catalogue — a placeholder
+whose frames are unchanged is the same object, so the slide on screen stays put — and renders
+previews for the new ones; `PUT /api/order` then plays the order over it, as before.
+
+**What the comparison found.** The client's deck is 74 frames in four chapters, plus a card a
+chapter, and 53 of the 74 are drawn as plain 16:9 slides rather than for the two-pane wall —
+everything from the ladder's second rung on, in chapters 2 to 4. Twelve of the show's slides
+cover 33 of them, matched in the file; sixteen modules cover the other 41 (one, 4-15, is an
+empty frame carrying figures as a note, and is folded into the module its figures belong to). Two things the pptx does that the show did not: it places
+the slabs of *Actief in 6 landen* in chapter 1 with the other figures, and both life-cycle
+slides in chapter 3 with the concrete — `show-order.json` now follows the pptx on both. Four of
+the show's slides have no frame in the deck (*Hoe bouw je een wereld*, which is the draaiboek's
+own opening line; *Panels turning*; *De fabrieken*; *De sectoren*), and neither do the backdrops,
+which are the evening around the talk rather than the talk.
+
+`SLIDES_MODULES` names the file and `SLIDES_REFERENCES` the frames folder; empty adds no
+modules. The studio reads the same catalogue, so `SLIDE=recyclage` opens a placeholder on its
+frames.
+
 ### One slide on its own
 
 [`SlideStudio.kt`](src/main/kotlin/SlideStudio.kt) runs a single drawer at the size of the pane
@@ -980,6 +1168,10 @@ what is on screen here is what is on screen in the show and not a second arrange
 has to be kept in step. It is also **a real `Deck` of one slide** rather than a hand-rolled
 stage, so `position` eases over the slide's own `stepFrames`, `stepName` reads as it does in the
 talk, and the debug overlay is the show's. A click here is the click the audience sees.
+
+**`SLIDE_AT` jumps the clock to each frame it is asked for rather than sitting through the
+seconds.** Every drawer is a pure function of its frame count, so the picture is the same either
+way, and a wall that loops in four minutes is checked in one start.
 
 **Only the slide you ask for loads, and the seconds are the smaller half of why that matters.**
 `present` loads all thirteen slides and the four mosaic cards before the first frame, because a
@@ -1478,6 +1670,224 @@ offset, since it stands on both. Each kind is drawn into a canvas of its own and
 window, so `up`/`down` between a slide and a backdrop letterboxes rather than resizing. In the
 running order a backdrop line carries `backdrop` and stands apart from the chapters.
 
+- **`BlockCity` is the block city**: a field of cubic buildings in isometric, drawn the way an
+  architectural model is drawn — thin dark outlines, some faces ruled into a square grid, white
+  and grey planes, and one hard-edged shadow thrown across everything from the upper left — panning
+  slowly across the wall and swaying a little either side of its home angle, for ever. A course
+  wall like the yard and the gallery, and the only one with nothing of the catalogue in it. It is
+  `package slideshow.backdrops`, standing on nothing in the default package.
+
+**Everything is real geometry under a real light, and the drawing is made afterwards.** The yard's
+shear onto the floor cannot do this picture, because here the shadows are the subject and they fall
+on *other blocks*: a tower's shadow climbs the wall of the block beside it and lies across its roof.
+So the city is rendered once from the light into a depth map and once from the camera, where every
+lit pixel asks the map whether something stands between it and the sun. **Only back faces go into
+the map.** A face that samples it is by definition lit, so it is never in it and cannot shadow
+itself — no bias to tune, no acne, no shadow standing off its own caster. The blocks have no bottom
+and need none: a ray that leaves a block through its floor lands inside its own footprint, under it.
+The map is read at four texels and blended, so a shadow's edge is one texel wide and straight; its
+window is fitted every frame to the slab of world actually in view — the frame's corners dropped
+onto the ground and onto the tallest roof, carried into light space — since any caster that can
+shadow a visible point lies on the light ray through it. At 4096 texels over a wall showing 32 units
+a texel is under a pixel.
+
+**The tones are graphic, not physical.** A face takes one of three values by which way it points —
+roof, the side toward the light, the side away from it — and only the first two can fall into cast
+shadow, which is the fourth value. The side away from the light is drawn in its own mid grey and
+never darkened further, though physically it is in shadow too: that is the illustrator's convention
+the reference follows, and it is what keeps the picture at four flat tones rather than two. Measured
+on the opening frame: roofs 25%, lit sides 20%, unlit sides 30%, cast shadow 18%, and nothing else
+but lines.
+
+**The outlines are found on the picture, not drawn on the blocks.** A line drawn inside each face
+along its own edges comes out double where two faces meet, single where a face meets the ground, and
+absent where two abutting roofs touch. Instead the camera pass writes each face's *identity* into a
+float buffer beside its tone and shadow, and a second pass draws a line wherever the identity changes
+between a pixel and any neighbour within reach — so every visible edge, crease, silhouette and
+contact gets exactly one line of one width, and the shadows, which are not edges of anything, get
+none. The grid ruled across a face is the one line drawn in the face itself, off its own in-plane
+coordinates, at the same width.
+
+**The city is a tile on a torus, so the pan loops.** Blocks are packed onto a 64-unit square with
+wrap-around — 1349 of them at 78% cover, from the seed — and a block that reaches past the edge is
+drawn whole rather than cut, its far end landing exactly where the next copy of the tile leaves that
+cell empty. The camera moves one tile diagonally per `period`, which is one lattice vector, so the
+frame at the end of a period is the frame at the start; the sway and any turning are whole cycles of
+that period. Which copies of the tile to draw is read off the same visible slab, grown by the longest
+shadow, so nothing is culled that could still cast into the frame.
+
+**The light's projection and view are set separately rather than handed over as one product**, so
+the driver forms `P * (V * M)` in the depth pass exactly as it does in the camera pass. Folded into
+`P * V` up front it is the same matrix in arithmetic and not in floating point — matrix
+multiplication does not associate — and there is no reason to let the two passes disagree in their
+last bits.
+
+**Bit-exactness across a refactor is worth measuring and not worth chasing.** Restructuring the
+shadow lookup into a function left the isometric frame differing from its predecessor on 0.6% of
+pixels: single scattered pixels on antialiased edges, none of them adjacent, with the tone shares
+identical to the tenth of a percent and the block count restored. That is the shader compiler
+rounding marginal pixels differently rather than a change to the drawing. What decides whether the
+picture is the same is the tone shares, the block count and the loop — and those are exact.
+
+**The loop is byte-identical, and it was not until the camera stayed put.** Everything is placed by
+the *fraction* of the period: the camera stays inside the base tile and the world wraps around it, so
+the last frame of a period is computed from the very same numbers as the first. Carried on across the
+tiles instead, the camera's position at the period's end was a last float bit away from where it began,
+and an outline standing on a pixel boundary landed one column over — 0.12% of the pixels, invisible,
+and not exact. Measured with the period set to 4s: the frames at 0, 240 and 480 are byte-identical.
+The studio does the same check on the committed period with `SLIDE=Blocks SLIDE_AT=0,240`, jumping
+to the frames rather than waiting for them; checked again at the lens camera after every change to
+it, and still byte-identical. A frame costs about 5 ms for the three passes under the parallel view
+and 7.4 ms under the lens, whose two depth maps and farther reach draw more tiles.
+
+Two traps, both found by measuring the png rather than looking at the window:
+
+- **A colour built with the plain `ColorRGBa(r, g, b, a)` constructor arrives on the wall
+  sRGB-lifted.** Its linearity is *unknown*, and a uniform uploaded that way is encoded on the way
+  out: a 0.5 grey came out at 0.74, and the shadow at nearly the tone of the unlit side, so the
+  picture read as three tones with the shadows missing. `fromHex` colours are marked sRGB and pass
+  through exactly — which is why the yard's navy never showed it. State the linearity.
+- **The driver premultiplies by alpha on output** (`o_color.rgb *= o_color.a`), so a face identity
+  cannot ride in the alpha channel of a float buffer: it would scale the other three. The identity
+  and the grid cover share red — the cover quantised under the identity — the tone is green with a
+  side's lit fraction as its fraction, the shadow is blue, and the colour is only made in the
+  outline pass.
+
+`sway` is degrees either side of the home yaw and `sways` how many a period — under the lens the
+camera orbits the ground point it holds; `turns` turns the whole
+city, which shows the far sides — the tones are keyed to the light and not to the screen, so a
+face keeps its value as the city comes round, and the shadows swing with it. Checked at a quarter,
+a half and three quarters of a turn: the far walls draw, the lit side follows the sun rather than
+the screen, and nothing turns inside out. The committed wall sways rather than turns, because at
+yaw 0 or 90 an axis-aligned city is seen edge on and stops being isometric for a while.
+
+**A lens is what makes the buildings pass one another, and the committed wall does not have one.**
+Under the parallel projection every block crosses the screen at the same speed, so however slowly it
+pans the wall is a picture being dragged; there is no parallax to be had at any speed, it being a
+property of the projection. `lens` is a vertical field of view in degrees, 0 for the parallel view,
+and `pitch` the camera's elevation — with a lens the near blocks sweep past the far ones and a lower
+pitch stands the walls tall and lets them overlap. `pitch = 25, lens = 14, unit = 150, horizon =
+0.55` is the settled version of that, chosen from four candidates rendered side by side: a 20-degree
+lens came in close enough to distort at the edges, a 12-degree one at 22 degrees of pitch flattened
+into a street, and the parallel view at 30 degrees was the drawing again. It works, and **the show
+runs the isometric anyway** — the lens reads as a camera standing in a city where this wall wants a
+drawing of one. The option stands in the drawer for a wall that wants the other thing.
+
+Three things the lens needs, all of them off under the parallel view:
+
+- **Two depth maps rather than one.** A lens sees far; a single map fitted to all of it put fewer
+  than thirty texels on a unit of the foreground, where the wall shows a hundred and fifty pixels of
+  it. A near map is fitted to the part of the frame within one and a half times the eye's distance,
+  a far one to the whole, and the shader takes the near one wherever it covers the point. The
+  parallel view fits one and binds it as both.
+- **The eye has to stand above the roofs**, since a roof passing through it is a frame of the inside
+  of a block. `unit` holds at the ground point the camera looks at, so the eye stands back exactly
+  as far as that needs — 29 units out and 12 up at the settled numbers — and stacked towers are
+  capped at a base of six so nothing reaches it. **The cap belongs to the lens**: the parallel view
+  has no eye to poke and keeps every stack, and the numbers are drawn from the seed either way, so
+  it is the same city whichever camera reads it.
+- **The grid on a face fades out where its pitch falls under a few pixels**, because lines closer
+  together than their own width are a smear rather than a grid.
+
+One trap belongs to the parallel view alone: **its frame's corner rays run both ways.** The slab of
+world in view is read off where those rays meet the ground and the tallest roof; under a lens they
+start at the eye and run forward only, and clamping them there is right. Clamped the same way for
+the parallel view — whose rays start on the frame plane — the nearest shadows went missing, measured
+as the shadow share dropping from 43% to 31% on the same frame.
+
+**A full circle of sun has a backlit quarter, and the second unlit tone is for it.** For a
+quarter of the day the light stands ahead of the camera and both wall families are unlit; drawn
+in one grey the city went flat, nothing but outlines telling a corner from a wall. `unlitAcross`
+is the unlit tone of the walls running along z, a shade lighter than `unlit`, and it never shows
+under the fixed light — only one family is unlit then, so the reference's three tones stand.
+Measured across the committed day: it is 0.1% of the wall at dawn, 23% at 60s and 31% at noon,
+which is the quarter it exists for.
+
+**The family has to be a whole step in the packed tone, not a half.** A side is written as 2 plus
+its lit fraction for a wall along x and 4 plus it for one along z, and the fraction is held just
+under one so a fully lit face does not carry into the next whole number. Written a single step
+apart, the two families are told apart by `tone < 2.5` — which is also true of a wall along x that
+is under half lit, so an x wall *more* than half lit took the other family's dark end of the
+crossfade. Invisible under the fixed light, where the fraction is only ever 0 or 1, and wrong for a
+quarter of every turning day.
+
+**`sun` turns the light instead, a whole number of days a period.** The azimuth goes right round
+from `light`'s and the elevation runs on a cosine from `dawn` to `noon` and back — 15 and 60
+degrees as committed, a shadow nearly four times the height at the start of the day and a little
+over half at its middle — so the wall opens on long shadows lying across half the city, tightens
+under the high sun, and lengthens again toward the loop. Two things follow. The lit side of the
+city follows the sun round, because the tones are keyed to the light. And a turning sun crosses
+every wall's plane twice a day, where the lit tone would snap to the unlit one across the whole
+city at once; the side tone is therefore a crossfade over a narrow band of sun angle, a few seconds
+wide at this period, and with the fixed light that band is never entered and the sides stay pure.
+The committed wall runs one day a period; `sun = 0` is the reference's fixed light. Measured across
+the day at `SLIDE_AT=0,40,80,120,160,200,240`: cast shadow covers 43% of the wall at dawn, 19% at
+40s, 9% at noon and 43% again at the loop, and the first and last frames are byte-identical. The
+crossfade shows in the same numbers — at 80s and 200s a quarter of the wall stands between the two
+side tones, which is the ±x walls with the sun grazing their plane, and eleven seconds later they
+are pure again. `light` is the direction the light travels: toward
++x and a little −z, a block's shadow runs to the right and slightly down the screen, lands on the
+walls that face screen-left, and is nine tenths as long as the block is tall. `unit` is pixels a
+grid unit, `density` the share of ground built on, and the four tones, the paper and the ink are
+each one argument. `line = 0` draws no outlines and softens the silhouettes instead, and `accent`
+with `accents` colours a share of the blocks — both described under `CityBlock02`, which is the
+wall that uses them.
+
+- **`CityBlock02` is the block city with the grid off**: the same field of cubic buildings under
+  the same turning sun, every face plain — a massing model rather than an architectural drawing.
+  `SLIDE=CityBlock02` opens it in the studio.
+
+**It stands on `BlockCity` rather than copying it.** The shadow maps, the outline pass, the torus
+tile and the day are one implementation, and the file is only what differs: `ruled = false`, and
+two things that have to change with it. The random numbers are drawn whether or not a face is
+ruled, so it is the very same city as the drawn one, block for block.
+
+Both changes were found by measuring the plain wall across its day rather than looking at one frame
+of it. At dawn it is fine — the long shadows do the work — but with the grid on a high sun leaves the
+big lit faces ruled and readable, and with it off they are blank: at three quarters of the day the
+wall was **89% in its top two tones**, white on white with a hairline between, against 22% at dawn.
+
+- **The day is shallower.** `noon` comes down from 60 to 34 degrees, so a shadow is at least a
+  block and a half long all day. Measured at the same frame, cast shadow went from 7% of the wall
+  to 30%, and the share darker than mid-grey from 11% to 32%.
+- **The step between a roof and a lit wall is wider.** On the ruled wall the two are 0.97 and 0.86
+  and the grid does the rest of the telling apart; here there is nothing else, so the lit wall
+  drops to 0.76 and the unlit tones with it — 53 levels between roof and wall against 28. Judged
+  against the shallower day alone at the same frame: the tone *shares* are identical, only the
+  values move, and it is the values that keep a corner a corner when the sun is high.
+
+The file name is the one asked for, in the case the rest of the folder uses.
+
+**The show dresses it in the house colours**, after a brand graphic: navy masses on white with a
+red block here and there. Three things make that picture, and only the first is a colour choice:
+
+- **Navy for the walls and the shadows alike, white for the roofs and the ground alike.** The
+  reference draws its city as one navy mass cut by white shapes, with no distinction between a
+  wall and a shadow or between a roof and the ground, so `shade = lit` and `top = paper`. A low
+  block is then a white shape bounded by navy, a tower a navy slab — and a wall in shadow is not
+  darker, it is the mass. The walls away from the light keep a shade deeper than the navy so a
+  corner still reads when the sun is behind the camera. Measured across the day: navy 85% of the
+  wall at dawn falling to 73% at three quarters, white 13% rising to 23%, red never above 2.5%.
+- **No outlines, so the silhouettes have to be softened.** The reference is flat shapes;
+  `line = 0` draws none. But the lines were what antialiased the silhouettes, and without them a
+  navy diagonal on white is a staircase at 3840 wide. So when the line width is zero the outline
+  pass softens identity edges instead: a pixel on one takes a share of its *differing*
+  neighbours' colour, the four beside it at full weight and the corners at half, which turns a
+  straight edge into a two-pixel ramp and smooths a staircase. An edge between two faces of one
+  colour — a white roof against the white ground — is left exactly as it was, which is what lets
+  the roofs and the ground merge.
+- **One block in twenty-five is red, and which ones is decided off a stream of its own.**
+  `accent` and `accents` on `BlockCity` mark a share of the blocks, and the mark rides through the
+  vertex format as a flag and through the packed tone as a whole step of eight, so the outline
+  pass reads it off the top and takes the rest as before. Which blocks take it is drawn from a
+  `Random` keyed on the seed and the block's index rather than from the stream that lays the city
+  out, so switching the red on or off or changing its share lays out the same city. A red block
+  takes the red on its roof and lit side, a shade of it away from the light, and a deeper shade
+  under cast shadow — so it stays a red block in shadow rather than vanishing into the navy.
+
+The grey plain wall is the class's own defaults, and the ruled wall is untouched by all of this:
+its opening frame is byte-identical before and after.
+
 ### A third kind of slide
 
 `Slide`, `Backdrop` and now [`Scene`](src/main/kotlin/slideshow/Scene.kt). A slide composes for
@@ -1595,6 +2005,27 @@ collage.
 `IsoPieces` moved from `backdrop-drawers/` to the root beside `ObjectFabric` and `ObjectMosaic`,
 because it is no longer a backdrop's alone: the yard, the gallery and the case study all draw
 through it. `IsoPlaced` gained a `tint`, null meaning "the one ink this wall runs".
+
+#### The case studies as blueprints
+
+[`CaseBlueprints`](src/main/kotlin/slideshow/scene-drawers/CaseBlueprints.kt) follows the sectors:
+a project a click, its plan on the left projector and a second drawing on the right, with name,
+function, location and realisation in the corners of both — `data/blue-prints/sketch.png`. The
+drawings are cut out of `blue-prints.pdf` into `SLIDES_BLUEPRINTS`: the pdf embeds one 3508x1161
+image a case holding both drawings with a white gap at columns 1705–1802, and the pdf lists them
+in another order than the page, so each was matched to its row by comparing against a render of
+the page. Between cases the drawings hand over through black (out by the middle of the click, in
+from it) and the facts on the house crossfade. Most facts are `???` in the blueprints; an empty
+fact is not set.
+
+### The shadow wall's forms
+
+`SLIDES_SHADOW_MASKS=shapes` gives the Shadows wall a circle, a square and a triangle instead of
+text, drawn by `abstractShapes()` into `build/shadow-shapes`, one a turn at the left, middle and
+right of the wall. `drift` moves the form across the wall during its turn by shifting where the
+shader reads the mask — whole cells, the grid's own step — so it passes by as it is revealed and
+stands where it was drawn at mid-turn, when the sun is lowest. Checked off a filmed run: the circle
+at 4s, 6s and 8s steps left to right.
 
 ### Putting a sketch in the deck
 
@@ -1855,7 +2286,32 @@ state the slide is held on.
 
 #### The ladder
 
-`CarbonLadder` is the CO₂-prestatieladder as a staircase: three white rungs on black, each
+**The slide now carries both versions of the ladder**, after the meeting of 9 September asked
+for the change to be explained: six states read off the Figma frames of the new version — the
+five rungs until 2025, the group's rung marked, five closing up into three bars, the bars
+merging into the new first rung, the new second and third rungs, and the group's rung marked on
+that — with a paragraph at the top left saying what each state means. Everything below about
+rungs taking their step, the note and the subscript still holds; three things are new.
+
+- **Every box is a slot that keeps its box across states**, `Crowd`'s formations with rungs for
+  figures: the collapse is the three rungs becoming the bars and the merge the bars becoming one
+  rung, so clicking back plays it undone. Rungs are drawn in one pass and all lettering in a
+  second — drawn slot by slot, the two slots merging over the first covered its text.
+- **Solid is held, outline is not.** Three solid and two open on the old ladder, one solid and
+  two open on the new, and the three solid ones are what become the new first rung — the group's
+  standing is seen carried over, which is the point the slide has to make.
+- **Changing text fades out by a third of the click and in from two thirds**, wrapped to the box
+  of its own state so nothing reflows mid-move — except the title, which crossfades straight:
+  both begin "CO₂-prestatieladder", so only the year is seen to change, where fading out and
+  back blanked the title mid-click on film.
+
+The old ladder is stepped 0.13 of the pane a run rather than the frame's 0.113, so the note fits
+left of the third rung, and builds on the slide's clock 0.15s a rung, so a still at 95 frames
+catches it built — at 0.22s it caught the fifth rung half faded. The group's rungs follow the
+meeting notes (trede 3 until 2025, trede 1 in 2026), where the Figma frames said 5 and 3; the
+paragraph says what changed, not why, until WN confirms the reason.
+
+`CarbonLadder` was the CO₂-prestatieladder as a staircase: three white rungs on black, each
 standing on the one below and a run to the right of it, climbing from bottom-left to
 top-right, and then the certificate pointing at the top one. Four states a click apart,
 read off `data/ref/CO₂-prestatieladder.pdf`, between the ESG framework and the crowd.
@@ -1942,6 +2398,288 @@ the part of it outside a second circle standing left of the middle, which is a c
 the right edge, widest at the middle and tapering to nothing top and bottom, as the reference
 draws it. Titles are a list, one a state, so a run of the same title holds and a change
 crossfades on the click.
+
+#### The pixel map (draft)
+
+`PixelMap` is the group's factories on a pixel map: flat greys, no borders, a coarse screen grid
+in which every cell is one country's grey, and a factory a WN red dot the size of a cell.
+It stands in the fourth chapter for now, after the slabs that say *Actief in 6 landen*.
+
+```
+SLIDE=PixelMap ./gradlew run -Popenrndr.application=SlideStudioKt
+```
+
+**The clicks are `shots`**: a `MapFrame` states a camera (a centre in degrees and how many km
+the pane is high) and a `FactoryVisit(n)` puts factory `n`'s dot in the middle of the pane, its
+name and address in a black bar along the foot of the pane. A `FactoryCluster` centres on the factories themselves — the median of their longitudes
+and latitudes, so Nancy on its own does not drag the frame off the Belgian cluster the way a mean
+would. The show runs a 1050 km cluster shot (Ireland to Denmark and the Alps), factories 0, 1 and
+2 at 175 km, and the cluster shot again. Between shots the centre travels
+straight and the span in log space, straight off the deck's position.
+
+**Each cell is a vote.** The map is drawn aliased into a buffer four times finer than the grid,
+and a second pass gives each cell whichever colour covers most of its sixteen samples, ties going
+to land so an island narrower than a cell is not lost to the sea.
+
+**The cells are counted once, and a zoom is a close-up of them.** They are counted at the scale of
+the first shot that is not a visit, over three panes each way so a pan or a wider shot still has
+map under it; every camera move after that only scales and shifts that one image, drawn with
+nearest filtering, and the dots are fixed to their cells and scale with them. The first version
+re-counted every frame with the grid fixed to the screen, and every zoom boiled with cells
+flipping across the whole frame. The cost of freezing is that a visit shows the overview's cells
+magnified, so it cannot zoom far: at 120 km, nine times in, Belgium was a handful of grey blocks
+and the dots were 130 px discs. 350 km, three times in, reads as the map; 175 km, six times
+in, was asked for as closer still, and is where it now stands.
+
+**A factory is one pixel and never shares one.** One that finds its cell taken takes the nearest
+free cell, in list order, so the count on screen is the count in the list at any zoom. Megaton
+and Megaton/Structo share an address in Ninove, as Intershipping and Interton do in Bornem, so
+visiting the first and third factories frames the same spot and only the label changes.
+
+**A selected factory is named in a bottom bar, and its dot is outlined and blinks.** The bar is a
+black band across the foot of the pane: the name in white Rockwell Bold, the address on one grey
+line under it, ranged left on a margin, after the talk's own flat, ranged-left title slides. It
+slides up with the first visit, **stays up between two visits** so only its lettering crossfades,
+and goes with the last; it is one height for every factory so it never resizes. A visit centres its
+dot in the map left above the bar rather than in the whole pane. The type went through a black band
+beside the dot, centred lettering on a halo under it, and plain lettering under it before it moved
+into the bar. The selected dot turns from the red to the house navy as the camera arrives, and its
+colour pulses toward the lighter WN blue on a slow cosine of the slide's frame count — colour alone,
+never size or opacity. It went through a fading red blink, a black outline and a blue ring swelling
+in and out, and the plain colour pulse is what stayed.
+
+**Cities are named the way Google Maps names them.** `cities` gives places for reference by their
+centre in degrees rather than geocoded. A name is centred on its place with no marker, plain dark
+grey Rockwell with no halo, simply there, and **on top of the dots** so a factory in a city never takes letters
+out of its name. Unlike the cells and dots it is **one size on screen at every zoom**, so coming in
+the map grows and the lettering does not — scaling the names with the map was tried and read as
+the words swelling. The overview is therefore where two names come closest, and that set the size:
+at 21 px Brugge and Antwerpen, 80 km apart, ran into each other, and at 18 px they were a hair
+apart, so the names are 16 px. The bottom bar is drawn over them.
+
+**A country can be tinted by its share of the factories**, off by default: the country with the
+most goes `tintMax` of the way to `tint`. At 0.9 Belgium came out almost wholly red and the red
+dots were lost on it, which is why the map went back to plain grey. Which country a factory counts for is an even-odd test against the borders,
+not the address's country line.
+
+**Borders are Natural Earth admin-0 with the lakes cut out**, collected once by `Countries.kt`
+into `data/collected/natural-earth` (`COUNTRIES_SCALE`, `COUNTRIES_REFRESH`) and projected on
+**Web Mercator, EPSG:3857** — Google Maps' projection, asked for by name, north stretched and all.
+
+**A span is km of ground, not of the projection.** Mercator's units are true only at the equator;
+at Belgium one km of ground is 1.6 of them. So every shot's span is multiplied by
+`mercatorStretch` at the latitude it looks at, and a number in the show still means distance on
+the ground. Between shots at different latitudes the stretch is interpolated with the span. Key countries by `ADM0_A3`: Natural Earth's `ISO_A3` is `-99` for France
+and Norway.
+
+**Addresses are geocoded once through Nominatim** by `Geocode.kt` and cached in
+`data/collected/geocode/addresses.json` (`GEOCODE_REFRESH`). Written addresses do not match as
+written, so each is tried in simpler forms until one answers: only what follows the last comma
+("Industriezone II, Nederwijk-Oost 279" finds nothing, "Nederwijk-Oost 279" the building), a range
+as its first number, and without Dutch articles ("Bedrijvenpark de Coupure 15" finds nothing,
+"Bedrijvenpark Coupure 15" the building). The load prints what each matched and at what
+precision; `Factory(lonLat = ...)` places one by hand. Of the thirteen, eleven land on the
+building, Nancy on the house number and Alpreco on its street.
+
+**Neighbours never share a grey.** Countries count as neighbours when their vertices fall within
+a half-degree square of each other, which is wide on purpose: at a quarter degree Britain came
+out the same colour as Belgium, 100 km across the water. `colours` pins any country by code, and
+`REFERENCE_COLOURS` is the first draft's palette.
+
+#### The chapter openers, and the ESG callback
+
+The third and fourth chapters open on a `QuoteSlide` each, the way the first two do — one line
+in `Slideshow.kt`, no drawer. The fourth chapter's quote is two sentences and takes `lines = 6`
+where the shorter ones take four.
+
+`The Circle & ESG principes` is `EsgFramework` again, in the fourth chapter, with `notes`: a list
+of lines a piece, in the pieces' order. Given, the drawer costs a fifth state — a piece a click
+with its notes on leaders beside it and the pieces already up dimmed to `dim` of their colour,
+then a click that brings all three back with the notes gone, then the close. **Left empty it is
+the chapter 2 slide to the pixel**: its four stills were compared against the committed drawer
+and are byte-identical.
+
+- **Where a piece's notes stand is read off where it pushes** — the direction it stands off the
+  joint before the close. Pushed sideways, the notes stand on that side, ranged away from the
+  piece; the bar, pushed up into the title, carries its under its bottom edge, spread along it.
+  The notes are content and the sides are geometry, and neither is stated in the show.
+- **A note goes through `setLine`, never `drawer.text`.** The first still set "Lagere CO -voetafdruk":
+  Rockwell has no subscript two, and a missing glyph draws nothing and advances nothing.
+- **Notes fade on the ladder's rule** — gone by the first third of the next click, in from the
+  last third of their own. Filmed on the plain `on(i)` window, "Minder materiaal" was still fading
+  out across Social's top edge as Social came up under it.
+
+#### The chart kit, and the four chart slides
+
+[`ChartKit.kt`](src/main/kotlin/slideshow/slide-drawers/ChartKit.kt) is what the chart slides
+share, and none of it knows what a click is: a bar grown from its baseline, a column stacked out
+of values, an axis, a label on a leader that grows toward what it points at, a bulleted list, and
+`staggered(t, i, n, lag)` for the n-th of several things along one progress number. A slide hands
+in `stage.on(n)` for a thing that travels and `linear(stage.on(n))` for a thing that is counted,
+the city cull's distinction.
+
+**The stagger's lag is capped so every item keeps a fifth of the run.** Nine bullets at 0.15
+apart made each item's share negative, and every bullet then read as already there at `t = 0` —
+the stills showed the measures standing under a chart whose bars had not yet grown.
+
+`Co2Column` reads one stacked column three times — what concrete's footprint is made of, then
+concrete's share of the world's emissions, then of the Netherlands'. **A band is a slot keyed by
+name, and a slot's value in a state it is absent from is zero**: the column is always a stack of
+every key the states mention, in the order first mentioned, so the red band is one band shrinking
+from 80 to 7 to 1,9 across the clicks and the blues close over it. Nothing fades and nothing is
+swapped — a band leaves by having no height. Labels ride their bands and are pushed apart from the
+top down so thin bands do not set theirs over one another. The centred title fades out and back
+rather than crossfading straight: the readings share a prefix, but a centred title of another
+length stands the prefix somewhere else, and filmed straight the two smeared over each other. The
+four blue bands are read off the client's frame to the nearest half and marked `PLACEHOLDER` in
+the show.
+
+`CarbonCharts` is the numbers behind the ladder: bars grow from the axis one after another, the
+target line draws across them, the second chart's bars grow, and the bullets are counted in under
+both. Every figure is read off the client's chart, which carries no data table, and is marked
+`PLACEHOLDER` in the show; the real ones are still to come from WN.
+
+`ReductionProcess` is the ordinary process against the process with reuse: two columns of steps.
+**The right column's layout is a pure function of how many steps it holds**, `steps + on(3)`, so
+the disassembly step arriving is a slot opening — the two under it move down as it grows, and
+clicking back closes it. Two moves were filmed and replaced: a box stepping down from the row
+above comes *through* the box over it, two translucent boxes on top of each other; and a copy
+sliding across from the left column crosses that column's lettering on the way. The boxes now
+**grow** — the left column down from each box's top edge, the copies out from their left edge —
+with the lettering fading up over the last third of the growth.
+
+`ConcreteLevers` is three panels, a click each. The scatter separates out of one cloud on the
+slide's own clock, every dot's start and end drawn from a seed; the lime cycle's four arrowheads
+run their arcs off `stage.frame` and come round again; the bars grow staggered. **The stations
+stand on the diagonals and the processes on the cardinals**, not the other way round: set at the
+cardinals, "Gebrande kalk" ranged right off the ring straight into the bars panel next door. The
+bar values are read off the client's frame and marked `PLACEHOLDER`.
+
+#### The catalogue in the round, on a pane
+
+Four slides draw `data/objects` through `IsoPieces` beside a chapter card, and two things had
+to be added to it for a pane rather than a wall, both off by default so the yard, the gallery
+and the case study come out to the pixel as before:
+
+- **`shade`**: a wall's pieces are one flat colour and the shadow tells the faces apart; on a
+  black pane there is no shadow to fall on (the shadow tones are set to the background), so a
+  flat piece is a silhouette. `shade = 1` keys three tones to the three axes a corner shows —
+  `Objects`' poster rule. The shader takes a separate branch at 0 rather than mixing by 0: a
+  face with no normal is NaN under `normalize`, and a mix by zero of NaN is NaN.
+- **`cut`** on `IsoPlaced`: a world-horizontal plane under which the piece is drawn in a second
+  tint. Exact, because a piece only ever turns about a vertical axis, so a vertex's world y is
+  its centre's plus its own whatever the angle.
+
+`HiddenStory` is one piece in the round with its register (name, box in millimetres, IFC class
+off `objects-115-details.csv`) and, from the first click, a share of it red from the foot up —
+the reduction as a share of the height, which for a prism is the share of the volume. **The
+leaders end on the silhouette, not on the box**: the any-angle box is a bound and mostly air at
+its corners, so the piece's own corners are projected every frame and the levers go to the
+topmost, rightmost and leftmost of them, the saving's leader to the corner nearest its block.
+Between pieces the camera pulls back — the leaving piece shrinks to nothing over the first half
+of the click, the next grows over the second — so the pane is never two pieces at once.
+**Rockwell has no true minus and no arrows**: put in `TYPE_CHARACTERS` they draw as boxes, left out
+they draw nothing, so the figure is set with an en dash, "–30%", and "CEM I → CEM II" is written out.
+
+`SecondLife` is one element's second life across the pane, a stage a click. **The slab and
+its shards are one column** — the slab breaks where it lies — so four columns carry five
+stages, and the camera's centre is a piecewise-linear function of `position` over the columns
+each state shows: what is down travels left as the next stage arrives. The shatter is a seeded
+Voronoi of the slab's plan, each cell clipped against the bisectors of every other seed and
+scattered a little from where it broke; the sieving shrinks each shard about its own middle and
+lays a seeded scatter of grit beside them, both flat on the ground plane in the same view the
+pieces stand in (`IsoPieces.view` is public for it) — with the shade style taken off the drawer
+first, since the view leaves the pieces' on and a flat polygon drawn through it takes whatever
+tint was last set, and each shard a hair above the last so two scattered across each other do not
+fight for one depth. **`PREDAL` is modelled standing up**, a
+2.4 by 1.4 plate 10 cm thick with z up, so its plan is a sliver; the floor is `WERKVLOER_2`,
+which lies flat in the export.
+
+`RingOfPieces` lays the whole catalogue along a path, a piece landing every `cadence` seconds
+and turning on its own axis; the path is a screen curve, and a screen position is
+`right * x + up * y` in the iso camera's world. **It is waiting on the WN mark as an svg**
+(`SLIDES_MARK`); until then a plain ring open at the top stands in and the load says so.
+
+`HundredElements` is the iso sheet's silhouettes packed by `packTrain` at one height, every one
+once, and dealt out again on the click. The front sheet was tried first, as the brief asked, and
+came out as a stack of bars — in elevation most of the catalogue is a hairline or a plain slab, the
+note under demo02 — where the same catalogue in isometric reads as pieces. `SLIDES_HUNDRED_SHEET`
+names it. The reshuffle is two trains laid at load, one in reading order and
+one in a seeded permutation, and every piece lerped from its box in the one to its box in the
+other. A piece over the end of its line is drawn twice, clipped to the field, demo02's rule.
+
+#### The certificate, the domino, and the programme wall
+
+`RealReduction` is the certificate alone, the measures either side of it, and the certificate
+gone with the measures closing up. **The machines are illustrations off `SLIDES_ILLUSTRATIONS`**
+(`data/illustrations`, one svg a kind, white on transparent). Two of them, the crane and the
+truck, are pictures wrapped in an svg, which OPENRNDR's svg loader cannot draw, so all six are
+rasterised once by `rsvg-convert` into `build/illustrations` and drawn as images, each fitted to
+one box and stood on its foot. A missing svg or converter falls back to the drawn pictogram. The columns' x is a
+function of `on(2)` and the middle column grows on the same number. The mark at the sheet's foot
+is set as type until the WN mark arrives as an svg — `PLACEHOLDER` in the show.
+
+`DominoEffect` is the decision tree, then four, then sixteen, then DUURZAAM set to the pane.
+**Every tree is named by the cell it ends in** on the four-by-four grid; it stands in the
+two-by-two when its row and column are even, and alone when both are zero, so the multiplication
+is each tree travelling from its old cell to its new one while newcomers grow from their own
+middles — a pure function of `position`. The fan is the tree slide's picture drawn at any scale,
+which a parallel drawing allows. **The grid is the field under the title, not the pane**: on the
+whole pane the top row's labels ran under the title. No photograph under the word: the client's
+was a placeholder.
+
+`Programme` is the evening on the two projectors as two panes: **the list on the left** —
+moments and chapters in the order the show plays them, the chapters numbered and large, the
+moments small and quiet — and **the chapter that is forward on the right**, its number and key
+message, with the title there before any is and after the last. A click a chapter, the rest
+dimmed; the last click settles the line. It was one line across the wall first, and that is the
+rule it broke: **the wall is two 1920x1080 projectors meeting at x = 1920, and anything that has to
+be read stays in one of them.** Only a picture backdrop — the yard, the gallery, the block city, the
+shadow walls — may run across both. `EndingScene` keeps its sentence in the left pane and its code
+in the right for the same reason. The entries are stated in `Slideshow.kt`.
+
+#### The city with pieces on it, the building out of the IFC, the ending, and the dinner music
+
+`DisassemblyCity` is the block city with catalogue pieces on its roofs, lifted on the click and
+set down on other roofs. **It holds a `BlockCity` inside the slide and hands it the pieces as a
+function of the stage**: `BlockCity` gained `pieces: (Stage) -> List<CityPiece>`, drawn through
+its own three passes — the light's depth map, the camera's facts with a `facingPiece` style that
+reads the blocks' tone rule off the world normal with the identity and accent as uniforms, and
+the outline — and tiled with the blocks, so a piece shadows its roof and the tower beside it
+shadows the piece. Two traps: **the pieces go into the depth map culled exactly as the blocks
+are**, back faces only, since a lit face that is in the map shadows itself — drawn unculled they
+came out striped; and **a piece is sized by its longest reach, not its height** — the meshes are
+normalised to a unit sphere, so scaling a 12 m TT plate to a height put it forty lattice units
+across. The roofs are the high ones near the point the camera holds, dealt from the seed. The
+decision was to keep the two block-city backdrops and let this slide use the graphic as well.
+
+`CircleBuilding` is The Circle itself, out of `input/IB-009109 The Circle.ifc`, as red lines on a
+dotted ground. **`tools/ifc_to_tri.py` tessellates it once** (ifcopenshell, in the project's
+venv) into two flat float32 binaries under `data/circle/` — every triangle with its normal, every
+creased edge as a line — and a json of the box; the loader hands the bytes straight to two vertex
+buffers. Structure only: the 25 000 fixings are left out, and so is anything under a metre
+across, since an `IfcBeam` here is as often a 10 cm anchor as a 24 m beam. Even so it is 4.4 M
+triangles and 6.6 M edges — the booleans and round profiles — and it draws. **Hidden lines are
+hidden by the faces**, drawn in the ground's black and pushed in along their normals a few
+centimetres so an edge on a face wins the depth test; no wireframe pass. The z-up to y-up swap
+is done in the vertex shader for faces and edges alike. **The one trap cost an hour: a vertex
+buffer written in chunks at a byte offset left a second, displaced copy of the hall standing
+over the first**, coloured as if it were 200 m tall. Each file is now read into one direct
+buffer and written once. The label sets swap on the click on the ladder's rule; the leaders end
+on fractions of the box.
+
+`EndingScene` is the ending wall: one sentence, one action, and the thing that triggers it, a
+QR code from `zxing` drawn as squares with its own quiet zone, growing from its middle once the
+words are up. `SLIDES_ENDING_URL` and `SLIDES_ENDING_ACTION` set the address and the line; the
+sentence is the fourth chapter's own, and all three are proposals.
+
+**The dinner music is a bed a course**, off `input/diner_music/option1`, one folder a course.
+`playlist()` in `Music.kt` joins a course's tracks into one looping wav under `build/music/`
+through ffmpeg — **joined rather than sequenced, because the engine plays buffers**, and it
+decodes wav only, the tracks being mp3 — down to mono 44.1 kHz so four beds hold some 50 MB
+each rather than 100. The order is the tracklist's, matched on a substring of the file name,
+since the folder sorts otherwise. The beds hang on the walls that play in the courses: the
+yard, the gallery, the shadows walls, the plain wall. Quieter than the opening's ambience.
 
 #### The card on its own
 
@@ -2365,6 +3103,43 @@ so a machine without that face still runs the show.
 
 `data/` is not committed, so a missing sheet falls back to setting the title as ordinary type
 rather than failing. `ChapterPanel` is still there and still the plain version.
+
+##### The title cut into the Shadows facade
+
+**The committed show reads its chapter titles out of the Shadows wall**, not out of catalogue
+elements. `SLIDES_CARD_TITLES` names the pictures — `data/titles/v2/title0{n}.png`, `{n}` the
+chapter's number — and `SLIDES_CARD_STYLE=shadows` cuts each into the facade: a shallow grid,
+the letters cut deep into it, one sun, so the words fill with shadow and stand dark on the stone.
+Swapped round — `depth = 0.6, inkDepth = 0.06` — the ground fills instead and the letters stay
+light; the dark letters were asked for, and read the stronger of the two. `mosaic` gives back the element card described
+below, and a chapter with no picture still sets its title as type. `data/titles` holds three
+drawn versions, all white on black at 1920x1080: `v1` the condensed full-bleed set the element
+card was tuned for, `v2` one wide bold at one size filling the pane, `v3` the same face small.
+
+**It is the backdrop's own shader, stood in the pane.** [`ShadowChapterPanel`](src/main/kotlin/slideshow/slide-drawers/ShadowChapterPanel.kt)
+is only what a panel deck can hold — a slide the width of the pane, with the chapter's name, the
+sting and a cut — and hands its stage to a [`ShadowFacade`](src/main/kotlin/slideshow/backdrop-drawers/ShadowFacade.kt),
+which lays out against whatever stage it is given. A change to the wall is a change to the cards.
+
+**The reveal plays once, because a card stands for minutes.** The wall's orbit dips and rises
+every turn, so on a backdrop the title sinks back into the grid every twelve seconds — right for a
+wall people pass, wrong beside a talk. `reveal` leans the sun from square on to `low` once, off the
+card's own frame count, and then holds it low while it keeps going round, once a minute: the
+shadows turn slowly in every cell and the words never go. Measured off stills of the committed
+card: a plain grid at 0.5s, the words faint at 2s, legible at 3s, whole from 4.5s, and still whole
+at 20s and 40s. A card replayed as its chapter opens reveals itself again, with the sting.
+
+**The cells are sized to the title's strokes.** A letter is built of whole cells, so the cell has
+to be well under the stroke: the backdrop's 27px cells serve titles set twice this size, and v2's
+strokes run about 20–40px at the pane's scale, so the card runs 60 rows — 18px cells, 9px wide —
+and a stroke is two or three cells across. `invert`, because these pictures are white ink on black
+where the wall reads dark ink. The 1px grey line Figma leaves round the edge of every v2 and v3
+png is harmless here: a cell is decided by how much of it is ink, and one pixel of a cell is not.
+
+The concrete is the opening wall's, as on the backdrop, so the lit ground is stone grey (about 137)
+rather than white, and the letters are black recesses in it with the grey of their frames between. `concrete = null` in
+`chapterCard` gives the hard black and white wall. Previews show the card at ten seconds, where it
+is settled.
 
 ##### A picture instead of the type
 

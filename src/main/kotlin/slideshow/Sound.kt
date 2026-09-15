@@ -46,7 +46,14 @@ data class Sound(
      * `frames(4.0)`. 0 at both ends is a sting: in at full, and left to ring out.
      */
     val fadeIn: Int = 0,
-    val fadeOut: Int = 0
+    val fadeOut: Int = 0,
+    /**
+     * Brought to the sheet's common loudness at load, as every cue is by default. Off, the file
+     * plays at its own level times [gain] — which is what a bed that has to sit far under the
+     * talk wants: levelled, a quiet file is simply boosted back up, so making it quieter would
+     * change nothing.
+     */
+    val levelled: Boolean = true
 ) {
     constructor(
         path: String, gain: Double = 1.0, loop: Boolean = false,

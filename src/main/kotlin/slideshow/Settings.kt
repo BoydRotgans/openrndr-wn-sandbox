@@ -96,5 +96,53 @@ data class Settings(
     val panelGap: Int = 0,
 
     /** What shows in the gutter, and behind a pane that does not fill the canvas. */
-    val gutter: ColorRGBa = ColorRGBa.BLACK
+    val gutter: ColorRGBa = ColorRGBa.BLACK,
+
+    /**
+     * Serve the organizer — the web page that arranges the running order and steers this
+     * window — at `http://localhost:[organizerPort]/`. See [Remote].
+     */
+    val organizer: Boolean = false,
+    val organizerPort: Int = 8765,
+
+    /**
+     * The order file: which slides play, in what order, under which chapters. Read at launch
+     * where it exists and written by the organizer. Null, or no file there, plays the show as
+     * `Slideshow.kt` declares it. See [Order].
+     */
+    val order: String? = null,
+
+    /**
+     * The modules file: the slides still to be built, each a title, the frames of the
+     * client's deck it stands for and a brief — see [Modules]. Every one plays as a pink
+     * placeholder until a drawer replaces it. Null, or no file there, adds none.
+     */
+    val modules: String? = null,
+
+    /**
+     * Where the reference frames are: the client's deck cut into pictures by
+     * `tools/reference_frames.py`, one a frame, with `frames.json` beside them. A
+     * placeholder shows the frames it stands for, and the organizer shows every frame
+     * beside the slide that covers it.
+     */
+    val references: String? = null,
+
+    /**
+     * The bed under the talk: a loop that plays while the show is on a slide inside a chapter
+     * and fades out while a backdrop or a whole-wall scene is up, which carry sound of their own.
+     * Null plays nothing under the slides. See [ShowBuilder.slideBed].
+     */
+    val slideBed: Sound? = null,
+
+    /**
+     * A concrete texture laid over the whole finished frame, as if the show were projected onto
+     * a concrete wall — a preview of the room, not part of any slide. Null has none to offer;
+     * [concreteOn] is whether it starts on, and the organizer switches it while the show runs.
+     */
+    val concrete: String? = null,
+    val concreteOn: Boolean = false,
+    /** How strongly the stone's grain darkens the picture, from its brightest tones: 1 is the photo as it is, above 1 exaggerates it. */
+    val concreteMix: Double = 2.5,
+    /** How big one tile of the texture is drawn, in canvas pixels against its own. */
+    val concreteScale: Double = 1.0
 )

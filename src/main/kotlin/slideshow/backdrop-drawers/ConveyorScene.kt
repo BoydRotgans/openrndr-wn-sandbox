@@ -260,7 +260,9 @@ class ConveyorScene(
      * handover at all, `Stage.exit` never ramps, and a scene has no time in which to take itself
      * off. The fade itself is barely seen — the rows are travelling while it runs.
      */
-    override val transition: Transition = Fade(frames(0.8))
+    override val transition: Transition = Fade(frames(0.8)),
+    /** What plays while the belt is up — a course's bed, when the belt stands in one. */
+    override val sound: slideshow.Sound? = null
 ) : Backdrop() {
 
     override val background: ColorRGBa get() = paper

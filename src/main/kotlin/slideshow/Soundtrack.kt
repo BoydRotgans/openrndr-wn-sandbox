@@ -94,7 +94,7 @@ object Soundtrack {
             for (cue in log) {
                 val s = cue.sound
                 out.println(
-                    "${cue.frame}\t${if (cue.release) "release" else "play"}\t${s.gain}\t${s.loop}\t${s.fadeIn}\t${s.fadeOut}\t${s.file.path}"
+                    "${cue.frame}\t${if (cue.release) "release" else "play"}\t${s.gain}\t${s.loop}\t${s.fadeIn}\t${s.fadeOut}\t${s.file.path}\t${s.levelled}"
                 )
             }
         }
@@ -111,7 +111,8 @@ object Soundtrack {
             if (t.size < 7) return@mapNotNull null
             Speakers.Cue(
                 frame = t[0].toIntOrNull() ?: return@mapNotNull null,
-                sound = Sound(File(t[6]), t[2].toDouble(), t[3].toBoolean(), t[4].toInt(), t[5].toInt()),
+                sound = Sound(File(t[6]), t[2].toDouble(), t[3].toBoolean(), t[4].toInt(), t[5].toInt(),
+                    levelled = t.getOrNull(7)?.toBooleanStrictOrNull() ?: true),
                 release = t[1] == "release"
             )
         }
@@ -158,7 +159,7 @@ object Soundtrack {
                 return@getOrPut null
             }
             runCatching {
-                val read = level(sound.file, levelled)
+                val read = level(sound.file, levelled && sound.levelled)
                 val samples = FloatArray((read.frames * read.channels).toInt())
                 var i = 0
                 read.each { if (i < samples.size) samples[i++] = it }

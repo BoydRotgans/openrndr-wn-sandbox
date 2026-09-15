@@ -16,6 +16,7 @@ import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.min
 
 /**
@@ -50,11 +51,30 @@ import kotlin.math.min
  * over the red one. Drawn, it eats a hairline out of every edge — and its bounds are *wider*
  * than the piece, so it would throw the fit off as well. A shape drawn in the ground colour is
  * not part of the mark.
+ *
+ * **The same drawer says what each piece stands for, when it is asked to.** [notes] is a list
+ * of lines a piece, in the pieces' order; given, each piece arrives with its notes on leaders
+ * beside it and the pieces already up dim while it is named, so the one being talked about is
+ * the one in full colour. A further click then brings all three back to full, notes gone, and
+ * the last closes the joint as before — five states rather than four. Left empty, the drawer is
+ * exactly the chapter 2 slide: the code path with no notes does not change.
+ *
+ * **Where a piece's notes stand is read off where it pushes**, the same direction it stands off
+ * the joint before the close: a piece pushed sideways carries its notes on that side, ranged
+ * away from it; the bar, pushed up into the title, carries its under its bottom edge instead,
+ * spread along it. So the notes are content and the sides are geometry, and neither is stated
+ * in the show. A leader grows from the words toward the piece on the number the words fade
+ * up on.
  */
 class EsgFramework(
     private val title: String = "ESG Beoordelingskader",
     /** The three pieces' labels, **in the order they arrive**: the bar, then left, then right. */
     private val labels: List<String> = listOf("ENVIRONMENTAL", "SOCIAL", "GOVERNANCE"),
+    /**
+     * What each piece stands for, a list of lines a piece in the pieces' order, or empty for the
+     * plain framework. A line too wide for the room beside its piece is wrapped.
+     */
+    private val notes: List<List<String>> = emptyList(),
     private val folder: File = File("data/svg/3-shapes"),
     private val fontPath: String = "data/fonts/default.otf",
     /** The pieces. The house red, as the draaiboek draws them. */
@@ -69,6 +89,8 @@ class EsgFramework(
      * right — one number rather than three offsets, and it cannot come out lopsided.
      */
     private val spread: Double = 0.03,
+    /** How much of its colour a piece keeps while another is being named. */
+    private val dim: Double = 0.3,
     override val stepFrames: Int = frames(0.7),
     override val sound: Sound? = null,
     override val stepCues: List<Sound> = emptyList()
@@ -76,11 +98,20 @@ class EsgFramework(
 
     override val name = "ESG"
 
-    /** One click a piece, and a last one that closes them. */
-    override val steps = labels.size + 1
+    /** Whether the pieces are named one at a time — which costs the click that un-dims them. */
+    private val named get() = notes.isNotEmpty()
 
-    override fun stepName(step: Int): String? =
-        if (step >= labels.size) "close the joint" else "reveal ${labels.getOrElse(step) { "" }}"
+    /** The click that closes the joint. */
+    private val closing get() = labels.size + if (named) 1 else 0
+
+    /** One click a piece, a last one that closes them — and, named, one between that shows all three. */
+    override val steps = closing + 1
+
+    override fun stepName(step: Int): String? = when {
+        step >= closing -> "close the joint"
+        step >= labels.size -> "all three"
+        else -> "reveal ${labels.getOrElse(step) { "" }}"
+    }
 
     /**
      * A piece: its shapes in the file's own units, the box they cover there, and where its
@@ -170,7 +201,7 @@ class EsgFramework(
         val home = corner - assembly.corner * scale
 
         // The last click closes the joint: 1 while the pieces stand apart, 0 once they are home.
-        val apart = 1.0 - stage.on(labels.size)
+        val apart = 1.0 - stage.on(closing)
         val middle = assembly.center
 
         pieces.forEachIndexed { i, piece ->
@@ -181,27 +212,100 @@ class EsgFramework(
             val push = (centre - middle).let { if (it.length > 1e-9) it.normalized else Vector2.ZERO }
             val at = piece.at + push * (spread * apart)
 
+            // Named, a piece dims from the click after its own until the click that shows all
+            // three — the last piece named is never dimmed, so its window is empty.
+            val dimmed = if (named && i + 1 < labels.size) stage.between(i + 1, labels.size) else 0.0
+            val colour = 1.0 - dimmed * (1.0 - dim)
+
             drawer.isolated {
                 drawer.translate(home + at * scale)
                 // file units to pane pixels: every piece shares this, which is what makes the
                 // three fit at all — they were cut from one layout at one scale
                 drawer.scale(scale / unit)
                 drawer.translate(-piece.box.corner)
-                drawer.fill = ink.opacify(shown)
+                drawer.fill = ink.opacify(shown * colour)
                 drawer.stroke = null
                 piece.shapes.forEach { drawer.shape(it) }
             }
 
-            drawer.fill = ColorRGBa.WHITE.opacify(shown)
+            drawer.fill = ColorRGBa.WHITE.opacify(shown * colour)
             drawer.fontMap = face
             set(
                 drawer, piece.label, home + (at + piece.size / 2.0) * scale,
                 stage.height * LABEL / SIZE, middle = true
             )
+
+            // Its notes: in over the last third of the piece's own click, and gone by the first
+            // third of the next one — the ladder's rule for text that changes, so a leaving note
+            // never lies over the piece arriving under it. Filmed without it, "Minder materiaal"
+            // was still fading out across Social's top edge as Social came up.
+            if (named) {
+                val telling = ((stage.on(i) - (1.0 - FADE)) / FADE).coerceIn(0.0, 1.0) *
+                        (1.0 - stage.on(i + 1) / FADE).coerceIn(0.0, 1.0)
+                val lines = notes.getOrNull(i).orEmpty()
+                if (telling > 0.0 && lines.isNotEmpty()) {
+                    val rect = Rectangle(home + at * scale, piece.size.x * scale, piece.size.y * scale)
+                    notes(drawer, stage, rect, push, lines, telling)
+                }
+            }
         }
     }
 
-    /** One line centred on [at]; [middle] centres it vertically as well as across. */
+    /**
+     * [lines] beside [rect], on the side it [push]es toward — left or right of a piece pushed
+     * sideways, under a piece pushed up — each on a leader that grows from the words to the
+     * piece's edge as the words fade up.
+     */
+    private fun notes(drawer: Drawer, stage: Stage, rect: Rectangle, push: Vector2, lines: List<String>, alpha: Double) {
+        val size = stage.height * NOTE
+        val scale = size / SIZE
+        val lead = stage.width * LEADER
+        val gap = stage.width * NOTE_GAP
+        val lineHeight = stage.height * NOTE_LEAD
+        val sideways = abs(push.x) > abs(push.y)
+
+        drawer.fill = ColorRGBa.WHITE.opacify(alpha)
+        drawer.stroke = ColorRGBa.WHITE.opacify(alpha)
+        drawer.strokeWeight = LINE
+        drawer.fontMap = face
+
+        lines.forEachIndexed { k, note ->
+            val share = (k + 0.5) / lines.size
+            if (sideways) {
+                // Down the side, each note level with its share of the piece's height and ranged
+                // away from it; the leader runs level from the words to the edge.
+                val left = push.x < 0.0
+                val edge = Vector2(if (left) rect.x else rect.x + rect.width, rect.y + rect.height * share)
+                val room = if (left) edge.x - lead - gap - stage.width * EDGE
+                else stage.width * (1.0 - EDGE) - (edge.x + lead + gap)
+                val wrapped = face.wrapped(note, room / scale)
+                val start = Vector2(edge.x + (if (left) -lead else lead), edge.y)
+                val x = start.x + if (left) -gap else gap
+                val top = edge.y - (wrapped.size - 1) * lineHeight / 2.0 + size * 0.34
+                wrapped.forEachIndexed { j, line ->
+                    drawer.setLine(line, face, Vector2(x, top + j * lineHeight), size, SIZE, align = if (left) 1.0 else 0.0)
+                }
+                drawer.lineSegment(start, start + (edge - start) * alpha)
+            } else {
+                // Under the bottom edge, spread along it; the leader drops from the edge to the words.
+                val edge = Vector2(rect.x + rect.width * share, rect.y + rect.height)
+                val room = rect.width / lines.size - gap
+                val wrapped = face.wrapped(note, room / scale)
+                val start = Vector2(edge.x, edge.y + lead)
+                val top = start.y + gap + size * 0.78
+                wrapped.forEachIndexed { j, line ->
+                    drawer.setLine(line, face, Vector2(edge.x, top + j * lineHeight), size, SIZE, align = 0.5)
+                }
+                drawer.lineSegment(start, start + (edge - start) * alpha)
+            }
+        }
+        drawer.stroke = null
+    }
+
+    /**
+     * One line at [at], centred on it; [middle] centres it vertically too. The title and the piece
+     * labels only — a note goes through [setLine], because a note can say CO₂ and this cannot.
+     */
     private fun set(drawer: Drawer, text: String, at: Vector2, scale: Double, middle: Boolean = false) {
         if (text.isEmpty()) return
         drawer.isolated {
@@ -230,5 +334,16 @@ class EsgFramework(
         const val GAP = 0.04
         const val FOOT = 0.06
         const val MARGIN = 0.10
+
+        /** The notes: their size, their leading, the leader's length, the air between it and the words, and the pane's edge. */
+        const val NOTE = 0.026
+        const val NOTE_LEAD = 0.034
+        const val LEADER = 0.04
+        const val NOTE_GAP = 0.008
+        const val EDGE = 0.02
+        const val LINE = 2.0
+
+        /** The share of a click a note takes to come, or to go. */
+        const val FADE = 0.3
     }
 }

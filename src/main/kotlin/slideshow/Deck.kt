@@ -17,11 +17,16 @@ import org.openrndr.shape.Rectangle
  * animation is measured against the frame something started on.
  */
 class Deck(
-    val slides: List<Slide>,
+    slides: List<Slide>,
     start: Int = 0,
     /** Where each slide sits in the show, when the deck was read from a file. */
-    val outline: Outline = Outline.EMPTY
+    outline: Outline = Outline.EMPTY
 ) {
+    var slides: List<Slide> = slides
+        private set
+
+    var outline: Outline = outline
+        private set
 
     init {
         require(slides.isNotEmpty()) { "a deck needs at least one slide" }
@@ -127,6 +132,23 @@ class Deck(
         current = Playhead(current.index, 0)
     }
 
+    /**
+     * The same deck over a rearranged list of slides, for an order applied while the show
+     * runs. The slide on screen keeps its click and its frame count where it survives at
+     * [index] — a wall that loops does not jump — and where it does not, the deck lands on
+     * [index] afresh. A handover in flight is dropped: this is the order changing under the
+     * show, not a step in it.
+     */
+    fun rearrange(slides: List<Slide>, outline: Outline, index: Int) {
+        require(slides.isNotEmpty()) { "a deck needs at least one slide" }
+        val at = index.coerceIn(slides.indices)
+        val survives = slides[at] === current.slide
+        this.slides = slides
+        this.outline = outline
+        current = if (survives) current.at(at) else Playhead(at, 0)
+        leaving = null
+    }
+
     private fun show(target: Int, step: Int, reverse: Boolean, cut: Boolean) {
         leaving = current
         transition = when {
@@ -166,9 +188,11 @@ class Deck(
      * wherever it *currently* is towards the new step, so clicking again mid-move picks up
      * from the frame on screen instead of snapping back.
      */
-    private inner class Playhead(val index: Int, step: Int) {
+    private inner class Playhead(val index: Int, step: Int, private val startedAt: Int = frame) {
         val slide = slides[index]
-        private val startedAt = frame
+
+        /** This playhead at another index over the same slide: click, ramp and frame count carried over. */
+        fun at(index: Int): Playhead = Playhead(index, step, startedAt).also { it.from = from; it.changedAt = changedAt }
 
         var step: Int = step
             private set

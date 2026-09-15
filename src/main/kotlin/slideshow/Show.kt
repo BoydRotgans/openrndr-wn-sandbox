@@ -12,12 +12,18 @@ import org.openrndr.draw.DepthFormat
 import org.openrndr.draw.MagnifyingFilter
 import org.openrndr.draw.MinifyingFilter
 import org.openrndr.draw.RenderTarget
+import org.openrndr.draw.WrapMode
+import org.openrndr.draw.isolated
 import org.openrndr.draw.isolatedWithTarget
+import org.openrndr.draw.loadImage
+import org.openrndr.draw.shadeStyle
+import org.openrndr.math.Vector2
 import org.openrndr.draw.loadFont
 import org.openrndr.draw.renderTarget
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.IntVector2
 import org.openrndr.shape.Rectangle
+import slideshow.drawers.PlaceholderSlide
 import java.io.File
 import kotlin.math.min
 
@@ -57,16 +63,33 @@ fun present(show: Show) {
     // the soundtrack, rendered from the cue log, and the mix. Set inside the program, run
     // after it — `ScreenRecorder` only finishes its file as the program ends.
     var afterwards: (() -> Unit)? = null
+    // What has to be shut however the window closes — the organizer's server, whose thread
+    // would otherwise keep the JVM up after the red button.
+    var cleanup: (() -> Unit)? = null
     application {
-        present(show) { afterwards = it }
+        present(show, { afterwards = it }, { cleanup = it })
     }
+    cleanup?.invoke()
     afterwards?.invoke()
 }
 
-private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Unit) -> Unit) {
+private fun org.openrndr.ApplicationBuilder.present(
+    initial: Show, leave: (() -> Unit) -> Unit, onClose: (() -> Unit) -> Unit
+) {
+    // The show as it plays. A `var`, because the organizer can hand over another arrangement
+    // of the same slides while the window is up — the `Apply` command below — and every
+    // closure here reads whichever is current. The settings and the cards never change.
+    var show = initial
+    var slides = show.slides
     val settings = show.settings
-    val slides = show.slides
     val hasPanels = show.panels.isNotEmpty() && settings.panelWidth != null
+    // Every slide the show declares, on or off: what the organizer lists, and what is loaded
+    // while it is on, since an order applied live can call for any of them. A `var` because
+    // saving the modules file stands a new set of placeholders in it — see Modules.
+    var catalogue = initial.source ?: initial
+    val organizing = settings.organizer && !settings.stills && !settings.record
+    // The client's frames, for the placeholders a saved modules file conjures while the show runs.
+    val references = if (organizing) References.read(File(settings.references ?: "export/references"), quiet = true) else References.NONE
 
     configure {
         width = (settings.width * settings.windowScale).toInt()
@@ -84,12 +107,23 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
 
         // Everything a slide needs is loaded before the first frame: a show must not
         // stall on a click. Panel cards are slides too, and load the same way.
-        slides.forEach { it.load(this) }
+        (if (organizing) catalogue.slides else slides).forEach { it.load(this) }
         show.panels.forEach { it.load(this) }
 
         val startSlide = startIndex(slides, settings.start)
         val deck = Deck(slides, startSlide, show.outline)
         val clock = Clock()
+        var ids = show.slideIds
+
+        // The organizer: a web page that arranges the running order and steers this window.
+        // It lives on threads of its own and reaches the deck only through the queue drained
+        // at the foot of the draw loop — see Remote.
+        val remote = if (organizing)
+            Remote(
+                show, File(settings.order ?: "show-order.json"), settings.organizerPort, File("build/previews"),
+                File(settings.modules ?: "show-modules.json"), references
+            ).takeIf { it.start() }?.also { onClose { it.stop() } }
+        else null
 
         // The cues, decoded before the first frame for the same reason the slides are —
         // a show must not stall on a click. Silent under `stills`, which jumps through
@@ -100,7 +134,7 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
             // chapter cards'. The step cues have to be asked for by name — they hang off
             // `stepSound(step)` rather than a property, so a `mapNotNull` over the slides
             // misses them and they arrive at `play` with no buffer to their name.
-            speakers.load(slides.flatMap { cuesOf(it) } + show.panels.mapNotNull { it.sound })
+            speakers.load((if (organizing) catalogue.slides else slides).flatMap { cuesOf(it) } + show.panels.mapNotNull { it.sound } + listOfNotNull(settings.slideBed))
         }
 
         // --- two panes -------------------------------------------------------------- //
@@ -173,14 +207,78 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
         // A backdrop composes for the whole canvas, and a handover with one on either side
         // is composed there too (see "the wall" below), so that needs a leaving and
         // arriving pair at canvas size. Only a show that has a backdrop pays for them.
-        val hasWide = slides.any { it.wide }
+        // Always under the organizer, which can conjure a wide placeholder while the show runs.
+        val hasWide = organizing || slides.any { it.wide }
         val wallLeaving = if (hasWide) buffer(settings.width, settings.height) else null
         val wallArriving = if (hasWide) buffer(settings.width, settings.height) else null
+
+        // A preview is the wall as the show composes it, drawn once more at a fraction of the
+        // size: the full canvas first, so a pane and its card compose exactly as they do on
+        // the wall, then that minified through its mip chain into a small target and saved.
+        val previewCanvas = if (remote != null) buffer(settings.width, settings.height).also {
+            it.colorBuffer(0).filterMin = MinifyingFilter.LINEAR_MIPMAP_LINEAR
+            it.colorBuffer(0).filterMag = MagnifyingFilter.LINEAR
+        } else null
+        val previewSmall = if (remote != null) renderTarget(
+            Remote.PREVIEW_WIDTH, Remote.PREVIEW_WIDTH * settings.height / settings.width
+        ) { colorBuffer() } else null
+        // The previews still to render — a slide, by id since the order can change under them,
+        // and one of its three shots each — one a frame. Every declared slide, on or off.
+        val previewJobs = ArrayDeque<Pair<String, Int>>()
+        if (remote != null) {
+            catalogue.slideIds.forEach { id ->
+                repeat(3) { k -> if (!File(remote.previewDir, "$id-$k.png").isFile) previewJobs.addLast(id to k) }
+            }
+        }
 
         // Only the outer canvas is ever minified — into the window — so it is the only
         // one that needs mipmaps; the panes are blitted into it at their native size.
         canvas.colorBuffer(0).filterMin = MinifyingFilter.LINEAR_MIPMAP_LINEAR
         canvas.colorBuffer(0).filterMag = MagnifyingFilter.LINEAR
+
+        // The concrete over the whole frame: the show as if projected onto a concrete wall.
+        // Laid on only where the canvas meets the window, so no slide, still or preview carries
+        // it.
+        //
+        // **It only ever darkens.** Light on a wall is the picture times the stone, and stone is
+        // never brighter than white — dividing the texture by its *average* instead pushed every
+        // lighter-than-average pixel past white, so a white piece clipped to flat white with a
+        // few specks and read as overexposed. So the grain is measured against the texture's
+        // bright end (its 98th percentile of brightness, read off the file once), and `mix`
+        // exaggerates it: this photograph is mid grey within ±9%, far too flat to show at 1.
+        // Brightness only, so the stone's own faint hue does not tint the house colours.
+        val concreteFile = settings.concrete?.let { File(it) }
+        val concrete = concreteFile?.let { file ->
+            if (!file.isFile) { println("concrete: no texture at ${file.path}"); null }
+            else runCatching { loadImage(file) }.getOrElse { println("concrete: could not read ${file.path}"); null }
+        }?.apply {
+            wrapU = WrapMode.REPEAT; wrapV = WrapMode.REPEAT
+            filterMin = MinifyingFilter.LINEAR_MIPMAP_LINEAR
+            generateMipmaps()
+        }
+        // Measured off the loaded texture's own bytes, which are the file's sRGB values.
+        val concreteBright = concrete?.let { brightEnd(it) } ?: 1.0
+        if (concrete != null) println("concrete: ${concreteFile?.path}, bright end %.3f, grain x%.1f".format(concreteBright, settings.concreteMix))
+        val concreteStyle = concrete?.let { stone ->
+            shadeStyle {
+                fragmentTransform = """
+                    vec2 uv = c_boundsPosition.xy * p_canvas / p_tile;
+                    // The photograph is an sRGB texture, so the sampler hands it back decoded to
+                    // linear light — far darker than its file, which is what the bright end was
+                    // measured on. Taken back to the file's values first, or the grain goes below
+                    // zero everywhere and the whole frame comes out black.
+                    float stone = pow(dot(texture(p_stone, uv).rgb, vec3(0.299, 0.587, 0.114)), 1.0 / 2.2);
+                    float grain = min(stone / p_bright, 1.0);
+                    x_fill.rgb *= clamp(1.0 - p_mix * (1.0 - grain), 0.0, 1.0);
+                """.trimIndent()
+                parameter("stone", stone)
+                parameter("canvas", Vector2(canvasBounds.width, canvasBounds.height))
+                parameter("tile", Vector2(stone.width * settings.concreteScale, stone.height * settings.concreteScale))
+                parameter("mix", settings.concreteMix)
+                parameter("bright", concreteBright)
+            }
+        }
+        var concreteOn = settings.concreteOn && concrete != null
 
         var debug = settings.debug
         val overlay = DebugOverlay(runCatching { loadFont("data/fonts/default.otf", 13.0) }.getOrNull())
@@ -267,6 +365,8 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
         // CLAUDE.md). Here there is no timestamp to take: the deck animates against the
         // frame it is ticked to.
         keyboard.keyDown.listen { event ->
+            // The slide on screen asks first, for controls of its own.
+            if (event.key != KEY_ESCAPE && deck.slide.key(event.name)) return@listen
             when {
                 event.key == KEY_ARROW_RIGHT -> forward()
                 event.key == KEY_ARROW_LEFT -> backward()
@@ -401,6 +501,11 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
                 }
 
                 speakers.play(deck.slide.sound)
+                // The bed under the talk: up on any slide of a chapter, let go while a wall
+                // or a scene is up. Asking for it again on the next slide does not restart it —
+                // a held loop only picks its fade up from where it stands — so it runs on
+                // unbroken from one slide to the next.
+                settings.slideBed?.let { if (deck.slide.wide) speakers.release(it) else speakers.play(it) }
                 soundedStep = deck.step
                 if (first && startPanel >= 0 && !deck.slide.wide) announce(startPanel)
 
@@ -458,8 +563,11 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
             val panelStage = if (panelDeck != null && (crossing || !arriving.wide))
                 renderPane(panelCanvas!!, panelLeaving!!, panelArriving!!, panelDeck, panelBounds) else null
 
-            /** The two panes composed into [target]: the wall as the presentation shows it. */
-            fun composePanes(target: RenderTarget) = drawer.isolatedWithTarget(target) {
+            /**
+             * The two panes composed into [target]: the wall as the presentation shows it.
+             * [opened] is how far a two-step card has crossed to its own pane; 1 at rest.
+             */
+            fun composePanes(target: RenderTarget, opened: Double) = drawer.isolatedWithTarget(target) {
                 drawer.ortho(target)
                 // shows in the gutter, and behind a pane that does not fill the canvas
                 drawer.clear(settings.gutter)
@@ -471,10 +579,9 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
                 drawer.image(slideCanvas.colorBuffer(0), slideOffsetX, 0.0, slideWidth.toDouble(), settings.height.toDouble())
                 if (panelCanvas != null) {
                     // Where the card *is*, which no card can draw for itself: its pane is
-                    // 1920 wide and the move crosses 3840. `on(1)` is the card's own opening
+                    // 1920 wide and the move crosses 3840. `opened` is the card's own opening
                     // click, eased by the deck like any other, so the slide is uncovered at
                     // exactly the rate the title crosses. A one-step card never leaves home.
-                    val opened = if (panelDeck!!.slide.steps > 1) panelStage!!.on(1) else 1.0
                     drawer.image(
                         panelCanvas.colorBuffer(0), slideOffsetX * (1.0 - opened), 0.0,
                         panelWidth.toDouble(), settings.height.toDouble()
@@ -482,16 +589,63 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
                 }
             }
 
+            // How far the card has crossed this frame: its opening click, or home.
+            val cardOpened = if (panelDeck != null && panelDeck.slide.steps > 1 && panelStage != null) panelStage.on(1) else 1.0
+
             /** The whole wall for one shot: a backdrop edge to edge, or a slide beside its card. */
             fun wall(target: RenderTarget, shot: Deck.Shot) {
                 if (shot.slide.wide) paint(target, shot)
                 else {
                     paint(slideCanvas, shot)
-                    composePanes(target)
+                    composePanes(target, cardOpened)
                 }
             }
 
             fun boundsOf(slide: Slide) = if (slide.wide) canvasBounds else slideBounds
+
+            /** A slide standing at [step], [frame] frames in, with nothing arriving or leaving. */
+            fun stageAt(slide: Slide, bounds: Rectangle, step: Int, frame: Int) = Stage(
+                bounds = bounds, frame = frame, steps = slide.steps, step = step, position = step.toDouble(),
+                enter = 1.0, exit = 0.0,
+                loop = if (slide.loop > 0) (frame % slide.loop).toDouble() / slide.loop else 0.0,
+                cycle = if (slide.loop > 0) frame / slide.loop else 0
+            )
+
+            /**
+             * One preview: slide [index] at its shot [k], composed as the wall would show it —
+             * a slide beside its own chapter's card, closed and settled — and saved small. It
+             * paints into the live pane buffers, which the next frame repaints anyway.
+             */
+            fun renderPreview(id: String, k: Int) {
+                val target = previewCanvas ?: return
+                val small = previewSmall ?: return
+                // In the running show first, so a slide moved into another chapter previews
+                // beside its new card; in the catalogue for one that is off or on the shelf.
+                val (of, index) = ids.indexOf(id).takeIf { it >= 0 }?.let { show to it }
+                    ?: catalogue.slideIds.indexOf(id).takeIf { it >= 0 }?.let { catalogue to it }
+                    ?: return
+                val slide = of.slides[index]
+                val shot = Remote.previewShots(slide)[k]
+                val stage = stageAt(slide, boundsOf(slide), shot.step, shot.frame)
+                if (slide.wide) paint(target, Deck.Shot(slide, stage))
+                else {
+                    val panel = of.panelOf.getOrElse(index) { -1 }
+                    if (panelCanvas != null && panel >= 0) {
+                        val card = of.panels[panel]
+                        paint(panelCanvas, Deck.Shot(card, stageAt(card, panelBounds, closed(panel), 600)))
+                    }
+                    paint(slideCanvas, Deck.Shot(slide, stage))
+                    composePanes(target, 1.0)
+                }
+                target.colorBuffer(0).generateMipmaps()
+                drawer.isolatedWithTarget(small) {
+                    drawer.ortho(small)
+                    drawer.clear(ColorRGBa.BLACK)
+                    drawer.image(target.colorBuffer(0), 0.0, 0.0, small.width.toDouble(), small.height.toDouble())
+                }
+                remote!!.previewDir.mkdirs()
+                small.colorBuffer(0).saveToFile(File(remote.previewDir, "$id-$k.png"))
+            }
 
             val slideStage: Stage = when {
                 crossing -> {
@@ -516,7 +670,7 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
 
                 else -> {
                     val stage = renderPane(slideCanvas, slideLeaving, slideArriving, deck, slideBounds)
-                    composePanes(canvas)
+                    composePanes(canvas, cardOpened)
                     stage
                 }
             }
@@ -530,10 +684,90 @@ private fun org.openrndr.ApplicationBuilder.present(show: Show, leave: (() -> Un
             )
             canvas.colorBuffer(0).generateMipmaps()
             drawer.clear(ColorRGBa.BLACK)
-            drawer.image(canvas.colorBuffer(0), shown.corner.x, shown.corner.y, shown.width, shown.height)
+            drawer.isolated {
+                if (concreteOn) drawer.shadeStyle = concreteStyle
+                drawer.image(canvas.colorBuffer(0), shown.corner.x, shown.corner.y, shown.width, shown.height)
+            }
 
             if (debug && !settings.stills) {
                 overlay.draw(drawer, deck, slideStage, width, height, fps, clock.paused)
+            }
+
+            // The organizer's commands, drained here and nowhere else: the deck is moved from
+            // the draw loop only, whichever thread asked. Then one preview, if any are owed,
+            // and the state the page polls.
+            if (remote != null) {
+                /**
+                 * The saved order, played from this frame on. The deck is rearranged in place:
+                 * the slide on screen stays, at its new index, with its frame count; taken out
+                 * of the order, the show moves to the nearest slide after it that survived. The
+                 * card beside it follows without an announcement — this is the order changing,
+                 * not a step in the show.
+                 */
+                fun play(order: Order) {
+                    val next = runCatching { catalogue.arranged(order) }
+                        .getOrElse { println("organizer: could not play that order (${it.message})"); null } ?: return
+                    val nextIds = next.slideIds
+                    val at = ((deck.index until ids.size) + (deck.index - 1 downTo 0))
+                        .firstNotNullOfOrNull { i -> nextIds.indexOf(ids[i]).takeIf { it >= 0 } } ?: 0
+                    show = next
+                    slides = next.slides
+                    ids = nextIds
+                    deck.rearrange(slides, next.outline, at)
+                    val wanted = show.panelOf.getOrElse(deck.index) { -1 }
+                    if (panelDeck != null && wanted >= 0 && panelDeck.index != wanted) {
+                        panelDeck.goTo(wanted, closed(wanted), cut = true)
+                    }
+                    if (wanted >= 0) shownPanel = wanted
+                    shownSlide = deck.index
+                    soundedSlide = deck.index
+                    soundedStep = deck.step
+                    remote.arranged(next)
+                    println("organizer: playing the saved order, ${slides.size} slides, on #${ids[deck.index]}")
+                }
+
+                while (true) {
+                    when (val command = remote.commands.poll() ?: break) {
+                        is Remote.Go -> ids.indexOf(command.id).takeIf { it >= 0 }?.let { deck.goTo(it, command.step, cut = true) }
+                        Remote.Forward -> forward()
+                        Remote.Backward -> backward()
+                        Remote.Replay -> deck.replay()
+                        is Remote.Previews -> {
+                            previewJobs.clear()
+                            (command.ids ?: catalogue.slideIds).forEach { id -> repeat(3) { k -> previewJobs.addLast(id to k) } }
+                        }
+                        is Remote.Apply -> play(command.order)
+                        is Remote.Concrete -> {
+                            concreteOn = concrete != null && (command.on ?: !concreteOn)
+                            println("organizer: concrete ${if (concreteOn) "on" else "off"}")
+                        }
+                        is Remote.ApplyModules -> {
+                            // The saved modules, stood in the catalogue afresh. A placeholder
+                            // whose frames are unchanged is the same object and needs nothing;
+                            // a new or changed one is loaded here — a picture or two, on the
+                            // frame the save lands on — and gets its previews rendered. Then
+                            // the order is played again over the new catalogue.
+                            val next = catalogue.withModules(command.modules, references)
+                            val fresh = next.slides.filterIsInstance<PlaceholderSlide>().filter { !it.loaded }
+                            fresh.forEach { it.load(this) }
+                            catalogue = next
+                            remote.catalogued(next)
+                            next.slideIds.forEachIndexed { i, id ->
+                                if (next.slides[i] in fresh) repeat(3) { k -> previewJobs.addLast(id to k) }
+                            }
+                            println("organizer: ${command.modules.modules.size} modules to build, ${fresh.size} stood in afresh")
+                            play(remote.currentOrder())
+                        }
+                    }
+                }
+                previewJobs.removeFirstOrNull()?.let { (id, k) ->
+                    renderPreview(id, k)
+                    remote.previewStamp = System.currentTimeMillis()
+                }
+                remote.snapshot = Remote.Snapshot(
+                    deck.index, ids[deck.index], deck.step, deck.slide.steps, frame, previewJobs.size, remote.previewStamp,
+                    concreteOn, concrete != null
+                )
             }
 
             if (settings.stills && frame - heldSince >= STILL_HOLD) {
@@ -610,3 +844,21 @@ private fun startIndex(slides: List<Slide>, start: String?): Int {
     println("no slide called \"$wanted\"; starting at ${slides.first().name}")
     return 0
 }
+
+/**
+ * The bright end of a texture: the 98th percentile of its brightness, sampled on a coarse grid
+ * off the texture itself. What the concrete over the frame measures its grain against, so the
+ * stone's lightest patches leave the picture as it is and everything else darkens it.
+ */
+private fun brightEnd(texture: org.openrndr.draw.ColorBuffer): Double = runCatching {
+    texture.shadow.download()
+    val step = maxOf(1, minOf(texture.width, texture.height) / 256)
+    val values = ArrayList<Double>()
+    for (y in 0 until texture.height step step) for (x in 0 until texture.width step step) {
+        val c = texture.shadow[x, y]
+        values += 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+    }
+    texture.shadow.destroy()
+    values.sort()
+    values[(values.size * 0.98).toInt().coerceAtMost(values.size - 1)].coerceIn(0.05, 1.0)
+}.getOrElse { println("concrete: could not measure the texture (${it.message})"); 1.0 }

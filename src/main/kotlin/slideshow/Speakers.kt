@@ -162,7 +162,7 @@ class Speakers(
         var length = 0.0
         var bytes = 0L
         for (sound in present) {
-            val pcm = runCatching { decode(sound.file) }
+            val pcm = runCatching { decode(sound.file, levelled && sound.levelled) }
                 .onFailure { println("sound: ${sound.file.name} would not decode (${it.message}) — silent") }
                 .getOrNull() ?: continue
             val buffer = alGenBuffers()
@@ -176,7 +176,7 @@ class Speakers(
             // per file, because the sheet is 44.1k and the ambience bed is 48k
             length += pcm.frames.toDouble() / pcm.rate
             bytes += pcm.data.capacity().toLong()
-            if (levelled) println(
+            if (levelled && sound.levelled) println(
                 "  %-28s %5.1f dB -> %+5.1f dB".format(
                     sound.file.name, 20.0 * log10(pcm.rms.coerceAtLeast(1e-9)),
                     20.0 * log10(pcm.boost.coerceAtLeast(1e-9))
@@ -362,7 +362,7 @@ class Speakers(
      * peaks at -11, so it is held at the ceiling and stays quieter than the rest, which is right
      * — it is an impact, not a tone.
      */
-    private fun decode(file: File): Pcm {
+    private fun decode(file: File, levelled: Boolean): Pcm {
         val read = level(file, levelled)
 
         // pass two — scale in float, then quantise

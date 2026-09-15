@@ -128,6 +128,19 @@ abstract class Slide {
     /** Runs once at startup, for everything that would otherwise load on the click. */
     open fun load(program: Program) {}
 
+    /**
+     * A key, offered to the slide on screen before the show or the studio acts on it — for a
+     * slide that wants controls of its own, such as the size of what it draws. Return true to
+     * claim it, and nothing else acts on that key while this slide is up; `esc` is never offered.
+     * The slide asks first so a control can sit on a letter the studio also uses — on the shadow
+     * wall `s` takes a row away, and writes a still on every other slide.
+     *
+     * A handler may change *what* is drawn, never *when*: it must not read a clock, because under
+     * `ScreenRecorder` a handler sees wall time while [draw] sees video time (the note under
+     * demo01 in CLAUDE.md). Set a value here and let [draw] act on it.
+     */
+    open fun key(name: String): Boolean = false
+
     /** One frame of the slide. Read [stage], draw, keep nothing. */
     abstract fun draw(drawer: Drawer, stage: Stage)
 }

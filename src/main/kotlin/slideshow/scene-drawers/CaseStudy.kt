@@ -128,6 +128,13 @@ class CaseStudy(
      */
     private val palette: List<ColorRGBa> = emptyList(),
     private val paper: ColorRGBa = ColorRGBa.WHITE,
+    /** The caption beside a case taken full frame: black on the white wall, white on a black one. */
+    private val lettering: ColorRGBa = ColorRGBa.BLACK,
+    /**
+     * How many of the cases a click takes full frame, from the first. Null takes every one; the
+     * rest stay in the collage and are never singled out.
+     */
+    private val highlights: Int? = null,
     private val shadow: ColorRGBa = ColorRGBa.fromHex("C4C4C4"),
     private val shadowDeep: ColorRGBa = ColorRGBa.BLACK,
     /** The sun's height and where it stands — see [IsoPieces]. */
@@ -190,7 +197,7 @@ class CaseStudy(
      * by step clamps, so a piece that fails to load costs a click that repeats the one before
      * rather than an exception.
      */
-    override val steps get() = 1 + cases.size.coerceAtLeast(1)
+    override val steps get() = 1 + (highlights?.coerceIn(1, cases.size) ?: cases.size).coerceAtLeast(1)
 
     override fun stepName(step: Int) =
         if (step == 0) "the whole set" else cases.getOrNull(step - 1)?.title
@@ -397,10 +404,10 @@ class CaseStudy(
         // pieces are placed in. Mixing the two put this at x = -787, off the wall entirely.
         val left = if (centres > 0.5) w * 0.045 else w * 0.545
         val y = h * 0.50
-        line(drawer, "%02d / %02d".format(shown.indexOf(case) + 1, shown.size), face, left, y - h * 0.085, h * 0.024, ColorRGBa.BLACK.opacify(depth * 0.45))
-        line(drawer, case.title, face, left, y, h * 0.055, ColorRGBa.BLACK.opacify(depth))
+        line(drawer, "%02d / %02d".format(shown.indexOf(case) + 1, min(steps - 1, shown.size)), face, left, y - h * 0.085, h * 0.024, lettering.opacify(depth * 0.45))
+        line(drawer, case.title, face, left, y, h * 0.055, lettering.opacify(depth))
         if (case.note.isNotEmpty()) {
-            line(drawer, case.note, small, left, y + h * 0.048, h * 0.026, ColorRGBa.BLACK.opacify(depth * 0.6))
+            line(drawer, case.note, small, left, y + h * 0.048, h * 0.026, lettering.opacify(depth * 0.6))
         }
     }
 

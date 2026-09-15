@@ -1,0 +1,133 @@
+{
+  "source": "export/wn-speaker-notes.pptx",
+  "modules": [],
+  "covered": {
+    "verticale-integratie": [
+      "1-01",
+      "1-09"
+    ],
+    "the-catalogue-city": [
+      "1-02",
+      "1-03",
+      "1-04"
+    ],
+    "everything-a-build-answers-to": [
+      "1-05",
+      "1-06"
+    ],
+    "the-globe": [
+      "1-07",
+      "1-08"
+    ],
+    "de-cijfers": [
+      "1-10"
+    ],
+    "slabs-travelling": [
+      "1-11"
+    ],
+    "esg-is-geen-checklist": [
+      "2-01"
+    ],
+    "esg-beoordelingskader": [
+      "2-02",
+      "2-03"
+    ],
+    "co2-prestatieladder": [
+      "2-04",
+      "2-05",
+      "2-06",
+      "2-07"
+    ],
+    "esg-social-governance": [
+      "2-18",
+      "2-19",
+      "2-20",
+      "2-21",
+      "2-22"
+    ],
+    "levenscyclus-van-betonproducten": [
+      "3-05",
+      "3-06",
+      "3-07",
+      "3-08",
+      "3-09",
+      "3-10"
+    ],
+    "levenscyclus-analyse": [
+      "3-11",
+      "3-12"
+    ],
+    "we-gieten-kennis": [
+      "3-01"
+    ],
+    "we-bouwen-vandaag": [
+      "4-01"
+    ],
+    "the-circle-en-esg": [
+      "4-10",
+      "4-11",
+      "4-12",
+      "4-13",
+      "4-14"
+    ],
+    "co2-impact-van-beton": [
+      "3-02",
+      "3-03",
+      "3-04"
+    ],
+    "co2-behaald": [
+      "2-08"
+    ],
+    "reductie-carbon-footprint": [
+      "4-06"
+    ],
+    "verduurzamen-van-beton": [
+      "3-13",
+      "3-14",
+      "3-15",
+      "3-16"
+    ],
+    "verborgen-verhaal": [
+      "3-17",
+      "3-18",
+      "3-19",
+      "3-20",
+      "4-15"
+    ],
+    "recyclage": [
+      "3-21",
+      "3-22",
+      "3-23",
+      "3-24",
+      "3-25"
+    ],
+    "the-circle-in-elementen": [
+      "4-02"
+    ],
+    "100-elementen": [
+      "4-03",
+      "4-04"
+    ],
+    "geen-compensatie": [
+      "2-09",
+      "2-10",
+      "2-11",
+      "2-12"
+    ],
+    "domino-effect": [
+      "2-13",
+      "2-14",
+      "2-15",
+      "2-16",
+      "2-17"
+    ],
+    "demontabel-in-de-stad": [
+      "4-07",
+      "4-08"
+    ],
+    "gebouw-uit-de-webtool": [
+      "4-05",
+      "4-09"
+    ]
+  }
+}

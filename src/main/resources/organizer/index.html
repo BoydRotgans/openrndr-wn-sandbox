@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Organizer</title>
+<style>
+  /* Two themes on the same variables. Light is the default; the switch in the top bar is
+     remembered, and ?theme=dark or ?theme=light in the address overrides it for one load. */
+  :root, [data-theme="light"] {
+    color-scheme: light;
+    --bg: #f3f3f4; --panel: #ffffff; --panel-2: #ededef; --line: #e2e2e5; --line-2: #cfcfd4;
+    --ink: #1b1b1d; --dim: #6b6b71; --dimmer: #a0a0a6; --sel: #fff1f0; --thumb: #0b0b0b;
+    --note-bg: #ffffff; --note-ink: #3a3a3e; --banner-bg: #fff6e0; --banner-line: #f0d48a; --warn: #9a6b00;
+    --accent: #ff3b30; --accent-2: #ff6b62; --live: #22a84a;
+    --pink: #ff3f9e; --pink-bg: #fff0f7; --pink-line: #ffb3d9;
+    --moment: #3d6fa8; --moment-bg: #f1f6fc; --moment-line: #d3e1f1;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #141414; --panel: #1c1c1c; --panel-2: #232323; --line: #2c2c2c; --line-2: #3a3a3a;
+    --ink: #e8e8e8; --dim: #8a8a8a; --dimmer: #5a5a5a; --sel: #2a2224; --thumb: #0a0a0a;
+    --note-bg: #1c1c1c; --note-ink: #cfcfcf; --banner-bg: #2b2412; --banner-line: #5a4a1a; --warn: #ffb020;
+    --accent: #ff3b30; --accent-2: #ff6b62; --live: #34c759;
+    --pink: #ff4fa8; --pink-bg: #2a1a23; --pink-line: #6a2f4f;
+    --moment: #8fb4dc; --moment-bg: #18202a; --moment-line: #2a3a4c;
+  }
+  :root { --nav: 312px; --radius: 6px; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 12.5px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    display: grid; grid-template-rows: 40px 1fr; grid-template-columns: var(--nav) 1fr;
+    grid-template-areas: "top top" "nav main"; overflow: hidden; user-select: none;
+  }
+  button {
+    font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2);
+    border-radius: var(--radius); padding: 4px 10px; cursor: pointer; white-space: nowrap;
+  }
+  button:hover { filter: brightness(0.96); }
+  button:disabled { opacity: .4; cursor: default; filter: none; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-2); filter: none; }
+  button.ghost { background: transparent; border-color: transparent; color: var(--dim); }
+  button.ghost:hover { color: var(--ink); background: var(--panel-2); filter: none; }
+  button.pink { background: var(--pink); border-color: var(--pink); color: #fff; }
+  button.pink:hover { filter: brightness(1.08); }
+  button.danger { color: var(--accent); }
+  input, textarea, select {
+    font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line-2);
+    border-radius: var(--radius); padding: 5px 8px;
+  }
+  textarea { width: 100%; min-height: 220px; resize: vertical; line-height: 1.45; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--pink-line); border-color: var(--pink); }
+  kbd { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim); border: 1px solid var(--line-2); border-radius: 3px; padding: 0 4px; }
+  code { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim); }
+
+  /* ---- top bar ---- */
+  #top { grid-area: top; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  #top h1 { font-size: 13px; font-weight: 600; margin: 0 6px 0 0; letter-spacing: .01em; }
+  #live { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); }
+  #live i { width: 8px; height: 8px; border-radius: 50%; background: var(--dimmer); display: inline-block; }
+  #live.on i { background: var(--live); box-shadow: 0 0 6px var(--live); }
+  #top .spacer { flex: 1; }
+  #status { color: var(--dim); }
+  #status.warn { color: var(--warn); }
+  #dirty { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: none; }
+  #dirty.on { display: inline-block; }
+
+  /* ---- navigator ---- */
+  #nav { grid-area: nav; overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); padding: 8px 8px 60px; }
+  .chapter { margin: 6px 0 10px; border: 1px solid transparent; border-radius: var(--radius); }
+  .chapter > .head { display: flex; align-items: baseline; gap: 6px; padding: 8px 6px 4px; cursor: grab; color: var(--dim); }
+  .chapter > .head .n { font: 11px ui-monospace, Menlo, monospace; color: var(--dimmer); min-width: 14px; }
+  .chapter > .head .t { color: var(--ink); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .chapter > .head .c { margin-left: auto; font-size: 11px; color: var(--dimmer); white-space: nowrap; padding-left: 8px; }
+  /* a moment of the evening: walls around the talk, headed like a chapter but with no card or number */
+  .moment { margin: 6px 0 10px; border-radius: var(--radius); background: var(--moment-bg); border: 1px solid var(--moment-line); }
+  .moment > .head { display: flex; align-items: baseline; gap: 6px; padding: 7px 6px 3px; cursor: grab; color: var(--dim); }
+  .moment > .head .n { font-size: 10.5px; color: var(--moment); min-width: 14px; }
+  .moment > .head .t { color: var(--moment); font-weight: 600; font-size: 12px; letter-spacing: .02em; }
+  .moment > .head .c { margin-left: auto; font-size: 11px; color: var(--dimmer); white-space: nowrap; padding-left: 8px; }
+  .moment > .head button, .chapter > .head button { padding: 0 5px; font-size: 11px; visibility: hidden; }
+  .moment > .head:hover button { visibility: visible; }
+  .moment > .list { padding: 0 2px 4px; }
+  .moment > .list:empty::after { content: "drop a wall here"; display: block; padding: 6px 10px; color: var(--dimmer); font-size: 11px; }
+  .subchapter { margin: 2px 0 6px 10px; border-left: 2px solid var(--line-2); padding-left: 4px; }
+  .subchapter > .head { padding: 4px 6px; color: var(--dim); font-size: 11.5px; cursor: grab; }
+  .list { min-height: 8px; }
+  .card {
+    display: grid; grid-template-columns: 26px 1fr; gap: 0 6px; align-items: start;
+    padding: 5px 6px; margin: 2px 0; border-radius: var(--radius); cursor: pointer; border: 1px solid transparent;
+  }
+  .card:hover { background: var(--panel-2); }
+  .card.selected { background: var(--sel); border-color: var(--accent); }
+  .card.module { background: var(--pink-bg); }
+  .card.module.selected { border-color: var(--pink); }
+  .card.module .thumb { outline: 2px solid var(--pink); outline-offset: -2px; }
+  .card.module .label .title { color: var(--pink); font-weight: 600; }
+  .card.live .n::after { content: ""; display: block; width: 6px; height: 6px; margin: 4px auto 0; border-radius: 50%; background: var(--live); }
+  .card.off { opacity: .45; }
+  .card .n { font: 11px ui-monospace, Menlo, monospace; color: var(--dim); text-align: right; padding-top: 2px; }
+  .card .thumb { position: relative; width: 100%; aspect-ratio: var(--ar, 3.556); background: var(--thumb); border-radius: 3px; overflow: hidden; }
+  .card .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .15s; }
+  .card .thumb img.show { opacity: 1; }
+  .card .thumb .none { position: absolute; inset: 0; display: grid; place-items: center; color: #666; font-size: 10px; }
+  .card .thumb .none.pink { background: var(--pink); color: #fff; }
+  .card .label { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; min-width: 0; }
+  .card .label .title { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .label .meta { margin-left: auto; font-size: 10.5px; color: var(--dimmer); white-space: nowrap; }
+  .card .body { min-width: 0; }
+  .card .ref { display: flex; align-items: center; gap: 4px; margin-top: 1px; min-width: 0; }
+  .card .ref code { font: 10.5px ui-monospace, Menlo, monospace; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .copy { font: 10px ui-monospace, Menlo, monospace; padding: 0 5px; line-height: 16px; height: 18px; flex: none; }
+  .card .ref .copy { visibility: hidden; }
+  .card:hover .ref .copy, .card.selected .ref .copy { visibility: visible; }
+  .tag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); border: 1px solid var(--line-2); border-radius: 3px; padding: 0 4px; }
+  .tag.backdrop { color: #4a7ab0; border-color: #9fbbdc; }
+  .tag.scene { color: #9a7a2a; border-color: #d9c48a; }
+  .tag.module { color: #fff; background: var(--pink); border-color: var(--pink); }
+  [data-theme="dark"] .tag.backdrop { color: #9ac; border-color: #35506a; }
+  [data-theme="dark"] .tag.scene { color: #cba; border-color: #6a5a35; }
+  .drop { height: 0; border-top: 2px solid var(--accent); margin: 0 6px; border-radius: 2px; }
+  .dragging { opacity: .35; }
+
+  /* the shelf: out of the order, kept for later */
+  #archive, #unplaced { margin: 18px 0 0; border-top: 1px dashed var(--line-2); padding-top: 8px; }
+  #archive > .head, #unplaced > .head { display: flex; align-items: baseline; gap: 6px; padding: 6px 6px 4px; color: var(--dim); cursor: pointer; }
+  #archive > .head .t, #unplaced > .head .t { color: var(--ink); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  #archive > .head .c, #unplaced > .head .c { margin-left: auto; font-size: 11px; color: var(--dimmer); }
+  #archive > .head .tw, #unplaced > .head .tw { font-size: 10px; color: var(--dimmer); width: 10px; }
+  #archive.closed > .list, #unplaced.closed > .list { display: none; }
+  #archive .list { min-height: 28px; border-radius: var(--radius); }
+  #archive .list:empty::after { content: "drop a slide here to keep it out of the show"; display: block; padding: 8px 10px; color: var(--dimmer); font-size: 11px; }
+  #unplaced .list:empty::after { content: "every frame of the deck is accounted for"; display: block; padding: 8px 10px; color: var(--dimmer); font-size: 11px; }
+  #unplaced .hint { padding: 0 6px 6px; color: var(--dimmer); font-size: 11px; }
+  .fcard { display: grid; grid-template-columns: 84px 1fr auto; gap: 8px; align-items: center; padding: 4px 6px; margin: 2px 0; border-radius: var(--radius); }
+  .fcard:hover { background: var(--panel-2); }
+  .fcard img { width: 84px; aspect-ratio: var(--ar, 3.556); object-fit: cover; background: var(--thumb); border-radius: 3px; display: block; }
+  .fcard .fn { font: 11.5px ui-monospace, Menlo, monospace; color: var(--ink); }
+  .fcard .fw { font-size: 10px; color: var(--dimmer); }
+  .fcard button { padding: 1px 7px; }
+
+  /* ---- main ---- */
+  #main { grid-area: main; overflow-y: auto; padding: 16px 20px 40px; }
+  #empty { color: var(--dim); padding: 40px; text-align: center; }
+  #frames { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .frame { background: var(--thumb); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); }
+  .frame .pic { position: relative; width: 100%; aspect-ratio: var(--ar, 3.556); background: var(--thumb); }
+  .frame .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .frame .pic .none { position: absolute; inset: 0; display: grid; place-items: center; color: #666; }
+  .frame .pic .none.pink { background: var(--pink); color: #fff; }
+  .frame .cap { display: flex; justify-content: space-between; padding: 5px 8px; color: var(--dim); font-size: 11px; border-top: 1px solid var(--line); background: var(--panel); }
+  #head { display: flex; align-items: baseline; gap: 10px; margin: 16px 0 6px; flex-wrap: wrap; }
+  #head h2 { font-size: 18px; font-weight: 600; margin: 0; }
+  #head h2 input { font-size: 18px; font-weight: 600; width: 520px; max-width: 100%; }
+  #head code { font-size: 12px; }
+  #head .spacer { flex: 1; }
+  #where { color: var(--dim); }
+  #controls { display: flex; gap: 6px; align-items: center; margin: 10px 0 14px; flex-wrap: wrap; }
+  #controls .sep { width: 1px; height: 18px; background: var(--line-2); margin: 0 4px; }
+  #steps { display: inline-flex; gap: 4px; align-items: center; margin: 0 6px; }
+  #steps i { width: 7px; height: 7px; border-radius: 50%; background: var(--dimmer); display: inline-block; }
+  #steps i.on { background: var(--live); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; max-width: 720px; }
+  dt { color: var(--dim); } dd { margin: 0; }
+  #notes { margin-top: 14px; padding: 10px 12px; background: var(--note-bg); border: 1px solid var(--line); border-radius: var(--radius); color: var(--note-ink); white-space: pre-wrap; max-width: 720px; }
+  #notes:empty { display: none; }
+  #banner { display: none; margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius); background: var(--banner-bg); border: 1px solid var(--banner-line); color: var(--warn); }
+  #banner.on { display: block; }
+  #help { position: fixed; right: 16px; bottom: 12px; color: var(--dimmer); font-size: 11px; display: flex; gap: 12px; }
+  #progress { color: var(--dim); }
+
+  /* the module: what is still to be built, edited in place */
+  #module { margin-top: 16px; padding: 12px 14px; background: var(--pink-bg); border: 1px solid var(--pink-line); border-radius: var(--radius); }
+  #module h3, #refs h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--pink); margin: 0 0 8px; }
+  #refs h3 { color: var(--dim); }
+  #module .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  #module label { color: var(--dim); display: inline-flex; gap: 6px; align-items: center; }
+  #module .brief { margin-top: 4px; }
+  #module .brief textarea { background: var(--panel); }
+  #module .hint { color: var(--dimmer); font-size: 11px; margin-top: 6px; }
+
+  /* the reference frames a slide stands for */
+  #refs { margin-top: 18px; }
+  #refs .bar { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  #refs .bar .spacer { flex: 1; }
+  #reflist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .ref { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .ref .pic { position: relative; background: var(--thumb); aspect-ratio: var(--ar, 3.556); }
+  .ref .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .ref .cap { display: flex; align-items: baseline; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--line); }
+  .ref .cap .fn { font: 12px ui-monospace, Menlo, monospace; }
+  .ref .cap .fw { color: var(--dimmer); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; }
+  .ref .cap .spacer { flex: 1; }
+  .ref .cap button { padding: 0 6px; }
+  .ref .note { padding: 4px 10px 10px; color: var(--note-ink); font-size: 12px; white-space: pre-wrap; max-height: 140px; overflow-y: auto; }
+  .ref .note:empty { display: none; }
+  .ref .note.silent { color: var(--dimmer); font-style: italic; }
+
+  /* the picker: every frame of the deck, to add one to the slide */
+  #picker { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; z-index: 10; }
+  #picker.on { display: block; }
+  #picker .box { position: absolute; inset: 40px 60px; background: var(--bg); border-radius: 10px; display: grid; grid-template-rows: auto 1fr; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  #picker .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  #picker .bar .spacer { flex: 1; }
+  #picker .grid { overflow-y: auto; padding: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; align-content: start; }
+  .pick { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; cursor: pointer; }
+  .pick:hover { border-color: var(--pink); }
+  .pick.taken { opacity: .55; }
+  .pick.mine { outline: 2px solid var(--pink); outline-offset: -2px; }
+  .pick img { width: 100%; aspect-ratio: var(--ar, 3.556); object-fit: cover; display: block; background: var(--thumb); }
+  .pick .cap { display: flex; gap: 8px; align-items: baseline; padding: 5px 8px; font-size: 11px; }
+  .pick .cap .fn { font: 11.5px ui-monospace, Menlo, monospace; color: var(--ink); }
+  .pick .cap .owner { margin-left: auto; color: var(--dimmer); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+</style>
+</head>
+<body>
+
+<header id="top">
+  <h1>Organizer</h1>
+  <span id="live"><i></i><span id="liveText">connecting…</span></span>
+  <span id="progress"></span>
+  <span class="spacer"></span>
+  <span id="status"></span>
+  <button class="ghost" id="themeBtn" title="Light or dark">☾</button>
+  <button class="ghost" id="concreteBtn" title="Lay the concrete over the whole show, as if projected on a concrete wall" hidden>concrete</button>
+  <button class="ghost" id="followBtn" title="Select whatever the show is on (f)">follow</button>
+  <button class="ghost" id="previewsBtn" title="Render the three frames of every slide again">refresh previews</button>
+  <button class="ghost" id="resetBtn" title="Back to the order Slideshow.kt declares">reset</button>
+  <button id="momentBtn" title="A new moment of the evening after the selected part (m)">+ moment</button>
+  <button class="pink" id="newBtn" title="A new module after the selected slide (n)">+ module</button>
+  <span id="dirty" title="unsaved changes"></span>
+  <button class="primary" id="saveBtn" title="Write the order and the modules (⌘S)">save</button>
+</header>
+
+<nav id="nav"></nav>
+
+<main id="main">
+  <div id="banner"></div>
+  <div id="empty">Loading the show…</div>
+  <div id="detail" hidden>
+    <div id="frames"></div>
+    <div id="head">
+      <h2 id="title"></h2>
+      <code id="id"></code>
+      <button class="ghost copy" id="copyBtn" title="Copy this slide's name (c)">copy name</button>
+      <span id="kindTag" class="tag"></span>
+      <span class="spacer"></span>
+      <span id="where"></span>
+    </div>
+    <div id="controls">
+      <button id="goBtn" title="Jump the show to this slide">go</button>
+      <button id="backBtn" title="A click back (←)">◀ click</button>
+      <button id="fwdBtn" title="A click forward (→)">click ▶</button>
+      <span id="steps"></span>
+      <button id="replayBtn" title="Replay this slide from its first frame (r)">replay</button>
+      <span class="sep"></span>
+      <button id="onBtn" title="Skip this slide, or play it again (x)"></button>
+      <button id="archiveBtn" title="Take this slide out of the order and keep it on the shelf, or put it back (a)"></button>
+      <span class="sep"></span>
+      <button class="ghost" id="oneBtn" title="Render this slide's previews again">previews</button>
+    </div>
+    <dl>
+      <dt>class</dt><dd><code id="cls"></code></dd>
+      <dt>clicks</dt><dd id="clicks"></dd>
+      <dt>timing</dt><dd id="timing"></dd>
+      <dt>arrives</dt><dd id="transition"></dd>
+    </dl>
+    <div id="notes"></div>
+
+    <div id="module" hidden>
+      <h3>Module — still to be built</h3>
+      <div class="row">
+        <label>chapter <select id="mChapter"></select></label>
+        <label><input type="checkbox" id="mWide"> takes the whole wall</label>
+        <span class="spacer" style="flex:1"></span>
+        <label>merge into <select id="mMerge"><option value="">…</option></select></label>
+        <button id="mMergeBtn" title="Fold this module's frames and brief into the one chosen, and remove it">merge</button>
+        <button class="danger" id="mRemoveBtn" title="Delete this module (⌫)">remove module</button>
+      </div>
+      <div class="brief">
+        <textarea id="mBrief" placeholder="The implementation brief: what the frames show, what is said over them, what to build, what to reuse."></textarea>
+        <div class="hint">Paragraphs are kept as paragraphs in the file. The title is edited above; the id stays.</div>
+      </div>
+    </div>
+
+    <div id="refs" hidden>
+      <div class="bar">
+        <h3 id="refsHead">Reference frames</h3>
+        <span class="spacer"></span>
+        <button id="addRefBtn" title="Add a frame of the client's deck to this slide">+ frame</button>
+      </div>
+      <div id="reflist"></div>
+    </div>
+  </div>
+</main>
+
+<div id="picker">
+  <div class="box">
+    <div class="bar">
+      <strong id="pickerTitle">Add a frame</strong>
+      <span id="pickerHint" style="color: var(--dim)"></span>
+      <span class="spacer"></span>
+      <button id="pickerClose">done</button>
+    </div>
+    <div class="grid" id="pickerGrid"></div>
+  </div>
+</div>
+
+<div id="help">
+  <span><kbd>↑</kbd><kbd>↓</kbd> slide</span>
+  <span><kbd>←</kbd><kbd>→</kbd> click</span>
+  <span><kbd>r</kbd> replay</span>
+  <span><kbd>x</kbd> skip</span>
+  <span><kbd>a</kbd> archive</span>
+  <span><kbd>n</kbd> module</span>
+  <span><kbd>m</kbd> moment</span>
+  <span><kbd>f</kbd> follow</span>
+  <span><kbd>c</kbd> copy name</span>
+  <span><kbd>⌘S</kbd> save</span>
+</div>
+
+<script>
+(() => {
+  // ---------- state ----------
+  let show = null;          // /api/show
+  let order = null;         // the tree being edited: [{id,on} | {group,title,sub,moment,entries}]
+  let archive = [];         // the shelf: [{id,on}], out of the order and kept
+  let byId = {};            // id -> catalogue entry, as the show has it
+  let modules = [];         // the modules file, being edited: [{id,title,chapter,frames,brief,wide}]
+  let covered = {};         // id -> [frame names] for the implemented slides, being edited
+  let frames = [];          // the client's frames: [{name,chapter,index,wide,note,wall,pane}]
+  let frameByName = {};
+  let selected = null;      // id
+  let dirty = false;
+  let follow = true;
+  let liveId = null;
+  let stamp = 0;            // preview cache buster
+  let lastLeft = 0;
+  let archiveOpen = true;
+  let unplacedOpen = true;
+
+  const $ = (s) => document.querySelector(s);
+  const nav = $('#nav');
+
+  // ---------- theme ----------
+  const theme = (t) => { document.documentElement.dataset.theme = t; $('#themeBtn').textContent = t === 'dark' ? '☀' : '☾'; try { localStorage.setItem('organizer-theme', t); } catch (e) {} };
+  const askedTheme = new URLSearchParams(location.search).get('theme');
+  let storedTheme = null; try { storedTheme = localStorage.getItem('organizer-theme'); } catch (e) {}
+  theme(askedTheme === 'dark' || askedTheme === 'light' ? askedTheme : (storedTheme || 'light'));
+  $('#themeBtn').addEventListener('click', () => theme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+
+  // ---------- order tree <-> file form ----------
+  function fromFile(list) {
+    return list.map(e => {
+      if (typeof e === 'string') return { id: e, on: true };
+      if (e.id !== undefined) return { id: e.id, on: e.on !== false };
+      if (e.moment !== undefined && e.chapter === undefined) return { group: true, title: e.moment, sub: false, moment: true, entries: fromFile(e.slides || []) };
+      const sub = e.chapter === undefined;
+      return { group: true, title: sub ? e.subchapter : e.chapter, sub, moment: false, entries: fromFile(e.slides || []) };
+    });
+  }
+  function toFile(list) {
+    return list.map(e => {
+      if (!e.group) return e.on ? e.id : { id: e.id, on: false };
+      const o = {}; o[e.moment ? 'moment' : (e.sub ? 'subchapter' : 'chapter')] = e.title; o.slides = toFile(e.entries); return o;
+    });
+  }
+  function fileForm() { const f = { order: toFile(order) }; if (archive.length) f.archive = archive.map(r => r.id); return f; }
+  function flatten(list, out = []) { for (const e of list) e.group ? flatten(e.entries, out) : out.push(e); return out; }
+  function visible() { return flatten(order); }
+  function playing() { return visible().filter(e => e.on && byId[e.id]).map(e => e.id); }
+  function inArchive(id) { return archive.some(r => r.id === id); }
+  // The chapter / subchapter a slide sits under in the order being edited, not the one it was declared in.
+  function whereIs(id, list = order, trail = []) {
+    for (const e of list) {
+      if (!e.group) { if (e.id === id) return trail.join(' / '); }
+      else { const hit = whereIs(id, e.entries, trail.concat(e.title)); if (hit !== null) return hit; }
+    }
+    return null;
+  }
+  function isChapter(e) { return e.group && !e.sub && !e.moment; }
+  function chapterOf(id) {
+    for (const e of order) if (isChapter(e) && flatten(e.entries).some(x => x.id === id)) return e.title;
+    return '';
+  }
+  function momentOf(id) {
+    for (const e of order) if (e.group && e.moment && flatten(e.entries).some(x => x.id === id)) return e.title;
+    return '';
+  }
+  function chapters() { return order.filter(isChapter).map(e => e.title); }
+  function moments() { return order.filter(e => e.group && e.moment).map(e => e.title); }
+  /** The index in the top level of the entry holding [id]: the slide itself, or its chapter or moment. */
+  function topIndexOf(id) {
+    return order.findIndex(e => e.group ? flatten(e.entries).some(x => x.id === id) : e.id === id);
+  }
+
+  // ---------- moments ----------
+  // A moment is a part of the evening around the talk — the aperitif, a course — holding the walls
+  // that play in it. Only a name: renaming or dissolving one moves nothing in the show.
+  function newMoment() {
+    const title = prompt('Name of the new moment (e.g. "First course")');
+    if (!title || !title.trim()) return;
+    const m = { group: true, title: title.trim(), sub: false, moment: true, entries: [] };
+    const at = selected && !inArchive(selected) ? topIndexOf(selected) : -1;
+    if (at >= 0 && !order[at].group) {
+      // a loose wall selected: the new moment takes it
+      m.entries.push(order[at]); order.splice(at, 1, m);
+    } else if (at >= 0) order.splice(at + 1, 0, m);
+    else order.push(m);
+    markDirty(true); renderNav(); renderDetail();
+    setStatus(`moment "${m.title}" — drag its walls into it, then save`);
+  }
+  function renameMoment(m) {
+    const title = prompt('Rename the moment', m.title);
+    if (title === null || !title.trim() || title.trim() === m.title) return;
+    m.title = title.trim(); markDirty(true); renderNav(); renderDetail();
+  }
+  function dissolveMoment(m) {
+    if (!confirm(`Dissolve the moment "${m.title}"? Its walls stay where they are.`)) return;
+    const i = order.indexOf(m); if (i < 0) return;
+    order.splice(i, 1, ...m.entries);
+    markDirty(true); renderNav(); renderDetail();
+  }
+
+  // ---------- modules ----------
+  function moduleOf(id) { return modules.find(m => m.id === id) || null; }
+  function isModule(id) { return !!moduleOf(id); }
+
+  /**
+   * What the page knows about a slide: the catalogue's entry, with the module's edits over it
+   * where it is a module — the page's copy of a module wins, since that is what is being
+   * edited — and a stand-in for a module that is not saved yet, so it can be listed and
+   * edited before the show has it.
+   */
+  function info(id) {
+    const c = byId[id]; const m = moduleOf(id);
+    if (!c && !m) return null;
+    const base = c || {
+      id, name: m.title, cls: 'PlaceholderSlide', kind: 'module', wide: !!m.wide, steps: Math.max(1, m.frames.length),
+      stepSeconds: 0.45, loopSeconds: 0, settleSeconds: 0.45, transition: 'cut', notes: '', chapter: m.chapter, subchapter: '',
+      shots: [], unsaved: true
+    };
+    const out = Object.assign({}, base);
+    if (m) Object.assign(out, { module: true, title: m.title, frames: m.frames.slice(), brief: m.brief, wide: !!m.wide, unsaved: !c });
+    else out.frames = (covered[id] || []).slice();
+    return out;
+  }
+
+  /** Which slide each frame of the deck belongs to, off the modules and the covered map. */
+  function owners() {
+    const o = {};
+    for (const [id, fs] of Object.entries(covered)) for (const f of fs) o[f] = id;
+    for (const m of modules) for (const f of m.frames) o[f] = m.id;
+    return o;
+  }
+  function unplaced() { const o = owners(); return frames.filter(f => !o[f.name]); }
+  /** What kind of frame: drawn beside its card at the wall's size, a plain 16:9 slide, or across the wall. */
+  function kindOf(f) { return f.wide ? 'whole wall' : (f.paneOnly ? '16:9 slide, no card' : 'beside the card'); }
+  function sortFrames(names) {
+    const key = (n) => { const f = frameByName[n]; return f ? f.chapter * 1000 + f.index : 999999; };
+    return names.slice().sort((a, b) => key(a) - key(b));
+  }
+  function setFrames(id, names) {
+    const m = moduleOf(id);
+    if (m) m.frames = sortFrames(names); else covered[id] = sortFrames(names);
+    if (!m && covered[id].length === 0) delete covered[id];
+    markDirty(true);
+  }
+
+  function slug(text) {
+    return (text || '').normalize('NFKD').replace(/\p{M}+/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'module';
+  }
+  function knownIds() { return new Set(Object.keys(byId).concat(modules.map(m => m.id))); }
+  function freshId(base) { const have = knownIds(); let id = base, n = 2; while (have.has(id)) id = `${base}-${n++}`; return id; }
+
+  function newModule() {
+    const title = prompt('Title of the new module');
+    if (!title || !title.trim()) return;
+    const id = freshId(slug(title));
+    const sel = selected && !inArchive(selected) ? selected : null;
+    const inMoment = !!(sel && momentOf(sel));
+    const chapter = inMoment ? '' : ((sel && chapterOf(sel)) || chapters()[0] || '');
+    // made inside a moment of the evening, a module is a wall: no card there to stand beside
+    const m = { id, title: title.trim(), chapter, frames: [], brief: '', wide: inMoment };
+    modules.push(m);
+    // after the selected slide, or at the end of the chapter, or at the end of the order
+    let placed = false;
+    if (sel) {
+      const at = findRef(sel); if (at) { at.list.splice(at.index + 1, 0, { id, on: true }); placed = true; }
+    }
+    if (!placed) {
+      const ch = order.find(e => isChapter(e) && e.title === chapter);
+      if (ch) ch.entries.push({ id, on: true }); else order.push({ id, on: true });
+    }
+    markDirty(true); renderNav(); select(id, false);
+    setStatus('new module — save to stand it in the show');
+  }
+
+  function findRef(id, list = order) {
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      if (!e.group) { if (e.id === id) return { list, index: i }; }
+      else { const hit = findRef(id, e.entries); if (hit) return hit; }
+    }
+    return null;
+  }
+
+  function removeModule(id) {
+    const m = moduleOf(id); if (!m) return;
+    if (!confirm(`Remove the module "${m.title}"? Its frames go back to unplaced.`)) return;
+    modules = modules.filter(x => x.id !== id);
+    removeFromOrder(id);
+    archive = archive.filter(r => r.id !== id);
+    if (selected === id) selected = null;
+    markDirty(true); renderNav(); renderDetail();
+    setStatus('module removed — save to take it out of the show');
+  }
+
+  function mergeInto(fromId, toId) {
+    const from = moduleOf(fromId), to = moduleOf(toId);
+    if (!from || !to || from === to) return;
+    to.frames = sortFrames(Array.from(new Set(to.frames.concat(from.frames))));
+    if (from.brief.trim()) to.brief = (to.brief.trim() ? to.brief.trim() + '\n\n' : '') + `Uit "${from.title}":\n` + from.brief.trim();
+    modules = modules.filter(x => x !== from);
+    removeFromOrder(fromId);
+    archive = archive.filter(r => r.id !== fromId);
+    markDirty(true); renderNav(); select(toId, false);
+    setStatus(`merged "${from.title}" into "${to.title}" — save to play it`);
+  }
+
+  // A slide the order does not place goes where it was declared — at the end of its chapter, or
+  // the top level for a wall. The show appends the unmentioned the same way, so does this.
+  function placeDeclared(ref) {
+    const c = info(ref.id);
+    if (!c || !c.chapter) { order.push(ref); return; }
+    let ch = order.find(e => isChapter(e) && e.title === c.chapter);
+    if (!ch) { ch = { group: true, title: c.chapter, sub: false, moment: false, entries: [] }; order.push(ch); }
+    if (c.subchapter) {
+      let sc = ch.entries.find(e => e.group && e.sub && e.title === c.subchapter);
+      if (!sc) { sc = { group: true, title: c.subchapter, sub: true, entries: [] }; ch.entries.push(sc); }
+      sc.entries.push(ref);
+    } else ch.entries.push(ref);
+  }
+  function completeOrder() {
+    const have = new Set(flatten(order).map(e => e.id).concat(archive.map(r => r.id)));
+    for (const c of show.catalogue) if (!have.has(c.id)) placeDeclared({ id: c.id, on: true });
+    for (const m of modules) if (!have.has(m.id) && !byId[m.id]) placeDeclared({ id: m.id, on: true });
+  }
+
+  // ---------- rendering ----------
+  function previewUrl(id, k) { return `/previews/${id}-${k}.png?v=${stamp}`; }
+  function clock(s) { return s < 60 ? s.toFixed(1) + 's' : Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+
+  function thumb(c) {
+    const t = document.createElement('div'); t.className = 'thumb';
+    if (c.unsaved) {
+      // not in the show yet: its first frame, or the pink it will be
+      const f = c.frames.length ? frameByName[c.frames[0]] : null;
+      if (f && f.wall) { const im = document.createElement('img'); im.src = f.wall; im.className = 'show'; im.draggable = false; t.appendChild(im); }
+      else { const none = document.createElement('div'); none.className = 'none pink'; none.textContent = 'unsaved module'; t.appendChild(none); }
+      return t;
+    }
+    const none = document.createElement('div'); none.className = 'none'; none.textContent = 'no preview'; t.appendChild(none);
+    const imgs = [0, 1, 2].map(k => {
+      const im = document.createElement('img'); im.src = previewUrl(c.id, k); im.draggable = false;
+      im.onload = () => { none.remove(); if (k === 1) im.classList.add('show'); };
+      t.appendChild(im); return im;
+    });
+    // hovering cycles the three frames, so the thumbnail plays its own animation
+    let timer = null, at = 1;
+    t.addEventListener('mouseenter', () => { timer = setInterval(() => { at = (at + 1) % 3; imgs.forEach((im, k) => im.classList.toggle('show', k === at)); }, 450); });
+    t.addEventListener('mouseleave', () => { clearInterval(timer); at = 1; imgs.forEach((im, k) => im.classList.toggle('show', k === 1)); });
+    return t;
+  }
+
+  /** What to call a slide when talking about it: its id, and the drawer that draws it. */
+  function refName(c) { return c.module ? `${c.id} (module)` : `${c.id} (${c.cls})`; }
+  function copyButton(c) {
+    const b = document.createElement('button'); b.className = 'ghost copy'; b.textContent = 'copy'; b.title = 'Copy "' + refName(c) + '"';
+    b.addEventListener('click', (ev) => { ev.stopPropagation(); copyName(c, b); });
+    b.addEventListener('dblclick', (ev) => ev.stopPropagation());
+    return b;
+  }
+  function copyName(c, b) {
+    const text = refName(c);
+    const done = () => { setStatus('copied ' + text); if (b) { b.textContent = '✓'; setTimeout(() => { b.textContent = 'copy'; }, 900); } };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { setStatus('could not copy', true); } ta.remove();
+  }
+
+  function card(ref, number) {
+    const c = info(ref.id);
+    const el = document.createElement('div');
+    el.className = 'card' + (ref.on ? '' : ' off') + (ref.id === selected ? ' selected' : '') + (ref.id === liveId ? ' live' : '') + (c && c.module ? ' module' : '');
+    el.dataset.id = ref.id; el.draggable = true;
+    const n = document.createElement('div'); n.className = 'n'; n.textContent = ref.on && number ? number : '–'; el.appendChild(n);
+    const body = document.createElement('div'); body.className = 'body';
+    if (!c) {
+      body.innerHTML = `<div class="label"><span class="title">${ref.id}</span><span class="meta">not in the show</span></div>`;
+      el.appendChild(body); return el;
+    }
+    body.appendChild(thumb(c));
+    const label = document.createElement('div'); label.className = 'label';
+    const title = document.createElement('span'); title.className = 'title'; title.textContent = c.title; label.appendChild(title);
+    const meta = document.createElement('span'); meta.className = 'meta';
+    meta.textContent = c.module ? `module · ${c.frames.length} frame${c.frames.length === 1 ? '' : 's'}`
+      : (c.wide ? c.kind + ' · ' : '') + (c.steps > 1 ? c.steps + ' clicks' : (c.loopSeconds > 0 ? 'loop ' + clock(c.loopSeconds) : '1 click'));
+    label.appendChild(meta); body.appendChild(label);
+    const r = document.createElement('div'); r.className = 'ref';
+    const code = document.createElement('code'); code.textContent = c.id; code.title = refName(c); r.appendChild(code);
+    r.appendChild(copyButton(c));
+    body.appendChild(r); el.appendChild(body);
+    el.addEventListener('click', () => select(ref.id, true));
+    el.addEventListener('dblclick', () => go(ref.id));
+    return el;
+  }
+
+  function renderNav() {
+    nav.innerHTML = '';
+    let number = 0;
+    const numberOf = (ref) => (ref.on && info(ref.id)) ? String(++number) : '';
+    const list = (entries, path, cls) => {
+      const box = document.createElement('div'); box.className = 'list' + (cls ? ' ' + cls : ''); box.dataset.path = JSON.stringify(path);
+      entries.forEach((e, i) => {
+        if (!e.group) { const el = card(e, numberOf(e)); el.dataset.index = i; box.appendChild(el); return; }
+        const g = document.createElement('div'); g.className = e.moment ? 'moment' : (e.sub ? 'subchapter' : 'chapter'); g.dataset.index = i; g.dataset.path = JSON.stringify(path); g.draggable = true;
+        const head = document.createElement('div'); head.className = 'head';
+        if (e.moment) {
+          const mn = document.createElement('span'); mn.className = 'n'; mn.textContent = '◆'; head.appendChild(mn);
+          const t = document.createElement('span'); t.className = 't'; t.textContent = e.title; t.title = 'double-click to rename'; head.appendChild(t);
+          const all = flatten(e.entries).filter(x => x.on);
+          const todo = all.filter(x => isModule(x.id)).length;
+          const c = document.createElement('span'); c.className = 'c'; c.textContent = (all.length === 1 ? '1 wall' : all.length + ' walls') + (todo ? ` · ${todo} to build` : ''); head.appendChild(c);
+          const rn = document.createElement('button'); rn.className = 'ghost'; rn.textContent = 'rename'; rn.addEventListener('click', (ev) => { ev.stopPropagation(); renameMoment(e); }); head.appendChild(rn);
+          const dx = document.createElement('button'); dx.className = 'ghost'; dx.textContent = '×'; dx.title = 'Dissolve the moment; its walls stay'; dx.addEventListener('click', (ev) => { ev.stopPropagation(); dissolveMoment(e); }); head.appendChild(dx);
+          head.addEventListener('dblclick', () => renameMoment(e));
+          g.appendChild(head);
+          g.appendChild(list(e.entries, path.concat(i)));
+          box.appendChild(g);
+          return;
+        }
+        if (!e.sub) { const cn = document.createElement('span'); cn.className = 'n'; cn.textContent = String(order.filter(isChapter).indexOf(e) + 1); head.appendChild(cn); }
+        const t = document.createElement('span'); t.className = 't'; t.textContent = e.title; head.appendChild(t);
+        if (!e.sub) {
+          const all = flatten(e.entries).filter(x => x.on);
+          const todo = all.filter(x => isModule(x.id)).length;
+          const c = document.createElement('span'); c.className = 'c'; c.textContent = all.length + ' on' + (todo ? ` · ${todo} to build` : ''); head.appendChild(c);
+        }
+        g.appendChild(head);
+        g.appendChild(list(e.entries, path.concat(i)));
+        box.appendChild(g);
+      });
+      return box;
+    };
+    nav.appendChild(list(order, [], 'root'));
+
+    // the shelf
+    const shelf = document.createElement('div'); shelf.id = 'archive'; if (!archiveOpen) shelf.classList.add('closed');
+    const head = document.createElement('div'); head.className = 'head';
+    head.innerHTML = `<span class="tw">${archiveOpen ? '▾' : '▸'}</span><span class="t">Archive</span><span class="c">${archive.length} kept</span>`;
+    head.addEventListener('click', () => { archiveOpen = !archiveOpen; renderNav(); });
+    shelf.appendChild(head);
+    const box = document.createElement('div'); box.className = 'list'; box.dataset.path = '"archive"';
+    archive.forEach((ref, i) => { const el = card(ref, ''); el.dataset.index = i; box.appendChild(el); });
+    shelf.appendChild(box);
+    nav.appendChild(shelf);
+
+    // the frames of the deck no slide accounts for
+    if (frames.length) {
+      const left = unplaced();
+      const u = document.createElement('div'); u.id = 'unplaced'; if (!unplacedOpen) u.classList.add('closed');
+      const uh = document.createElement('div'); uh.className = 'head';
+      uh.innerHTML = `<span class="tw">${unplacedOpen ? '▾' : '▸'}</span><span class="t">Unplaced frames</span><span class="c">${left.length} of ${frames.length}</span>`;
+      uh.addEventListener('click', () => { unplacedOpen = !unplacedOpen; renderNav(); });
+      u.appendChild(uh);
+      const ul = document.createElement('div'); ul.className = 'list';
+      if (left.length) { const hint = document.createElement('div'); hint.className = 'hint'; hint.textContent = 'frames of the client\'s deck no slide covers — + adds one to the selected slide'; ul.appendChild(hint); }
+      left.forEach(f => {
+        const row = document.createElement('div'); row.className = 'fcard'; row.title = f.note || '(no note)';
+        const im = document.createElement('img'); im.src = f.wall || ''; im.draggable = false; row.appendChild(im);
+        const t = document.createElement('div'); t.innerHTML = `<div class="fn">${f.name}</div><div class="fw">${kindOf(f)}</div>`; row.appendChild(t);
+        const b = document.createElement('button'); b.textContent = '+'; b.title = 'Add to the selected slide'; b.disabled = !selected || !info(selected);
+        b.addEventListener('click', (ev) => { ev.stopPropagation(); addFrame(selected, f.name); });
+        row.appendChild(b);
+        ul.appendChild(row);
+      });
+      u.appendChild(ul);
+      nav.appendChild(u);
+    }
+
+    wireDrag();
+    updateBanner();
+  }
+
+  function addFrame(id, name) {
+    const c = id && info(id); if (!c) return;
+    if (c.frames.includes(name)) return;
+    // a frame belongs to one slide: taking it here takes it from wherever it was
+    const owner = owners()[name];
+    if (owner && owner !== id) setFrames(owner, info(owner).frames.filter(x => x !== name));
+    setFrames(id, c.frames.concat(name));
+    renderNav(); renderDetail(); renderPicker();
+  }
+  function dropFrame(id, name) {
+    const c = id && info(id); if (!c) return;
+    setFrames(id, c.frames.filter(x => x !== name));
+    renderNav(); renderDetail();
+  }
+
+  function renderDetail() {
+    const c = selected && info(selected);
+    $('#empty').hidden = !!c; $('#detail').hidden = !c;
+    if (!c) { $('#empty').textContent = !selected ? 'Pick a slide.' : `"${selected}" is in the order file but not in the show.`; return; }
+    const archived = inArchive(c.id);
+    const ref = visible().find(e => e.id === selected) || { on: true };
+    const m = moduleOf(c.id);
+
+    // the three previews, or where they will be
+    const fr = $('#frames'); fr.innerHTML = '';
+    const shots = c.unsaved ? ['save first', 'save first', 'save first'] : c.shots;
+    shots.forEach((label, k) => {
+      const f = document.createElement('div'); f.className = 'frame';
+      const pic = document.createElement('div'); pic.className = 'pic';
+      const none = document.createElement('div'); none.className = 'none' + (c.unsaved ? ' pink' : ''); none.textContent = c.unsaved ? 'not in the show yet' : 'no preview yet'; pic.appendChild(none);
+      if (!c.unsaved) { const im = document.createElement('img'); im.src = previewUrl(c.id, k); im.onload = () => none.remove(); pic.appendChild(im); }
+      f.appendChild(pic);
+      const cap = document.createElement('div'); cap.className = 'cap'; cap.innerHTML = `<span>${k + 1} / 3</span><span>${label}</span>`; f.appendChild(cap);
+      fr.appendChild(f);
+    });
+
+    // the title: type for a slide, an input for a module
+    const h = $('#title'); h.innerHTML = '';
+    if (m) {
+      const inp = document.createElement('input'); inp.value = m.title; inp.placeholder = 'title';
+      inp.addEventListener('input', () => { m.title = inp.value; markDirty(true); const card = nav.querySelector(`.card[data-id="${CSS.escape(m.id)}"] .title`); if (card) card.textContent = m.title; });
+      h.appendChild(inp);
+    } else h.textContent = c.title;
+    $('#id').textContent = refName(c);
+    $('#copyBtn').onclick = () => { copyName(c, null); $('#copyBtn').textContent = 'copied ✓'; setTimeout(() => { $('#copyBtn').textContent = 'copy name'; }, 900); };
+    const kt = $('#kindTag'); kt.textContent = c.module ? 'module' : (c.wide ? c.kind : 'slide'); kt.className = 'tag ' + (c.module ? 'module' : (c.wide ? c.kind : ''));
+    $('#where').textContent = archived ? 'archived — out of the order, kept' : (whereIs(c.id) || (c.wide ? 'outside the chapters' : 'outside the chapters — keeps the card before it'));
+    $('#cls').textContent = c.cls + (c.name !== c.cls ? `  (name "${c.name}")` : '');
+    $('#clicks').textContent = c.steps === 1 ? '1 — clicked straight past' : `${c.steps} states, ${c.steps - 1} clicks`;
+    $('#timing').textContent = `${c.stepSeconds.toFixed(2)}s a click` + (c.loopSeconds > 0 ? `, loops every ${clock(c.loopSeconds)}` : '') + (c.settleSeconds > c.stepSeconds ? `, settles in ${clock(c.settleSeconds)}` : '');
+    $('#transition').textContent = c.transition;
+    $('#notes').textContent = c.notes || '';
+    $('#onBtn').textContent = ref.on ? 'skip slide' : 'play slide';
+    $('#onBtn').disabled = archived;
+    $('#archiveBtn').textContent = archived ? 'put back' : 'archive';
+    const inShow = show.running.includes(c.id);
+    ['#goBtn', '#backBtn', '#fwdBtn', '#replayBtn', '#oneBtn'].forEach(s => $(s).disabled = !inShow);
+    $('#goBtn').title = inShow ? 'Jump the show to this slide' : 'Not in the order the show is playing — save to put it there';
+    renderSteps();
+
+    // the module's own fields
+    const mb = $('#module'); mb.hidden = !m;
+    if (m) {
+      const sel = $('#mChapter'); sel.innerHTML = '';
+      const names = chapters(); if (m.chapter && !names.includes(m.chapter)) names.push(m.chapter);
+      const none = document.createElement('option'); none.value = ''; none.textContent = '(outside the chapters)'; sel.appendChild(none);
+      names.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
+      moments().forEach(t => { const o = document.createElement('option'); o.value = 'moment:' + t; o.textContent = '◆ ' + t; sel.appendChild(o); });
+      const inMoment = momentOf(m.id);
+      sel.value = inMoment ? 'moment:' + inMoment : (chapterOf(m.id) || m.chapter || '');
+      sel.onchange = () => moveToChapter(m.id, sel.value);
+      const wide = $('#mWide'); wide.checked = !!m.wide; wide.onchange = () => { m.wide = wide.checked; markDirty(true); renderNav(); };
+      const merge = $('#mMerge'); merge.innerHTML = '<option value="">…</option>';
+      modules.filter(x => x !== m).forEach(x => { const o = document.createElement('option'); o.value = x.id; o.textContent = x.title; merge.appendChild(o); });
+      const ta = $('#mBrief'); ta.value = m.brief || '';
+      ta.oninput = () => { m.brief = ta.value; markDirty(true); };
+    }
+
+    // the frames of the deck this slide stands for
+    const rb = $('#refs'); rb.hidden = !frames.length;
+    if (frames.length) {
+      $('#refsHead').textContent = `Reference frames · ${c.frames.length}` + (c.module ? '' : ' covered by this slide');
+      const list = $('#reflist'); list.innerHTML = '';
+      if (!c.frames.length) { const p = document.createElement('div'); p.style.color = 'var(--dimmer)'; p.textContent = c.module ? 'No frames yet — add the frames of the client\'s deck this module stands for.' : 'No frame of the client\'s deck is marked as covered by this slide.'; list.appendChild(p); }
+      c.frames.forEach(name => {
+        const f = frameByName[name];
+        const el = document.createElement('div'); el.className = 'ref';
+        const pic = document.createElement('div'); pic.className = 'pic';
+        if (f && f.wall) { const im = document.createElement('img'); im.src = f.wall; im.draggable = false; pic.appendChild(im); }
+        el.appendChild(pic);
+        const cap = document.createElement('div'); cap.className = 'cap';
+        cap.innerHTML = `<span class="fn">${name}</span><span class="fw">${f ? kindOf(f) : 'not in the references'}</span><span class="spacer"></span>`;
+        const x = document.createElement('button'); x.className = 'ghost'; x.textContent = '×'; x.title = 'Take this frame off the slide';
+        x.addEventListener('click', () => dropFrame(c.id, name)); cap.appendChild(x);
+        el.appendChild(cap);
+        const note = document.createElement('div'); note.className = 'note' + (f && f.note ? '' : ' silent'); note.textContent = f ? (f.note || 'no speaker note') : ''; el.appendChild(note);
+        list.appendChild(el);
+      });
+    }
+  }
+
+  function moveToChapter(id, chapter) {
+    const at = findRef(id); const ref = at ? at.list.splice(at.index, 1)[0] : { id, on: true };
+    const m = moduleOf(id);
+    if (chapter.startsWith('moment:')) {
+      // into a moment of the evening: a wall there, with no chapter to fall back to
+      const mo = order.find(e => e.group && e.moment && e.title === chapter.slice(7));
+      if (m) { m.chapter = ''; m.wide = true; }
+      if (mo) mo.entries.push(ref); else order.push(ref);
+    } else {
+      if (m) m.chapter = chapter;
+      if (!chapter) order.push(ref);
+      else { const ch = order.find(e => isChapter(e) && e.title === chapter); if (ch) ch.entries.push(ref); else order.push({ group: true, title: chapter, sub: false, moment: false, entries: [ref] }); }
+    }
+    markDirty(true); renderNav(); renderDetail();
+  }
+
+  function renderSteps() {
+    const c = selected && info(selected); const box = $('#steps'); box.innerHTML = '';
+    if (!c || c.steps < 2) return;
+    for (let s = 0; s < c.steps; s++) { const i = document.createElement('i'); if (liveId === c.id && s <= lastState.step) i.classList.add('on'); box.appendChild(i); }
+  }
+
+  function updateBanner() {
+    const b = $('#banner');
+    const saved = playing().join('\n'), running = (show.running || []).join('\n');
+    const unsavedModules = modules.filter(m => !byId[m.id]).length;
+    const differs = saved !== running || unsavedModules > 0;
+    b.classList.toggle('on', differs);
+    b.textContent = differs ? 'Not what the show is playing yet — save (⌘S) and it switches at once.' : '';
+  }
+
+  function markDirty(on) { dirty = on; $('#dirty').classList.toggle('on', on); }
+
+  // ---------- the picker ----------
+  function openPicker() {
+    if (!selected || !info(selected)) return;
+    $('#picker').classList.add('on'); renderPicker();
+  }
+  function closePicker() { $('#picker').classList.remove('on'); }
+  function renderPicker() {
+    if (!$('#picker').classList.contains('on')) return;
+    const c = selected && info(selected); if (!c) { closePicker(); return; }
+    $('#pickerTitle').textContent = `Add a frame to "${c.title}"`;
+    $('#pickerHint').textContent = 'click a frame to add it; a frame taken from another slide moves here';
+    const o = owners(); const grid = $('#pickerGrid'); grid.innerHTML = '';
+    frames.forEach(f => {
+      const el = document.createElement('div'); el.className = 'pick';
+      const owner = o[f.name]; const mine = owner === c.id;
+      if (mine) el.classList.add('mine'); else if (owner) el.classList.add('taken');
+      const im = document.createElement('img'); im.src = f.wall || ''; im.draggable = false; el.appendChild(im);
+      const cap = document.createElement('div'); cap.className = 'cap';
+      const ownerTitle = owner ? ((info(owner) || {}).title || owner) : '';
+      cap.innerHTML = `<span class="fn">${f.name}</span><span>${kindOf(f)}</span><span class="owner">${mine ? 'on this slide' : (owner ? '→ ' + ownerTitle : 'unplaced')}</span>`;
+      el.appendChild(cap);
+      el.title = f.note || '(no note)';
+      el.addEventListener('click', () => { if (mine) dropFrame(c.id, f.name); else addFrame(c.id, f.name); renderPicker(); });
+      grid.appendChild(el);
+    });
+  }
+
+  // ---------- selection & commands ----------
+  function select(id, andGo) {
+    selected = id;
+    document.querySelectorAll('.card').forEach(el => el.classList.toggle('selected', el.dataset.id === id));
+    document.querySelectorAll('#unplaced button').forEach(b => b.disabled = !id || !info(id));
+    renderDetail();
+    if (andGo && show.running.includes(id)) go(id);
+    const el = nav.querySelector(`.card[data-id="${CSS.escape(id)}"]`); el && el.scrollIntoView({ block: 'nearest' });
+  }
+  const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  function go(id) { post('/api/go', { id }); }
+  function click(dir) { post('/api/click', { dir }); }
+  function replay() { post('/api/replay'); }
+  function toggleOn() {
+    const ref = visible().find(e => e.id === selected); if (!ref) return;
+    ref.on = !ref.on; markDirty(true); renderNav(); renderDetail();
+  }
+  function removeFromOrder(id, list = order) {
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      if (!e.group) { if (e.id === id) return list.splice(i, 1)[0]; }
+      else { const hit = removeFromOrder(id, e.entries); if (hit) return hit; }
+    }
+    return null;
+  }
+  function toggleArchive() {
+    if (!selected || !info(selected)) return;
+    if (inArchive(selected)) {
+      const i = archive.findIndex(r => r.id === selected);
+      const ref = archive.splice(i, 1)[0]; ref.on = true; placeDeclared(ref);
+      setStatus('put back where it was declared — drag it where it belongs');
+    } else {
+      const ref = removeFromOrder(selected) || { id: selected, on: true };
+      archive.push(ref);
+    }
+    markDirty(true); renderNav(); renderDetail();
+  }
+
+  async function refreshShow() {
+    try {
+      const fresh = await (await fetch('/api/show')).json();
+      show = fresh; byId = {}; show.catalogue.forEach(c => byId[c.id] = c);
+      if (show.previewStamp) stamp = show.previewStamp;
+    } catch (e) {}
+  }
+
+  async function save() {
+    // a module's chapter follows where it stands in the order, so the file's fallback is right
+    for (const m of modules) if (findRef(m.id)) m.chapter = chapterOf(m.id);
+    const put = (url, body) => fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body, null, 2) });
+    // the modules first: the order can only place a placeholder the show has
+    const m = await put('/api/modules', { source: show.modules && show.modules.source, modules, covered });
+    if (!m.ok) { setStatus('not saved: ' + (await m.json()).error, true); return; }
+    const r = await put('/api/order', fileForm());
+    const j = await r.json();
+    if (r.ok) {
+      markDirty(false); show.hasOrderFile = true; show.hasModulesFile = true;
+      // the show plays the saved order at once; what it now runs — the new modules included — comes back from it
+      await new Promise(res => setTimeout(res, 150));
+      await refreshShow();
+      renderNav(); renderDetail();
+      setStatus('saved — the show is playing this order');
+    } else setStatus('not saved: ' + j.error, true);
+  }
+  function setStatus(text, warn) { const s = $('#status'); s.textContent = text; s.classList.toggle('warn', !!warn); clearTimeout(s._t); s._t = setTimeout(() => { s.textContent = ''; }, 5000); }
+
+  // ---------- drag & drop ----------
+  let drag = null;   // { kind: 'slide'|'group', path, index, el }
+  let dropLine = document.createElement('div'); dropLine.className = 'drop';
+  let dropAt = null; // { path, index }
+
+  function entriesAt(path) { if (path === 'archive') return archive; let l = order; for (const i of path) l = l[i].entries; return l; }
+  function samePath(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  function wireDrag() {
+    nav.querySelectorAll('.card, .chapter, .subchapter, .moment').forEach(el => {
+      el.addEventListener('dragstart', (ev) => {
+        ev.stopPropagation();
+        const path = JSON.parse(el.parentElement.dataset.path || el.dataset.path);
+        drag = { kind: el.classList.contains('card') ? 'slide' : 'group', path, index: +el.dataset.index, el };
+        el.classList.add('dragging'); ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', '');
+      });
+      el.addEventListener('dragend', () => { drag && drag.el.classList.remove('dragging'); drag = null; dropLine.remove(); dropAt = null; });
+    });
+    nav.addEventListener('dragover', onDragOver);
+    nav.addEventListener('drop', onDrop);
+  }
+
+  function onDragOver(ev) {
+    if (!drag) return;
+    ev.preventDefault(); ev.dataTransfer.dropEffect = 'move';
+    const target = ev.target.closest('.card, .chapter, .subchapter, .moment, .list, #archive');
+    if (!target) return;
+    let list, index;
+    if (target.id === 'archive') { list = target.querySelector(':scope > .list'); index = [...list.children].filter(k => k !== dropLine).length; }
+    else if (target.classList.contains('list')) { list = target; index = [...target.children].filter(k => k !== dropLine).length; }
+    else {
+      list = target.parentElement;
+      const r = target.getBoundingClientRect();
+      index = +target.dataset.index + (ev.clientY > r.top + r.height / 2 ? 1 : 0);
+      // a slide dropped onto a chapter's head goes to the top of that chapter
+      if (drag.kind === 'slide' && (target.classList.contains('chapter') || target.classList.contains('subchapter') || target.classList.contains('moment'))) {
+        const head = target.querySelector(':scope > .head').getBoundingClientRect();
+        if (ev.clientY < head.bottom) { list = target.querySelector(':scope > .list'); index = 0; }
+      }
+    }
+    if (!list.dataset.path) { dropLine.remove(); dropAt = null; return; }
+    const path = JSON.parse(list.dataset.path);
+    if (!allowed(path)) { dropLine.remove(); dropAt = null; return; }
+    dropAt = { path, index };
+    const kids = [...list.children].filter(k => k !== dropLine);
+    if (index >= kids.length) list.appendChild(dropLine); else list.insertBefore(dropLine, kids[index]);
+  }
+
+  function allowed(path) {
+    const item = entriesAt(drag.path)[drag.index];
+    if (drag.kind === 'group') {
+      // chapters and moments stay at the top level, subchapters inside their own chapter, none on the shelf
+      if (path === 'archive') return false;
+      return item.sub ? samePath(path, drag.path) : path.length === 0;
+    }
+    if (path === 'archive') return true;
+    // a slide that composes beside a card belongs in a chapter; a wall may go anywhere — the top
+    // level, a moment of the evening, or a chapter
+    const c = info(item.id);
+    const group = path.length ? order[path[0]] : null;
+    const inChapter = group && !group.moment;
+    return inChapter || !c || c.wide;
+  }
+
+  function onDrop(ev) {
+    ev.preventDefault();
+    if (!drag || !dropAt) return;
+    const from = entriesAt(drag.path); const item = from[drag.index];
+    const to = entriesAt(dropAt.path); let index = dropAt.index;
+    if (to === from && drag.index < index) index--;
+    from.splice(drag.index, 1); to.splice(index, 0, item);
+    markDirty(true); renderNav(); renderDetail();
+  }
+
+  // ---------- live state ----------
+  let lastState = { step: 0 };
+  async function poll() {
+    try {
+      const s = await (await fetch('/api/state')).json();
+      $('#live').classList.add('on'); $('#liveText').textContent = 'live · ' + (s.id || '') + (s.steps > 1 ? ` · click ${s.step}/${s.steps - 1}` : '');
+      lastState = s;
+      if (s.id !== liveId) {
+        liveId = s.id;
+        document.querySelectorAll('.card').forEach(el => el.classList.toggle('live', el.dataset.id === liveId));
+        if (follow && liveId !== selected && info(liveId)) select(liveId, false);
+      }
+      renderSteps();
+      const cb = $('#concreteBtn'); cb.hidden = !s.hasConcrete;
+      cb.classList.toggle('primary', !!s.concrete); cb.textContent = s.concrete ? 'concrete: on' : 'concrete: off';
+      if (s.previewsLeft > 0) $('#progress').textContent = `rendering previews… ${s.previewsLeft} left`;
+      else if (lastLeft > 0) { $('#progress').textContent = ''; stamp = s.previewStamp; renderNav(); renderDetail(); }
+      if (stamp === 0) stamp = s.previewStamp || 1;
+      lastLeft = s.previewsLeft;
+    } catch (e) {
+      $('#live').classList.remove('on'); $('#liveText').textContent = 'show not running';
+    }
+  }
+
+  // ---------- boot ----------
+  async function boot() {
+    show = await (await fetch('/api/show')).json();
+    document.documentElement.style.setProperty('--ar', (show.canvas.width / show.canvas.height).toFixed(3));
+    byId = {}; show.catalogue.forEach(c => byId[c.id] = c);
+    modules = ((show.modules && show.modules.modules) || []).map(m => ({
+      id: m.id, title: m.title, chapter: m.chapter || '', wide: !!m.wide, frames: (m.frames || []).slice(),
+      brief: Array.isArray(m.brief) ? m.brief.join('\n\n') : (m.brief || '')
+    }));
+    covered = {}; Object.entries((show.modules && show.modules.covered) || {}).forEach(([id, fs]) => covered[id] = fs.slice());
+    frames = show.frames || []; frameByName = {}; frames.forEach(f => frameByName[f.name] = f);
+    order = fromFile(show.order.order);
+    archive = (show.order.archive || []).map(id => ({ id, on: true }));
+    completeOrder();
+    stamp = show.previewStamp || 1;
+    renderNav();
+    $('#empty').textContent = 'Pick a slide.';
+    const todo = modules.length ? ` · ${modules.length} modules to build` : '';
+    setStatus((show.hasOrderFile ? 'order from ' + show.orderFile : 'no order file yet — showing the declared order') + todo);
+    poll(); setInterval(poll, 300);
+  }
+
+  $('#saveBtn').addEventListener('click', save);
+  $('#resetBtn').addEventListener('click', () => { order = fromFile(show.declared.order); archive = []; completeOrder(); markDirty(true); renderNav(); renderDetail(); setStatus('declared order — save to keep it'); });
+  $('#previewsBtn').addEventListener('click', () => post('/api/previews'));
+  $('#oneBtn').addEventListener('click', () => selected && post('/api/previews', { ids: [selected] }));
+  $('#followBtn').addEventListener('click', () => { follow = !follow; $('#followBtn').classList.toggle('primary', follow); });
+  $('#goBtn').addEventListener('click', () => selected && go(selected));
+  $('#backBtn').addEventListener('click', () => click(-1));
+  $('#fwdBtn').addEventListener('click', () => click(1));
+  $('#replayBtn').addEventListener('click', replay);
+  $('#onBtn').addEventListener('click', toggleOn);
+  $('#archiveBtn').addEventListener('click', toggleArchive);
+  $('#newBtn').addEventListener('click', newModule);
+  $('#concreteBtn').addEventListener('click', async () => {
+    const on = !lastState.concrete;
+    await fetch('/api/concrete', { method: 'POST', body: JSON.stringify({ on }) });
+    lastState.concrete = on; $('#concreteBtn').classList.toggle('primary', on); $('#concreteBtn').textContent = on ? 'concrete: on' : 'concrete: off';
+  });
+  $('#momentBtn').addEventListener('click', newMoment);
+  $('#mRemoveBtn').addEventListener('click', () => selected && removeModule(selected));
+  $('#mMergeBtn').addEventListener('click', () => { const to = $('#mMerge').value; if (selected && to) mergeInto(selected, to); });
+  $('#addRefBtn').addEventListener('click', openPicker);
+  $('#pickerClose').addEventListener('click', closePicker);
+  $('#picker').addEventListener('click', (ev) => { if (ev.target.id === 'picker') closePicker(); });
+  $('#followBtn').classList.add('primary');
+
+  document.addEventListener('keydown', (ev) => {
+    const tag = ev.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+      if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') { ev.preventDefault(); save(); }
+      return;
+    }
+    if (ev.key === 'Escape' && $('#picker').classList.contains('on')) { closePicker(); return; }
+    const ids = visible().map(e => e.id).filter(id => info(id));
+    const i = ids.indexOf(selected);
+    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') { ev.preventDefault(); save(); return; }
+    switch (ev.key) {
+      case 'ArrowDown': ev.preventDefault(); if (i < ids.length - 1) select(ids[i + 1], true); break;
+      case 'ArrowUp': ev.preventDefault(); if (i > 0) select(ids[i - 1], true); break;
+      case 'ArrowRight': ev.preventDefault(); click(1); break;
+      case 'ArrowLeft': ev.preventDefault(); click(-1); break;
+      case 'r': replay(); break;
+      case 'x': toggleOn(); break;
+      case 'a': toggleArchive(); break;
+      case 'n': newModule(); break;
+      case 'm': newMoment(); break;
+      case 'f': $('#followBtn').click(); break;
+      case 'c': if (selected && info(selected)) $('#copyBtn').click(); break;
+      case 'Backspace': case 'Delete': if (selected && isModule(selected)) { ev.preventDefault(); removeModule(selected); } break;
+    }
+  });
+  window.addEventListener('beforeunload', (ev) => { if (dirty) { ev.preventDefault(); ev.returnValue = ''; } });
+
+  boot();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+{
+  "order": [
+    {
+      "moment": "Arrival",
+      "slides": [
+        "opening-scene"
+      ]
+    },
+    {
+      "moment": "Opening",
+      "slides": [
+        "who-is-speaking",
+        "het-programma"
+      ]
+    },
+    {
+      "moment": "Aperitif",
+      "slides": [
+        "welcome"
+      ]
+    },
+    {
+      "chapter": "De wereld van bouwen",
+      "slides": [
+        "hoe-bouw-je-een-wereld",
+        "the-catalogue-city",
+        "everything-a-build-answers-to",
+        "the-globe",
+        "verticale-integratie",
+        "de-cijfers",
+        "slabs-travelling",
+        "de-fabrieken"
+      ]
+    },
+    {
+      "moment": "Opening course",
+      "slides": [
+        "gallery"
+      ]
+    },
+    {
+      "chapter": "Waardekader en verantwoor-delijkheid",
+      "slides": [
+        "esg-is-geen-checklist",
+        "esg-beoordelingskader",
+        "co2-prestatieladder",
+        "co2-behaald",
+        "geen-compensatie",
+        "domino-effect",
+        "esg-social-governance"
+      ]
+    },
+    {
+      "moment": "First course",
+      "slides": [
+        "shadows"
+      ]
+    },
+    {
+      "chapter": "Beton: ruggengraat en transitie",
+      "slides": [
+        "we-gieten-kennis",
+        "co2-impact-van-beton",
+        "levenscyclus-van-betonproducten",
+        "levenscyclus-analyse",
+        "verduurzamen-van-beton",
+        "verborgen-verhaal",
+        "recyclage",
+        "panels-turning"
+      ]
+    },
+    {
+      "moment": "Second course",
+      "slides": [
+        "yard",
+        {
+          "id": "shadow-type-soft",
+          "on": false
+        }
+      ]
+    },
+    {
+      "chapter": "The circle: Een nieuwe manier van denken",
+      "slides": [
+        "we-bouwen-vandaag",
+        "the-circle-in-elementen",
+        "100-elementen",
+        "gebouw-uit-de-webtool",
+        "reductie-carbon-footprint",
+        "demontabel-in-de-stad",
+        "block-city",
+        "block-city-plain",
+        "the-circle-en-esg"
+      ]
+    },
+    {
+      "moment": "Questions",
+      "slides": [
+        "de-sectoren",
+        "case-studies"
+      ]
+    },
+    {
+      "moment": "Dessert",
+      "slides": [
+        "plain"
+      ]
+    },
+    {
+      "moment": "Exit",
+      "slides": [
+        "ending",
+        "closing-scene"
+      ]
+    }
+  ],
+  "archive": [
+    "skew-3d",
+    "skew-3d-simple",
+    "shadow-type"
+  ]
+}

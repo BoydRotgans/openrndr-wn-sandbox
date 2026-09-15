@@ -45,6 +45,7 @@ class DebugOverlay(private val font: FontImageMap?) {
 
         // where this slide sits in the running order, when it is under a chapter at all
         place?.takeIf { it.path.isNotBlank() }?.let { add("%s  %s".format(it.number, it.path)) }
+            ?: place?.takeIf { it.moment.isNotBlank() }?.let { add("—  %s".format(it.moment)) }
         add("%d/%d  %s".format(deck.index + 1, deck.count, place?.title ?: deck.slide.name))
         add("step %d/%d   position %.2f".format(stage.step + 1, stage.steps, stage.position))
 

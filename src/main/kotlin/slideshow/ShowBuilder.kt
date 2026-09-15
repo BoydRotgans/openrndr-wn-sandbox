@@ -44,8 +44,20 @@ data class Show(
     val outline: Outline,
     val settings: Settings,
     val panels: List<Slide> = emptyList(),
-    val panelOf: List<Int> = emptyList()
-)
+    val panelOf: List<Int> = emptyList(),
+    /**
+     * A stable name per slide, one to one with [slides]: the slug of its title in the running
+     * order, or of its name where it has none, with `-2`, `-3` on a repeat. It is what the order
+     * file and the organizer call a slide by — see [Order] — so it must survive a reorder, which
+     * an index does not, and a rename of the class, which the class name does not.
+     */
+    val ids: List<String> = emptyList(),
+    /** The show this one was arranged from, when it was arranged — see [arranged]. */
+    val source: Show? = null
+) {
+    /** [ids], or one derived per index for a show built by hand without them. */
+    val slideIds: List<String> get() = ids.takeIf { it.size == slides.size } ?: slides.indices.map { "slide-${it + 1}" }
+}
 
 /** The chapter and subchapter a panel stands for. */
 data class Section(val number: String, val chapter: String, val subchapter: String)
@@ -62,7 +74,12 @@ data class Placement(
     /** What to call this appearance, when the class name is not what you want to read. */
     val title: String?,
     /** Anything worth remembering about this slide. */
-    val notes: String?
+    val notes: String?,
+    /**
+     * The moment of the evening a wall stands in — "Aperitif", "First course" — when the order
+     * file puts it in one. Only the order file names moments; see [Order.Group.moment].
+     */
+    val moment: String = ""
 ) {
     /** "1.2" — the number this slide's subchapter has in the running order. */
     val number: String get() = "$chapter.$subchapter"
@@ -125,6 +142,14 @@ class ShowBuilder internal constructor() {
     /** Open on this slide: a number counting from 1, or a slide's name. */
     fun startAt(slide: String) {
         settings = settings.copy(start = slide)
+    }
+
+    /**
+     * A loop under every slide of the talk — every slide beside a chapter card — that fades out
+     * while a backdrop or scene takes the wall. Give it a fade out, or it cannot be let go.
+     */
+    fun slideBed(sound: Sound?) {
+        settings = settings.copy(slideBed = sound)
     }
 
     /** Open with the debug view up; `d` toggles it either way. */
@@ -220,9 +245,32 @@ class ShowBuilder internal constructor() {
             "a chapter sets its own panel but the show has none. Call panel(::YourPanel) " +
                     "in the show, then override it on the chapters that need another card."
         }
-        return Show(slides.toList(), Outline(places.toList()), settings, panels.toList(), panelOf.toList())
+        return Show(slides.toList(), Outline(places.toList()), settings, panels.toList(), panelOf.toList(), ids())
+    }
+
+    /** One id a slide: the title's slug, or the name's, and a numbered suffix on a repeat. */
+    private fun ids(): List<String> {
+        val out = mutableListOf<String>()
+        slides.indices.forEach { i ->
+            val base = slugOf(places[i].title ?: slides[i].name)
+            var id = base
+            var n = 2
+            while (id in out) id = "$base-${n++}"
+            out += id
+        }
+        return out
     }
 }
+
+/**
+ * A name as a file and an order file can carry it: lower case, one dash between words.
+ * Decomposed first, so a subscript or an accent keeps its letter — "CO₂" is `co2` and
+ * "Café" `cafe`, where stripping them outright gave `co` and `caf`.
+ */
+fun slugOf(name: String): String =
+    java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFKD)
+        .replace(Regex("\\p{M}+"), "")
+        .lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(48).ifEmpty { "slide" }
 
 @ShowDsl
 class ChapterBuilder internal constructor(
@@ -281,16 +329,21 @@ class SubchapterBuilder internal constructor(
 fun Show.runningOrder(): String = buildString {
     var chapter = Int.MIN_VALUE
     var subchapter = Int.MIN_VALUE
+    var moment = ""
 
     slides.forEachIndexed { index, slide ->
         val place = outline[index]
 
-        if (place != null && place.chapter != chapter) {
+        if (place != null && (place.chapter != chapter || place.moment != moment)) {
+            val newChapter = place.chapter != chapter
             chapter = place.chapter
+            moment = place.moment
             subchapter = Int.MIN_VALUE
             if (place.chapterTitle.isNotBlank()) appendLine("\n${place.chapter}  ${place.chapterTitle}")
+            // a moment of the evening is headed like a chapter, without a number
+            else if (place.moment.isNotBlank()) appendLine("\n—  ${place.moment}")
             // a backdrop after a chapter stands apart from it
-            else if (index > 0) appendLine()
+            else if (index > 0 && newChapter) appendLine()
         }
         if (place != null && place.subchapter != subchapter) {
             subchapter = place.subchapter
@@ -302,11 +355,12 @@ fun Show.runningOrder(): String = buildString {
                 index + 1,
                 place?.title ?: slide.name,
                 buildList {
-                    if (slide.wide) add(slide.kind)
+                    if (slide.wide || slide.kind != "slide") add(slide.kind)
                     add(if (slide.steps == 1) "1 click" else "${slide.steps} clicks")
                     add("%.2fs".format(seconds(slide.stepFrames)))
                     if (slide.loop > 0) add("loop %.1fs".format(seconds(slide.loop)))
                     add(slide.transition::class.simpleName?.lowercase() ?: "")
+                    add("#" + slideIds[index])
                 }.joinToString("  ")
             )
         )

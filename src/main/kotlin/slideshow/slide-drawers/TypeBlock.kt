@@ -35,6 +35,8 @@ val TYPE_CHARACTERS: Set<Char> = (' '..'~').toSet() + (
         "ÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛÑÇ" +
         "²³°€×½¼¾±"                         // figures: M², M³, degrees, euros
         ).toSet()
+// Not in the set, because Rockwell has neither and a missing glyph draws a box: a true minus
+// (U+2212) and the arrows. A figure is set with an en dash, "–30%", and a step is written out.
 
 /**
  * How wide [text] sets in this face.

@@ -26,6 +26,7 @@ import slideshow.drawers.Type
 import slideshow.frames
 import slideshow.mix
 import slideshow.seconds
+import slideshow.withModules
 import java.io.File
 import kotlin.math.min
 
@@ -80,7 +81,7 @@ import kotlin.math.min
  * Unset, it falls back to `SLIDES_START` and then to the first slide.
  *
  * `SLIDE_STILLS=true` writes one png per click of that slide and quits, which is how to
- * judge a change without clicking through it; `SLIDE_AT=1.2,3.0` writes the frames at those
+ * judge a change without clicking through it; `SLIDE_AT=1.2,3.0` jumps to and writes the frames at those
  * seconds instead, which is how to judge one that moves. `SLIDE_RECORD=true` films it to
  * `video/`, with `SLIDE_AUTOSTEP` clicking it hands-off. Timing is read only inside the draw
  * loop — see the `ScreenRecorder` note under demo01 in CLAUDE.md.
@@ -99,7 +100,10 @@ fun main() = application {
     // arrangement live in `.env`, and the raw show carries only what Slideshow.kt declares.
     // Read raw, the studio silently ignored SLIDES_WINDOW_SCALE and every placement key and
     // opened a full-size window in the middle of the desk.
-    val settings = show.withEnv().settings
+    // The modules — the slides still to be built — stand in the catalogue here as they do in
+    // the show, so SLIDE=<module id> opens a placeholder on its frames.
+    val catalogue = show.withEnv().withModules()
+    val settings = catalogue.settings
 
     // The pane a slide actually gets in the show: the canvas less the chapter card's half
     // and the gutter between them. Stated here it would be a second copy of the geometry
@@ -110,10 +114,10 @@ fun main() = application {
     // Which slide the studio opens on, resolved before the window exists because the
     // window's size depends on it: a backdrop composes for the whole wall rather than the
     // pane beside the card, so the studio opens at the size of whatever it opens on.
-    val opening = slideIndex(show.slides, Env["SLIDE"] ?: Env["SLIDES_START"]) {
-        show.outline[it]?.title ?: show.slides[it].name
+    val opening = slideIndex(catalogue.slides, Env["SLIDE"] ?: Env["SLIDES_START"]) {
+        catalogue.outline[it]?.title ?: catalogue.slides[it].name
     }
-    val wide = show.slides[opening].wide
+    val wide = catalogue.slides[opening].wide
     val openWidth = if (wide) settings.width else paneWidth
 
     // How much of the screen the window takes, inherited from the show so that one dial —
@@ -157,7 +161,7 @@ fun main() = application {
         // the show's own objects and load exactly as they do there.
         Type.file = textFont
 
-        val slides = show.slides
+        val slides = catalogue.slides
         require(slides.isNotEmpty()) { "this show has no slides to draw" }
 
         val record = Env.boolean("SLIDE_RECORD")
@@ -170,7 +174,7 @@ fun main() = application {
             ?.map { frames(it) }?.sorted().orEmpty()
 
         /** What to call a slide: its title in the running order, else the class name. */
-        fun label(i: Int) = show.outline[i]?.title ?: slides[i].name
+        fun label(i: Int) = catalogue.outline[i]?.title ?: slides[i].name
 
         val loaded = BooleanArray(slides.size)
 
@@ -208,7 +212,7 @@ fun main() = application {
         // A deck of one slide, so the clicks ease over the slide's own stepFrames and the
         // overlay reads exactly as it does in the talk. The outline is sliced to the one
         // placement, so the overlay still names the chapter this slide sits in.
-        fun deckFor(i: Int) = Deck(listOf(slides[i]), 0, Outline(listOfNotNull(show.outline[i])))
+        fun deckFor(i: Int) = Deck(listOf(slides[i]), 0, Outline(listOfNotNull(catalogue.outline[i])))
         var deck = deckFor(index)
 
         val clock = Clock()
@@ -253,6 +257,8 @@ fun main() = application {
         }
 
         keyboard.keyDown.listen { event ->
+            // The slide asks first, so a control of its own can share a letter with the studio's.
+            if (event.key != KEY_ESCAPE && slides[index].key(event.name)) return@listen
             when {
                 event.key == KEY_ARROW_RIGHT -> deck.next()
                 event.key == KEY_ARROW_LEFT -> deck.back()
@@ -298,6 +304,18 @@ fun main() = application {
             // sees frame numbers.
             val frame = clock.advance(seconds)
             deck.tick(frame)
+
+            // A frame asked for by SLIDE_AT is jumped to rather than waited for. Every drawer
+            // is a pure function of its frame count, so stepping the clock straight there
+            // draws the same picture as sitting through the seconds — and a wall that loops
+            // in four minutes is checked in one start rather than four minutes of one.
+            if (at.isNotEmpty() && taken < at.size) {
+                val short = at[taken] - deck.shot(boundsOf(slides[index])).stage.frame
+                if (short > 0) {
+                    clock.step(short)
+                    deck.tick(clock.frame)
+                }
+            }
 
             fps = mix(fps, 1.0 / (seconds - lastSeconds).coerceAtLeast(1e-4), 0.1)
             lastSeconds = seconds
