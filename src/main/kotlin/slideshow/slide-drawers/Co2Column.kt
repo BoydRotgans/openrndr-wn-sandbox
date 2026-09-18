@@ -159,16 +159,14 @@ class Co2Column(
             drawer.leaderLabel(tag.lines, Vector2(x, ys[i]), tag.to, bold, size, SIZE, ink, lead, tag.alpha, align = 0.0, gap = w * LEADER_GAP)
         }
 
-        // The caption, set into the foot of the lowest band where there is one.
-        val foot = rects.firstOrNull() ?: return
+        // The caption, beside the column in the clear space under the labels — never on a band,
+        // which is where it sat while the column took 57% of the pane.
         fun caption(para: String, alpha: Double) {
             if (para.isEmpty() || alpha <= 0.0) return
-            val inset = w * CAPTION_INSET
-            val lines = text.wrapped(para, (foot.width - 2 * inset) * SIZE / (h * TEXT))
-            val top = foot.y + foot.height - h * CAPTION_UP - (lines.size - 1) * h * TEXT_LEAD
-            if (top < foot.y + h * TEXT) return    // the band is too low to carry it
+            val lines = text.wrapped(para, measure * SIZE / (h * TEXT))
+            val top = h * CAPTION_Y
             drawer.fill = ink.opacify(alpha)
-            lines.forEachIndexed { j, line -> drawer.setLine(line, text, Vector2(foot.x + inset, top + j * h * TEXT_LEAD), h * TEXT, SIZE) }
+            lines.forEachIndexed { j, line -> drawer.setLine(line, text, Vector2(x, top + j * h * TEXT_LEAD), h * TEXT, SIZE) }
         }
         if (from.caption == to.caption) caption(to.caption, built)
         else {
@@ -180,9 +178,13 @@ class Co2Column(
     private companion object {
         const val SIZE = 200.0
 
-        /** The column, measured off the frame: from 0.088 to 0.653 across, 0.134 to 0.954 down. */
+        /**
+         * The column: a third of the pane across (it was 0.088 to 0.653, a flat red plane over
+         * most of the pane), 0.134 to 0.954 down, with the labels and the paragraph in the clear
+         * half beside it.
+         */
         const val LEFT = 0.088
-        const val RIGHT = 0.653
+        const val RIGHT = 0.40
         const val TOP = 0.134
         const val BOTTOM = 0.954
         const val EDGE = 0.02
@@ -196,8 +198,8 @@ class Co2Column(
         const val LEADER_GAP = 0.008
         const val TEXT = 0.0287
         const val TEXT_LEAD = 0.035
-        const val CAPTION_INSET = 0.016
-        const val CAPTION_UP = 0.04
+        /** Where the paragraph's first baseline sits, below the lowest label the bands can push to. */
+        const val CAPTION_Y = 0.74
 
         const val FADE = 0.3
     }

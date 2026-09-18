@@ -160,6 +160,9 @@ private fun roundedDegrees(polygon: JsonArray) = JsonArray(polygon.map { ring ->
     })
 })
 
+/**
+ * Collects Natural Earth country borders once into data/collected/natural-earth, for the pixel map.
+ */
 fun main() {
     collectCountries(refresh = true)
 }

@@ -64,8 +64,15 @@ class NameTag(
     }
 
     override fun draw(drawer: Drawer, stage: Stage) {
-        val inset = stage.width * INSET
-        val measure = stage.width - 2.0 * inset
+        // The name stands in the left pane; its measure is that pane's, not the wall's.
+        //
+        // **The right pane is plain black, and that is a decision.** The opening wall was drawn
+        // into it for a day, so the catalogue went on drawing itself while the speaker was
+        // introduced; it was taken out on 16 September. A drawing that moves beside a name being
+        // read is a second thing to attend to, and the one moment in the evening that wants none.
+        val paneWidth = stage.width / 2.0
+        val inset = paneWidth * INSET
+        val measure = paneWidth - 2.0 * inset
 
         val big = fit(presenter, stage.height * NAME, measure)
         val mid = fit(organisation, stage.height * ORGANISATION, measure)

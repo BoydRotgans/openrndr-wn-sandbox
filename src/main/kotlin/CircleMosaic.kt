@@ -81,6 +81,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("CircleMosaic", at = 3.0)
         // ---- what the field is made of ------------------------------------------------ //
         //
         // Its own `CIRCLE_*` keys rather than the show's `SLIDES_CARD_*`, for the reason

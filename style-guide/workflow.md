@@ -18,6 +18,12 @@
 8. **Measure** what can be measured: text inside its box, overlaps, colour shares, loop seams byte-identical.
 9. **Document**: a short CLAUDE.md section — the decisions and the traps, not a tour of the code.
 10. **Review**: run the show with `SLIDES_ORGANIZER=true`, refresh previews, report with the stills. Don't commit.
+11. **Feedback** goes in the organizer, in the box under the intended update: a note a line, ticked off
+    once it has been acted on, the next one written under it (`show-feedback.json`). That is what a
+    session starts from — open notes first, in running order.
+12. **On the projection**, before the evening: readability and contrast from the back of the room, the timing of
+    each move at wall scale, the QR code from the seats, and whether the two walls are continuous. The grid (`g`)
+    is the ruler for it.
 
 ## Done means
 - Every state follows `visual.md`; no pink; the first state settled by 1.5 s.
@@ -30,3 +36,5 @@
 - Inside `drawer.isolated {}` a bare `width`/`height` is the render target's — hoist to locals first.
 - A slide reading another slide's result (`Mark`) is declared after it.
 - `steps` must be known before `load`: the running order prints first.
+- The studio loads only the slide asked for: a slide that draws another (`NameTag`'s companion) is blank there.
+- `SLIDE=` matches a name exactly before a prefix: `Reduction` opens `ReductionProcess`, not `RealReduction`.

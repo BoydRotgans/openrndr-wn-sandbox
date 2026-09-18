@@ -15,6 +15,7 @@ import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import org.openrndr.math.Vector4
 import slideshow.Backdrop
+import slideshow.Breathe
 import slideshow.Stage
 import slideshow.frames
 import java.awt.image.BufferedImage
@@ -266,6 +267,22 @@ class ShadowFacade(
     private val hold: Double = 1.0,
     /** Seconds to lean the light from square on to [low] once, then hold it there; 0 dips and rises every loop. */
     private val reveal: Double = 0.0,
+    /**
+     * Degrees the sun climbs off [low] and settles back, over [breathePeriod] seconds, once the
+     * reveal has leaned it away: the shadow in every cell lengthens and shortens with it, so the
+     * letters darken and lighten slowly instead of holding one tone. 0 holds the sun at [low].
+     */
+    private val breathe: Double = 0.0,
+    private val breathePeriod: Double = 45.0,
+    /**
+     * A lamp wandering over the wall: a broad soft spot of light, [glowSize] of the wall's height
+     * to its edge, that leaves the lit faces [glow] darker away from it than under it. It crosses
+     * the wall on a path that does not retrace itself, once across in about [glowPeriod] seconds.
+     * Shadows stay black wherever it stands. 0 lights the wall evenly.
+     */
+    private val glow: Double = 0.0,
+    private val glowSize: Double = 0.8,
+    private val glowPeriod: Double = 60.0,
     /** The light's elevation above the wall at the ends of the swing and overhead, in degrees. */
     private val low: Double = 40.0,
     private val high: Double = 60.0,
@@ -277,6 +294,13 @@ class ShadowFacade(
     private val concreteMix: Double = 1.0,
     /** Samples a pixel: 1, or 4 on a rotated grid for edges that hold still as the light moves. */
     private val samples: Int = 4,
+    /**
+     * Open inverted: the finished picture's tones the other way round, so shadow is light and the
+     * lit wall dark. `I` still flips it. The chapter card runs this since 16 September: cutting
+     * the letters shallow and the ground deep was tried first and left the ground a mid grey,
+     * because at 10px cells the lit frames are half of every cell whatever its depth.
+     */
+    private val inverted: Boolean = false,
     private val dark: ColorRGBa = ColorRGBa.fromHex("000000"),
     private val light: ColorRGBa = ColorRGBa.fromHex("FFFFFF"),
     override val sound: slideshow.Sound? = null
@@ -284,6 +308,17 @@ class ShadowFacade(
 
     override val loop = frames(period)
     private val revealFrames = frames(reveal)
+
+    /** The sun's breathing and the lamp's wandering: both [Breathe], the principle for what stands for minutes. */
+    private val breath = Breathe(breathePeriod)
+    private val lamp = Breathe(glowPeriod)
+
+    /**
+     * A wall with several texts is not finished until every one has had its turn, so a written
+     * run holds it for as many loops as there are texts. Held for one, the export of 15 September
+     * never showed the third of three forms.
+     */
+    override val settle: Int get() = loop * masks.size.coerceAtLeast(1)
     override val background: ColorRGBa get() = dark
 
     private var pictures = emptyList<BufferedImage>()
@@ -303,7 +338,7 @@ class ShadowFacade(
     private var softNow = softShadows
 
     /** Whether the wall is drawn inverted, which `I` flips. */
-    private var invertNow = false
+    private var invertNow = inverted
     private var columnCount = 0
 
     override fun load(program: Program) {
@@ -373,8 +408,16 @@ class ShadowFacade(
             orbit -> (0.5 - 0.5 * cos(turn)).pow(hold)
             else -> swing * swing
         }
-        val elevation = Math.toRadians(high - (high - low) * dip)
+        // Once the reveal has leaned the sun away it breathes: up `breathe` degrees and back on its
+        // own slow period, counted from the end of the reveal so it joins the lean without a step.
+        val settledFor = stage.frame - (if (revealFrames > 0) revealFrames else 0)
+        val rise = if (breathe > 0.0 && settledFor > 0) breathe * breath.at(settledFor) else 0.0
+        val elevation = Math.toRadians((high - (high - low) * dip + rise).coerceAtMost(89.0))
         val toLight = Vector3(cos(elevation) * cos(azimuth), cos(elevation) * sin(azimuth), sin(elevation))
+
+        // The lamp's place, in the shader's wall pixels (y up): Breathe's wander, two waves a
+        // golden ratio apart, so it crosses the wall rather than going round one track.
+        val glowAt = lamp.wander(stage.frame, stage.width, stage.height)
 
         // The lights in force, as a direction and a weight each. One is the sun above; several
         // each make one pass a loop, from their own side and a share of the loop apart.
@@ -437,6 +480,9 @@ class ShadowFacade(
             parameter("tile", Vector2((stone ?: none).width * concreteScale, (stone ?: none).height * concreteScale))
             parameter("stoneMix", concreteMix)
             parameter("inverted", if (invertNow) 1.0 else 0.0)
+            parameter("glow", glow.coerceIn(0.0, 1.0))
+            parameter("glowAt", glowAt)
+            parameter("glowRadius", max(glowSize * stage.height, 1.0))
         }
         drawer.rectangle(stage.bounds)
         drawer.shadeStyle = null
@@ -795,6 +841,12 @@ class ShadowFacade(
                 tone = mix(tone, stone * tone, p_stoneMix);
             }
             if (p_inverted > 0.5) tone = 1.0 - tone;
+            if (p_glow > 0.0) {
+                // The lamp, on the finished tone: brightest under it and p_glow darker away from
+                // it, whichever way round the wall is drawn. Black stays black either way.
+                vec2 g = (px - p_glowAt) / p_glowRadius;
+                tone *= mix(1.0 - p_glow, 1.0, exp(-dot(g, g)));
+            }
             x_fill = vec4(tone, 1.0);
         """.trimIndent()
     }

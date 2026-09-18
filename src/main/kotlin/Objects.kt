@@ -183,6 +183,9 @@ private const val DEFAULT_GRID_GAP = 0.28
 private const val DEFAULT_GRID_JITTER = 0.8
 private val ISO_PITCH = Math.toDegrees(kotlin.math.atan(1.0 / kotlin.math.sqrt(2.0)))
 
+/**
+ * One piece of the precast catalogue at a time, in the round — the 115 concrete pieces of data/objects as real 3D geometry, isometric, poster-shaded, steppable with J/K and repeatable into a grid.
+ */
 fun main() = application {
     val canvasWidth = Env["OBJECTS_WIDTH"]?.toDoubleOrNull() ?: 1920.0
     val canvasHeight = Env["OBJECTS_HEIGHT"]?.toDoubleOrNull() ?: 1080.0
@@ -195,6 +198,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("Objects", at = 4.0)
         val directory = File(Env["OBJECTS_DIR"] ?: DEFAULT_DIR)
 
         // A colour per side. Left unset the hues step by a golden angle, which spreads them

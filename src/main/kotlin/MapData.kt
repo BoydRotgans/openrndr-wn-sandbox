@@ -559,6 +559,9 @@ private fun ring(element: JsonElement) = element.jsonArray.map { point ->
     doubleArrayOf(pair[0].jsonPrimitive.double, pair[1].jsonPrimitive.double)
 }
 
+/**
+ * Collects Dutch map data from PDOK — buildings, roads, water and planting — once into data/collected, so the map sketches need no network.
+ */
 fun main() {
     val area = collectMapData()
     println()

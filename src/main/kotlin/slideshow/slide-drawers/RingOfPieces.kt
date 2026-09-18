@@ -12,7 +12,9 @@ import org.openrndr.extra.composition.findShapes
 import org.openrndr.extra.svg.loadSVG
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import slideshow.Arrival
 import slideshow.Slide
+import slideshow.pitchStep
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
@@ -60,6 +62,22 @@ class RingOfPieces(
     override val name = "Ring"
     override val steps get() = 1
     override val settle get() = frames(cadence) * (fitted.size.coerceAtLeast(1) - 1) + frames(landing)
+
+    /**
+     * A note a piece, on the frame that piece starts to land — which is the same expression
+     * `draw` steps through, `i * cadence`, rather than a second reading of it.
+     *
+     * The catalogue is 115 pieces, so the run is squeezed into [slideshow.PITCH_SPAN] rather
+     * than rising a semitone each: several pieces then share a pitch a fraction of a second
+     * apart, which is what `writeMidi` trims. Empty until the sheet is loaded.
+     */
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val n = fitted.size
+        if (n <= 0) return super.arrivals(clicks)
+        return (0 until n).map { i ->
+            Arrival(lane = 0, index = pitchStep(i, n), start = i * frames(cadence), length = frames(landing))
+        }
+    }
 
     private val iso = IsoPieces(shade = 1.0)
     private var fitted: List<IsoFitted> = emptyList()

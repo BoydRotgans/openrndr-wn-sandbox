@@ -28,8 +28,8 @@
         "the-globe",
         "verticale-integratie",
         "de-cijfers",
-        "slabs-travelling",
-        "de-fabrieken"
+        "de-fabrieken",
+        "kernboodschap-1"
       ]
     },
     {
@@ -47,7 +47,8 @@
         "co2-behaald",
         "geen-compensatie",
         "domino-effect",
-        "esg-social-governance"
+        "esg-social-governance",
+        "kernboodschap-2"
       ]
     },
     {
@@ -62,25 +63,21 @@
         "we-gieten-kennis",
         "co2-impact-van-beton",
         "levenscyclus-van-betonproducten",
-        "levenscyclus-analyse",
+        "levenscyclusanalyse",
         "verduurzamen-van-beton",
         "verborgen-verhaal",
         "recyclage",
-        "panels-turning"
+        "kernboodschap-3"
       ]
     },
     {
       "moment": "Second course",
       "slides": [
-        "yard",
-        {
-          "id": "shadow-type-soft",
-          "on": false
-        }
+        "block-city-plain"
       ]
     },
     {
-      "chapter": "The circle: Een nieuwe manier van denken",
+      "chapter": "The Circle: een nieuwe manier van denken",
       "slides": [
         "we-bouwen-vandaag",
         "the-circle-in-elementen",
@@ -88,9 +85,8 @@
         "gebouw-uit-de-webtool",
         "reductie-carbon-footprint",
         "demontabel-in-de-stad",
-        "block-city",
-        "block-city-plain",
-        "the-circle-en-esg"
+        "the-circle-en-esg",
+        "kernboodschap-4"
       ]
     },
     {
@@ -115,8 +111,12 @@
     }
   ],
   "archive": [
+    "block-city",
     "skew-3d",
     "skew-3d-simple",
-    "shadow-type"
+    "shadow-type",
+    "yard",
+    "shadow-type-soft",
+    "panels-turning"
   ]
 }

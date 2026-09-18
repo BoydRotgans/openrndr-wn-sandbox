@@ -10,6 +10,10 @@ What the finished slides have in common, written down so the unfinished ones com
 | [workflow.md](workflow.md) | one slide from pink module to finished, and how it is checked |
 | [completion-plan.md](completion-plan.md) | every unfinished slide: states, reuse, blockers, order |
 | [prompt.md](prompt.md) | paste-ready prompts for one slide or a whole phase |
+| [review-2026-09-15.md](review-2026-09-15.md) | the filmed export read against this guide: findings, local and global improvements, to do |
+| [improvements.md](improvements.md) | the full list of improvements to make, as intent — walls, slides, content, sound, type |
+| [principles.md](principles.md) | the twelve reusable principles the refactor works to, each meant to become one class |
+| [refactor-plan.md](refactor-plan.md) | the phases of the refactor, with the briefs, the review and the general feedback folded in |
 
 ## Reference slides — when in doubt, match these
 
@@ -23,8 +27,8 @@ What the finished slides have in common, written down so the unfinished ones com
 
 ## The rules on one screen
 
-1. The wall is two 1920×1080 projectors meeting at x = 1920: anything that has to be read stays in one pane;
-   only a picture backdrop runs across both.
+1. Two walls of 12 m, 1920×1080 each, the room 8 to 10 m away: anything that has to be read stays in one pane;
+   only a picture backdrop runs across both. Size is hierarchy, never legibility (`Scale.arcminutes`).
 2. Black pane, white type, red and blue as flat fills — nothing else unless the content brings it.
 3. Rockwell: bold for titles, labels and figures, regular for text; sizes are shares of the pane height.
 4. One legible change per click; a slide opens already building and is settled by 1.5 s.

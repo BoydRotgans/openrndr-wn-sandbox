@@ -11,6 +11,7 @@ import org.openrndr.draw.FontImageMap
 import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
+import slideshow.Leader
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
@@ -150,13 +151,15 @@ class HiddenStory(
         }
         iso.draw(drawer, w, h, placed, ink, background, background)
 
-        // The piece's own corners on the pane, for the leaders to end on.
+        // The piece's own corners on the pane, for the leaders to end on — kept with their
+        // world positions, so a corner can be carried to another height and projected again.
         val main = placed.lastOrNull() ?: return
-        val corners = main.mesh.points.map { q ->
+        fun project(world: Vector3) = Vector2(w / 2.0 + world.dot(iso.right), h / 2.0 - world.dot(iso.up))
+        val worlds = main.mesh.points.map { q ->
             val r = Vector3(q.x * cos(main.angle) + q.z * sin(main.angle), q.y, -q.x * sin(main.angle) + q.z * cos(main.angle))
-            val world = main.centre + r * main.scale
-            Vector2(w / 2.0 + world.dot(iso.right), h / 2.0 - world.dot(iso.up))
+            main.centre + r * main.scale
         }
+        val corners = worlds.map { project(it) }
         val topmost = corners.minBy { it.y }
         val leftmost = corners.minBy { it.x }
         val rightmost = corners.maxBy { it.x }
@@ -176,12 +179,7 @@ class HiddenStory(
 
         val size = h * LABEL
         val gap = w * GAP
-        fun leader(from: Vector2, to: Vector2, alpha: Double) {
-            drawer.stroke = lettering.opacify(alpha)
-            drawer.strokeWeight = LINE
-            drawer.lineSegment(from, from + (to - from) * alpha)
-            drawer.stroke = null
-        }
+        fun leader(from: Vector2, to: Vector2, alpha: Double) = Leader.draw(drawer, from, to, alpha, lettering.opacify(alpha))
 
         // The levers, round the first piece only.
         val leversAlpha = when {
@@ -210,9 +208,10 @@ class HiddenStory(
 
         // The saving: the figure beside the piece, what it is for under it, then how. The
         // block stands to the right and above the piece's far end, and its leader leaves the
-        // subject line for whichever corner of the piece is nearest — down and to the left,
-        // away from the lettering. Pointed at the rightmost corner it ran down through the
-        // measures.
+        // subject line for **the red level itself**: the corner of the piece nearest the
+        // lettering, carried to the height of the cut and projected again, so the line lands
+        // exactly where the red begins on the silhouette. It ended on a corner of the piece
+        // before, which put the line and the figure it explains a hand apart.
         fun saving(r: Reduction, alpha: Double) {
             if (alpha <= 0.0) return
             val x = w * SAVING_X
@@ -227,8 +226,14 @@ class HiddenStory(
                 }
             }
             val anchor = Vector2(x - gap, y + h * LEAD * 1.4 - size * 0.34)
-            val nearest = corners.filter { it.x < anchor.x - gap }.minByOrNull { (it - anchor).length } ?: leftmost
-            leader(anchor, nearest, alpha)
+            val nearestIndex = corners.indices.filter { corners[it].x < anchor.x - gap }
+                .minByOrNull { (corners[it] - anchor).length } ?: corners.indices.minBy { corners[it].x }
+            val level = main.cut
+            val target = if (level != null) {
+                val c = worlds[nearestIndex]
+                project(Vector3(c.x, level, c.z))
+            } else corners[nearestIndex]
+            leader(anchor, target, alpha)
         }
         val ra = reductions.getOrNull(a - 1)
         val rb = reductions.getOrNull(b - 1)

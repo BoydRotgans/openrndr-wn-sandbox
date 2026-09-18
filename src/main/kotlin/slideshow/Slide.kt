@@ -23,7 +23,7 @@ import org.openrndr.draw.Drawer
  * font, a render target — goes in [load], which runs once for every slide in the deck
  * before the first frame. A show must not hitch on a click, so nothing loads late.
  */
-abstract class Slide {
+abstract class Slide : MidiTimed {
 
     /** Shown in the debug overlay and matched by `SLIDES_START`. */
     open val name: String get() = this::class.simpleName ?: "slide"
@@ -52,6 +52,18 @@ abstract class Slide {
     open val stepFrames: Int get() = frames(0.45)
 
     /**
+     * Frames the click that lands on [step] takes — [stepFrames] unless a slide says otherwise.
+     *
+     * One length for every click of a slide is right for most and wrong for a few: the city's
+     * push wants twelve seconds and its cull three, and with one length the cull finished in a
+     * quarter of its click and the slide stood on one element for the rest. A slide that has a
+     * long click and a short one overrides this for the step that differs. Going back, the
+     * click being undone is the one that landed on the higher step, so its length is the one
+     * asked for. The auto cues and the previews read it too.
+     */
+    open fun stepLength(step: Int): Int = stepFrames
+
+    /**
      * Frames the slide takes to finish its own opening once it is up, for a run that writes
      * its cues itself (`SLIDES_CUES=auto`): a hold is this plus a reading time. The click
      * length by default, which is right for a slide that only moves on clicks; a slide that
@@ -61,6 +73,33 @@ abstract class Slide {
 
     /** Frames in one turn of the slide's loop, or 0 for a slide that holds still. */
     open val loop: Int get() = 0
+
+    // --- the slide as timing ------------------------------------------------------------ //
+    //
+    // Every slide can be written down, because every slide has states: it arrives, and then it
+    // is clicked. That is the floor, and it is what makes the organizer's midi button offerable
+    // on all of them rather than on the two that happen to declare something richer.
+
+    /**
+     * The lanes this slide's build is written down on — one, its own name, by default.
+     *
+     * A slide that stands a *field* of things up has a lane per family and says so: the Plain
+     * wall gives a lane a column, `Crowd` a lane a click. See [MidiTimed].
+     */
+    override val lanes: List<String> get() = listOf(name)
+
+    /**
+     * When this slide's states land: a note as it arrives and one a click, rising a semitone a
+     * state so a run of them reads as the slide being built.
+     *
+     * **It is the states and not the picture**, which is the honest floor: nothing here knows
+     * what a drawer puts on screen between one click and the next. A drawer that *does* know —
+     * because its build is a schedule it steps through — overrides this and hands over what it
+     * really stands up, and then the file is a score of the wall rather than of the clicking.
+     */
+    override fun arrivals(clicks: List<Int>): List<Arrival> =
+        listOf(Arrival(lane = 0, index = 0, start = 0, length = settle)) +
+                clicks.mapIndexed { i, at -> Arrival(lane = 0, index = i + 1, start = at, length = stepLength(i + 1)) }
 
     /** Cleared to this before [draw]. */
     open val background: ColorRGBa get() = ColorRGBa.WHITE

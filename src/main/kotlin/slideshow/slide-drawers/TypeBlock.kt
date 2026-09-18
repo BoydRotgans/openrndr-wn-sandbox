@@ -181,13 +181,19 @@ class TypeBlock(
     val height: Double get() = lines.size * leading * size * scale
 
     /**
-     * Draws the block centred on [centre], every line centred in its turn.
+     * Draws the block centred on [centre], every line centred in its turn — or ranged left
+     * from it where [align] is 0, which is what a passage read as speech wants: a common left
+     * edge to come back to, rather than a ragged one on both sides.
+     *
+     * [align] is the share of a line's own width taken off its start: 0.5 centres it, 0 ranges
+     * it left, 1 ranges it right. With 0 the block's left edge sits at [centre]`.x`, so a
+     * caller ranging left passes the measure's left edge rather than its middle.
      *
      * One transform for the whole block, so the layout below it is in font units and the
      * centring is arithmetic rather than a pile of measured offsets. [baseline] is where
      * the baseline sits inside a line, as a fraction of the leading.
      */
-    fun draw(drawer: Drawer, centre: Vector2, baseline: Double = 0.78) {
+    fun draw(drawer: Drawer, centre: Vector2, baseline: Double = 0.78, align: Double = 0.5) {
         // Hoisted out of the lambda below, and it has to be. `isolated` takes a receiver
         // of Drawer, and Drawer carries its own `width` and `height` — so an unqualified
         // `height` inside it resolves to the *render target's*, not the block's, and the
@@ -202,7 +208,7 @@ class TypeBlock(
             drawer.translate(centre.x, top)
             drawer.scale(scale)
             lines.forEachIndexed { i, text ->
-                drawer.text(text, -font.advanceOf(text) / 2.0, (i + baseline) * line)
+                drawer.text(text, -font.advanceOf(text) * align, (i + baseline) * line)
             }
         }
     }

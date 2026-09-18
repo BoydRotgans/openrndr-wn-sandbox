@@ -11,6 +11,9 @@ import org.openrndr.math.Vector3
 import org.openrndr.math.smoothstep
 import kotlin.math.cos
 
+/**
+ * A train of slabs travelling and swinging in one smooth wave — the sketch Swivel02Slide was taken from.
+ */
 fun main() {
     application {
         configure {
@@ -19,6 +22,7 @@ fun main() {
             multisample = WindowMultisample.SampleCount(4)
         }
         program {
+            sketchPreview("Swivel02", at = 3.0)
 
 
             // The palette this was written against was not in the file, so the sketch did

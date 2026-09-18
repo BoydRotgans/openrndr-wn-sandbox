@@ -13,6 +13,7 @@ import org.openrndr.draw.shadeStyle
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import kotlin.math.min
+import slideshow.Palette
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
@@ -27,13 +28,18 @@ class Measure(val kind: Kind, val caption: String, val column: Int) {
 }
 
 /**
- * Not compensation but reduction: a certificate alone, then the measures either side of it,
- * then the certificate gone and the measures closing up into its place. Three states.
+ * Not compensation but reduction: a certificate alone, then the certificate gone, then the
+ * measures that replace it arriving one a click.
  *
- *     0  the certificate, standing in the middle of the pane
- *     1  the measures arrive in the outer columns, growing from their own middles
- *     2  the certificate shrinks to nothing; the outer columns travel inward and the middle
- *        column's measures grow where it stood
+ *     0   the certificate, standing in the middle of the pane
+ *     1   the certificate shrinks to nothing and the pane is empty under the title
+ *     2…  one measure a click, each growing from its own middle where it will stand, in the
+ *         order they are listed — so every measure gets its own sentence
+ *
+ * It was three states once — the measures either side of the certificate, then closing up
+ * into its place — and the feedback of 16 September asked for the steps to be revealed one by
+ * one after the certificate is hidden, which is this. The layout is fixed from the start, three
+ * columns by two rows, so nothing travels: a measure arrives where it will stay.
  *
  * **The machines are illustrations off [illustrations]**, one svg a kind, white on transparent.
  * Two of them are pictures wrapped in an svg rather than vectors, which OPENRNDR's svg loader
@@ -44,30 +50,36 @@ class Measure(val kind: Kind, val caption: String, val column: Int) {
  * lines and circles. The certificate is type on a
  * white sheet; the mark at its foot is set as type until the WN mark arrives as an svg.
  *
- * Columns are a pure function of `on(2)`: the outer columns' x travels from the wide stance to
- * the closed one on the deck's ease, the middle column grows on the same number.
+ * Everything is a window on `position`: the certificate leaves on `on(1)`, the n-th measure
+ * arrives on `on(2 + n)`.
  */
 class RealReduction(
     private val title: String,
     private val certificate: List<String> = listOf("CERTIFICAAT", "Compensatie CO₂ emissies"),
     private val issuer: String = "WILLY NAESSENS",
+    /** The line said where the certificate stood as it goes, until the first measure arrives. Null says nothing. */
+    private val farewell: String? = null,
     private val measures: List<Measure>,
     private val illustrations: File? = File("data/illustrations"),
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
-    private val ink: ColorRGBa = ColorRGBa.WHITE,
-    private val accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
-    private val blue: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
+    private val ink: ColorRGBa = Palette.onBlack.ink,
+    private val accent: ColorRGBa = Palette.onBlack.accent,
+    private val blue: ColorRGBa = Palette.onBlack.structure,
     private val paper: ColorRGBa = ColorRGBa.fromHex("EDEDED"),
-    override val background: ColorRGBa = ColorRGBa.BLACK,
+    override val background: ColorRGBa = Palette.onBlack.paper,
     override val stepFrames: Int = frames(0.9),
     override val sound: Sound? = null,
     override val stepCues: List<Sound> = emptyList()
 ) : Slide() {
 
     override val name = "Reduction, not compensation"
-    override val steps get() = 3
-    override fun stepName(step: Int): String? = when (step) { 1 -> "the measures"; 2 -> "no certificate"; else -> null }
+    override val steps get() = 2 + measures.size
+    override fun stepName(step: Int): String? = when {
+        step == 1 -> "no certificate"
+        step >= 2 -> measures.getOrNull(step - 2)?.caption
+        else -> null
+    }
 
     private lateinit var bold: FontImageMap
     private lateinit var text: FontImageMap
@@ -115,11 +127,10 @@ class RealReduction(
 
         val opening = stage.step == 0 && stage.position < 1e-6
         val arrived = if (opening) smoothstep(stage.since(0, stepFrames)) else 1.0
-        val measured = stage.on(1)
-        val closed = stage.on(2)
+        val gone = stage.on(1)
 
-        // The certificate: a sheet with its lines, shrinking to nothing as the click closes.
-        val sheetScale = arrived * (1.0 - smoothstep(closed))
+        // The certificate: a sheet with its lines, shrinking to nothing on the first click.
+        val sheetScale = arrived * (1.0 - smoothstep(gone))
         if (sheetScale > 0.0) {
             val sheet = Rectangle(w / 2.0 - w * SHEET_W / 2.0 * sheetScale, h * SHEET_Y + h * SHEET_H / 2.0 * (1.0 - sheetScale), w * SHEET_W * sheetScale, h * SHEET_H * sheetScale)
             drawer.fill = paper
@@ -140,16 +151,25 @@ class RealReduction(
             }
         }
 
-        // The measures, by column: the outer two travel inward as the middle grows.
-        val outerX = doubleArrayOf(w * (OUTER + (CLOSED - OUTER) * closed), w / 2.0, w * (1.0 - OUTER - (CLOSED - OUTER) * closed))
+        // What the certificate's leaving says: in from the second half of its click, gone by
+        // the first third of the click that brings the first measure, where the sheet stood.
+        farewell?.let { line ->
+            val alpha = smoothstep((gone - 0.5) / 0.5) * (1.0 - smoothstep(stage.on(2) * 3.0))
+            if (alpha > 0.0) {
+                drawer.fill = accent.opacify(alpha)
+                drawer.setLine(line, bold, Vector2(w / 2.0, h * (SHEET_Y + SHEET_H / 2.0)), h * HEAD, SIZE, align = 0.5)
+            }
+        }
+
+        // The measures, one a click, each where it will stay: three columns, the rows shared
+        // out within a column.
+        val columnX = doubleArrayOf(w * CLOSED, w / 2.0, w * (1.0 - CLOSED))
         val unit = h * UNIT
         val byColumn = measures.groupBy { it.column }
         byColumn.forEach { (column, list) ->
-            val x = outerX.getOrElse(column) { w / 2.0 }
-            val shown = if (column == 1) smoothstep(closed) else smoothstep(measured)
-            if (shown <= 0.0) return@forEach
+            val x = columnX.getOrElse(column) { w / 2.0 }
             list.forEachIndexed { i, m ->
-                val grown = staggered(shown, i, list.size, 0.25)
+                val grown = smoothstep(stage.on(2 + measures.indexOf(m)))
                 if (grown <= 0.0) return@forEachIndexed
                 val y = h * (ROW_TOP + (ROW_BOTTOM - ROW_TOP) * (if (list.size == 1) 0.5 else i.toDouble() / (list.size - 1)))
                 drawer.isolated {

@@ -1,4 +1,8 @@
-package slideshow.drawers
+// ============================================================================ //
+//  No `package` declaration: it stands on loadObjectSheet, in the default
+//  package, which a named package cannot import from. The folder is
+//  slide-drawers because that is where a slide's drawing lives.
+// ============================================================================ //
 
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
@@ -8,12 +12,18 @@ import org.openrndr.draw.isolated
 import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import slideshow.Grow
+import slideshow.Palette
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
+import slideshow.drawers.TYPE_CHARACTERS
+import slideshow.drawers.advanceOf
 import slideshow.frames
+import java.io.File
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.max
 import kotlin.math.min
 
 /**
@@ -61,16 +71,41 @@ fun row(vararg labels: String, span: Double? = null, accent: Boolean = false) =
  * frame — enormous and shrink it click by click, so the reveal would read as the words
  * receding rather than as the stack filling. One size means the type is right at the end,
  * which is the state the slide is held on.
+ *
+ * **A click is one box, not one band.** The stack is rows of two, and revealing a row at a time
+ * put two things on the wall for every click — asked to be one by one on 16 September, which is
+ * also what a build the speaker talks over wants. So the count the layout runs on is boxes: a
+ * band grows in height as its *first* box arrives, and its second grows out of its own left edge
+ * on the click after. Everything else is unchanged, because the layout was already a pure
+ * function of a number and only the number's meaning moved.
+ *
+ * **A box is one plain box, drawn with a catalogue piece's contour.** It was a *field* of pieces
+ * tiled across the box for a day, and that was taken out on 16 September: a run of silhouettes
+ * inside a bar reads as texture, where the bar itself is the thing being counted. What is left is
+ * the profile — [barPiece] off [sheet], the notched slab that stood on "Eigen transport", stretched
+ * to whatever box it fills — so every bar is a plain block with a toothed foot rather than a
+ * rectangle, and the drawing still says concrete. With no sheet the bars are plain rectangles.
  */
 class StackUp(
     private val rows: List<StackRow> = emptyList(),
     private val title: String = "",
     private val subtitle: String = "",
     private val fontPath: String = "data/fonts/default.otf",
-    private val block: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
-    private val accent: ColorRGBa = ColorRGBa.fromHex("ED1C24"),
-    private val ink: ColorRGBa = ColorRGBa.WHITE,
-    override val background: ColorRGBa = ColorRGBa.BLACK,
+    /** The catalogue sheet the bars take their profile from. Null draws them as plain bars. */
+    private val sheet: File? = null,
+    /**
+     * Which piece of [sheet] gives every bar its outline, counted over the holeless pieces.
+     *
+     * 3 is the notched slab — a block with five teeth along its bottom edge — which is the one
+     * that happened to fall on "Eigen transport" while each bar took a piece of its own, and the
+     * one that was asked for on 16 September. Stated rather than derived, so re-ordering the rows
+     * cannot quietly change what the whole stack is drawn with.
+     */
+    private val barPiece: Int = 3,
+    private val block: ColorRGBa = Palette.onBlack.structure,
+    private val accent: ColorRGBa = Palette.onBlack.accent,
+    private val ink: ColorRGBa = Palette.onBlack.ink,
+    override val background: ColorRGBa = Palette.onBlack.paper,
     private val pace: Double = 0.55,
     /** The cue as the slide comes up, over the opening band. */
     override val sound: Sound? = null,
@@ -79,19 +114,39 @@ class StackUp(
 ) : Slide() {
     override val name = "Stack up"
 
-    /** The first band is up before anything is clicked, so a click a band leaves this many. */
-    override val steps = rows.size.coerceAtLeast(1)
+    /** Where each band's first box falls in the run of boxes. */
+    private val firstBox: List<Int> = rows.runningFold(0) { at, row -> at + row.labels.size }
+
+    /** The first box is up before anything is clicked, so a click a box leaves this many. */
+    override val steps = firstBox.last().coerceAtLeast(1)
 
     override val stepFrames = frames(pace)
+
+    override fun stepName(step: Int): String? {
+        val band = rows.indices.lastOrNull { firstBox[it] <= step } ?: return null
+        return rows[band].labels.getOrNull(step - firstBox[band])
+    }
 
     private lateinit var face: FontImageMap
     private lateinit var head: FontImageMap
     private lateinit var sub: FontImageMap
 
+    /** The one piece every bar is drawn with. Null where there is no sheet, and bars are plain. */
+    private var profile: SheetObject? = null
+
     override fun load(program: Program) {
         face = program.loadFont(fontPath, ATLAS, TYPE_CHARACTERS, contentScale = 1.0)
         head = program.loadFont(fontPath, HEAD, TYPE_CHARACTERS, contentScale = 1.0)
         sub = program.loadFont(fontPath, SUB, TYPE_CHARACTERS, contentScale = 1.0)
+        // A shape with more than one contour is an outline with a hole punched in it. Those are
+        // dropped: a hole in a bar shows the ground through it.
+        val holeless = sheet?.takeIf { it.isFile }
+            ?.let { runCatching { loadObjectSheet(it) }.getOrNull() }
+            ?.filter { o -> o.shapes.all { it.contours.size <= 1 } }
+            .orEmpty()
+        profile = holeless.getOrNull(barPiece)
+        if (sheet != null)
+            println("stack: piece $barPiece of ${holeless.size} holeless off ${sheet.path}")
     }
 
     override fun draw(drawer: Drawer, stage: Stage) {
@@ -111,18 +166,54 @@ class StackUp(
         // screen would start huge and shrink the whole way down.
         val scale = sizeFor(space)
 
-        val bands = stackRows(space, rows, 1.0 + stage.position, GAP)
+        // Boxes, not bands: a band stands as far as its first box has arrived.
+        val shown = 1.0 + stage.position
+        val bands = stackRows(space, rows, rows.indices.map { (shown - firstBox[it]).coerceIn(0.0, 1.0) }, GAP)
+
         bands.forEachIndexed { index, band ->
             if (band.height <= 1.0) return@forEachIndexed
             val on = rows[index]
             val boxes = across(band, on.labels.size, GAP)
 
             drawer.stroke = null
-            drawer.fill = if (on.accent) accent else block
-            boxes.forEach { drawer.rectangle(it) }
+            on.labels.forEachIndexed { column, label ->
+                val arrived = (shown - (firstBox[index] + column)).coerceIn(0.0, 1.0)
+                if (arrived <= 0.0) return@forEachIndexed
+                // The first box of a band arrives with the band's own height; the ones after it
+                // grow out of their own left edge, so nothing on the wall jumps sideways.
+                val box = if (column == 0) boxes[column] else Grow.fromLeft(boxes[column], arrived)
+                bar(drawer, box, if (on.accent) accent else block)
+                drawer.fill = ink.opacify(arrived)
+                line(drawer, label, boxes[column], scale)
+            }
+        }
+    }
 
-            drawer.fill = ink
-            on.labels.forEachIndexed { column, label -> line(drawer, label, boxes[column], scale) }
+    /**
+     * One box: [profile]'s outline stretched to fill it, or a plain rectangle where there is no
+     * sheet.
+     *
+     * **Stretched rather than fitted, which is the whole of what makes it a box.** A bar here is
+     * anything from the whole frame to a tenth of it and from a full band to half of one, so a
+     * silhouette held at its own proportion would stand in the middle of its box with air around
+     * it — a component standing *in* a bar rather than the bar itself. Stretched, the box keeps
+     * the piece's profile and nothing else: the notched foot runs the width of whatever it fills.
+     */
+    private fun bar(drawer: Drawer, box: Rectangle, tint: ColorRGBa) {
+        drawer.fill = tint
+        val piece = profile
+        val bounds = piece?.bounds
+        if (piece == null || bounds == null || bounds.width <= 0.0 || bounds.height <= 0.0 ||
+            box.width <= 1.0 || box.height <= 1.0
+        ) {
+            drawer.rectangle(box)
+            return
+        }
+        drawer.isolated {
+            drawer.translate(box.corner)
+            drawer.scale(box.width / bounds.width, box.height / bounds.height)
+            drawer.translate(-bounds.corner)
+            drawer.shapes(piece.shapes)
         }
     }
 
@@ -145,7 +236,7 @@ class StackUp(
      * finished stack and its own band's height.
      */
     private fun sizeFor(space: Rectangle): Double {
-        val finished = stackRows(space, rows, rows.size.toDouble(), GAP)
+        val finished = stackRows(space, rows, rows.map { 1.0 }, GAP)
         var scale = Double.MAX_VALUE
         rows.forEachIndexed { index, on ->
             val boxes = across(finished[index], on.labels.size, GAP)
@@ -201,25 +292,24 @@ class StackUp(
 // ------------------------------------------------------------------------------ //
 
 /**
- * [count] bands filling [space], top to bottom, in proportion to their weights.
+ * Bands filling [space], top to bottom, in proportion to their weights, each standing to the
+ * degree [fractions] says.
  *
- * A pure function of a space and a number, the same as `packBoxes` in demo01 and `stateAt` in
- * Decision — no time in it and no state. [count] is deliberately a `Double`: the band arriving
- * is given a fraction of its weight, so at 3.4 the fourth band is four tenths of its height
- * and the three above it have closed up by exactly that much. That is the whole of the
- * animation, and it is why clicking back plays it out again for nothing.
+ * A pure function of a space and a list of numbers, the same as `packBoxes` in demo01 and
+ * `stateAt` in Decision — no time in it and no state. A fraction is deliberately continuous: a
+ * band four tenths of the way in is four tenths of its height and the ones above it have closed
+ * up by exactly that much. That is the whole of the animation, and it is why clicking back plays
+ * it out again for nothing.
+ *
+ * It took a single band *count* until 16 September, which is the same thing where bands arrive
+ * one at a time; a list is what a stack whose bands arrive a box at a time needs, since the band
+ * carrying the box that is arriving is not always the last one standing.
  */
-fun stackRows(space: Rectangle, rows: List<StackRow>, count: Double, gap: Double = 10.0): List<Rectangle> {
-    if (rows.isEmpty() || count <= 0.0) return emptyList()
+fun stackRows(space: Rectangle, rows: List<StackRow>, fractions: List<Double>, gap: Double = 10.0): List<Rectangle> {
+    if (rows.isEmpty()) return emptyList()
 
-    val whole = floor(count).toInt()
-    val shown = min(rows.size, ceil(count).toInt())
-    val arriving = count - whole
-
-    val weights = (0 until shown).map { i ->
-        val full = rows[i].weight
-        if (i == shown - 1 && i >= whole) full * arriving else full
-    }
+    val shown = rows.indices.lastOrNull { (fractions.getOrNull(it) ?: 0.0) > 0.0 }?.plus(1) ?: return emptyList()
+    val weights = (0 until shown).map { rows[it].weight * (fractions.getOrNull(it) ?: 0.0).coerceIn(0.0, 1.0) }
     val total = weights.sum().coerceAtLeast(1e-6)
     val room = space.height - (shown - 1) * gap
 
@@ -232,6 +322,10 @@ fun stackRows(space: Rectangle, rows: List<StackRow>, count: Double, gap: Double
     }
     return out
 }
+
+/** The same, where the bands arrive one at a time: [count] is how many are up, fractionally. */
+fun stackRows(space: Rectangle, rows: List<StackRow>, count: Double, gap: Double = 10.0): List<Rectangle> =
+    stackRows(space, rows, rows.indices.map { (count - it).coerceIn(0.0, 1.0) }, gap)
 
 /** A band divided into [count] boxes side by side. */
 fun across(band: Rectangle, count: Int, gap: Double = 10.0): List<Rectangle> {

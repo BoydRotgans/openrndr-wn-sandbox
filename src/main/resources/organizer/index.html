@@ -167,10 +167,37 @@
   dt { color: var(--dim); } dd { margin: 0; }
   #notes { margin-top: 14px; padding: 10px 12px; background: var(--note-bg); border: 1px solid var(--line); border-radius: var(--radius); color: var(--note-ink); white-space: pre-wrap; max-width: 720px; }
   #notes:empty { display: none; }
+  #intent { margin-top: 18px; max-width: 720px; }
+  #intent textarea { min-height: 150px; background: var(--panel); }
+  #intent .bar { align-items: baseline; }
+  .card .flag { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 6px; vertical-align: middle; opacity: .75; }
+  /* a wall wanted as MIDI: ticked in the detail pane, marked on its card */
+  .card .midi { margin-left: 6px; font-size: 10px; letter-spacing: .06em; color: var(--dim); vertical-align: middle; }
+  button.ticked { border-color: var(--accent); color: var(--accent); }
+  .card .open { display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 8px; background: var(--warn); color: #fff; font-size: 10px; font-weight: 600; vertical-align: middle; }
+
+  /* the feedback list: a note a row, ticked off when it has been acted on */
+  #feedback { margin-top: 18px; max-width: 720px; }
+  #feedback .count { font-size: 12px; color: var(--warn); font-weight: 600; }
+  .fb { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); }
+  .fb:first-child { border-top: none; }
+  .fb input[type=checkbox] { margin-top: 5px; width: 15px; height: 15px; flex: none; accent-color: var(--accent); }
+  .fb textarea { flex: 1; min-height: 0; padding: 4px 6px; resize: none; overflow: hidden; background: transparent; border-color: transparent; line-height: 1.4; }
+  .fb textarea:hover { border-color: var(--line); }
+  .fb textarea:focus { background: var(--panel); }
+  .fb .when { flex: none; font-size: 11px; color: var(--dimmer); padding-top: 6px; white-space: nowrap; }
+  .fb.done textarea { color: var(--dimmer); text-decoration: line-through; }
+  .fb.new { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 10px; align-items: flex-start; }
+  .fb.new textarea { background: var(--panel); border-color: var(--line); }
   #banner { display: none; margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius); background: var(--banner-bg); border: 1px solid var(--banner-line); color: var(--warn); }
   #banner.on { display: block; }
   #help { position: fixed; right: 16px; bottom: 12px; color: var(--dimmer); font-size: 11px; display: flex; gap: 12px; }
   #progress { color: var(--dim); }
+  /* the export running: a bar filling in the top bar, and the button holding its count */
+  #exportBar { display: none; align-items: center; gap: 8px; color: var(--dim); }
+  #exportBar.on { display: flex; }
+  #exportBar .track { width: 120px; height: 4px; border-radius: 2px; background: var(--panel-2); overflow: hidden; }
+  #exportBar .fill { height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }
 
   /* the module: what is still to be built, edited in place */
   #module { margin-top: 16px; padding: 12px 14px; background: var(--pink-bg); border: 1px solid var(--pink-line); border-radius: var(--radius); }
@@ -214,20 +241,49 @@
   .pick .cap { display: flex; gap: 8px; align-items: baseline; padding: 5px 8px; font-size: 11px; }
   .pick .cap .fn { font: 11.5px ui-monospace, Menlo, monospace; color: var(--ink); }
   .pick .cap .owner { margin-left: auto; color: var(--dimmer); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+  /* ---------- tabs, and the Sketches view ---------- */
+  #tabs { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius); background: var(--panel-2); margin-right: 6px; }
+  #tabs .tab { background: transparent; border-color: transparent; color: var(--dim); padding: 3px 10px; }
+  #tabs .tab.on { background: var(--panel); color: var(--ink); border-color: var(--line); }
+  body.view-sketches #nav, body.view-sketches #main { display: none; }
+  body.view-sketches #top > :not(h1):not(#tabs):not(.spacer):not(#themeBtn):not(#status) { display: none; }
+  #sketches { grid-column: 1 / -1; grid-row: 2; overflow-y: auto; padding: 14px 20px 40px; user-select: text; }
+  #sketchBar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  #sketchBar input { width: 260px; padding: 6px 9px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; }
+  #sketchBar .spacer { flex: 1; }
+  #sketchBar .hint, #sketchCount { color: var(--dimmer); }
+  #sketchGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .sketch { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  .sketch .pic { aspect-ratio: 16 / 9; background: #000; display: grid; place-items: center; color: #777; font-size: 11px; }
+  .sketch .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sketch .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .sketch .name { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .sketch .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .sketch .meta code { font: 11px ui-monospace, Menlo, monospace; color: var(--dim); background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
+  .sketch .summary { color: var(--dim); font-size: 12px; line-height: 1.45; flex: 1; }
+  .sketch .actions { display: flex; gap: 6px; margin-top: 4px; }
+  .sketch .tooltag { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--dimmer); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
 </style>
 </head>
 <body>
 
 <header id="top">
   <h1>Organizer</h1>
+  <span id="tabs">
+    <button class="tab on" data-view="show" title="The running order of the show">Show</button>
+    <button class="tab" data-view="sketches" title="Every sketch in the project, with a picture and how to run it">Sketches</button>
+  </span>
   <span id="live"><i></i><span id="liveText">connecting…</span></span>
   <span id="progress"></span>
+  <span id="exportBar"><span id="exportWhat"></span><span class="track"><span class="fill" id="exportFill"></span></span></span>
   <span class="spacer"></span>
   <span id="status"></span>
   <button class="ghost" id="themeBtn" title="Light or dark">☾</button>
   <button class="ghost" id="concreteBtn" title="Lay the concrete over the whole show, as if projected on a concrete wall" hidden>concrete</button>
+  <button class="ghost" id="gridBtn" title="Rule the layout grid over the wall: cells, the seam, each pane's margin, title line and foot (g in the show)">grid: off</button>
   <button class="ghost" id="followBtn" title="Select whatever the show is on (f)">follow</button>
   <button class="ghost" id="previewsBtn" title="Render the three frames of every slide again">refresh previews</button>
+  <button class="ghost" id="exportBtn"></button>
   <button class="ghost" id="resetBtn" title="Back to the order Slideshow.kt declares">reset</button>
   <button id="momentBtn" title="A new moment of the evening after the selected part (m)">+ moment</button>
   <button class="pink" id="newBtn" title="A new module after the selected slide (n)">+ module</button>
@@ -236,6 +292,16 @@
 </header>
 
 <nav id="nav"></nav>
+
+<section id="sketches" hidden>
+  <div id="sketchBar">
+    <input id="sketchFilter" type="search" placeholder="Filter sketches…" spellcheck="false">
+    <span id="sketchCount"></span>
+    <span class="spacer"></span>
+    <span class="hint">Pictures come from <code>tools/sketch_previews.sh</code></span>
+  </div>
+  <div id="sketchGrid"></div>
+</section>
 
 <main id="main">
   <div id="banner"></div>
@@ -261,6 +327,7 @@
       <button id="archiveBtn" title="Take this slide out of the order and keep it on the shelf, or put it back (a)"></button>
       <span class="sep"></span>
       <button class="ghost" id="oneBtn" title="Render this slide's previews again">previews</button>
+      <button class="ghost" id="midiBtn"></button>
     </div>
     <dl>
       <dt>class</dt><dd><code id="cls"></code></dd>
@@ -269,6 +336,29 @@
       <dt>arrives</dt><dd id="transition"></dd>
     </dl>
     <div id="notes"></div>
+
+    <div id="intent">
+      <div class="bar">
+        <h3>Intended update</h3>
+        <span class="spacer"></span>
+        <span class="hint" id="intentHint"></span>
+      </div>
+      <textarea id="intentText" placeholder="What this slide should become: which treatment it belongs to, which principles it adopts, what changes. See style-guide/principles.md."></textarea>
+    </div>
+
+    <div id="feedback">
+      <div class="bar">
+        <h3>Feedback</h3>
+        <span class="count" id="fbCount"></span>
+        <span class="spacer"></span>
+        <span class="hint" id="fbHint"></span>
+      </div>
+      <div id="fbList"></div>
+      <div class="fb new">
+        <textarea id="fbNew" rows="1" placeholder="What should change about this slide? ⏎ to add, ⇧⏎ for a new line."></textarea>
+        <button id="fbAdd" title="Add this note (⏎)">add</button>
+      </div>
+    </div>
 
     <div id="module" hidden>
       <h3>Module — still to be built</h3>
@@ -331,6 +421,10 @@
   let byId = {};            // id -> catalogue entry, as the show has it
   let modules = [];         // the modules file, being edited: [{id,title,chapter,frames,brief,wide}]
   let covered = {};         // id -> [frame names] for the implemented slides, being edited
+  let intents = {};         // id -> the intended update, being edited; saved to show-intents.json
+  let feedback = {};        // id -> [{text,done,at}], the notes written against a slide; saved as written
+  let midiWanted = new Set(); // ids wanted as MIDI; saved the moment one is ticked, and exported with it
+  let wasExporting = false; // so the page can say when a run has finished
   let frames = [];          // the client's frames: [{name,chapter,index,wide,note,wall,pane}]
   let frameByName = {};
   let selected = null;      // id
@@ -609,6 +703,24 @@
     body.appendChild(thumb(c));
     const label = document.createElement('div'); label.className = 'label';
     const title = document.createElement('span'); title.className = 'title'; title.textContent = c.title; label.appendChild(title);
+    // a dot on any slide that has an intended update written for it
+    if ((intents[c.id] || '').trim()) {
+      const flag = document.createElement('span'); flag.className = 'flag'; flag.title = 'An intended update is written for this slide';
+      title.appendChild(flag);
+    }
+    // and MIDI on any wall whose build is being written down as timing
+    if (midiWanted.has(c.id)) {
+      const mark = document.createElement('span'); mark.className = 'midi'; mark.textContent = 'MIDI';
+      mark.title = 'This slide\'s build is exported as a MIDI file';
+      title.appendChild(mark);
+    }
+    // and a count of the feedback notes on it that have not been ticked off
+    const open = (feedback[c.id] || []).filter(n => !n.done).length;
+    if (open) {
+      const badge = document.createElement('span'); badge.className = 'open'; badge.textContent = open;
+      badge.title = open + (open === 1 ? ' note' : ' notes') + ' not yet addressed';
+      title.appendChild(badge);
+    }
     const meta = document.createElement('span'); meta.className = 'meta';
     meta.textContent = c.module ? `module · ${c.frames.length} frame${c.frames.length === 1 ? '' : 's'}`
       : (c.wide ? c.kind + ' · ' : '') + (c.steps > 1 ? c.steps + ' clicks' : (c.loopSeconds > 0 ? 'loop ' + clock(c.loopSeconds) : '1 click'));
@@ -751,6 +863,14 @@
     $('#timing').textContent = `${c.stepSeconds.toFixed(2)}s a click` + (c.loopSeconds > 0 ? `, loops every ${clock(c.loopSeconds)}` : '') + (c.settleSeconds > c.stepSeconds ? `, settles in ${clock(c.settleSeconds)}` : '');
     $('#transition').textContent = c.transition;
     $('#notes').textContent = c.notes || '';
+    // the intended update: kept in show-intents.json rather than in the notes, so the notes stay
+    // what is said over the slide and this stays what the slide should become
+    const it = $('#intentText');
+    it.value = intents[c.id] || '';
+    it.oninput = () => { intents[c.id] = it.value; markDirty(true); renderNav(); };
+    $('#intentHint').textContent = (show.intentsFile || 'show-intents.json') + (intents[c.id] ? '' : ' — nothing written yet');
+    renderFeedback(c.id);
+    renderMidi(c);
     $('#onBtn').textContent = ref.on ? 'skip slide' : 'play slide';
     $('#onBtn').disabled = archived;
     $('#archiveBtn').textContent = archived ? 'put back' : 'archive';
@@ -906,6 +1026,133 @@
     } catch (e) {}
   }
 
+  // ---------- exporting the ticked slides: a clip and a score each ----------
+  //
+  // The tick is the *intent* — this wall is one I want scored — and this is what redeems it.
+  // The two are deliberately apart: ticking is instant and costs a kilobyte, where the export
+  // renders every frame of every ticked slide and takes minutes, so it is asked for when it is
+  // wanted rather than happening under a toggle.
+
+  async function runExport() {
+    if (!midiWanted.size) { setStatus('nothing is ticked for export', true); return; }
+    const r = await fetch('/api/export', { method: 'POST' });
+    if (r.ok) setStatus(`exporting ${midiWanted.size} slide${midiWanted.size === 1 ? '' : 's'} to ${(show.midiDir || 'midi')}/…`);
+    else setStatus('export refused: ' + ((await r.json()).error || r.status), true);
+  }
+
+  /** The button and the bar, off the polled state — the draw loop is what knows how far it is. */
+  function renderExport(s) {
+    const running = !!(s && s.exporting);
+    const b = $('#exportBtn');
+    const n = midiWanted.size;
+    b.textContent = running ? 'exporting…' : (n ? `export ${n} midi + video` : 'export midi + video');
+    b.disabled = running || !n;
+    b.className = n && !running ? '' : 'ghost';
+    b.title = n
+      ? `Write a clip and a score for each ticked slide into ${(show.midiDir || 'midi')}/`
+      : 'Tick a slide’s midi button first — this writes a clip and a score for each one that is ticked';
+    const bar = $('#exportBar');
+    bar.classList.toggle('on', running);
+    if (running) {
+      const whole = (s.exportDone + (s.exportFrames ? s.exportFrame / s.exportFrames : 0)) / Math.max(1, s.exportTotal);
+      $('#exportWhat').textContent = `${s.exporting} · ${s.exportDone + 1}/${s.exportTotal}`;
+      $('#exportFill').style.width = (whole * 100).toFixed(1) + '%';
+    }
+  }
+
+  // ---------- midi: whether this slide's build is written down as timing ----------
+  //
+  // A toggle is a whole edit in one click, so it saves at once rather than waiting on the save
+  // button — the feedback list's rule, and for the same reason. The save also *writes the file*:
+  // the show queues the export and the draw loop does it, so ticking a wall on and looking in
+  // `midi/` is the whole loop.
+
+  function renderMidi(c) {
+    const b = $('#midiBtn');
+    const on = midiWanted.has(c.id);
+    const lanes = c.midiLanes || [];
+    // Every slide can be scored — the floor is its own states — so this is never refused; what
+    // differs is what it is scored *on*, which is what the lanes say.
+    const what = lanes.length > 1 ? `${lanes.length} lanes of its own build`
+      : `its ${c.steps} state${c.steps === 1 ? '' : 's'}`;
+    b.textContent = on ? 'midi ✓' : 'midi';
+    b.className = on ? 'ticked' : 'ghost';
+    b.disabled = false;
+    b.title = on
+      ? `Ticked for export — ${(show.midiDir || 'midi')}/${c.id}.mid and .mp4, scored on ${what}. Click to stop.`
+      : `Tick this slide for export: a clip and a score, ${(show.midiDir || 'midi')}/${c.id}.mid and .mp4, scored on ${what}`;
+    b.onclick = () => toggleMidi(c);
+  }
+
+  async function toggleMidi(c) {
+    const on = !midiWanted.has(c.id);
+    if (on) midiWanted.add(c.id); else midiWanted.delete(c.id);
+    renderMidi(c); renderNav(); renderExport(lastState);
+    const body = { note: (show.midi && show.midi.note) || undefined, midi: [...midiWanted] };
+    const r = await fetch('/api/midi', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body, null, 2) });
+    if (r.ok) {
+      const j = await r.json();
+      setStatus(on ? `midi on — written to ${(show.midiDir || 'midi')}/${c.id}.mid` : `midi off — ${j.wanted} slide${j.wanted === 1 ? '' : 's'} still exported`);
+    } else setStatus('midi not saved: ' + ((await r.json()).error || r.status), true);
+  }
+
+  // ---------- feedback: a note a row, ticked off when it has been acted on ----------
+  //
+  // Saved the moment it is written rather than on the save button: a note made while a wall is
+  // on screen should not be waiting on anything, and nothing downstream depends on it — the
+  // deck never reads the file.
+
+  async function saveFeedback() {
+    const body = { note: (show.feedback && show.feedback.note) || undefined, feedback };
+    const r = await fetch('/api/feedback', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body, null, 2) });
+    if (r.ok) { const j = await r.json(); setStatus(`feedback saved — ${j.open} open`); }
+    else setStatus('feedback not saved: ' + ((await r.json()).error || r.status), true);
+  }
+
+  function grow(ta) { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
+
+  function renderFeedback(id) {
+    const list = feedback[id] || [];
+    const open = list.filter(n => !n.done).length;
+    $('#fbCount').textContent = list.length ? `${open} open of ${list.length}` : '';
+    $('#fbHint').textContent = (show.feedbackFile || 'show-feedback.json') + (list.length ? '' : ' — no notes yet');
+
+    const box = $('#fbList'); box.innerHTML = '';
+    list.forEach((note, i) => {
+      const row = document.createElement('div'); row.className = 'fb' + (note.done ? ' done' : '');
+
+      const tick = document.createElement('input');
+      tick.type = 'checkbox'; tick.checked = !!note.done;
+      tick.title = 'Tick when this has been addressed';
+      tick.addEventListener('change', () => { note.done = tick.checked; saveFeedback(); renderFeedback(id); renderNav(); });
+
+      const ta = document.createElement('textarea');
+      ta.value = note.text; ta.rows = 1;
+      ta.addEventListener('input', () => grow(ta));
+      ta.addEventListener('change', () => { note.text = ta.value.trim(); saveFeedback(); });
+
+      const when = document.createElement('span'); when.className = 'when'; when.textContent = note.at || '';
+
+      const drop = document.createElement('button');
+      drop.className = 'ghost'; drop.textContent = '×'; drop.title = 'Delete this note';
+      drop.addEventListener('click', () => { list.splice(i, 1); if (!list.length) delete feedback[id]; saveFeedback(); renderFeedback(id); renderNav(); });
+
+      row.append(tick, ta, when, drop);
+      box.appendChild(row);
+      grow(ta);
+    });
+  }
+
+  function addFeedback() {
+    if (!selected) return;
+    const ta = $('#fbNew');
+    const text = ta.value.trim();
+    if (!text) return;
+    (feedback[selected] || (feedback[selected] = [])).push({ text, done: false, at: new Date().toISOString().slice(0, 10) });
+    ta.value = ''; grow(ta);
+    saveFeedback(); renderFeedback(selected); renderNav();
+  }
+
   async function save() {
     // a module's chapter follows where it stands in the order, so the file's fallback is right
     for (const m of modules) if (findRef(m.id)) m.chapter = chapterOf(m.id);
@@ -913,6 +1160,9 @@
     // the modules first: the order can only place a placeholder the show has
     const m = await put('/api/modules', { source: show.modules && show.modules.source, modules, covered });
     if (!m.ok) { setStatus('not saved: ' + (await m.json()).error, true); return; }
+    // the intents next: they change no slide, so nothing downstream waits on them
+    const n = await put('/api/intents', { note: (show.intents && show.intents.note) || undefined, intents });
+    if (!n.ok) { setStatus('not saved: ' + (await n.json()).error, true); return; }
     const r = await put('/api/order', fileForm());
     const j = await r.json();
     if (r.ok) {
@@ -1015,6 +1265,10 @@
       renderSteps();
       const cb = $('#concreteBtn'); cb.hidden = !s.hasConcrete;
       cb.classList.toggle('primary', !!s.concrete); cb.textContent = s.concrete ? 'concrete: on' : 'concrete: off';
+      const gb = $('#gridBtn'); gb.classList.toggle('primary', !!s.grid); gb.textContent = s.grid ? 'grid: on' : 'grid: off';
+      renderExport(s);
+      if (wasExporting && !s.exporting) setStatus(`export done — see ${(show.midiDir || 'midi')}/`);
+      wasExporting = !!s.exporting;
       if (s.previewsLeft > 0) $('#progress').textContent = `rendering previews… ${s.previewsLeft} left`;
       else if (lastLeft > 0) { $('#progress').textContent = ''; stamp = s.previewStamp; renderNav(); renderDetail(); }
       if (stamp === 0) stamp = s.previewStamp || 1;
@@ -1034,6 +1288,10 @@
       brief: Array.isArray(m.brief) ? m.brief.join('\n\n') : (m.brief || '')
     }));
     covered = {}; Object.entries((show.modules && show.modules.covered) || {}).forEach(([id, fs]) => covered[id] = fs.slice());
+    intents = Object.assign({}, (show.intents && show.intents.intents) || {});
+    feedback = {}; Object.entries((show.feedback && show.feedback.feedback) || {}).forEach(([id, ns]) => feedback[id] = ns.map(n => ({ ...n })));
+    midiWanted = new Set(((show.midi && show.midi.midi) || []));
+    renderExport(lastState);
     frames = show.frames || []; frameByName = {}; frames.forEach(f => frameByName[f.name] = f);
     order = fromFile(show.order.order);
     archive = (show.order.archive || []).map(id => ({ id, on: true }));
@@ -1049,6 +1307,7 @@
   $('#saveBtn').addEventListener('click', save);
   $('#resetBtn').addEventListener('click', () => { order = fromFile(show.declared.order); archive = []; completeOrder(); markDirty(true); renderNav(); renderDetail(); setStatus('declared order — save to keep it'); });
   $('#previewsBtn').addEventListener('click', () => post('/api/previews'));
+  $('#exportBtn').addEventListener('click', runExport);
   $('#oneBtn').addEventListener('click', () => selected && post('/api/previews', { ids: [selected] }));
   $('#followBtn').addEventListener('click', () => { follow = !follow; $('#followBtn').classList.toggle('primary', follow); });
   $('#goBtn').addEventListener('click', () => selected && go(selected));
@@ -1062,6 +1321,17 @@
     const on = !lastState.concrete;
     await fetch('/api/concrete', { method: 'POST', body: JSON.stringify({ on }) });
     lastState.concrete = on; $('#concreteBtn').classList.toggle('primary', on); $('#concreteBtn').textContent = on ? 'concrete: on' : 'concrete: off';
+  });
+  $('#fbAdd').addEventListener('click', addFeedback);
+  $('#fbNew').addEventListener('input', (ev) => grow(ev.target));
+  $('#fbNew').addEventListener('keydown', (ev) => {
+    // ⏎ adds the note, ⇧⏎ is a new line inside it
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); addFeedback(); }
+  });
+  $('#gridBtn').addEventListener('click', async () => {
+    const on = !lastState.grid;
+    await fetch('/api/grid', { method: 'POST', body: JSON.stringify({ on }) });
+    lastState.grid = on; $('#gridBtn').classList.toggle('primary', on); $('#gridBtn').textContent = on ? 'grid: on' : 'grid: off';
   });
   $('#momentBtn').addEventListener('click', newMoment);
   $('#mRemoveBtn').addEventListener('click', () => selected && removeModule(selected));
@@ -1099,6 +1369,71 @@
   window.addEventListener('beforeunload', (ev) => { if (dirty) { ev.preventDefault(); ev.returnValue = ''; } });
 
   boot();
+})();
+
+// ---------- the Sketches tab ----------
+(() => {
+  const $ = (q) => document.querySelector(q);
+  let sketches = null;
+  const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  function copy(text, button, label) {
+    const done = () => { button.textContent = '✓ copied'; setTimeout(() => { button.textContent = label; }, 900); };
+    if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done); return; }
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} ta.remove();
+  }
+
+  function render() {
+    const grid = $('#sketchGrid');
+    const q = $('#sketchFilter').value.trim().toLowerCase();
+    const shown = (sketches || []).filter((s) => !q || (s.name + ' ' + s.summary + ' ' + (s.env || '')).toLowerCase().includes(q));
+    $('#sketchCount').textContent = sketches ? `${shown.length} of ${sketches.length}` : '';
+    grid.innerHTML = '';
+    for (const s of shown) {
+      const card = document.createElement('div'); card.className = 'sketch';
+      const pic = s.preview
+        ? `<img loading="lazy" src="${esc(s.preview)}?t=${s.previewTime}" alt="${esc(s.name)}">`
+        : `<span>${s.tool ? 'a tool — nothing to show' : 'no picture yet'}</span>`;
+      card.innerHTML = `
+        <div class="pic">${pic}</div>
+        <div class="body">
+          <div class="name">${esc(s.name)} ${s.tool ? '<span class="tooltag">tool</span>' : ''}</div>
+          <div class="meta"><code>${esc(s.file)}</code>${s.env ? `<code>${esc(s.env)}*</code>` : ''}</div>
+          <div class="summary">${esc(s.summary) || '<i>no description</i>'}</div>
+          <div class="actions"></div>
+        </div>`;
+      const actions = card.querySelector('.actions');
+      for (const [label, text] of [['copy name', s.name], ['copy run command', s.command]]) {
+        const b = document.createElement('button'); b.className = 'ghost'; b.textContent = label; b.title = text;
+        b.addEventListener('click', () => copy(text, b, label));
+        actions.appendChild(b);
+      }
+      grid.appendChild(card);
+    }
+  }
+
+  async function load() {
+    try { sketches = (await (await fetch('/api/sketches')).json()).sketches; }
+    catch (e) { sketches = []; $('#sketchCount').textContent = 'could not read the sketches'; }
+    render();
+  }
+
+  function view(v) {
+    document.body.classList.toggle('view-sketches', v === 'sketches');
+    $('#sketches').hidden = v !== 'sketches';
+    for (const t of document.querySelectorAll('#tabs .tab')) t.classList.toggle('on', t.dataset.view === v);
+    try { localStorage.setItem('organizer-view', v); } catch (e) {}
+    if (v === 'sketches') load();
+  }
+
+  for (const t of document.querySelectorAll('#tabs .tab')) t.addEventListener('click', () => view(t.dataset.view));
+  $('#sketchFilter').addEventListener('input', render);
+  // Keys typed into the filter belong to the filter, not to the show's shortcuts.
+  $('#sketchFilter').addEventListener('keydown', (e) => e.stopPropagation());
+  let asked = new URLSearchParams(location.search).get('view');
+  if (!asked) { try { asked = localStorage.getItem('organizer-view'); } catch (e) {} }
+  view(asked === 'sketches' ? 'sketches' : 'show');
 })();
 </script>
 </body>

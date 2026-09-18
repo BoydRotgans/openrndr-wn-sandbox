@@ -5,7 +5,9 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.Drawer
 import org.openrndr.draw.FontImageMap
 import org.openrndr.draw.loadFont
+import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import slideshow.Palette
 import slideshow.Slide
 import slideshow.Stage
 import slideshow.easeInOutCubic
@@ -25,6 +27,12 @@ import slideshow.frames
  * is open, where the card's is tight. That is the difference between a heading and a
  * sentence, and it is the reason the two are separate drawers sharing one way of fitting
  * rather than one drawer with a flag.
+ *
+ * **Nothing stands above the passage.** A `lead` line carried the recap that re-entered a
+ * chapter ("Voor de pauze keken we naar…") and the label over a takeaway ("Om mee te nemen"),
+ * and both were taken out on 16 September: a title over a quote is read first and is not the
+ * quote, so the passage stops being the only thing on the wall. What the recap said is said by
+ * the speaker, which is where it belonged.
  */
 class QuoteSlide(
     private val quote: String,
@@ -33,9 +41,9 @@ class QuoteSlide(
     private val lines: Int? = null
 ) : Slide() {
     override val name = "Quote"
-    override val background = ColorRGBa.fromHex("3C3C3C")
+    override val background = Palette.onGrey.paper
 
-    private val ink = ColorRGBa.WHITE
+    private val ink = Palette.onGrey.ink
     private lateinit var face: FontImageMap
 
     override fun load(program: Program) {
@@ -51,8 +59,12 @@ class QuoteSlide(
             stage.height - 2 * HEAD
         )
 
+        // Ranged left, off the measure's own left edge, so the passage has one edge to come back
+        // to. Centred, a quote of four ragged lines has no edge at all.
+        drawer.stroke = null
         drawer.fill = ink.opacify(opening)
-        face.setToFit(quote, box, SIZE, LEADING, lines).draw(drawer, box.center)
+        face.setToFit(quote, box, SIZE, LEADING, lines)
+            .draw(drawer, Vector2(box.x, box.center.y), align = 0.0)
     }
 
     private companion object {

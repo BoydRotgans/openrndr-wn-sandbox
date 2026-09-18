@@ -187,7 +187,15 @@ application {
         applicationMainClass
 
     // use native OpenGL instead of the ANGLE (GL ES over Metal) default
-    applicationDefaultJvmArgs = listOf("-Dorg.openrndr.gl3.gl_type=gl")
+    //
+    // `java.awt.headless=true` because **AWT and GLFW cannot both have the macOS main
+    // thread.** Anything that touches AWT before the window is made — `abstractShapes()`
+    // in Slideshow.kt draws its masks with Graphics2D, and it is a top-level val, so it
+    // runs at class init — starts AppKit on thread 0, and `glfwCreateWindow` then blocks
+    // there for ever. It is a hang with no message, on some runs and not others depending
+    // on what a launcher touches first. Headless AWT still draws and still writes pngs;
+    // it simply never starts AppKit. Nothing here opens an AWT window.
+    applicationDefaultJvmArgs = listOf("-Dorg.openrndr.gl3.gl_type=gl", "-Djava.awt.headless=true")
 }
 
 tasks {

@@ -57,6 +57,8 @@ class ObjectScene(
     private val palette: List<ColorRGBa>,
     /** The ground. */
     private val paper: ColorRGBa = ColorRGBa.fromHex("E8E8E8"),
+    /** The bed under the wall. The closing wall carries the arrival's room, so the exit is not silent. */
+    override val sound: slideshow.Sound? = null,
     /** How much of the wall's height an element stands, before the width binds. */
     private val height: Double = 0.6,
     /** The gap between neighbours, in element heights. */

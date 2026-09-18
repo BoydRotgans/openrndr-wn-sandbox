@@ -155,6 +155,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("SlideStudio", at = 4.0)
         val host = this
 
         // The furniture picks up the family here, as it does in the show — the slides are

@@ -42,6 +42,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("MapView", at = 4.0)
         val area = collectMapData()
 
         print("triangulating... ")

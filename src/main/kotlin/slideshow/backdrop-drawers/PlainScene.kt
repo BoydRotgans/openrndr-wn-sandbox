@@ -7,10 +7,13 @@ import org.openrndr.draw.isolated
 import org.openrndr.extra.svg.loadSVG
 import org.openrndr.shape.Rectangle
 import org.openrndr.shape.Shape
+import slideshow.Arrival
 import slideshow.Backdrop
+import slideshow.MidiTimed
 import slideshow.Stage
 import slideshow.easeInOutCubic
 import slideshow.frames
+import slideshow.ramp
 import java.io.File
 import kotlin.math.PI
 import kotlin.math.cos
@@ -35,6 +38,14 @@ import kotlin.math.min
  *
  * The bars build on [Stage.frame] and the colour runs on [Stage.loop], so both are functions of
  * the frame and it scrubs, replays and films like every other wall.
+ *
+ * **When each element arrives is a list, not an expression buried in the draw loop.** [reveals]
+ * is the whole build — every element, the column and row it lands in, and the frame it starts on
+ * — as a pure function of [values], and `draw` reads it rather than working the timing out again
+ * as it goes. That is what lets the same schedule be exported without a second copy of the
+ * arithmetic to keep in step. That schedule is what [MidiTimed] asks for, so the wall can be
+ * written down as timing — a note per element, on the frame it starts to arrive — by the
+ * organizer or by `PlainMidi.kt`, with no second copy of the arithmetic anywhere.
  */
 class PlainScene(
     override val name: String = "Plain",
@@ -56,12 +67,46 @@ class PlainScene(
 
     private var pieces = emptyList<Piece>()
 
+    /** One element arriving: where it lands, the frame it starts on and how long it takes. */
+    data class Reveal(val column: Int, val row: Int, val start: Int, val length: Int)
+
+    /**
+     * Every element the wall stands, in the order they land — the whole build, from the counts
+     * alone. It needs no pieces loaded, so it can be read before there is a window.
+     */
+    val reveals: List<Reveal> = values.flatMapIndexed { c, count ->
+        (0 until count).map { k ->
+            Reveal(column = c, row = k, start = frames((k + c * STAGGER) * BEAT), length = frames(ARRIVE))
+        }
+    }.sortedBy { it.start }
+
+    /** The svgs the columns take in turn, in the order they take them. */
+    fun files(): List<File> = folder.listFiles()
+        ?.filter { it.isFile && it.extension.equals("svg", ignoreCase = true) }
+        ?.sortedBy { it.name }
+        .orEmpty()
+
+    // --- the wall as timing ------------------------------------------------------------ //
+    //
+    // A lane is a column, named after the piece it stands, and an element's place up its stack
+    // is its index — so a bar rises as a run and the file reads as the chart on its side. Both
+    // come off `reveals` and the folder, so nothing here is a second copy of the schedule.
+
+    override val lanes: List<String>
+        get() = files().let { files ->
+            values.indices.map { c ->
+                if (files.isEmpty()) "col %02d".format(c + 1)
+                else "col %02d - %s".format(c + 1, files[c % files.size].nameWithoutExtension)
+            }
+        }
+
+    // The wall builds on its own clock from the frame it comes up, so the clicks say nothing
+    // about it — there is only one, and it is the wall arriving.
+    override fun arrivals(clicks: List<Int>): List<Arrival> =
+        reveals.map { Arrival(lane = it.column, index = it.row, start = it.start, length = it.length) }
+
     override fun load(program: Program) {
-        pieces = folder.listFiles()
-            ?.filter { it.isFile && it.extension.equals("svg", ignoreCase = true) }
-            ?.sortedBy { it.name }
-            ?.mapNotNull { read(it) }
-            .orEmpty()
+        pieces = files().mapNotNull { read(it) }
         // A missing folder leaves the wall bare rather than stopping the show.
         println("$name: ${pieces.size} pieces from $folder")
     }
@@ -91,27 +136,29 @@ class PlainScene(
         val unit = area.height / max(1, values.max())
         val baseline = area.y + area.height
 
-        drawer.fill = ink
-        for ((c, count) in values.withIndex()) {
+        // One fit a column: every piece in a stack is the same drawing at the same size.
+        val cellWidth = pitch * (1.0 - GUTTER)
+        val cellHeight = unit * (1.0 - GAP)
+        val fits = DoubleArray(values.size) { c ->
             val piece = pieces[c % pieces.size]
-            val cellWidth = pitch * (1.0 - GUTTER)
-            val cellHeight = unit * (1.0 - GAP)
-            val fit = min(cellWidth / piece.bounds.width, cellHeight / piece.bounds.height)
+            min(cellWidth / piece.bounds.width, cellHeight / piece.bounds.height)
+        }
 
-            for (k in 0 until count) {
-                // Every column rises at once, each a little behind the one to its left.
-                val start = frames((k + c * STAGGER) * BEAT)
-                val arrived = easeInOutCubic(((stage.frame - start).toDouble() / frames(ARRIVE)).coerceIn(0.0, 1.0))
-                if (arrived <= 0.0) continue
+        drawer.fill = ink
+        // Every column rises at once, each a little behind the one to its left — which is
+        // `reveals` and not anything worked out here.
+        for (r in reveals) {
+            val arrived = easeInOutCubic(ramp(stage.frame - r.start, r.length))
+            if (arrived <= 0.0) continue
 
-                val x = area.x + (c + 0.5) * pitch
-                val y = baseline - (k + 0.5) * unit
-                drawer.isolated {
-                    translate(x, y)
-                    scale(fit * arrived)
-                    translate(-piece.bounds.center)
-                    shapes(piece.shapes)
-                }
+            val piece = pieces[r.column % pieces.size]
+            val x = area.x + (r.column + 0.5) * pitch
+            val y = baseline - (r.row + 0.5) * unit
+            drawer.isolated {
+                translate(x, y)
+                scale(fits[r.column] * arrived)
+                translate(-piece.bounds.center)
+                shapes(piece.shapes)
             }
         }
     }

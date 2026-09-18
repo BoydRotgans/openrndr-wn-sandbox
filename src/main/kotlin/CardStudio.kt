@@ -82,6 +82,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("CardStudio", at = 6.0)
         // The furniture picks up the family here, as it does in the show — the cards are the
         // show's own objects and load exactly as they do there.
         Type.file = textFont

@@ -12,6 +12,7 @@ import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import slideshow.Backdrop
+import slideshow.Palette
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
@@ -35,9 +36,9 @@ class EndingScene(
     private val url: String,
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
-    private val ink: ColorRGBa = ColorRGBa.WHITE,
-    private val accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
-    override val background: ColorRGBa = ColorRGBa.BLACK,
+    private val ink: ColorRGBa = Palette.onBlack.ink,
+    private val accent: ColorRGBa = Palette.onBlack.accent,
+    override val background: ColorRGBa = Palette.onBlack.paper,
     override val sound: Sound? = null
 ) : Backdrop() {
 
@@ -94,7 +95,7 @@ class EndingScene(
         text.wrapped(action, (pane * ACTION_W) * SIZE / (h * ACTION)).forEachIndexed { i, line ->
             drawer.setLine(line, bold, Vector2(cx, h * ACTION_Y + i * h * ACTION_LEAD), h * ACTION, SIZE, align = 0.5)
         }
-        drawer.fill = ink.opacify(0.7 * shown)
+        drawer.fill = ink.opacify(shown)
         drawer.setLine(url, text, Vector2(cx, cy + h * CODE / 2.0 + h * URL_GAP), h * URL, SIZE, align = 0.5)
     }
 
@@ -103,16 +104,17 @@ class EndingScene(
         const val MARGIN = 0.06
         const val SENTENCE_TOP = 0.22
         const val SENTENCE_H = 0.56
-        /** The code's centre as a share of the right pane. */
+        /** The code's centre as a share of the right pane, and its side as a share of the height: half the pane, so it scans from the seats. */
         const val CODE_X = 0.5
-        const val CODE_Y = 0.55
-        const val CODE = 0.4
+        const val CODE_Y = 0.6
+        const val CODE = 0.5
         const val QUIET = 0.06
-        const val ACTION = 0.04
-        const val ACTION_LEAD = 0.05
-        const val ACTION_W = 0.8
-        const val ACTION_Y = 0.24
-        const val URL = 0.026
+        /** The action is the headline of the wall: title size on the pane, over the code. */
+        const val ACTION = 0.06
+        const val ACTION_LEAD = 0.07
+        const val ACTION_W = 0.86
+        const val ACTION_Y = 0.2
+        const val URL = 0.028
         const val URL_GAP = 0.07
     }
 }

@@ -54,6 +54,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("Demo02", at = 3.0)
         val sheet = File(Env["DEMO02_SHEET"] ?: DEFAULT_SHEET)
         val objects = loadObjectSheet(sheet)
         println("${objects.size} objects from ${sheet.path}")

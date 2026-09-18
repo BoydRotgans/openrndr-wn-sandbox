@@ -22,6 +22,8 @@ import org.openrndr.draw.vertexFormat
 import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import org.openrndr.math.Vector4
+import slideshow.Arrival
+import slideshow.MidiTimed
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
@@ -81,6 +83,8 @@ import kotlin.random.Random
  * another's, and where it crosses either body it is covered — so what shows is the stretch
  * between them, starting and ending at the silhouettes' edges, with nothing measured. The
  * belt wall's shadow trick, inverted.
+ *
+ * **It is [MidiTimed], so the crowd re-forming can be written down as timing** — see [arrivals].
  */
 class Crowd(
     /**
@@ -303,6 +307,13 @@ class Crowd(
         // 3: the arrow. A shaft four rows deep and a head eight, on a grid of small figures;
         // a cell is in the arrow if its centre is inside the polygon, so the head's rows
         // shorten toward the tip by themselves. The one stands a step beyond the tip.
+        //
+        // **The head has to be allowed to reach the tip, and it was not.** Tapered to nothing at
+        // [ARROW_TIP], the innermost row — half a row off the axis — falls outside the polygon
+        // well before it, so the last eighth of the head carried no figures at all: the arrow
+        // came out with its point cut off and the one out in front standing beyond a gap. The
+        // taper now runs from the full head down to [ARROW_POINT], which is wide enough to keep
+        // the two rows either side of the axis all the way to the tip.
         val a = h * ARROW_FIGURE
         val ap = h * ARROW_ROW
         val ac = w * ARROW_COL
@@ -311,6 +322,7 @@ class Crowd(
         val tip = w * ARROW_TIP
         val shaft = 2.0 * ap
         val head = 4.0 * ap
+        val point = ARROW_POINT * ap
         val arrowCells = buildList {
             for (r in -4 until 4) {
                 val cy = h / 2.0 + (r + 0.5) * ap
@@ -319,7 +331,8 @@ class Crowd(
                 while (true) {
                     val cx = tail + (c + 0.5) * ac
                     if (cx > tip) break
-                    val inside = if (cx < neck) dy < shaft else dy < head * (1.0 - (cx - neck) / (tip - neck))
+                    val along = ((cx - neck) / (tip - neck)).coerceIn(0.0, 1.0)
+                    val inside = if (cx < neck) dy < shaft else dy < head + (point - head) * along
                     if (inside) add(Spot(Vector2(cx, cy + a / 2.0), a, many))
                     c++
                 }
@@ -686,6 +699,68 @@ class Crowd(
      * phase: each starts a little after the one before, over the first [STAGGER] of it, and
      * takes the rest.
      */
+    // ------------------------------------------------------------------------------------ //
+    //  The crowd as timing
+    //
+    //  A click is a lane, because a click is what the slide is made of: the group forming, the
+    //  network growing, the arrow, the whole. What lands on a lane is the figures that change
+    //  on that click — standing up where the formation grows, leaving where it shrinks — on the
+    //  very stagger `arrival` gives them, so the file and the picture cannot disagree.
+
+    // The formations are grids over the pane, so there is no schedule until the pane is known.
+    override fun layOut(width: Int, height: Int) = ensure(width, height)
+
+    override val lanes: List<String>
+        get() = (1 until titles.size).map { k -> "%d %s".format(k, LANES.getOrElse(k - 1) { "click $k" }) }
+
+    /**
+     * The crowd re-forming, as notes.
+     *
+     * **A note is a band of figures, not a figure**, and that is the one place this departs from
+     * "a note per element". The whole is 732 figures and the arrow 157, so the last click alone
+     * stands 575 of them up inside a second and a half: per figure that is not a score, it is a
+     * texture with no pitch left to give — and banded into [BANDS] it is the swell itself, a run
+     * rising as the crowd fills out from the middle. The rank a band holds *is* distance from the
+     * middle, since that is the order the places are dealt and therefore the order they stand up
+     * in, so the run rises outward exactly as the picture does.
+     *
+     * **Click 2 carries the network rather than figures.** Nothing stands up between the crowd
+     * and the crowd with its lines drawn on it, so a lane keyed to figures alone would leave a
+     * whole click silent; the lines grow on the same stagger and are noted the same way.
+     *
+     * Empty until [load] has run, since the formations are dealt against the pane.
+     */
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        if (formations.isEmpty() || clicks.isEmpty()) return emptyList()
+        val out = ArrayList<Arrival>()
+        for (k in 1 until formations.size) {
+            val at = clicks.getOrNull(k - 1) ?: continue
+            val span = stepLength(k)
+            // The click's own two phases, exactly as `figures` reads them: where anything already
+            // standing has to travel, the arrivals wait for it; where nothing does, they take the
+            // whole click.
+            val travelling = travels.getOrElse(k - 1) { false }
+            val from = if (travelling) ARRIVE_AT else 0.0
+            val reach = 1.0 - from
+            val count = if (k == 2) network.size else abs(formations[k].spots.size - formations[k - 1].spots.size)
+            if (count <= 0) continue
+            val n = min(BANDS, count)
+            for (b in 0 until n) {
+                // The band's first member, on the stagger `arrival` and the network's own share.
+                val j = (b.toDouble() / n) * count
+                val begin = from + (j / count) * STAGGER * reach
+                out += Arrival(
+                    lane = k - 1,
+                    index = b,
+                    start = at + (begin * span).toInt(),
+                    // As long as a figure's own growth: the stagger sets when, this sets how long.
+                    length = ((1.0 - STAGGER) * reach * span).toInt().coerceAtLeast(1)
+                )
+            }
+        }
+        return out
+    }
+
     private fun arrival(j: Int, count: Int, time: Double): Double {
         val start = if (count <= 1) 0.0 else (j.toDouble() / count) * STAGGER
         return smoothstep((time - start) / (1.0 - STAGGER))
@@ -727,6 +802,16 @@ class Crowd(
         const val ARROW_TIP = 0.875
         const val ARROW_LEAD = 0.03
 
+        /**
+         * How deep the head still is at the tip, in rows either side of the axis.
+         *
+         * A row's centre is half a row off the axis at the nearest, so anything at or under 0.5
+         * empties the last stretch of the head and the arrow loses its point. 1.0 keeps exactly
+         * the two rows either side of the axis standing at the tip, which is as fine a point as a
+         * grid of figures can come to.
+         */
+        const val ARROW_POINT = 1.0
+
         /** The disc: figure height and grid on the height; its radius, and how far below the middle it sits. */
         const val DISC_FIGURE = 0.024
         const val DISC_ROW = 0.03
@@ -741,6 +826,12 @@ class Crowd(
         /** The two phases of a click with travel in it: the travel over this much of it, the arrivals from here. */
         const val TRAVEL = 0.55
         const val ARRIVE_AT = 0.4
+
+        /** Notes a click at most: two octaves, which is a run the ear can follow. */
+        const val BANDS = 24
+
+        /** What each click makes of the crowd — the lane names in the MIDI file. */
+        val LANES = listOf("the group", "the network", "the arrow", "the whole")
 
         /** How much of the arrivals' phase they are spread over; the rest is the last one standing up. */
         const val STAGGER = 0.6

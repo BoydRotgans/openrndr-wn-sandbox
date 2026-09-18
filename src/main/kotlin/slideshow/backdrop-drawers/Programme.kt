@@ -7,14 +7,16 @@ import org.openrndr.draw.FontImageMap
 import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import slideshow.Arrival
 import slideshow.Backdrop
+import slideshow.Palette
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.setLine
-import slideshow.drawers.setToFit
 import slideshow.drawers.wrapped
 import slideshow.frames
+import slideshow.pitchStep
 import slideshow.smoothstep
 import kotlin.math.floor
 import kotlin.math.min
@@ -24,10 +26,15 @@ class Entry(val label: String, val chapter: Boolean = false, val message: String
 
 /**
  * The programme of the evening, on the two projectors as two panes: **the left pane is the
- * programme as a list**, moments and chapters in the order the show plays them, the chapters
- * numbered and set large and the moments small and quieter between them; **the right pane is the
- * chapter that is forward** — its number and its key message — and, before any is and after the
- * last, the title. A click a chapter; the last click settles the whole line.
+ * programme as a menu**, the four chapters numbered and set large in the order the show plays
+ * them, the courses and moments between them as small quiet labels; **the right pane is the
+ * chapter that is forward**, its number and its key message. Before any chapter is forward the right pane is
+ * empty, since the list is the title; after the last it carries all four messages together, the
+ * whole evening on one pane. A click a chapter; the last click settles the whole.
+ *
+ * It carried a large "Het programma" wordmark in the right pane once, and dropped it on 16
+ * September: a list of the evening does not need to be told what it is. [title] is set small
+ * above the list instead, as a heading.
  *
  * Two panes rather than one line across the wall, because the wall is two projectors meeting at
  * the middle and a line of type that runs from one into the other breaks at the seam. Nothing
@@ -41,10 +48,10 @@ class Programme(
     private val entries: List<Entry>,
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
-    private val ink: ColorRGBa = ColorRGBa.WHITE,
-    private val quiet: ColorRGBa = ColorRGBa.fromHex("D9D9D9"),
-    private val accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
-    override val background: ColorRGBa = ColorRGBa.BLACK,
+    private val ink: ColorRGBa = Palette.onBlack.ink,
+    private val quiet: ColorRGBa = Palette.onBlack.quiet,
+    private val accent: ColorRGBa = Palette.onBlack.accent,
+    override val background: ColorRGBa = Palette.onBlack.paper,
     override val stepFrames: Int = frames(0.8),
     override val sound: Sound? = null
 ) : Backdrop() {
@@ -52,6 +59,27 @@ class Programme(
     override val name = "Programme"
     private val chapters = entries.indices.filter { entries[it].chapter }
     override val steps get() = chapters.size + 2
+
+    /**
+     * A note an entry as the evening writes itself out, and one a chapter as it is brought
+     * forward. Two lanes, because the two are different things: the list arrives once, on the
+     * wall's own clock, where the chapters come round on the speaker's clicks.
+     *
+     * The list's rule is `draw`'s own — every entry inside `BUILD`, so the whole evening lands
+     * in a second and the run is dense — and the count follows the show rather than being
+     * stated, so an entry added to `Slideshow.kt` is a note without anything else changing.
+     */
+    override val lanes: List<String> get() = listOf("the evening", "the chapters")
+
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val n = entries.size
+        if (n <= 0) return super.arrivals(clicks)
+        val written = entries.indices.map { i ->
+            Arrival(lane = 0, index = pitchStep(i, n), start = i * frames(BUILD) / n, length = frames(ARRIVE))
+        }
+        val forward = clicks.mapIndexed { k, at -> Arrival(lane = 1, index = k, start = at, length = stepLength(k + 1)) }
+        return written + forward
+    }
     override val settle get() = frames(BUILD) + frames(ARRIVE)
     override fun stepName(step: Int): String? = when {
         step in 1..chapters.size -> entries[chapters[step - 1]].label
@@ -86,7 +114,12 @@ class Programme(
         fun forward(s: Int) = if (s in 1..chapters.size) chapters[s - 1] else -1
         val fa = forward(a); val fb = forward(b)
 
-        // --- the left pane: the list ------------------------------------------------ //
+        // --- the left pane: the menu --------------------------------------------------- //
+        val x = pane * MARGIN
+        val headed = if (opening) smoothstep(stage.since(0, frames(ARRIVE))) else 1.0
+        drawer.fill = quiet.opacify(headed * QUIET)
+        drawer.setLine(title, text, Vector2(x, h * HEADING_Y), h * MOMENT, SIZE)
+
         val weights = entries.map { if (it.chapter) CHAPTER else 1.0 }
         val unit = h * (LIST_BOTTOM - LIST_TOP) / weights.sum()
         var y = h * LIST_TOP
@@ -96,7 +129,6 @@ class Programme(
             val built = if (opening) smoothstep(stage.since(i * frames(BUILD) / entries.size, frames(ARRIVE))) else 1.0
             fun dimAt(f: Int) = if (f < 0 || f == i) 1.0 else DIM
             val dim = dimAt(fa) + (dimAt(fb) - dimAt(fa)) * t
-            val x = pane * MARGIN
             if (built > 0.0) {
                 if (e.chapter) {
                     number++
@@ -106,20 +138,22 @@ class Programme(
                     drawer.fill = ink.opacify(built * dim)
                     drawer.setLine(e.label, bold, Vector2(x + pane * NUMBER_W, baseline), h * CHAPTER_SIZE, SIZE)
                 } else {
+                    // A course: its name small and quiet, and nothing else. It carried a rule
+                    // running out to the edge of the list for a day — a menu card's divider —
+                    // and it was taken off on 16 September: a dozen long lines down the pane
+                    // read as ruling rather than as the quiet spacing the courses want.
+                    val size = h * MOMENT
+                    val baseline = y + rowH * 0.5 + size * 0.34
                     drawer.fill = quiet.opacify(built * dim * QUIET)
-                    drawer.setLine(e.label, text, Vector2(x + pane * NUMBER_W, y + rowH * 0.5 + h * MOMENT * 0.34), h * MOMENT, SIZE)
+                    drawer.setLine(e.label, text, Vector2(x + pane * NUMBER_W, baseline), size, SIZE)
                 }
             }
             y += rowH
         }
 
-        // --- the right pane: the title, or the chapter that is forward ---------------- //
+        // --- the right pane: the chapter that is forward, or at the end the whole evening -- //
         val right = Rectangle(pane + pane * MARGIN, h * RIGHT_TOP, pane * (1.0 - 2.0 * MARGIN), h * (RIGHT_BOTTOM - RIGHT_TOP))
-        fun titleCard(alpha: Double) {
-            if (alpha <= 0.0) return
-            drawer.fill = ink.opacify(alpha)
-            bold.setToFit(title, right, SIZE, 1.1, 1).draw(drawer, right.center)
-        }
+        val last = chapters.size + 1
         fun message(f: Int, alpha: Double) {
             if (f < 0 || alpha <= 0.0) return
             val e = entries[f]
@@ -131,25 +165,45 @@ class Programme(
                 drawer.setLine(line, text, Vector2(right.x, right.y + h * (MESSAGE_Y + j * MESSAGE_LEAD)), h * MESSAGE, SIZE)
             }
         }
-        val titleAlpha = if (opening) smoothstep(stage.since(0, frames(ARRIVE))) else 1.0
-        if (fa == fb) {
-            if (fa < 0) titleCard(titleAlpha) else message(fa, 1.0)
-        } else {
-            if (fa < 0) titleCard(out) else message(fa, out)
-            if (fb < 0) titleCard(back) else message(fb, back)
+        // The whole evening: every chapter's number and message, stacked in equal shares.
+        fun whole(alpha: Double) {
+            if (alpha <= 0.0 || chapters.isEmpty()) return
+            val share = right.height / chapters.size
+            chapters.forEachIndexed { k, f ->
+                val e = entries[f]
+                val top = right.y + k * share
+                drawer.fill = accent.opacify(alpha)
+                drawer.setLine((k + 1).toString(), bold, Vector2(right.x, top + h * ALL_SIZE * 1.4), h * ALL_SIZE * 1.4, SIZE)
+                drawer.fill = ink.opacify(alpha)
+                text.wrapped(e.message, (right.width - pane * NUMBER_W) * SIZE / (h * ALL_SIZE)).forEachIndexed { j, line ->
+                    drawer.setLine(line, text, Vector2(right.x + pane * NUMBER_W, top + h * ALL_SIZE * (1.4 + j * ALL_LEAD)), h * ALL_SIZE, SIZE)
+                }
+            }
         }
+        fun rightAt(s: Int, alpha: Double) = when {
+            s in 1..chapters.size -> message(chapters[s - 1], alpha)
+            s == last -> whole(alpha)
+            else -> Unit
+        }
+        if (a == b) rightAt(a, 1.0) else { rightAt(a, out); rightAt(b, back) }
     }
 
     private companion object {
         const val SIZE = 200.0
         const val MARGIN = 0.05
         const val CHAPTER = 2.0
-        const val LIST_TOP = 0.12
+        const val LIST_TOP = 0.16
         const val LIST_BOTTOM = 0.9
+        /** The heading over the list, and the list's own top. */
+        const val HEADING_Y = 0.1
         const val NUMBER_W = 0.06
-        const val CHAPTER_SIZE = 0.046
+        /** The chapters at slide-title size on the wall, so the menu's courses read against them. */
+        const val CHAPTER_SIZE = 0.056
         const val MOMENT = 0.026
         const val QUIET = 0.7
+        /** The whole evening on the right pane at the end: message size and leading. */
+        const val ALL_SIZE = 0.03
+        const val ALL_LEAD = 1.25
         const val DIM = 0.3
         const val RIGHT_TOP = 0.2
         const val RIGHT_BOTTOM = 0.8

@@ -66,6 +66,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("Handover", at = 3.0)
         val paper = ColorRGBa.fromHex(Env["HANDOVER_PAPER"] ?: DEFAULT_PAPER)
         val ink = ColorRGBa.fromHex(Env["HANDOVER_INK"] ?: DEFAULT_INK)
 

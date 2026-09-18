@@ -1,0 +1,94 @@
+{
+  "feedback": {
+    "the-globe": [
+      {
+        "text": "the glove graphic should look similar to the grid lines we used in the \"esg-social-governance (Crowd)\" slide 20. \nbut instead of people it's made of objects.",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "het-programma": [
+      {
+        "text": "take away these long lines after the small grey elements. not a big fan",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "who-is-speaking": [
+      {
+        "text": "take out the right animated view; just keep it plain black.",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "the-catalogue-city": [
+      {
+        "text": "the map soft pan; i'm not so sure about; can you make it only a soft zoom in without a pan?",
+        "done": true,
+        "at": "2026-09-16"
+      },
+      {
+        "text": "make it a pleasent reveal as if you're passing through the clouds, and alements reveal one by one wit hfading",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "verticale-integratie": [
+      {
+        "text": "here it's important you do not reveal them in pairs; but one by one. on each click. also the last row should be side by side; instead of to own rows; make it the same as the ones above.",
+        "done": true,
+        "at": "2026-09-16"
+      },
+      {
+        "text": "make sure you make the elements from the willy neasens elemnts; use the subset; but avoid to use the ones with a black hole in it.",
+        "done": true,
+        "at": "2026-09-16"
+      },
+      {
+        "text": "not a fan of the object use; make it just a plain box but use the contour of the one used at \"Eigen transport\" i like that one.",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "hoe-bouw-je-een-wereld": [
+      {
+        "text": "at the quotes take away these \"titles above\" like \"Vanavond kijken.. etc you can take that out.",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "everything-a-build-answers-to": [
+      {
+        "text": "when revealing the first two can you place it more central vertically to reveal the label. do one left and then one right. an then all",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "de-cijfers": [
+      {
+        "text": "the rotation system is strange; make it more seamless like our the original sketch. inspect the \"Swivel02.kt\" for it carfully",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "domino-effect": [
+      {
+        "text": "make them animate nice to a larger overview; just zoom out instea of replacing ther location",
+        "done": true,
+        "at": "2026-09-16"
+      },
+      {
+        "text": "\"Duurzaam\" needs to be mae with a shadow binpacking drawing effect; can you implement that?",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ],
+    "esg-social-governance": [
+      {
+        "text": "the arrow state 2-21; is not a full arrow check the frame; and fix it",
+        "done": true,
+        "at": "2026-09-16"
+      }
+    ]
+  }
+}

@@ -111,6 +111,12 @@ class Factory(
 class PixelMap(
     private val shots: List<MapShot> = listOf(BENELUX),
     private val factories: List<Factory> = emptyList(),
+    /**
+     * The group's other sites — offices, showrooms, depots — drawn as small dots in [site] under
+     * the factories, so the map shows where the group is as well as where it makes things. They
+     * are never visited and never named; a factory is the subject, a site is context.
+     */
+    private val offices: List<Factory> = emptyList(),
     /** Pixels a cell, on the pane. */
     private val cell: Double = 15.0,
     private val palette: List<ColorRGBa> = GREYS,
@@ -124,6 +130,8 @@ class PixelMap(
     private val tintMax: Double = 0.0,
     /** The factory dots. */
     private val dot: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    /** The other sites' dots: blue, and half the size, so a plant and an office cannot be confused. */
+    private val site: ColorRGBa = ColorRGBa.fromHex("4674D6"),
     /** The bottom bar. */
     private val ink: ColorRGBa = ColorRGBa.fromHex("111111"),
     /** A selected factory's dot, and the colour it pulses toward while selected. */
@@ -167,6 +175,8 @@ class PixelMap(
     private var places: List<Vector2?> = emptyList()
     /** The same on the projection, in Web Mercator km. */
     private var sites: List<Vector2?> = emptyList()
+    /** The other sites on the projection, in Web Mercator km. */
+    private var officeSpots: List<Vector2?> = emptyList()
     /** The middle of the factories, as longitude and latitude. See [FactoryCluster]. */
     private var cluster: Vector2 = Vector2(BENELUX.lon, BENELUX.lat)
     private lateinit var bold: FontImageMap
@@ -186,7 +196,9 @@ class PixelMap(
         val cols: Int,
         val rows: Int,
         /** The middle of the cell each factory's dot stands in, in Web Mercator km. */
-        val dots: List<Vector2?>
+        val dots: List<Vector2?>,
+        /** The other sites, snapped to their cells; two may share one, being context rather than a count. */
+        val offices: List<Vector2?>
     )
 
     override fun load(program: Program) {
@@ -224,6 +236,11 @@ class PixelMap(
             lonLat
         }
         sites = places.map { it?.let { lonLat -> webMercator(lonLat) } }
+        officeSpots = offices.map { office ->
+            val lonLat = office.lonLat ?: geocode(office.street, office.postcode, office.place, office.country)?.lonLat
+            if (lonLat == null) println("  %-32s NOT FOUND — not drawn".format(office.name))
+            lonLat?.let { webMercator(it) }
+        }
         cluster = places.filterNotNull().takeIf { it.isNotEmpty() }
             ?.let { Vector2(median(it.map { p -> p.x }), median(it.map { p -> p.y })) }
             ?: Vector2(BENELUX.lon, BENELUX.lat)
@@ -237,8 +254,8 @@ class PixelMap(
         val most = counts.maxOrNull()?.coerceAtLeast(1) ?: 1
         fills = greys(countries).mapIndexed { k, grey -> grey.towards(tint, tintMax * counts[k] / most) }
 
-        println("pixel map: %d countries, %d factories (%s) in %.1fs".format(
-            countries.size, sites.count { it != null },
+        println("pixel map: %d countries, %d factories, %d other sites (%s) in %.1fs".format(
+            countries.size, sites.count { it != null }, officeSpots.count { it != null },
             countries.indices.filter { counts[it] > 0 }.joinToString { "${countries[it].code} ${counts[it]}" },
             (System.currentTimeMillis() - began) / 1000.0))
     }
@@ -305,6 +322,11 @@ class PixelMap(
         val breath = 0.5 - 0.5 * cos(2.0 * PI * stage.frame / BLINK_PERIOD)
         val blue = picked.towards(pickedPulse, breath)
         drawer.stroke = null
+
+        // The other sites first, small and blue, so a factory standing on one covers it.
+        drawer.fill = site
+        frozen.offices.forEach { centre -> if (centre != null) drawer.circle(screen(centre), radius * OFFICE) }
+
         frozen.dots.forEachIndexed { j, centre ->
             if (centre == null) return@forEachIndexed
             drawer.fill = if (selected[j] > 0.0) dot.towards(blue, selected[j]) else dot
@@ -440,7 +462,14 @@ class PixelMap(
             taken += key(free.first, free.second)
             Vector2(corner.x + (free.first + 0.5) * cellKm, corner.y - (free.second + 0.5) * cellKm)
         }
-        return Frozen(w.toInt(), h.toInt(), image, corner, cellKm, cols, rows, dots)
+        // The other sites take the middle of their own cell and may share one.
+        val officeDots = officeSpots.map { spot ->
+            spot?.let {
+                Vector2(corner.x + (floor((it.x - corner.x) / cellKm) + 0.5) * cellKm,
+                        corner.y - (floor((corner.y - it.y) / cellKm) + 0.5) * cellKm)
+            }
+        }
+        return Frozen(w.toInt(), h.toInt(), image, corner, cellKm, cols, rows, dots, officeDots)
     }
 
     // A span is stated in km of ground, and Mercator stretches the ground by latitude, so it is
@@ -602,8 +631,9 @@ private fun ColorRGBa.towards(other: ColorRGBa, t: Double) = ColorRGBa(
 /** How many panes the frozen grid spans each way; odd, so the pane's own cells stay centred. */
 private const val REACH = 3
 
-/** A factory dot's radius, as a share of the cell. */
+/** A factory dot's radius, as a share of the cell; another site's, as a share of that. */
 private const val DOT = 0.45
+private const val OFFICE = 0.5
 
 /** Samples a cell, along each side. */
 private const val SAMPLES = 4

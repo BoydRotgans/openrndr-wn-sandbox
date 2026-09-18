@@ -56,6 +56,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("ChapterTitle", at = 3.0)
         // The show's four, by number. Stated here rather than read off the show, because
         // loading the show loads every slide in it — ten seconds for a card that takes none.
         val chapters = Env["TITLE_TEXT"]?.split("|")?.map { it.trim() }?.filter { it.isNotEmpty() }

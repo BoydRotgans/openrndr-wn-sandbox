@@ -9,7 +9,9 @@ import org.openrndr.draw.Drawer
 import org.openrndr.draw.isolated
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import slideshow.Arrival
 import slideshow.Slide
+import slideshow.pitchStep
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
@@ -58,6 +60,27 @@ class HundredElements(
         pieces = loadObjectSheet(sheet)
         order = pieces.indices.shuffled(Random(seed))
         println("hundred elements: ${pieces.size} pieces off ${sheet.path}")
+    }
+
+    /**
+     * A note a piece as the field lays itself out, and one for the deal that shuffles it.
+     *
+     * The opening is the same expression `draw` reads — `stage.since(i * ARRIVE_STEP / 2, …)` —
+     * so the run ticks past at the rate the pieces really land, which is two a frame: 115 of them
+     * inside a second. The click is one event and gets a lane of its own, because what happens
+     * there is every piece travelling at once rather than any of them arriving.
+     */
+    override val lanes: List<String> get() = listOf("the field", "the deal")
+
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val n = pieces.size
+        if (n <= 0) return super.arrivals(clicks)
+        val landing = frames(ARRIVE)
+        val laid = (0 until n).map { i ->
+            Arrival(lane = 0, index = pitchStep(i, n), start = i * ARRIVE_STEP / 2, length = landing)
+        }
+        val dealt = clicks.firstOrNull()?.let { listOf(Arrival(lane = 1, index = 0, start = it, length = stepLength(1))) }
+        return laid + dealt.orEmpty()
     }
 
     /** The two trains for a field of this size, laid the first time the field is seen. */

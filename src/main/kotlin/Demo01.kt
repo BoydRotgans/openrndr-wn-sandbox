@@ -39,6 +39,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("Demo01", at = 3.0)
         /** The space the boxes divide. */
         fun space() = Rectangle(MARGIN, MARGIN, width - 2 * MARGIN, height - 2 * MARGIN)
 

@@ -53,9 +53,18 @@ fun geocode(street: String, postcode: String, place: String, country: String): G
     val noArticles = firstNumber.split(Regex("\\s+")).filterNot { it.lowercase() in ARTICLES }.joinToString(" ")
     val streets = listOf(firstNumber, noArticles).distinct()
 
+    // **The town is never given up while the street is kept.** Every form that names the place
+    // is tried first, then the place alone, and only then the street without it. Ordered the
+    // other way — street plus postcode with no place, third in the list — a generic street name
+    // matches anywhere in the country and the postcode does not save it: "Route Nationale,
+    // 76340 Foucarmont" landed on a Route Nationale near Geneva, 450 km from the town it names,
+    // and drew a Willy Naessens factory in the south of France. Falling back to the town alone
+    // costs precision, which the caller can see in the printed match; falling back to the street
+    // alone costs the answer, and says nothing.
     val attempts = streets.flatMap { s ->
-        listOf(Attempt(s, postal, place), Attempt(s, null, place), Attempt(s, postal, null))
-    } + listOf(Attempt(null, postal, place), Attempt(null, null, place))
+        listOf(Attempt(s, postal, place), Attempt(s, null, place))
+    } + listOf(Attempt(null, postal, place), Attempt(null, null, place)) +
+        streets.map { Attempt(it, postal, null) }
 
     var hit: GeoHit? = null
     for (attempt in attempts) {

@@ -39,6 +39,10 @@ import java.util.concurrent.Executors
  *     POST /api/previews         { "ids": [...] }?            render previews again
  *     PUT  /api/order            an order file's contents      save the running order
  *     PUT  /api/modules          a modules file's contents     save the slides to build
+ *     PUT  /api/intents          an intents file's contents    save the intended update per slide
+ *     PUT  /api/feedback         a feedback file's contents    save the notes written against slides
+ *     PUT  /api/midi             a midi file's contents        save which slides are wanted as MIDI
+ *     POST /api/export                                         write every ticked slide's clip and score
  *     GET  /previews/<id>-<k>.png
  *     GET  /references/<frame>-wall.jpg | <frame>-pane.png
  *
@@ -66,7 +70,11 @@ class Remote(
     private val port: Int,
     val previewDir: File,
     private val modulesFile: File = File("show-modules.json"),
-    private val references: References = References.NONE
+    private val references: References = References.NONE,
+    private val intentsFile: File = File("show-intents.json"),
+    private val feedbackFile: File = File("show-feedback.json"),
+    private val midiFile: File = File("show-midi.json"),
+    private val midiDir: File = File("midi")
 ) {
     sealed interface Command
     data class Go(val id: String, val step: Int) : Command
@@ -81,12 +89,31 @@ class Remote(
     data class ApplyModules(val modules: Modules) : Command
     /** The concrete over the frame on or off; null flips it. */
     data class Concrete(val on: Boolean?) : Command
+    /** The ruled grid over the wall on or off; null flips it. See [GridOverlay]. */
+    data class Grid(val on: Boolean?) : Command
+    /**
+     * Write these slides' builds out as MIDI files.
+     *
+     * It is a command rather than something the server does on its own thread for the reason
+     * every other one is: the slides belong to the draw loop. Nothing here needs a frame — a
+     * build is a pure function of the frame and the schedule is read off the drawer — but the
+     * rule is what keeps the two sides from ever having to think about it.
+     */
+    data class ExportMidi(val ids: List<String>) : Command
+    /**
+     * Write every ticked slide out whole: its score *and* a clip of it, one pair a slide.
+     *
+     * It is the other half of the tick. [ExportMidi] keeps the files that cost nothing in step
+     * with the toggle; this is the run that takes minutes and is asked for when it is wanted.
+     */
+    data class Export(val ids: List<String>) : Command
 
     /** Where the show stands, written by the draw loop once a frame. */
     data class Snapshot(
         val index: Int, val id: String, val step: Int, val steps: Int, val frame: Int,
         val previewsLeft: Int, val previewStamp: Long,
-        val concrete: Boolean = false, val hasConcrete: Boolean = false
+        val concrete: Boolean = false, val hasConcrete: Boolean = false,
+        val grid: Boolean = false
     )
 
     val commands = ConcurrentLinkedQueue<Command>()
@@ -114,6 +141,45 @@ class Remote(
     /** The modules file as last read or saved. */
     @Volatile
     var modules: Modules = if (modulesFile.isFile) runCatching { Modules.read(modulesFile) }.getOrDefault(Modules.EMPTY) else Modules.EMPTY
+        private set
+
+    /**
+     * The intended update per slide, as last read or saved. It carries no behaviour, so a save
+     * queues no command: the page is the only thing that reads it and the deck never sees it.
+     */
+    @Volatile
+    var intents: Intents = if (intentsFile.isFile) runCatching { Intents.read(intentsFile) }.getOrDefault(Intents.EMPTY) else Intents.EMPTY
+        private set
+
+    /**
+     * Which slides are wanted as MIDI, as last read or saved. Unlike the intents this one does
+     * carry a consequence — a save writes the files — so it queues an [ExportMidi]; and like the
+     * feedback it is saved the moment it is ticked, a toggle being a whole edit in one click.
+     */
+    @Volatile
+    var midi: MidiWanted = (if (midiFile.isFile) runCatching { MidiWanted.read(midiFile) }.getOrDefault(MidiWanted.EMPTY) else MidiWanted.EMPTY)
+        private set
+
+    /** Where a slide's MIDI is written, and what it is called. */
+    fun midiFileOf(id: String): File = File(midiDir, "$id.mid")
+
+    /** Its clip, beside it and named for it, so a pair is a pair by its name. */
+    fun clipFileOf(id: String): File = File(midiDir, "$id.mp4")
+
+    /** How far the export has got, written by the draw loop for the page to poll. */
+    @Volatile var exporting: String = ""
+    @Volatile var exportDone: Int = 0
+    @Volatile var exportTotal: Int = 0
+    @Volatile var exportFrame: Int = 0
+    @Volatile var exportFrames: Int = 0
+
+    /**
+     * The notes written against slides, as last read or saved. Like the intents it carries no
+     * behaviour, so a save queues no command; unlike them it is saved the moment it is written.
+     */
+    @Volatile
+    var feedback: Feedback = (if (feedbackFile.isFile) runCatching { Feedback.read(feedbackFile) }.getOrDefault(Feedback.EMPTY) else Feedback.EMPTY)
+        .also { if (it.total > 0) println("feedback: ${it.open} open of ${it.total} notes, off ${feedbackFile.path}") }
         private set
 
     /** The draw loop's word that [next] is now what plays. */
@@ -197,6 +263,10 @@ class Remote(
                     commands += Concrete(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
                 }
+                path == "/api/grid" && method == "POST" -> {
+                    commands += Grid(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
+                    exchange.json(202, ok())
+                }
                 path == "/api/previews" && method == "POST" -> {
                     val ids = runCatching { exchange.body()["ids"]?.jsonArray?.map { it.jsonPrimitive.content } }.getOrNull()
                     commands += Previews(ids)
@@ -225,6 +295,65 @@ class Remote(
                     commands += ApplyModules(kept)
                     println("organizer: saved ${modulesFile.path} (${kept.modules.size} modules to build)")
                     exchange.json(200, buildJsonObject { put("saved", modulesFile.path); put("applied", true) })
+                }
+                path == "/api/intents" && method == "PUT" -> {
+                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val next = runCatching { Intents.parse(text) }.getOrElse {
+                        exchange.json(400, error("not an intents file: ${it.message}"))
+                        return
+                    }
+                    // The file's own header is the show's, not the page's, so it is kept.
+                    val kept = Intents(next.intents, next.note ?: intents.note)
+                    kept.write(intentsFile)
+                    intents = kept
+                    println("organizer: saved ${intentsFile.path} (${kept.size} slides with an intent)")
+                    exchange.json(200, buildJsonObject { put("saved", intentsFile.path); put("applied", true) })
+                }
+                path == "/api/feedback" && method == "PUT" -> {
+                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val next = runCatching { Feedback.parse(text) }.getOrElse {
+                        exchange.json(400, error("not a feedback file: ${it.message}"))
+                        return
+                    }
+                    val kept = Feedback(next.items, next.note ?: feedback.note)
+                    kept.write(feedbackFile)
+                    feedback = kept
+                    println("organizer: saved ${feedbackFile.path} (${kept.open} open of ${kept.total} notes)")
+                    exchange.json(200, buildJsonObject { put("saved", feedbackFile.path); put("open", kept.open) })
+                }
+                path == "/api/midi" && method == "PUT" -> {
+                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val next = runCatching { MidiWanted.parse(text) }.getOrElse {
+                        exchange.json(400, error("not a midi file: ${it.message}"))
+                        return
+                    }
+                    // Every slide can be written down — the floor is its own states, see Slide —
+                    // so what is dropped here is only an id the show does not have, which would
+                    // otherwise sit in the file promising an export that never appears.
+                    val known = catalogue.slideIds.toSet()
+                    val kept = MidiWanted(next.ids.filter { it in known }.toSet(), next.note ?: midi.note)
+                    kept.write(midiFile)
+                    midi = kept
+                    commands += ExportMidi(kept.ids.toList())
+                    println("organizer: saved ${midiFile.path} (${kept.size} slides wanted as MIDI)")
+                    exchange.json(200, buildJsonObject {
+                        put("saved", midiFile.path)
+                        put("wanted", kept.size)
+                        put("files", JsonArray(kept.ids.sorted().map { JsonPrimitive(midiFileOf(it).path) }))
+                    })
+                }
+                path == "/api/export" && method == "POST" -> {
+                    if (midi.ids.isEmpty()) exchange.json(400, error("nothing is ticked for export"))
+                    else {
+                        commands += Export(midi.ids.toList())
+                        exchange.json(200, buildJsonObject { put("exporting", midi.size) })
+                    }
+                }
+                path == "/api/sketches" && method == "GET" -> exchange.json(200, Sketches.json())
+                path.startsWith("/sketch-previews/") && method == "GET" -> {
+                    val file = Sketches.preview(path.removePrefix("/sketch-previews/"))
+                    if (file == null) exchange.send(404, ByteArray(0), "text/plain")
+                    else exchange.send(200, file.readBytes(), "image/png", cache = false)
                 }
                 path.startsWith("/previews/") && method == "GET" -> {
                     val name = path.removePrefix("/previews/")
@@ -271,6 +400,13 @@ class Remote(
             put("order", order.toJson())
             put("declared", declared.toJson())
             put("modules", modules.toJson())
+            put("intentsFile", intentsFile.path)
+            put("intents", intents.toJson())
+            put("feedbackFile", feedbackFile.path)
+            put("feedback", feedback.toJson())
+            put("midiFile", midiFile.path)
+            put("midiDir", midiDir.path)
+            put("midi", midi.toJson())
             put("frames", JsonArray(references.frames.map { frameJson(it) }))
             put("previewStamp", previewStamp)
         }
@@ -288,6 +424,10 @@ class Remote(
             put("kind", slide.kind)
             put("wide", slide.wide)
             put("module", module != null)
+            // What this slide's score is written on: a lane a column for the Plain wall, a lane
+            // a click for the crowd, and for everything else one lane of its own states. Every
+            // slide has some, which is why the organizer's midi button is never refused.
+            put("midiLanes", JsonArray(slide.lanes.map { JsonPrimitive(it) }))
             put("steps", slide.steps)
             put("stepSeconds", seconds(slide.stepFrames))
             put("loopSeconds", seconds(slide.loop))
@@ -319,7 +459,9 @@ class Remote(
         return buildJsonObject {
             put("index", s.index); put("id", s.id); put("step", s.step); put("steps", s.steps)
             put("frame", s.frame); put("previewsLeft", s.previewsLeft); put("previewStamp", s.previewStamp)
-            put("concrete", s.concrete); put("hasConcrete", s.hasConcrete)
+            put("concrete", s.concrete); put("hasConcrete", s.hasConcrete); put("grid", s.grid)
+            put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
+            put("exportFrame", exportFrame); put("exportFrames", exportFrames)
         }
     }
 
@@ -363,7 +505,7 @@ class Remote(
                 val last = slide.steps - 1
                 val mid = last / 2
                 listOf(0, mid, last).map { step ->
-                    PreviewShot(step, PREVIEW_HOLD + slide.settle + step * slide.stepFrames,
+                    PreviewShot(step, PREVIEW_HOLD + slide.settle + (1..step).sumOf { slide.stepLength(it) },
                         if (step == 0) "opening" else "click $step")
                 }
             }

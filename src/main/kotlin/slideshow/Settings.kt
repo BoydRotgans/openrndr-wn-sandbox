@@ -35,8 +35,27 @@ data class Settings(
     val title: String = "slideshow",
     /** Slide to open on: a number from 1, or a slide's name. Empty starts at the first. */
     val start: String? = null,
+    /**
+     * The last slide a hands-off run plays, inclusive — a number from 1 or a slide's name, the
+     * same forms [start] takes. Empty runs to the end of the deck, which is what it always did.
+     *
+     * **It bounds the cue list, not the deck.** A written run ends where its holds run out, so
+     * with `SLIDES_CUES=auto` this is how a chapter is filmed on its own: the deck still holds
+     * every slide and the arrows still reach them, but the run stops clicking at this one and a
+     * filmed run ends there. Anything else would be a second notion of what the deck contains,
+     * and the show is one running order.
+     */
+    val until: String? = null,
     /** Open with the debug overlay up. It can be toggled with `d` either way. */
     val debug: Boolean = false,
+    /**
+     * Name every frame with its slide and click — `panels-turning-A` — in a box on the wall.
+     *
+     * Unlike the debug overlay and the grid this is drawn **into the canvas**, so it lands in a
+     * still, a preview and a filmed run. That is what it is for: a review copy that says which
+     * slide is which. Off for anything that will be projected.
+     */
+    val nameplate: Boolean = false,
     /** Seconds between automatic clicks, for recording a run hands-off. 0 leaves it to the keys. */
     val autoStep: Double = 0.0,
 
@@ -120,6 +139,27 @@ data class Settings(
     val modules: String? = null,
 
     /**
+     * The intents file: the intended update per slide, shown in the organizer beside the
+     * speaker notes and edited there. It carries no behaviour and the deck never reads it —
+     * see [Intents]. Null, or no file there, shows none.
+     */
+    val intents: String? = null,
+
+    /**
+     * The feedback file: notes written against a slide in the organizer while it is watched,
+     * each ticked off once acted on — see [Feedback]. It carries no behaviour and the deck
+     * never reads it. Null, or no file there, starts an empty one on the first note.
+     */
+    val feedback: String? = null,
+
+    /**
+     * The file saying which slides are wanted as MIDI — ticked in the organizer, written as
+     * `midi/<slide-id>.mid` whenever it is saved. See [MidiWanted]. Only a slide that is
+     * [MidiTimed] can be ticked; null, or no file there, wants none.
+     */
+    val midi: String? = null,
+
+    /**
      * Where the reference frames are: the client's deck cut into pictures by
      * `tools/reference_frames.py`, one a frame, with `frames.json` beside them. A
      * placeholder shows the frames it stands for, and the organizer shows every frame
@@ -133,6 +173,16 @@ data class Settings(
      * Null plays nothing under the slides. See [ShowBuilder.slideBed].
      */
     val slideBed: Sound? = null,
+
+    /**
+     * A sound design delivered as a folder named against the show — one wav per state of one
+     * slide, placed by the file's own name rather than by anything stated here. Null is a show
+     * whose cues are all declared in `Slideshow.kt`. See [CueSheet], and [ShowBuilder.cueSheet].
+     *
+     * Named apart from [cues], which is the list of *holds* a hands-off run steps on — a
+     * different thing entirely, and the reason this one says sheet.
+     */
+    val cueSheet: CueSheet? = null,
 
     /**
      * A concrete texture laid over the whole finished frame, as if the show were projected onto

@@ -1150,6 +1150,223 @@ which are the evening around the talk rather than the talk.
 modules. The studio reads the same catalogue, so `SLIDE=recyclage` opens a placeholder on its
 frames.
 
+### The intended update per slide
+
+`show-intents.json` is what each slide should *become*, shown in the organizer under the speaker
+notes and edited there; `SLIDES_INTENTS` names it. It is written against
+[`style-guide/principles.md`](style-guide/principles.md), which is the twelve reusable principles
+the refactor works to — five that decide how a thing looks standing still, five that decide how it
+changes, and two that belong to the room.
+
+**It is deliberately not `notes`, and the split is the point.** A slide's notes are what is *said
+over it*: the spoken script, in Dutch, which the narrative plan wants kept beside the slide it
+belongs to so it cannot drift out of step with the running order. An intent is build direction.
+Keeping them apart means neither has to be edited around the other, and an intent that has been
+carried out is cleared without touching a word of what the speaker says.
+
+**It carries no behaviour, which is why it may be a file at all.** The argument under [declaring the
+show](#declaring-the-show) still stands — a json deck would need a registry — and this file does not
+carry slides, only a paragraph a person reads about one. So `PUT /api/intents` queues no command,
+the draw loop never sees it, and saving an intent changes nothing on the wall. An id no slide
+answers to is carried along and shown to nobody. The value may be one string or a list of
+paragraphs, the way a module's brief is.
+
+### The refactor of 16 September
+
+The show was brought onto [`style-guide/principles.md`](style-guide/principles.md) and the
+general feedback of that day, in the order of [`style-guide/refactor-plan.md`](style-guide/refactor-plan.md).
+What changed, and the traps met doing it:
+
+**The principles are classes in `slideshow/`.** `Palette` (colour as five roles on three grounds),
+`Scale` (type as five roles, with the projection in it: 12 m walls, 6.25 mm a pixel, 9 m away —
+`Scale.arcminutes` is the legibility check), `Frame` (one margin, the title line, the foot, the
+corners), `Moves.kt` (`Arrive` with its stagger, `Grow`, `Swap`, `Count`, `Leader`), `Slots` (the
+re-forming formation, with nearest-place matching) and `Breathe` (the bounded, never-repeating
+drift for things that stand for minutes). They are adopted where the refactor touched a drawer —
+`ShadowFacade` breathes and wanders its lamp through `Breathe`, `HiddenStory` draws its leaders
+through `Leader`, `GridOverlay` rules `Frame`'s lines — and the rest of the drawers still state
+their own numbers, which is the work that remains.
+
+**A click can have its own length.** `Slide.stepLength(step)` is the length of the click that
+lands on `step`, `stepFrames` by default; the deck's playhead takes it when the click starts
+(going back, the click being undone is the one that landed on the higher step), the auto cues
+and the previews read it. The city's cull is 3.5 s against its push's 12, so the survivor no
+longer stands alone for nine seconds on a filmed run.
+
+**The grid over the wall.** `GridOverlay` is the opening wall's ruled field lifted out and laid
+over any slide: cells every 96 px, the seam, each pane's margin, title line and foot, the
+coordinates along the edges. Drawn on the window like the debug overlay, so never in a still or
+a preview; `g` and the organizer's `grid` button switch it, through `Remote.Grid`.
+
+**The second round of feedback, 16 September.** Four slides, and two of them needed the drawer
+rethought rather than a value changed:
+
+- **The stack builds a box at a time**, not a row: `stackRows` now takes a fraction per band
+  rather than one count, a band stands as far as its *first* box has arrived, and the boxes after
+  it grow out of their own left edges. Its last two rows became a pair like the ones above, so it
+  is five rows of two and ten states. And **a bar is a field of one catalogue piece** off the
+  subset, with the holed pieces dropped — a hole shows the ground through a bar. The piece is
+  sized to a share of the *pane*, not of its band: scaled to the band, the opening band is the
+  whole frame and came out as two enormous silhouettes, where a fixed grain reads as the same
+  material at every stage of the build. The grid is a whole number of pieces both ways and
+  centred, so nothing is cut at a box's edge.
+- **The city comes up out of nothing** as the camera closes in, asked for as passing through
+  cloud. A plan is a part of the one mesh, so what sweeps is a part index: everything behind the
+  front is one draw call and the front is two dozen bands, each a call at its own opacity. Banding
+  is what makes it affordable — seven thousand plans fading individually would be seven thousand
+  calls a frame. Its opening pan is gone: a frame that travels sideways while it closes in reads
+  as a camera being aimed.
+- **The programme's course rules are gone**, and **the name tag's right pane is plain black**
+  again — the opening wall drawn into it lasted a day. Both are the same lesson: a second thing
+  to attend to, beside something being read.
+
+**The quotes are ranged left.** `TypeBlock.draw` takes an `align` — 0.5 centres a line as it
+always did, 0 ranges it left off the point given — and `QuoteSlide` passes 0 for both the passage
+and its lead line, off the measure's own left edge. Asked for on 16 September, and it is the
+better setting for the reason a centred passage of four ragged lines has no edge at all: ranged,
+the eye has one edge to come back to and the lead line stands on it. Every quote in the show goes
+through this drawer, the four chapter openings and the four takeaways alike.
+
+**Every chapter re-enters and resolves.** `QuoteSlide` gained `lead`, a quiet line above the
+passage; each chapter's opening quote carries its recap there, and `takeaway(n, sentence)` in
+`Slideshow.kt` closes each chapter on a quote slide headed "Om mee te nemen" (`kernboodschap-n`
+in the order). The four sentences are DRAFTS from the script plan's bridges. `chapterMessages`
+holds the four key messages once, read by the programme wall and the opening quotes, which had
+drifted apart.
+
+**The general feedback, slide by slide.** The chapter card is cut the other way round (ground
+deep, letters shallow, so light letters stand in a dark wall) and breathes visibly: at `depth =
+0.6` the ground stayed a mid grey, at 1.1 the shadow crosses the whole opening at the resting sun
+and the wall goes dark. The tree names `highlights` one a click before it fans. The stack's last
+band is blue. `Swivel02Slide(clicked = true)` is a figure a click, centred and close up, and the
+two figures slides are one (`de-cijfers`, eight clicks). The city's opening zooms in softly from
+just above the floor zoom with a small pan (`OPEN_FROM` 1.04 keeps the extent's edge out of shot
+under the pan). The pixel map carries every site off the contact page as small blue dots
+(`offices`), the sea is blue, and the Netherlands turns out to hold an office at Nieuwkuijk and
+no plant. The certificate slide reveals one measure a click after the certificate goes, with a
+farewell line where it stood. The hidden story's leader lands on the red level: the corner
+nearest the lettering carried to the cut's height and projected again. The disassembly pieces
+stand square to the city, on middling roofs, and lift, carry and lower one after another.
+
+**Two traps.** `SLIDE=Reduction` in the studio opens `ReductionProcess`, whose name is exactly
+"Reduction", not `RealReduction`; ask by class. And the studio loads only the slide asked for,
+so `NameTag`'s companion — the opening wall drawn into its right pane — is blank there and can
+only be checked in the show.
+
+**The order.** `block-city` is archived and `block-city-plain` moved from chapter 4 into the
+second course; `slabs-travelling` is gone into `de-cijfers`; `levenscyclus-analyse` became
+`levenscyclusanalyse` when its title became one word; four `kernboodschap-n` close the chapters.
+**Renaming a chapter in `Slideshow.kt` has to be mirrored in `show-order.json`**, which names
+chapters by title: with "The circle: Een…" corrected to "The Circle: een…" in the Kotlin alone,
+every chapter 4 slide lost its card and stood beside chapter 3's for the whole chapter on the
+filmed run of 16 September. The same goes for a slide's title, which is its id.
+
+**The case studies are composed views.** A `BlueprintCase` carries `details`, each a region of one
+drawing with a caption; a case is its overview then a detail a click, the framed pane scaling
+about the region's centre in log space while the other pane keeps its drawing whole and the facts
+give way to the caption. Between cases the through-black handover is as before. The drawings take
+80% of the pane and the facts stand in the bands above and below, never on the dimension lines.
+Kievits II carries two PLACEHOLDER regions; the details worth framing are WN's to name.
+
+**Sound.** `markCue` (`clic.wav`) marks the counted builds in chapters 2 to 4 — the life cycle's
+columns, the reduction's steps, the certificate's illustrations — where before only chapter 1 had
+marks. The ending and the closing wall carry the arrival's `ambience`, so the exit is no longer
+silent and the bed crosses from the one to the other without a dip. Four stings and a bed that
+fades across a chapter boundary wait on files and on `Speakers`.
+
+**A piece's yaw is not free under the isometric camera.** Turned a quarter off the city's axes,
+every panel in `DisassemblyCity` stood edge-on to the camera and drew as a red door frame with no
+body — in the studio and in the show alike, which is what showed it was the yaw and not the
+recorder. The pieces now all face the room at `FACING`, a quarter turn from the camera's own
+diagonal, which is also what "placed exactly" looks like.
+
+**The third round of feedback, 16 September.** Seven notes, and three of them were a motion being
+wrong rather than a value:
+
+- **A clamped ramp is not a wave, and `Swivel02Slide`'s clicked train showed it.** A slab's turn
+  came off `(i + travel).coerceIn(-1, 1)` and its depth off `abs` of the same, so every slab more
+  than one place off centre sat at the identical extreme angle — a slab entering the frame stood
+  *dead still* until it crossed the clamp and then started moving — and the depth had a corner in
+  it at the middle, so a slab passing the centre reversed rather than eased through. The sketch it
+  came from has neither: `TURNS` and `DEPTHS` are `-45·cos(iπ/2)` and `90·sin(iπ/2)`, one smooth
+  wave down the train. The clicked train is that same wave with its zero on whichever slab is
+  centred. The centred slab is now *nearest* the eye rather than furthest, which needs the train
+  painted back to front — sorted by distance off centre — since nothing here writes depth.
+- **A pure zoom needs something at its centre to hold still, so the domino's grids went odd.** One,
+  four, sixteen cannot be a zoom at all: an even grid has a corner at the middle, so the single
+  tree has to travel into a quadrant and what the eye reads is a re-deal. One, nine, twenty-five
+  is the same idea with a middle — every tree keeps its place on a lattice measured from the
+  centre of the field, only the division changes, and the opening tree shrinks where it stands
+  while the ring around it comes in from beyond the edge. The division is interpolated in log
+  space, the case study's rule, because what reads as an even pull-back is an even ratio.
+- **The crowd's arrow had no point.** Its head tapered to *nothing* at `ARROW_TIP`, and a row's
+  centre is half a row off the axis at the nearest — so the innermost row fell outside the polygon
+  well before the tip and the last eighth of the head carried no figures, leaving a blunt arrow
+  with the one out in front standing beyond a gap. `ARROW_POINT` is how deep the head still is at
+  the tip, in rows: at 1.0 the two rows either side of the axis stand all the way to it.
+
+The other four: **the stack's bars are one plain box drawn with a catalogue piece's contour**
+(`barPiece`, the notched slab, stretched to whatever box it fills) rather than a field of pieces
+tiled inside them — a run of silhouettes in a bar reads as texture where the bar itself is what is
+being counted, and it is stated rather than read off the row order so re-ordering the rows cannot
+quietly change what the stack is drawn with. **Nothing stands above a quote**: `QuoteSlide`'s
+`lead` is gone, and with it the chapter recaps and "Om mee te nemen" — a title over a quote is
+read first and is not the quote. **A highlight on the tree stands beside the root** while it is
+the only thing on the pane, half a row off the middle so the word can be read, and the fan's own
+click carries it out to its row; the two are named one a side, so the pane reads left, then right,
+then all of it. And **DUURZAAM is packed out of the catalogue** rather than set as type — the word
+into a plate nobody sees, `objectMosaic` walking a quadtree over it, the ground cells thrown away
+(the card keeps them and lets colour tell ink from ground; here the word has to stand alone on
+black), 1445 elements arriving one at a time through `MOSAIC_ARRIVAL` in one draw call. That click
+takes its own `stepLength`: at the deck's own pace the whole arrival would run in a third of a
+second, which is a cut with a blur on it.
+
+### Naming the frames
+
+`SLIDES_NAMEPLATE=true` puts the slide's id and its click in a box in the top left —
+`panels-turning-A`, `panels-turning-B`, `panels-turning-C` — which is what makes a review copy of
+the film answerable: a note written against `domino-effect-C` lands on exactly the state it was
+written about, because that id is the one the order file, the organizer and `show-feedback.json`
+all use.
+
+**It is drawn into the canvas, and that is the one thing that separates it from every other
+overlay here.** `SLIDES_DEBUG` and the grid are laid on the *window*, on top of the finished
+frame, precisely so they scale with the screen and never reach a still, a preview or a clip. The
+nameplate has to reach the clip, so it is composited into the canvas with everything else, in
+canvas pixels, before the canvas is fitted into the window. It follows that it also lands in
+stills and previews, which is why it is off in the committed `.env` and has to be asked for: a
+show that is being projected must not carry it.
+
+**The letter counts from A at the slide's opening state**, which is the state a slide arrives on
+rather than a click anyone made, and it doubles past Z rather than wrapping — a wrap would give
+two states of one slide the same name, which is the one thing a label like this may not do.
+
+The plate goes **top left**, over the chapter card. The wall is two 1920x1080 projectors meeting
+at x = 1920 and a box across that seam is the one place nothing here may go; the card's corner is
+also the part of the wall a slide never composes into. [`NAMEPLATE_SIZE`](src/main/kotlin/slideshow/Nameplate.kt)
+is stated in one place because the box is measured against it — loaded at one size and boxed at
+another, the type hangs off the end of its own plate — and it is generous, 46 canvas pixels, since
+a 3840 frame watched on a laptop is scaled by about a third.
+
+### Feedback on a slide
+
+`show-feedback.json` is what the show is told about itself: notes written against a slide in the
+organizer while it is watched, each with a tick for "addressed" and the day it was written, the
+next one written under it. `SLIDES_FEEDBACK` names it; the detail pane carries the list under the
+intended update, and a navigator card shows an amber count of what is still open on it.
+
+**It is a list a slide where an intent is a field.** An intent is one paragraph rewritten as the
+plan changes; feedback accumulates, so a ticked note is kept rather than deleted and what was
+asked for stays readable beside what was done about it. Together they are the two halves of a
+slide's brief: `notes` is what is *said over* it, `intent` is what it should *become*, and
+`feedback` is what has been *asked of it* since.
+
+**It saves the moment it is written**, unlike the order, the modules and the intents, which wait
+on the save button. A note made while a wall is on screen should not be waiting on anything, and
+nothing downstream depends on it: `PUT /api/feedback` queues no command and the deck never reads
+the file. A note may also be written by hand as a bare string in the array, which the parser
+takes as an open note with no date.
+
 ### One slide on its own
 
 [`SlideStudio.kt`](src/main/kotlin/SlideStudio.kt) runs a single drawer at the size of the pane
@@ -2258,6 +2475,23 @@ identical to a watched one — which a wall clock would give none of.
 the piece rather than an oversight: they are fixed to the thing that is spinning, and flipping
 them to stay upright would snap each one over as it crossed the bottom.
 
+**The disc is a globe drawn in catalogue pieces**, on the feedback of 16 September that it should
+look like the Crowd slide's grid lines with components in place of its people. Its meridians and
+parallels are strings of pieces — white meridians travelling east as it turns, blue parallels
+standing still, only the near half drawn, each piece a little smaller toward the rim so the sphere
+turns away. `sheet` null gives the flat disc back.
+
+**Crowd's own approach was built first and does not survive the change of subject.** A full field
+of pieces with the ones a grid line passes through picked out in blue is exactly what Crowd does,
+and it came out as speckle: Crowd's figures are one narrow silhouette repeated, so a coloured run
+of them reads as a line, where a hundred components at a hundred widths do not. Two further things
+were measured on the way and are worth keeping: at twice the cell size the samples straddle a
+meridian nearly everywhere near the rim, where longitude compresses, and the globe goes almost
+wholly blue; and pieces drawn at 0.78 of their cell touch each other, so the black between them —
+which is what makes any lattice read — disappears. Drawing only the lines says the same thing and
+leaves the disc small enough that the ring of words is still set at label size, which a stated
+`size = 0.32` did not: at that radius the type around it came out at ten pixels.
+
 #### The stack
 
 `StackUp` is `demo01`'s `packBoxes` as a slide: the first band is the whole frame, and every
@@ -2478,8 +2712,20 @@ written, so each is tried in simpler forms until one answers: only what follows 
 ("Industriezone II, Nederwijk-Oost 279" finds nothing, "Nederwijk-Oost 279" the building), a range
 as its first number, and without Dutch articles ("Bedrijvenpark de Coupure 15" finds nothing,
 "Bedrijvenpark Coupure 15" the building). The load prints what each matched and at what
-precision; `Factory(lonLat = ...)` places one by hand. Of the thirteen, eleven land on the
-building, Nancy on the house number and Alpreco on its street.
+precision; `Factory(lonLat = ...)` places one by hand.
+
+**The town is never given up while the street is kept, and the order of the attempts is the whole
+of that.** Street with postcode but *no place* used to be tried third, before the place on its
+own, and a generic street name then matches anywhere in the country with the postcode doing
+nothing to stop it: "Route Nationale, 76340 Foucarmont" landed on a Route Nationale near Geneva,
+450 km from the town it names, and drew a Willy Naessens factory in the south of France for a day.
+Every form naming the place is now tried first, then the place alone, and the street without a
+place only as a last resort. Falling back to the town costs precision, which the printed match
+shows; falling back to the street costs the answer and says nothing about it.
+
+**A guessed postcode is worse than none.** It sends the geocoder somewhere confidently wrong
+rather than to the town — the Jupille site, whose postcode the contact page does not give, was
+invented as 4020 and matched a building in Bastogne.
 
 **Neighbours never share a grey.** Countries count as neighbours when their vertices fall within
 a half-degree square of each other, which is wide on purpose: at a quarter degree Britain came
@@ -2724,6 +2970,22 @@ window and the recorder's `contentScale` puts the resolution back.
 `.wav` rendered from that log, and — with ffmpeg on the path — the two mixed into
 `presentation-mixed.mp4`. `SLIDES_VIDEO` names the film and the rest stand beside it.
 
+**`SLIDES_UNTIL` is how one chapter is filmed on its own**, the counterpart to `SLIDES_START`
+and taking the same forms — a number counting from 1 in the running order, or a slide's name.
+It **bounds the cue list, not the deck**: every slide is still loaded and the arrows still reach
+them, the run simply stops clicking there and a filmed run ends one hold later. Anything else
+would be a second notion of what the deck contains, and the show is one running order.
+
+```
+SLIDES_START=5 SLIDES_UNTIL=12 SLIDES_CUES=auto SLIDES_RECORD=true \
+    SLIDES_VIDEO=video/chapter-1.mp4 ./gradlew run -Popenrndr.application=SlideshowKt
+```
+
+is chapter 1 of the committed order — `hoe-bouw-je-een-wereld` to `kernboodschap-1`, 33 states,
+176.7s at 3840x1080. The run prints the pair it settled on by **id** rather than by `Slide.name`,
+which is the class's and says nothing: both ends of chapter 1 are a `QuoteSlide`, so that line
+read `Quote to Quote` until it was changed.
+
 **The soundtrack is rendered, not recorded, and that is what makes it in line.** Under
 `ScreenRecorder` the draw loop runs on video time while the speakers play on wall time, so
 whatever the machine puts out during filming drifts from the picture the moment the encoder
@@ -2754,6 +3016,232 @@ watched one stands where the list ran out, as before.
 **The mux runs after the window closes, and has to.** `ScreenRecorder` finishes its file as
 the program ends, so `present` hands the export out of the program as a closure and runs it
 once `application {}` has returned — the film is on disk by then and not before.
+
+### A wall's timing as MIDI
+
+[`PlainMidi.kt`](src/main/kotlin/PlainMidi.kt) writes the Plain wall's build as a standard MIDI
+file — one note per element, on the frame that element starts to arrive, which is what a wall
+like this has to hand a composer.
+
+```
+./gradlew run -Popenrndr.application=PlainMidiKt
+```
+
+**The schedule is the wall's own.** `PlainScene.reveals` is the whole build — every element, the
+column and row it lands in, the frame it starts on — as a pure function of the counts, and the
+draw loop steps through *that list* rather than working the timing out again as it goes. So the
+file and the picture cannot disagree; an exporter carrying its own copy of the arithmetic is
+exactly the thing that drifts. It is also why nothing is sampled from a run and **no window is
+opened**: the build is a pure function of the frame, so it can be written down without drawing a
+frame of it. `MixSoundtrackKt` scoring a film from the cue log alone is the same argument.
+
+**A slide that builds on clicks has no timing of its own, so the pace is handed in.** The Plain
+wall's columns rise the moment it is up, whoever is watching; `Crowd` waits on a click, and its
+notes land wherever the talk puts them. `midiClicks(slide, hold)` is `autoCues` for one slide —
+the opening state settles and is held, then each click plays out and is held again — so a file is
+written against the pace a *filmed* run really uses. A file written against one pace and a clip
+filmed at another agree at the first click and nowhere after it.
+
+**A slide dealt against the pane has no schedule until it knows the pane**, which is what
+`MidiTimed.layOut` is for. `Crowd`'s crowd, arrow and disc are grids over the frame, so how many
+figures stand up on a click is not knowable until the frame is; the export asks for the pane the
+show composes for before it asks for the schedule. Without it the export came out as **0 notes on
+4 tracks** — a file that is valid, empty and says nothing about why.
+
+**Every slide can be scored, and the floor is its own states.** `Slide` itself is [MidiTimed]: a
+note as it arrives and one a click, rising a semitone a state. That is honest rather than clever —
+nothing in the engine knows what a drawer puts on screen between one click and the next — and it
+is what lets the organizer offer the button on all of them rather than on the two that happen to
+declare something richer. A drawer that *does* know its own build overrides `arrivals` and hands
+over what it really stands up, and then the file is a score of the wall rather than of the
+clicking. The Plain wall gives a lane a column and 89 notes; `Crowd` a lane a click and 88; an
+ordinary slide one lane and a note a state — `de-cijfers` comes out as 8 notes 4.5s apart, which
+is exactly its eight figures landing.
+
+**Two drawers that build on their own clock declare their builds, and inverting them was the
+work.** The globe runs the *pitch* of its ring linearly in time and reads the word count off it
+(`arrived = 360 / pitch`), so the frame it takes its n-th word in is the frame the pitch has
+narrowed to `360/n` — exact, and the only way to get it right, because **the words do not arrive
+evenly**. Measured off the written file: 36 notes, the gaps falling from 0.93s to 0.10s and the
+last landing at 10.50s, which is `pace × (fill − opening)` to the frame. A note every `pace`
+seconds would have said the opposite of what the slide does. `RingOfPieces` is the easy twin —
+a piece lands every `cadence`, so it is 115 notes exactly 0.0667s apart.
+
+**A long run has to be squeezed, and `pitchStep` is where.** 115 pieces as 115 semitones runs off
+the top of the keyboard, so past `PITCH_SPAN` — three octaves, a rise the ear still follows —
+ordinals are scaled into it. Several pieces then share a pitch a fraction of a second apart, which
+is exactly what `shortenOverlaps` is there to trim.
+
+**A slide says when its elements arrive, and nothing about music.**
+[`MidiTimed`](src/main/kotlin/slideshow/MidiExport.kt) is the whole of what a drawer has to offer
+— a name a lane, and an `Arrival` per element carrying the lane it lands in, how far up that lane
+it sits, and the frames it starts and lasts. `midiTracksOf` turns that into tracks, so pitch,
+channel and tempo are decided in one place and a wall is free of concerns it has no business
+knowing. Every export here goes through it, the organizer's button and `PlainMidiKt` alike, and
+that was checked rather than assumed: routing the main through `midiTracksOf` left the file
+byte-identical.
+
+**The piano roll is the chart.** Pitch is the row an element lands on — `PLAIN_MIDI_NOTE` for the
+piece on the floor, a semitone a row up the stack — and there is a track per column, named after
+the svg that column stands. A bar rises as a run of semitones, the columns come in a beat apart
+down the file, and what a host draws is the wall on its side. At the committed counts that is
+**89 notes on 15 tracks, 0 to 2.13s**: the whole build is a burst rather than a passage, because
+the wall's beat is 0.12s and its columns are half a beat apart.
+
+**A column is a channel as well as a track**, so a host that routes by channel separates them as
+readily as one that reads the names. `melodicChannels` is the fifteen that are not **channel 10**,
+which General MIDI reserves for percussion — a column landing there is a drum kit on any GM device
+whatever it was meant to be, which is a fault that is heard rather than read. Fifteen columns take
+the fifteen channels exactly (1–9, 11–16); a sixteenth would share with the first, which is all a
+file can honestly do about a limit that is sixteen wide.
+
+**Times are seconds, exact rather than quantised.** The build is a frame count at [FPS] and
+answers to nothing musical, so quantising it to a grid would be inventing timing rather than
+exporting it; `PLAIN_MIDI_BPM` only decides the bars a host rules over the notes once they are
+in. `PLAIN_MIDI_AT` shifts the whole file along, for dropping it onto the timeline of a film
+where the wall arrives some way in.
+
+**The JDK is the encoder.** `javax.sound.midi` writes standard MIDI files, the same way
+`javax.sound.sampled` decodes the cue sheet for `Speakers`, so nothing was added to the build.
+[`Midi.kt`](src/main/kotlin/slideshow/Midi.kt) is the whole of it — notes in, a type 1 file out,
+the tempo on track 0 and a named lane per track — and it plays nothing: a `Sequencer` is a device
+with a clock, and what is wanted is a file.
+
+The colour is **not** in the file. The wall runs red to navy and back on `Stage.loop` over eight
+seconds against a build of a little over two, and a crossfade is a controller rather than a note;
+it would be a CC lane, and is a few lines if it is ever wanted.
+
+**AWT must not touch the macOS main thread before GLFW does**, and this is where that was
+found. `abstractShapes()` in `Slideshow.kt` draws the shadow wall's masks with `Graphics2D`, and
+it is a **top-level val** — so it runs at class init, before `configure {}`, and starting AppKit
+there leaves `glfwCreateWindow` blocked for ever. It is a hang with no message and no stack: the
+run simply stops after the last line it printed, which makes it look like a slow load rather than
+a deadlock. `jstack` is what says otherwise — the main thread sits in `nglfwCreateWindow`
+accumulating no CPU. `-Djava.awt.headless=true` is the fix, set on the run task and again in
+`abstractShapes` itself, because the trap belongs to the function rather than to a launcher.
+Headless AWT draws and writes pngs exactly as before; it simply never starts AppKit, and nothing
+here opens an AWT window. A fixed run still prints `[JRSAppKitAWT markAppIsDaemon]: Process
+manager already initialized: can't fully enable headless mode` — AWT saying it came up second,
+which is now the harmless case and not the fault. Note the JVM this has to reach is not the one Gradle starts: OPENRNDR
+restarts itself with `-XstartOnFirstThread` on macOS, so a run is three processes and the child
+is the one that makes the window.
+
+### The crowd as a score
+
+`Crowd` is the second `MidiTimed` slide, and it is where the interface earned its shape. **A click
+is a lane**, because a click is what the slide is made of: the group forming, the network growing,
+the arrow, the whole. What lands on a lane is the figures that change on that click — standing up
+where the formation grows, leaving where it shrinks — on the very stagger `arrival` gives them,
+with the click's two phases read exactly as `figures` reads them, so the file and the picture
+cannot disagree.
+
+**A note is a band of figures, not a figure, and that is the one place this departs from "a note
+per element".** The formations run `[1, 55, 55, 157, 732]`, so the last click alone stands 575
+figures up inside a second and a half: per figure that is not a score, it is a texture with no
+pitch left to give. Banded into `BANDS` — 24, two octaves — it is the swell itself, and the rank a
+band holds *is* distance from the middle, since that is the order the places are dealt and
+therefore the order they stand up in. So the run rises outward exactly as the picture does.
+
+**Click 2 carries the network rather than figures.** Nothing stands up between the crowd and the
+crowd with its lines drawn on it, so a lane keyed to figures alone would leave a whole click
+silent; the lines grow on the same stagger and are noted the same way. The file comes out **88
+notes on 4 tracks** — 24, 16, 24, 24 — over 21.5s.
+
+**Two notes of one pitch on one channel are not two notes**, and banding a field of hundreds is
+exactly what walks into that: there is only note-on and note-off, so the first off silences both
+and a host plays neither what was written nor an error it can report. `writeMidi` now cuts any
+note short where another starts at its pitch on its channel — nothing dropped, nothing moved, only
+a tail taken off.
+
+**A clip to check it against has to be filmed at the same pace.** For `Crowd` that is
+`stepFrames` + `SLIDES_HOLD` = 1.5 + 3.5 = **5s a click**, which is what both the auto cues and a
+fixed autostep give, so they coincide:
+
+```
+SLIDE=Crowd SLIDE_RECORD=true SLIDE_AUTOSTEP=5 SLIDE_DURATION=25 \
+    ./gradlew run -Popenrndr.application=SlideStudioKt
+```
+
+Measured off that clip rather than assumed: the picture changes at 5, 10, 15 and 20s, the group's
+first figure starts growing at 5.68s against a note-on at 5.60 — the difference is the smoothstep,
+whose first frames are sub-pixel — and the group **settles at 6.47s against a last note-off at
+6.48s**, one frame apart.
+
+### Ticking a wall for MIDI in the organizer
+
+**`midi` in a slide's detail pane is the button**, beside `previews`: ticked, that slide's build
+is written to `midi/<slide-id>.mid`, and the navigator marks its card `MIDI` so it can be seen at
+a glance which walls are being scored. `show-midi.json` holds the ticks (`SLIDES_MIDI`), the way
+the order, the modules, the intents and the feedback each hold theirs.
+
+**A toggle is a whole edit in one click, so it saves at once** — the feedback list's rule rather
+than the save button's — and the save is also what *writes the file*. Ticking a wall on and
+looking in `midi/` is the whole loop, with nothing to remember afterwards.
+
+**Every slide can be ticked**, since every slide has states to be scored on; what the server drops
+on the way in is only an id the show does not have, which would otherwise sit in the file promising
+an export that never appears. The detail pane's button says what a slide will be scored *on* — "4
+lanes of its own build" against "its 5 states" — off the lane names, which cost nothing to ask for.
+Un-ticking leaves the files where they are rather than deleting them: by then they are somebody's
+working copy.
+
+**How long a clip runs is `clipFrames`**: the pace a filmed run gives the slide, or the last note
+and a hold after it, whichever is longer. The two differ where a slide's build is not what its
+clicks are — the Plain wall stands 89 elements up in 2.1s on a single state, so the filmed pace
+alone would cut the clip before the score ended; the crowd's clicks *are* its build, so there the
+filmed pace is the longer one.
+
+**`export midi + video` in the top bar is the other half of the tick.** The toggle is the
+*intent* — this is a wall I want scored — and costs a kilobyte; this is the run that renders every
+frame of every ticked slide and takes minutes, so it is asked for when it is wanted rather than
+happening under a toggle. The button carries the count (`export 2 midi + video`), and while it
+runs the bar beside it names the slide being written and fills across the whole set.
+
+**It is rendered, not filmed, and it had to be.** `ScreenRecorder` writes one file per program —
+which is why filming four chapter cards is four runs (the note under CardStudio) — so several
+slides in one session cannot be filmed that way at all. Instead a throwaway `Deck` of one slide is
+ticked frame by frame, painted, and read straight into ffmpeg through [`Clip`](src/main/kotlin/slideshow/Clip.kt);
+the clicks land where `midiClicks` puts them, which is the same list the score is written against,
+so the two cannot disagree. It follows that nothing has to be drawn at the rate it plays at: the
+25-second crowd clip comes out in about 13 seconds.
+
+**It is checked against a real film rather than assumed.** The same slide filmed by hand through
+`SlideStudio` and rendered by the export differ by **0.37 levels** mean over the frame at 7s, 0.77%
+of pixels by more than 8 — two encoders on the same picture. Had the frames come out upside down
+the same measurement would read 32.8, which is how the `vflip` was settled: OpenGL hands back the
+bottom row first, so the flip is in the filter chain and the readback stays a straight copy.
+
+**A slice of each frame, into a target of its own.** The export is a job on the draw loop, for the
+reason everything else the page asks for is, and takes `EXPORT_BUDGET` milliseconds of each tick
+so the window stays alive under it. It paints into a buffer it allocates for the run rather than
+the show's pane buffers: a preview may scribble on those and be repainted before anyone sees it,
+but an export paints hundreds of frames a tick, and on a wide slide that buffer is the one the
+window is showing — so the wall would flicker with the clip being made.
+
+**Two traps, both of which wrote correct files and lied about them.**
+
+- **A `var` inside `draw` is new every frame.** The job was declared there at first, so it was
+  begun, forgotten and begun again: the page saw an export that was never running, and the show
+  wrote the first slide's score over and over. It stands beside the preview queue now, which is
+  outside the draw block for the same reason.
+- **A local class can capture the name its own constructor property has.** `ExportJob(val ids)`
+  sat in a scope that already had an `ids` — the running order — and the `id` getter read *that*
+  one. The clips came out under the right names and the progress reported the show's first two
+  slides, which is the worst shape a bug can take: correct work, wrong account of it. The list is
+  called `queue` now, and a name of its own cannot be captured by accident.
+
+**The export is a command, not something the server does on its own thread.** Nothing about it
+needs a frame — the schedule is read off the drawer — but the slides belong to the draw loop, so
+`PUT /api/midi` queues an `ExportMidi` and the loop writes the files at the foot of a frame and
+prints what it wrote. The rule is what keeps the two sides from ever having to think about it.
+It exports off the **declared** catalogue rather than the running order, so a wall can be scored
+while it is archived or skipped: the file is the wall's timing, not a record of a run.
+
+`tools/plain_sync.sh` films the wall on its own and puts the clip and the file in
+`video/plain-sync/`, which is how to check the two against each other. **They line up with no
+offset**, and that is a property of the studio rather than an alignment step: it records from the
+first drawn frame, the deck's clock starts at 0 on that frame, and the MIDI's first note is that
+frame. The film is the one part of this that needs a window — everything else here is arithmetic.
 
 ### Sound
 
@@ -2902,6 +3390,120 @@ stream costs a thread and a refill loop for as long as the wall is up.
 [`SoundProbe.kt`](src/main/kotlin/SoundProbe.kt) plays one wav and quits, naming the device it
 opened. Run it on the projector machine before a show: it is the one thing a silent deck cannot
 tell you.
+
+#### A sheet named against the show
+
+`data/sounds/P1` to `P4` are the sound design, a folder a chapter, delivered as **one wav per
+state of one slide, the file saying which state it belongs to** — `P1-02-catalogue-city-B.wav`
+is the catalogue city's first click. [`CueSheet`](src/main/kotlin/slideshow/CueSheet.kt) reads
+the folders and places every cue off its own name; nothing about where they go is stated in
+`Slideshow.kt`. `SLIDES_CUE_SHEETS` names them, comma separated and later folders winning, and
+`none` turns the whole thing off.
+
+**The tail of the name is the nameplate's own label.** `<slide-id>-<LETTER>`, A for the state a
+slide arrives on and B for its first click — the same name the order file, the organizer and
+`show-feedback.json` call a state by, and the same one `SLIDES_NAMEPLATE=true` burns into a
+review copy. So a sound designer watching that copy names a file without having to ask what a
+slide is called, and a cue, a note and a line in the running order are all about the one thing.
+
+**That is the whole reason it is read off the folder rather than declared.** The numbered sheet
+above it is placed by ear, a cue at a time, and Kotlin is the right place for that decision. Here
+the decision is already in the file name, and writing it out again would be a second copy to keep
+in step: 30 cues in chapter 1 alone, and a rename of a slide would have to be made in two places
+or the sound would quietly land on the wrong state.
+
+**It is keyed by id, not by where a slide is declared**, and that is load-bearing. *De fabrieken*
+is declared in the fourth chapter of `Slideshow.kt` and played in the first, because
+`show-order.json` puts it there — so a cue attached at the declaration would carry the wrong
+chapter's sound design. An id travels with the slide through every reorder, which is what the
+order file uses one for.
+
+**A sheet owns the slides it names.** Where it carries a cue for a slide at all it is that
+slide's whole cue list, and a state it leaves bare is silent: the designer chose not to mark it.
+Falling back state by state instead would put the old sheet's sound under the new one on exactly
+the states the new design left clear. Two of the seven slides have no `A` — the tree's cue hangs
+off the click that fans it, since it opens on the city's own last frame and a cue there would
+mark a cut built to be invisible, and *de cijfers* opens silent — and both are silent on arrival
+rather than falling back to `1-05` and `1-10`. The five hand-declared chapter-1 cues are kept as
+the fallback for a checkout with no `data/`, not deleted; chapters 2 to 4 still play them.
+
+**The card holds its tongue where the sheet opens the chapter.** `P1-01-hoe-bouw-je-een-wereld-A`
+lands on the first slide of chapter 1, which is the instant the chapter card fires its own
+`1-01` sting — two openings at once. Where the sheet gives the arriving slide a cue, that cue
+*is* the opening and the card is silent. It is read off the **arriving slide** rather than off
+any chapter bookkeeping, and that is what made it generalise for nothing: every one of the four
+sheets numbers its chapter's first slide `P<n>-01-…-A`, so all four cards now stand aside and
+each chapter opens on its own cue, with no list of chapters anywhere in the code. It was
+measured on an autostep run while only `P1` existed — entering chapter 1 fired `P1-01` alone and
+entering chapter 2 fired `1-01`.
+
+**A cue longer than `SLIDES_CUE_HOLD` is taken away with its slide**, over `SLIDES_CUE_FADE`; a
+shorter one rings out. That is the rule the hand-placed sheet arrived at one cue at a time —
+`1-02`, `1-07` and `1-10` fade and the two-second marks do not — stated once instead of decided
+again per file, and the first sheet splits on it cleanly: its cues run 2.4 to 5.1 seconds or 9.0
+to 19.2, with nothing in between. A `fadeOut` is what says a cue belongs to its slide; see
+`Sound.sustained`.
+
+**Two things the load says out loud, because both faults are inaudible.** A name matching no
+slide, or more than one, is dropped with a line rather than guessed at — a missing cue is heard
+at once and a misplaced one is not heard as a fault at all. And a cue for a state the slide does
+not have is dropped the same way: nothing is wrong on the wall and nothing is wrong in the
+folder, and the cue is simply never reached. The report is what to read after a sheet lands:
+
+```
+cues: data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sounds/P4 — 18 slides, 62 cues
+  hoe-bouw-je-een-wereld             A
+  the-catalogue-city                 A B C
+  everything-a-build-answers-to      B C D
+  the-globe                          A
+  verticale-integratie               A B C D E F G H I J
+  de-cijfers                         B C D E F G H
+  de-fabrieken                       A B C D E
+  esg-is-geen-checklist              A
+  esg-beoordelingskader              A B C D
+  co2-prestatieladder                A B C D E F
+  co2-behaald                        A B C D
+  we-gieten-kennis                   A
+  co2-impact-van-beton               A B C
+  levenscyclus-van-betonproducten    B C D
+  verborgen-verhaal                  B C D
+  we-bouwen-vandaag                  A
+  100-elementen                      A B
+  reductie-carbon-footprint          A B C D
+```
+
+Read against the running order's click counts, every letter falls inside its slide's states and
+nothing over-runs. **18 of the 32 slides in the four chapters are covered**; the rest keep the
+`markCue` and the stings `Slideshow.kt` declares for them, which is why those declarations stay.
+
+**Eleven of the sixty-two are delivered with a silent head**, up to two seconds of it, so they
+are *heard* well after the click they are fired on — `catalogue-city-B` 2.00s,
+`verborgen-verhaal-C` 1.00s, `catalogue-city-A` 1.17s, `verborgen-verhaal-D` 0.82s,
+`co2-behaald-B` 0.80s, `de-fabrieken-C` 0.78s, `everything…-C` 0.69s, `everything…-B` 0.57s,
+`verborgen-verhaal-B` 0.58s, `co2-behaald-C` 0.43s, `co2-impact-van-beton-C` 0.41s. Everything
+else starts within 0.2s. That is the delivery rather than a fault — a cue may well be meant to
+swell — but it is worth knowing, because it is the one thing that makes a cue look misplaced
+when it is not: measured off the rendered soundtrack, a window across the firing frame reads as
+digital silence on exactly those files and on no others. Every cue is present and on its frame
+once the window is moved past each file's own head.
+
+Filming a chapter is how that gets checked, and the check wants the bed out from under it: with
+`SLIDES_BASE_LOOP` playing, a soft-attack cue cannot be told from the loop already sounding, and
+only four of chapter 1's five showed up. Against silence all five do. **`SLIDES_BASE_LOOP=none`
+is committed** — the bed under the slides was too present under the talk, and the line rather
+than the value is what turns it off, so it is one edit to put back.
+
+A chapter is filmed on its own with `SLIDES_START`/`SLIDES_UNTIL`, below:
+
+| chapter | slides | states |
+|---|---|---|
+| 1 De wereld van bouwen | 5 to 12 | 33 |
+| 2 Waardekader en verantwoordelijkheid | 14 to 21 | 33 |
+| 3 Beton: ruggengraat en transitie | 23 to 30 | 28 |
+| 4 The Circle | 32 to 39 | 18 |
+
+The course walls between them — `gallery`, `shadows`, `block-city-plain` — are *moments* rather
+than chapters and are left out of those ranges, which is why the numbers skip one each time.
 
 ### Writing one from scratch
 
@@ -3106,15 +3708,17 @@ rather than failing. `ChapterPanel` is still there and still the plain version.
 
 ##### The title cut into the Shadows facade
 
-**The committed show reads its chapter titles out of the Shadows wall**, not out of catalogue
-elements. `SLIDES_CARD_TITLES` names the pictures — `data/titles/v2/title0{n}.png`, `{n}` the
+**The show read its chapter titles out of the Shadows wall until 18 September** (the card is now
+long shadow type, below; `SLIDES_CARD_STYLE=shadows` brings this one back), not out of catalogue
+elements. `SLIDES_CARD_TITLES` names the pictures — `data/titles/v4/title0{n}-v4.png`, `{n}` the
 chapter's number — and `SLIDES_CARD_STYLE=shadows` cuts each into the facade: a shallow grid,
 the letters cut deep into it, one sun, so the words fill with shadow and stand dark on the stone.
 Swapped round — `depth = 0.6, inkDepth = 0.06` — the ground fills instead and the letters stay
 light; the dark letters were asked for, and read the stronger of the two. `mosaic` gives back the element card described
-below, and a chapter with no picture still sets its title as type. `data/titles` holds three
+below, and a chapter with no picture still sets its title as type. `data/titles` holds four
 drawn versions, all white on black at 1920x1080: `v1` the condensed full-bleed set the element
-card was tuned for, `v2` one wide bold at one size filling the pane, `v3` the same face small.
+card was tuned for, `v2` one wide bold at one size filling the pane, `v3` the same face small,
+and `v4` the middle size the show runs.
 
 **It is the backdrop's own shader, stood in the pane.** [`ShadowChapterPanel`](src/main/kotlin/slideshow/slide-drawers/ShadowChapterPanel.kt)
 is only what a panel deck can hold — a slide the width of the pane, with the chapter's name, the
@@ -3129,10 +3733,38 @@ shadows turn slowly in every cell and the words never go. Measured off stills of
 card: a plain grid at 0.5s, the words faint at 2s, legible at 3s, whole from 4.5s, and still whole
 at 20s and 40s. A card replayed as its chapter opens reveals itself again, with the sting.
 
+**The light keeps moving after the reveal, at the scale of the wall, because the orbit alone
+reads as a still card.** Measured off the export of 15 September: between 1:48 and 3:30 the
+orbit changed 46% of the card's pixels by more than 16 levels — the shadows turning inside 18px
+cells — and the two frames are the same picture to the eye. Two terms on `ShadowFacade` fix that,
+both functions of `stage.frame` and both 0 on the walls: `breathe` lifts the sun `breathe`
+degrees off `low` and settles it back over `breathePeriod` seconds, counted from the end of the
+reveal so it joins the lean without a step, which lengthens and shortens the shadow in every cell
+so the letters' fill breathes; and `glow` is a lamp wandering over the wall — a broad soft spot,
+`glowSize` of the wall's height to its edge, on two sines a golden ratio apart in rate so it does
+not retrace, once across in `glowPeriod` seconds — that leaves the lit faces `glow` darker away
+from it than under it and scales only what the sun lit, so shadows stay black wherever it stands.
+The card runs `breathe = 10, breathePeriod = 45, glow = 0.3, glowSize = 0.8, glowPeriod = 70`.
+Checked on a filmed 40s of chapter 1 (`video/card-light-check.mp4`): the mean brightness of the
+card's left, middle and right thirds went 137/166/187 at 6s to 153/178/196 at 28s, so the light
+is seen to move across the wall while the words stay read.
+
 **The cells are sized to the title's strokes.** A letter is built of whole cells, so the cell has
-to be well under the stroke: the backdrop's 27px cells serve titles set twice this size, and v2's
-strokes run about 20–40px at the pane's scale, so the card runs 60 rows — 18px cells, 9px wide —
-and a stroke is two or three cells across. `invert`, because these pictures are white ink on black
+to be well under the stroke: the backdrop's 27px cells serve titles set twice this size. **The
+grid is sized to whichever version is named**, because a letter is built of whole cells and a
+stroke has to carry two of them:
+
+| version | stroke at pane scale | rows | cell |
+|---|---|---|---|
+| v2 | 50 px | 60 | 18 × 9 px |
+| v3 | 22 px | 108 | 10 × 5 px |
+| **v4**, the show's | 29 px | 80 | 13 × 7 px |
+
+**The show runs v4.** v2 breaks two titles mid-word (WAARDEKA / DER, RUGGENGR / AAT); v3 keeps
+every word whole but sets them small and runs chapter 2 as one long line; v4 is the middle size
+and hyphenates it properly (VERANTWOOR- / DELIJKHEID). Checked on all four cards at six seconds
+through `CardStudio`: every title legible, the ground a fine plain grid. `invert`, because these
+pictures are white ink on black
 where the wall reads dark ink. The 1px grey line Figma leaves round the edge of every v2 and v3
 png is harmless here: a cell is decided by how much of it is ink, and one pixel of a cell is not.
 
@@ -3502,3 +4134,407 @@ show** — nothing in `Slideshow.kt`, `show-order.json` or the organizer knows i
 The card is one function of the frame, `title(drawer, text, frame)`, composed at the pane's
 1920x1080, so a version worth keeping lifts into a drawer beside `ShadowChapterPanel` by handing
 it `stage.frame`. It opens as a placeholder: the title set to fit, a word at a time rising in.
+
+## long shadow type
+
+[`LongShadowType.kt`](src/main/kotlin/LongShadowType.kt) is a second prototype chapter card
+beside `ChapterTitle`, outside the show: the title in Rockwell Bold seen from straight above as a
+plan of towers. Each word rises out of the floor on its own beat and its shadow grows as it
+rises; the sun turns slowly and sinks, so the shadows swing and lengthen like a sunset; and the
+concrete is multiplied over the finished card. Same keys as `ChapterTitle`; `LONGSHADOW_*` in
+`.env` steer it.
+
+```
+./gradlew run -Popenrndr.application=LongShadowTypeKt
+```
+
+**The shadow is a reach carried along the light, doubled.** The plan is drawn into a float mask
+holding each pixel's height (red is height times coverage, green is coverage). A first pass
+turns height into *reach*, the pane pixels that tower's shadow runs: height over the tangent of
+the sun. Each pass after it takes what the pixel `a` back toward the sun has left, spends `a`
+getting here, and keeps whichever is more; passes at 1, 2, 4 … and one filling out the remainder
+cover every distance up to the longest shadow of the day. A pixel is in shadow wherever the
+reach it ends with is not negative, so towers of different heights cast shadows of their own
+lengths exactly, for about log2(longest) full-frame passes rather than a draw a pixel.
+Render targets are drawn y-down and read y-up, so the offset's y is turned inside the pass.
+
+The roofs are there from the moment a tower breaks the floor, since from above a tower is its
+roof whatever its height: the rise is read entirely off the shadow.
+
+**The roofs take the stone against its own average.** Multiplied in full, the concrete turns the
+white type into the stone's own grey and it sinks into the paper; turned down, the grain goes too.
+So on the roofs — found by their coverage in the plan's own mask — the stone is divided by its
+average (the last mip level of the texture) before it is multiplied: the average reads as white
+and only what is darker than it, the pits and pour marks, shows. The type stays white and is still
+visibly concrete. `LONGSHADOW_CONCRETE_ROOF` is how hard the marks bite.
+
+**A drawn title rises a block at a time.** `LONGSHADOW_IMAGE` names a picture of the title
+(`{n}` the chapter), and the sketch flood-fills it into separate blocks of ink, each rising as a
+tower of its own on its own beat — so a stencil face comes up piece by piece, 47 blocks for
+`data/titles/v5/title01-test.png`. Ink is whichever the picture has less of, so black-on-white and
+white-on-black both read. Blocks touching the edge are dropped, which is what removes the 1px grey
+line Figma leaves round every export. The order reads the picture as a page — lines, then left to
+right — with `LONGSHADOW_SCATTER` of a seeded shuffle blended in, and is stored in the plate
+multiplied by coverage so filtering at a block's edge does not pull its beat toward the paper's.
+
+### Long shadow type as the chapter card
+
+**The show's chapter card is long shadow type**, since 18 September: `SLIDES_CARD_STYLE=longshadow`,
+which is also the default in `Slideshow.kt`. [`LongShadowChapterPanel`](src/main/kotlin/slideshow/slide-drawers/LongShadowChapterPanel.kt)
+sets the chapter's own title from the running order in Rockwell Bold, so a renamed chapter needs
+nothing else, and the towers rise as the chapter opens because the card's frame count restarts with
+it. `shadows` and `mosaic` still give back the two picture cards.
+
+**One implementation, two callers.** The effect lives in
+[`LongShadow`](src/main/kotlin/slideshow/slide-drawers/LongShadow.kt) and both the sketch and the card
+are built by `longShadowFromEnv()` off the same `LONGSHADOW_*` keys, so a value tuned in the sketch
+is the value the show runs. What differs is only what each caller hands it: the sketch its own
+concrete, twice the detail and optionally a picture (`LONGSHADOW_IMAGE`); the show no concrete,
+because it lays `SLIDES_CONCRETE` over every frame and that one already keeps white white by
+measuring the stone's bright end.
+
+### A field of towers round the title
+
+`LONGSHADOW_FIELD=true` packs the frame round the title with lower towers, circles and slabs, each
+with its own height and roof tone — the sketch's experiment; `longShadowFromEnv` hands the show's
+card none whatever the key says.
+
+**A module grid filled from the largest size down, and not scattering or free splitting.**
+Dropping pieces at random left uneven gaps; recursive guillotine splitting followed the letters
+but ran down to slivers and left small holes wherever a cell was too thin to stand anything. The
+frame is now a grid of `_UNIT` squares (40 tiles 1920x1080 as 48x27), and every tower is one of
+`_SIZES`, whole modules across and down, so the field keeps to a set of sizes and none is smaller
+than a module. Sizes are laid largest first, each fitting place tried in a shuffled order and
+taken `_TAKE` of the time, and the last pass stands a 1x1 on every square still free — so nothing
+is left open but the one even `_GAP`, and at the title's edge at most one module. Only square
+pieces may be circles. Where the title stands is read by drawing it once, standing,
+into a quarter-size probe and reading it back into a summed-area table — the same drawing the card
+uses, so the field clears exactly what is on it; which way up the read comes back is settled
+against the title's own box rather than assumed. The towers rise in a ripple out from the title.
+
+**Shadows land on roofs as well as the ground.** The reach field holds, per pixel, the most ground
+distance any shadow still has to run; a roof `h` high is under a shadow when that is more than
+`h × reach`, so a taller tower shades a lower roof while a roof's own reach — exactly its height —
+leaves it lit. Roofs and ground are therefore composed in one pass off the plan (height, coverage,
+tone) and the field, rather than the roofs being drawn over the shadow afterwards.
+
+**The type stands highest at every frame, and that is timing rather than a cap.** Each tower's
+height is drawn between `_LOW` and `_HIGH` with a random step of `_JITTER` either way, so
+neighbours stand apart and shade one another, and none is allowed past 0.95 of the title. But
+a height cap alone lets a tower that is up already stand over a title block still rising. So the
+field's clock starts when the *last* of the title has started to rise: towers and title rise on
+the same curve and no tower is as tall as the title, so from then on every tower is lower than
+every letter, and by the roof test nothing can ever shadow the type.
+
+**With a picture, the field is made of the title's own pieces.** `loadPlate` cuts every block of
+ink out on its own — its box plus a pixel, its own coverage only, so a neighbour inside the box is
+not carried along — and each grid cell stands the piece whose proportion (as it is, or turned a
+quarter) and size are nearest its own, picked among the closest three so a size does not repeat
+one piece. Only pieces filling `_SOLID` of their own box are used: a stencil N is one connected
+piece and mostly air, and in the field it read as the letter — turned, as a Z — where bars, blocks
+and half-rounds read as parts. A piece is fitted to its cell whole, never stretched, and its edge
+is re-cut at half coverage over a pixel's width in the shader, so a small cut-out scaled up keeps
+a clean outline instead of a stretched bitmap's blur.
+
+**Cutting a stencil into its pieces took three corrections, each found by measuring the pieces.**
+- **Connect on solid ink only.** A stencil's pieces are parted by hairline gaps that are grey once
+  antialiased; joined on any trace of ink they merged, and 20 letters came out as 64 lumps. Pieces
+  are flood-filled at half coverage (`CORE`) and the soft edge is handed back to whichever piece it
+  touches afterwards — 89 pieces from `title01-test2.png`.
+- **The picture's own solid ink is full coverage.** These titles are drawn in dark grey, not black,
+  so the solidest ink read 0.83: every piece measured three quarters full, and the title itself
+  went down a shade translucent. Coverage is scaled by the 99th percentile of ink.
+- **Measure a piece's shape on its core.** The edge here is soft over a couple of pixels, so a box
+  taken round it is loose and a straight bar measured 0.88. Counted on its core against the core's
+  own box a bar is 0.95–1.00 and a half-round 0.77. A piece over `SQUARE_CUT` (0.93) is a
+  rectangle and the field draws it as one, exactly filling its cell — stretched from its small
+  cut-out instead, the soft edge grew with it and came out as rounded corners the title never had.
+  Curved pieces stand only where their proportion nearly matches the cell.
+
+**The squares the title takes are filled again at a finer grain.** A module that comes within reach
+of a letter is lost whole, so the band between two lines of a title and the gaps between words
+stood nearly empty. After the grid fill, a second pass runs down each module column through the
+squares the title took, at the probe's 4 px, and stands a bar of exactly each clear run's height;
+then along each module row for what is still clear, for a bar of its own width. Nothing under
+0.35 of a module stands, so there are no slivers, and the clearance round the letters holds.
+On `title01-test2.png` that took the field from 205 towers to 288, the gap between the lines a
+row of bars one module wide.
+
+## extruded type
+
+[`ExtrudedType.kt`](src/main/kotlin/ExtrudedType.kt) extrudes a stencil title from flat into
+solids and turns the view softly round it, so it reads as a thing in space. `EXTRUDE_*` in `.env`.
+
+```
+./gradlew run -Popenrndr.application=ExtrudedTypeKt
+```
+
+**Every piece is its own solid, built once from the vector outline.** `title01-test3.svg` is 94
+separate black paths; each is triangulated for its face and its outline walked into side walls.
+The mesh is built at unit depth and the depth is a uniform, so flat to extruded is a number in the
+shader rather than a rebuild, and each piece carries its own delay as a vertex attribute — the
+pieces come up left to right in one draw call. At depth 0 the back face is written first and the
+front drawn over it on an equal depth test, so the opening frame is exactly the drawing.
+
+**Curves shade smooth and corners stay sharp**: walking an outline, two edges turning less than 35
+degrees share a normal. **The view is parallel** — orthographic, as the reference is, so depth
+recedes without converging — opening square on and easing to its home angle as the pieces rise,
+then swinging softly on two sines a golden ratio apart. Faces take one of three tones by which way
+they point in view, two-sided, so a wall shades the same whichever way its path was wound.
+
+The artboard's rectangles come through the svg loader as shapes, and one passed the fill test with a
+stroke and no fill, standing as a slab over the whole title; anything the size of half the artboard
+is left out.
+
+**Every piece wiggles on its own.** Each vertex carries its piece's centre and a seed, and the
+vertex shader turns the piece about its own centre — the middle of its depth — by up to
+`EXTRUDE_WIGGLE` degrees on each axis, each axis a sine of its own rate and offset off the seed, so
+no two pieces move together and it is still one draw call. The normal turns with it, so the tones
+follow the tilt; which face is a front is read off the piece's own normal, before the turn. The
+wiggle grows in with the extrusion, so the flat opening frame is still the drawing exactly.
+
+**The depth is drawn oblique, not turned, since 18 September.** Turning the whole title changed the
+perspective of every letter at once; the reference instead keeps every front exactly where the flat
+drawing has it and lays the depth off along one direction on the page. So the view stays square on
+and a shear carries depth into the page's x and y — `EXTRUDE_OBLIQUE_ANGLE` degrees up from the
+right, `_SCALE` of its true length — and each piece extrudes from where it stands. The shear leaves a
+wall normal's x and y alone, so the walls are toned off those: tops light, undersides dark. The
+title turn is still there (`_YAW`, `_PITCH`, `_SWAY`) and off.
+
+**On black the fronts are the lightest tone.** The reference is on white with dark fronts; on black
+that lost the letters in their own depth, so the fronts are the house sky blue and the walls navy.
+`EXTRUDE_CONCRETE` blends the opening wall's stone into the pieces against its own average — grain
+without the stone's grey — nailed to the screen so the pieces move through it; `none` is plain.
+
+**It opens floating and assembles into the type.** The pieces start as solids in an exploded view
+near their places — pushed out from the title's middle by `EXTRUDE_EXPLODE`, lifted toward or away
+from the eye by up to `_FLOAT_Z`, tipped up to `_TURN` degrees and bobbing — and after `_GATHER`
+seconds glide home on a smootherstep, left to right with a little shuffle, over `_MOVE` each. How
+far a piece is from home scales its offset, its tip and its wiggle together, so at home it is the
+drawing's piece exactly: straight, flush and still. The title is framed at `_FILL` 0.72 so the
+exploded view fits the frame as well as the finished type. The default view is the readable one:
+fronts flat and upright, the depth at the isometric 30 degrees at full length
+(`EXTRUDE_VIEW=oblique`, `_OBLIQUE_ANGLE=30`, `_SCALE=1`); `iso` is the true isometric, which turns
+the whole title 45 degrees and runs the lines' depth into one another.
+
+## concrete cut-out shadows
+
+[`ConcreteCutoutShadows.kt`](src/main/kotlin/ConcreteCutoutShadows.kt) cuts the stencil title into
+a slab of concrete seen from straight above, in the house blue, with a raking sun — lettering
+chiselled into a wall. `CUT_*` in `.env`.
+
+```
+./gradlew run -Popenrndr.application=ConcreteCutoutShadowsKt
+```
+
+**Flat, and the depth is in the light.** From straight above a cut shows no wall; what says it is a
+cut is the shadow its rim throws on its floor. The title is drawn once into a coverage mask and one
+shader marches from each pixel inside a letter toward the sun over depth / tan(elevation): if any
+step leaves the letter, the rim is between it and the light. Marching the other way a few pixels
+finds the wall that faces the sun, drawn as a thin light lip along the far edge — the bright bevel
+in the reference photograph. The cut sinks from flat over `CUT_SINK`, then the sun turns so the
+shadow slides round every letter. The first setting (22 px deep at 35 degrees) put the whole stroke
+in shadow, a tone away from the floor, and the letters read as printed rather than cut; 12 px at 40
+leaves part of each floor lit, which is what makes the depth legible.
+
+## rotate type segments 2d
+
+[`RotateTypeSegments2D.kt`](src/main/kotlin/RotateTypeSegments2D.kt) turns the stencil title's pieces
+one by one about their own axes, white on black. `ROTATE_*` in `.env`.
+
+```
+./gradlew run -Popenrndr.application=RotateTypeSegments2DKt
+```
+
+**The motion was read off the reference clip** (`input/Screen Recording 2026-09-18 at 11.42.54.mov`)
+at one and then ten frames a second: every piece turns about its own vertical axis — narrowing to a
+sliver about its centre line and opening out mirrored, so the D's bowl comes back as a reversed C and
+the title holds for a moment as "ICE WERELD" — and no piece ever leaves its place. The turns run as a
+wave across the title, then the pieces turn on home one by one. So a piece turns a half turn at a
+time — out, hold, home, hold — each on its own beat in a left-to-right order with `ROTATE_SCATTER` of
+a shuffle. Drawn flat, a turn about the vertical axis is a scale in x by its cosine, negative past a
+quarter turn, which is the mirror; `ROTATE_ACROSS` gives some pieces the horizontal axis. A pure
+function of the frame, periodic in `ROTATE_PERIOD`, so a clip of that length loops.
+
+**Since then, a constant slow spin rather than waves.** Every piece spins at a steady rate of its own
+and never eases or stops, so the pieces drift out of step and the title is only glimpsed. Each makes a
+whole number of turns (`ROTATE_SPEEDS`, signed by `_REVERSE`) in `ROTATE_PERIOD`, so once a period
+they all come round at once and the sentence stands for a moment — and pieces with an odd number of
+turns meet mirrored at the half period, which is the reference's "ICE WERELD" passing by. The angle is
+linear in time, so the loop is exact.
+
+**The pieces are solid blocks now.** Each is extruded `ROTATE_DEPTH` deep, the way `ExtrudedType`
+builds them — face and back triangulated, the outline walked into walls, curves sharing normals — and
+spins about its own centre in the vertex shader, its turns a period and its axis carried per vertex,
+so the whole title is one draw call. One light keys every face from `ROTATE_DARK` to the ink by how
+squarely it meets the light, so a turning block's walls go from lit to dark; the view is tipped
+(`_PITCH`, `_YAW`) so the tops show, and the concrete is blended through every face against its own
+average. The name still says 2D because the motion is the flat sketch's: turns about each piece's
+own axis, with no piece leaving its place.
+
+## The Sketches tab
+
+The organizer (`SLIDES_ORGANIZER=true`) has two tabs: **Show**, the running order, and **Sketches**,
+every sketch in the project as a card — its picture, its name, the file, the `.env` prefix its keys
+share, the first paragraph of the KDoc above its `main`, and buttons to copy its name or its run
+command. So a sketch can be referred to by name without remembering what it was called.
+
+**The list is read off the source tree, not kept by hand** ([`Sketches.kt`](src/main/kotlin/slideshow/Sketches.kt)):
+any file under `src/main/kotlin` with a top-level `fun main(` is a sketch, so a new one appears the
+moment it exists. One that does not call `sketchPreview` is shown as a tool — a collector, a probe, a
+mixer — with nothing to picture.
+
+**The pictures are taken by the sketches themselves.** Every drawing sketch calls
+`sketchPreview("Name", at = …)` first thing in `program { }` ([`SketchPreview.kt`](src/main/kotlin/SketchPreview.kt));
+normally a no-op, with `SKETCH_PREVIEW=true` it saves the window at that second to
+`sketch-previews/<Name>.png` and quits. It has to come first because OPENRNDR's `Screenshots` binds its
+target in `beforeDraw` and extensions run in the order added. `tools/sketch_previews.sh` walks them all,
+one gradle run at a time, stopping any that runs past `MAX` seconds; name sketches to redo only those.
+The show's own picture is its first slide preview from `build/previews`. A new sketch gets a picture by
+adding the one line and running the script with its name.
+
+### Long shadow type v2
+
+[`LongShadowType_v2.kt`](src/main/kotlin/LongShadowType_v2.kt) is a copy of long shadow type to take
+further, drawing through its own copy of the effect ([`LongShadowV2`](src/main/kotlin/slideshow/slide-drawers/LongShadowV2.kt))
+so neither v1 nor the show's chapter card moves when it does. Its keys are `LONGSHADOW_V2_*`, each
+falling back to the same `LONGSHADOW_*` key when unset, so it opened exactly as v1 and diverges one
+key at a time.
+
+```
+./gradlew run -Popenrndr.application=LongShadowType_v2Kt
+```
+
+What it changes, from feedback of 18 September: **a grey ground**, and **the blocks give way to
+the type**. `LONGSHADOW_V2_FIELD_ORDER=before` raises the field first on its own, then brings the title
+in at `_TITLE_DELAY` while the blocks sink away round it — in the ripple they arrived in, so those
+nearest the letters make way first — leaving the title alone with its long shadow. `after` keeps v1's
+order, and `_FIELD_LEAVE` above 0 then sinks the blocks away that many seconds after they are up.
+A block leaves as rising undone and nothing else: it gets shorter over `_FIELD_LEAVE_TIME`, its
+shadow drawing in with it, keeping its roof's tone, and once it is flat (`HIDE_BELOW`, 4% of its
+height) it is not drawn at all. **No transparency and no fading**, as asked: a block is there at some
+height, or gone. The ground was black for a day and is now a soft grey (`LONGSHADOW_V2_PAPER=3A3A3A`)
+so the concrete still reads in it.
+
+**`FIELD_ORDER=build`: the title is built out of its own pieces.** No city of blocks: the title's
+pieces themselves wait round it in a yard and click into place one by one. Since 18 September:
+
+- **Each chapter's own words, big, in Rockwell.** With `LONGSHADOW_V2_IMAGE=none` the chapter's
+  title is set in the face in a band `_TITLE_BAND` of the frame high, drawn once into a picture under
+  `build/long-shadow-v2/` and cut into pieces like any drawn title — in Rockwell every letter is one
+  connected piece, so a piece is a letter (17 for "De wereld van bouwen"). → ← step the chapters.
+- **The yard is bin-packed on a grid, square.** `_YARD_UNIT` pixels a cell; a piece takes the cells
+  its box covers plus one; the title's cells are closed. Largest first, each to the emptier of the
+  bands above and below, first free place scanning outward from the title and from the middle across,
+  so the yard packs tight against the type and runs off the edges if it must. A yard piece stands one
+  to three `_YARD_LAYER`s high, so the shadows vary. Nothing is turned or tilted, anywhere.
+- **Clicks, not travel.** At its beat in the reading order across `_BUILD_SPREAD`, a piece drops out of
+  the yard over `_CLICK_OUT` (accelerating: a click, not a sink) and rises in its place over
+  `_CLICK_IN` with a back-out overshoot, like a part seating. The yard is empty exactly when the
+  title is whole; nothing fades. An earlier version carried pieces over on an eased glide, tilted,
+  from angled stacks — it read as floating rather than building, and went.
+
+**The letters are built of minimal blocks and circles** (`LONGSHADOW_V2_BLOCKS=true`), a timelapse of
+construction, after the letters-as-pieces version read as scrambled text rather than material. The
+chapter's title, set big in Rockwell, is read onto a grid of `_BLOCK_UNIT` pixels, and its ink cells
+are packed with blocks from a fixed set of sizes, largest first, a square one a circle `_BLOCK_ROUND`
+of the time, single cells filling the rest — so every cell of every letter is built, 320 blocks for
+"De wereld van bouwen". Those blocks wait in the yard, packed on its grid above and below the title,
+and click in letter by letter across each line, each letter from the ground up, over
+`_BUILD_SPREAD`. `_BLOCKS=false` gives back the letters cut whole.
+
+**The blocks are stacked in a perfect grid first.** Like blocks — same size, same shape — are stacked
+up to `_STACK_MAX` a stack, and the number of stacks is counted from that rather than stated: 320
+blocks of 14 kinds at 8 a stack is 45 stacks, two rows of up to 24. Every slot is one size (the
+largest block plus a margin), the rows centred and alternating above and below the title, nearest
+first. The stacks are revealed together — every block seats onto its stack somewhere within `_YARD_SPREAD`
+(0.8 s), scattered rather than dealt in order, as asked on 18 September — and only the build goes one by one;
+then from `_BUILD_AT` each block in turn clicks off the top of its stack — the stack a layer
+(`_STACK_LAYER`) lower — and seats in the title. A stack is drawn as its top block standing as high
+as the blocks still in it, so its shadow shortens as the material is used.
+
+**The grid is the whole window.** After a reference of a plain square grid over the frame, the stacks
+stand on one grid edge to edge, `_GRID_COLUMNS` (29) cells across and square cells down (16), ruled
+on the ground in lines `_GRID_LINE` of the way to ink. The cells the title will stand in are kept
+clear, and how many blocks a stack holds is counted so the stacks cover every other cell — 264 free
+cells for "De wereld van bouwen", so 163 stacks of up to 2 — spread evenly over them in reading order. The grid's lines fade out over the last
+`_GRID_FADE_TIME` seconds of the build and are gone as the last block seats — the one fade in the
+piece, allowed because the grid is the ground's ruling rather than anything built.
+ The grid is laid over the shadows too, at `_GRID_IN_SHADOW` (0.55) of its strength on open ground,
+so it runs on through the blue rather than stopping at a shadow's edge.
+
+### Long shadow type v3
+
+[`LongShadowType_v3.kt`](src/main/kotlin/LongShadowType_v3.kt) is a copy of v2 to take further,
+drawing through its own copy of the effect ([`LongShadowV3`](src/main/kotlin/slideshow/slide-drawers/LongShadowV3.kt))
+so v1, v2 and the show's chapter card stay put when it moves. Its keys are `LONGSHADOW_V3_*`, each
+falling back to `LONGSHADOW_V2_*` and then `LONGSHADOW_*`, so it opened exactly as v2 and diverges
+one key at a time. Its built title plates go to `build/long-shadow-v3/`.
+
+```
+./gradlew run -Popenrndr.application=LongShadowType_v3Kt
+```
+
+`LONGSHADOW_V2_SHADOW=false` draws the same piece with no shadows at all — the blocks and the title flat
+on the ground — and names its recording `-noshadow`.
+
+**`LONGSHADOW_V3_FIELD_ORDER=reveal`: the frame fills first, then opens onto the type.** Every cell
+of the window's grid stands an element — a square or a circle, `_REVEAL_LOW` to `_REVEAL_HIGH` of the
+title's height, the cells over the title included — all up within `_REVEAL_FILL`. From `_REVEAL_AT`
+the elements touching the title go down one by one, ranked by distance from the title's middle with
+`_REVEAL_SCATTER` of a seeded shuffle, and each of the title's blocks clicks up once every element
+over it has gone — so the type is never covered while it stands. The elements beside the title stay.
+**The type it opens onto is the drawn stencil title**, `LONGSHADOW_V3_SVG` —
+`data/titles/v5/title0{n}-test3.svg`, `{n}` the chapter — each of its 94 black paths standing as a
+tower of its own, drawn as the path itself. The svg's artboard is the pane's 1920x1080, so nothing is
+fitted. A cell goes when a piece's *outline* crosses it or its middle is inside a piece, not when the
+piece's box does: a diagonal stroke of the W boxes a great deal of air, and clearing by box opened
+holes beside the letters. **The outline is sampled every 3 px, not at its curve points**, and a cell's corners are tested
+too: a straight edge has points only at its two ends, so it crossed cells with no sample in them and
+fifteen elements stood on under the letters, stuck behind the type. That leaves 135 of the 464
+elements going for chapter 1. A chapter with no
+svg, or `_SVG=none`, falls back to the title set in the face and built of blocks (`_IMAGE=none`,
+`_BLOCKS=true`), where a block's box is its shape.
+
+Drawing the paths needs a stencil, so the height plan (`mask`) carries a depth-stencil buffer; the
+other two float buffers do not. The thin light slivers across the title's shadow are the sun through
+the stencil's own hairline gaps — physically right, not a fault.
+
+**The type's field is not left empty.** The stacks spread over every cell of the window, the field the
+title will stand in included, at least two blocks a stack. A stack in the field holds the blocks whose
+places in the title are nearest it, and those are built first: the field is cleared by putting its own
+material where it belongs, a short hop each, before the outer stacks start. `LONGSHADOW_V2_GRID_LINE=0`
+hides the ruling while the grid is being judged without it.
+
+**Then the title is left alone.** Once its last piece has seated the frame holds `_REVEAL_HOLD`
+seconds (2), and the elements beside it get less high one by one — nearest the title first, with
+`_REVEAL_SCATTER` of a shuffle, across `_REVEAL_LEAVE_SPREAD`, each over `_REVEAL_LEAVE_TIME` — until
+they are in the floor and the title stands on the bare ground with its long shadow, about 19 s in.
+
+**The elements are v1's field, packed over the whole frame.** `fieldFor(..., whole = true)` runs the
+same module grid (`LONGSHADOW_FIELD_UNIT`, 48x27 at 40 px), sizes largest first, circles, streets and
+gardens as v1, with nothing kept clear round the title — 305 elements, 79 of them over it — and the
+grid is ruled at that module. The reveal's own shape keys went; the `LONGSHADOW_FIELD_*` keys steer it.
+
+**The type comes up a piece at a time.** Going by the elements alone let a whole word up at once
+wherever one large element went, each piece clicking up in a quarter second. Each piece now has its
+own turn, from the title's middle outward evenly across `_REVEAL_SPREAD`, never before the elements
+over it have gone, and rises over `_REVEAL_RISE`. **Last, the shadow draws in**: with the side
+elements in the floor the title comes down to `_REVEAL_FINAL` (0.08) of its height over
+`_REVEAL_SETTLE`, so it ends as a sliver of shadow — about 22 s in all.
+
+**`_REVEAL_FILL=0` opens on the field already standing**, with no arrival at all, so the piece is
+the transition alone: `LONGSHADOW_V3_REVEAL_FILL=0 LONGSHADOW_V3_REVEAL_AT=1` starts the type coming
+through a second in and ends at about 19 s. `LONGSHADOW_V3_VIDEO` names the file a record run
+writes, so a variant can be filmed beside the default rather than over it —
+`video/long-shadow-type-v3-1-standing.mp4` is this one.
+
+### Chapter 1's card is long shadow type v3
+
+`SLIDES_CARD_V3_CHAPTERS=1` gives chapter 1 [`LongShadowV3ChapterPanel`](src/main/kotlin/slideshow/slide-drawers/LongShadowV3ChapterPanel.kt)
+while the other three keep `SLIDES_CARD_STYLE`: the field already standing as the chapter opens
+(`SLIDES_CARD_V3_FILL=0`), the stencil title coming through from `SLIDES_CARD_V3_AT` (1 s), the rest
+sinking away and the shadow drawing in, about 19 s. It is built by `longShadowV3FromEnv`, so every
+other value is the sketch's `LONGSHADOW_V3_*` — tuned there, it changes here. No concrete of its own,
+since the show lays `SLIDES_CONCRETE` over every frame. `CARD=1 CARD_AT=0.5,4,9,21` in the card
+studio checks it; `none` puts chapter 1 back on the ordinary card.

@@ -23,6 +23,7 @@ import slideshow.frames
 import slideshow.linear
 import slideshow.smoothstep
 import java.io.File
+import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.pow
 
@@ -100,8 +101,20 @@ class CityMapSlide(
     override val steps = 3
     override val stepFrames = frames(pace)
 
-    /** The opening state stands still — the whole town, every element on its plan — so a written run need not wait a click's length on it. */
-    override val settle: Int get() = frames(0.5)
+    /**
+     * The cull is its own length: a count down to one element wants three or four seconds, not
+     * the twelve the push wants. With one length for both it ran over a quarter of its click and
+     * the slide then stood on the survivor for nine seconds; now the click is as long as the move.
+     */
+    override fun stepLength(step: Int): Int = if (step == 2) frames(CULL_SECONDS) else stepFrames
+
+    /**
+     * The opening arrives: a little further out than the resting frame and a touch off centre,
+     * zooming in softly and panning to rest over [OPEN] seconds of the slide's own clock, so the
+     * town is come upon rather than presented. Only while the slide is still on its first state,
+     * so stepping back into it finds it standing. A written run waits for it.
+     */
+    override val settle: Int get() = frames(OPEN)
 
     /**
      * A hard cut, not the deck's default fade.
@@ -252,7 +265,18 @@ class CityMapSlide(
         // easing twice: measured off a 12s click that way, the camera had finished moving
         // by 8.5s and the last three and a half seconds were a still frame. Whatever
         // travels here is drawn straight off `position` and lets the deck do the easing.
-        camera.zoom = pushFrom * (pushTo / pushFrom).pow(stage.on(1))
+        // The opening runs on the slide's own clock from just above the floor zoom — where the
+        // edge of the collected data cannot show — to a resting frame a shade closer, with a
+        // small pan settling to nothing; the push then runs from that resting frame. Both zooms
+        // are geometric.
+        val opening = stage.step == 0 && stage.position < 1e-6
+        val open = if (opening) smoothstep(stage.since(0, frames(OPEN))) else 1.0
+        val began = pushFrom * OPEN_FROM
+        val rest = pushFrom * OPEN_REST
+        camera.zoom = began * (rest / began).pow(open) * (pushTo / rest).pow(stage.on(1))
+        // No pan: the opening is a soft zoom and nothing else. It travelled a little across as
+        // well for a day and was taken off on 16 September — a frame that moves sideways while
+        // it closes in reads as a camera being aimed, where a straight zoom reads as arriving.
 
         // ...and whatever is *counted* rather than travelled undoes it instead, which is
         // what [linear] is for. The grid gathers over the back of the click at an even
@@ -296,7 +320,32 @@ class CityMapSlide(
             camera.apply(drawer)
 
             ground.forEach { (mesh, colour) -> mesh.draw(drawer, colour) }
-            fabric.draw(drawer, ink)
+
+            // **The town comes up out of nothing as the camera closes in**, plan by plan behind
+            // a soft front rather than all at once — asked for on 16 September as passing through
+            // cloud. A plan is a part of the one mesh, so what sweeps is a part index: everything
+            // behind the front is drawn in a single call and the front itself is a short run of
+            // bands, each a call at its own opacity. Banding it is what makes it affordable —
+            // seven thousand plans fading individually would be seven thousand draw calls a
+            // frame, where [TAIL_BANDS] is a couple of dozen and the gradient is just as smooth.
+            if (open >= 1.0) fabric.draw(drawer, ink)
+            else {
+                val parts = fabric.parts
+                val front = open * parts
+                val tail = (parts * TAIL).coerceAtLeast(1.0)
+                val settled = floor(front - tail).toInt().coerceIn(0, parts)
+                fabric.drawRange(drawer, 0, settled, ink)
+                val band = (tail / TAIL_BANDS).coerceAtLeast(1.0)
+                var from = settled
+                while (from < front.toInt().coerceAtMost(parts)) {
+                    val to = (from + band).toInt().coerceAtMost(parts)
+                    if (to <= from) break
+                    // How far through the tail the middle of this band is: 1 at the settled end.
+                    val alpha = (((front - (from + to) / 2.0) / tail)).coerceIn(0.0, 1.0)
+                    fabric.drawRange(drawer, from, to, ink, alpha)
+                    from = to
+                }
+            }
 
             // The grid. A call each is affordable where it would not be for the city,
             // because this is the elements in one frame — a hundred or so, capped by
@@ -329,22 +378,45 @@ class CityMapSlide(
                 // — a delta is a delta — but a scale is about a *point*, and taking that
                 // point in RD metres instead throws the element out by origin * (k - 1),
                 // which is a hundred and fifty kilometres.
+                // The elements held out of the fabric arrive on the same front, each on its own
+                // share of it, so the grid's pieces come up with the town around them.
+                val shown = if (open >= 1.0) 1.0
+                            else (((open * moves.size - index) / (moves.size * TAIL).coerceAtLeast(1.0))).coerceIn(0.0, 1.0)
+                if (shown <= 0.0) return@forEachIndexed
+
                 drawer.isolated {
                     drawer.translate(at - area.origin)
                     drawer.scale(k, k)
                     drawer.translate(area.origin - move.home)
-                    movers.drawRange(drawer, index, index + 1, ink)
+                    movers.drawRange(drawer, index, index + 1, ink, shown)
                 }
             }
         }
     }
 
     private companion object {
+        /** Seconds the opening takes to zoom to rest and the town to come up behind it. */
+        const val OPEN = 6.0
+        /** Where the opening starts and rests, against the floor zoom. */
+        const val OPEN_FROM = 1.04
+        const val OPEN_REST = 1.14
+
+        /**
+         * How much of the town is fading at once behind the reveal's front, as a share of the
+         * plans, and how many bands that front is drawn in. A long tail is what makes it a wash
+         * coming up rather than plans popping on: at a twentieth of seven thousand plans, three
+         * hundred and fifty are part-way in at any moment.
+         */
+        const val TAIL = 0.05
+        const val TAIL_BANDS = 24
+
         /** How far into the first click the elements start lifting off the plan. */
         const val GATHERS_AT = 0.45
 
-        /** How much of the second click the grid takes to empty, survivor and all. */
-        const val CULL = 0.25
+        /** How much of the second click the grid takes to empty, survivor and all: the whole of it, now that the click is its own length. */
+        const val CULL = 1.0
+        /** Seconds the cull's click takes. */
+        const val CULL_SECONDS = 3.5
 
 
         // Quieter than they would be on a map: here the ground is only what the figure

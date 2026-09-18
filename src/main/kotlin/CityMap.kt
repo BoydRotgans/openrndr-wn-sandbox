@@ -44,6 +44,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("CityMap", at = 8.0)
         val area = collectMapData()
 
         val revealDuration = Env["CITY_DURATION"]?.toDoubleOrNull() ?: 26.0

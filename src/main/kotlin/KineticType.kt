@@ -256,6 +256,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("KineticType", at = 4.0)
         val ink = ColorRGBa.fromHex(Env["KINETIC_INK"] ?: "#FFFFFF")
         val paper = ColorRGBa.fromHex(Env["KINETIC_PAPER"] ?: "#000000")
         val inset = Env["KINETIC_INSET"]?.toDoubleOrNull() ?: 70.0

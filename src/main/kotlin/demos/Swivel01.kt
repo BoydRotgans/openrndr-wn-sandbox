@@ -7,6 +7,9 @@ import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector3
 import org.openrndr.math.smoothstep
 
+/**
+ * A row of panels sweeping round in turn on a 4:1 banner — the sketch Swivel01Slide was taken from.
+ */
 fun main() {
     application {
         configure {
@@ -15,6 +18,7 @@ fun main() {
             multisample = WindowMultisample.SampleCount(4)
         }
         program {
+            sketchPreview("Swivel01", at = 3.0)
 
 
             val boxMesh = boxMesh(110.0, 370.0, 10.0)

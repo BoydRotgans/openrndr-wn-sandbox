@@ -28,6 +28,11 @@
 | **Count** | one at a time, instant, linear in time | city cull, globe |
 | **Crossfade text** | old text gone by ⅓ of the click, new text in from ⅔; unchanged text stays; titles sharing a prefix crossfade straight | ladder |
 | **Loop** | whole cycles of `stage.loop`; the seam checked byte-identical | swivels, walls |
+| **Breathe** | for what stands for minutes: a slow, bounded, never-repeating drift, at the edge of noticing (`Breathe`) | chapter card's light |
+
+- The house moves are classes in `slideshow/`: `Arrive` (with its stagger), `Grow`, `Slots`, `Swap`,
+  `Count`, `Leader`, `Breathe`. Reach for them before writing a new expression.
+- A click may have its own length: `stepLength(step)`. A long push and a short cull are not one click.
 
 ## Emphasis
 - By colour, never by size. A selected thing may pulse its colour slowly (`PixelMap`); nothing jumps or scales.

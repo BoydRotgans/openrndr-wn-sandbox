@@ -47,6 +47,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("ImageCardStudio", at = 4.0)
         Type.file = textFont
 
         // **The studio states the recipe rather than taking the show's.** `SLIDES_CARD_*` is

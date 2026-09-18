@@ -18,10 +18,12 @@ import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.min
+import kotlin.math.sin
 
 /**
  * What one slab carries. Everything is optional, so a blank block leaves a slab empty and
@@ -58,9 +60,30 @@ data class SwivelBlock(
  * turn is that many slab-widths long. Five blocks against a four-slab swing means twenty,
  * which at [pace] a slab is a long turn — but a seam that never shows is the point, and
  * nobody watches a whole one.
+ *
+ * **[clicked] makes it a figure a click instead of a train.** The slabs stand still with one
+ * of them centred and close up, facing the room; a click carries the train one slab along so
+ * the next block comes to the middle, and the slabs either side turn away and step back by how
+ * far off centre they are. No loop, a state a block — so the same drawer that runs a train under
+ * a chapter can read out the company's figures one at a time, and the figures slides of two
+ * chapters became one slide this way on 16 September.
+ *
+ * **A slab's turn and depth are a sine of where it stands, never a clamped ramp**, and getting
+ * that wrong is what made the clicked version read as broken. It was
+ * `off = (i + travel).coerceIn(-1, 1)` with the depth on `abs(off)`: every slab more than one
+ * place off centre sat at exactly the same extreme angle, so a slab entering the frame stood
+ * dead still until it crossed the clamp and then started moving — and the depth had a corner in
+ * it at the middle, so a slab passing the centre reversed rather than eased through. The sketch
+ * this came from has neither: its `TURNS` and `DEPTHS` are `-45·cos(iπ/2)` and `90·sin(iπ/2)`
+ * read off a four-slab pattern, one smooth wave down the train. The clicked train is that same
+ * wave with its zero anchored on whichever slab is centred — every slab moving at every moment,
+ * the middle one square to the room and nearest the eye — which is the whole of what "seamless"
+ * asked for. They are drawn furthest first, so the one being read is the one on top.
  */
 class Swivel02Slide(
     private val blocks: List<SwivelBlock> = emptyList(),
+    /** A block a click, centred and close up, rather than a looping train. */
+    private val clicked: Boolean = false,
     /** Faces turned towards the front — the ones the copy is set on. */
     private val front: ColorRGBa = ColorRGBa.fromHex("ED1C24"),
     /** Faces turned aside, so a slab has an edge without a line drawn on it. */
@@ -80,7 +103,10 @@ class Swivel02Slide(
     /** Slab-widths in a turn: the least that closes the copy, the turns and the depths at once. */
     private val cycle = lcm(TURNS.size, blocks.size.coerceAtLeast(1))
 
-    override val loop = frames(pace * cycle)
+    override val loop = if (clicked) 0 else frames(pace * cycle)
+    override val steps get() = if (clicked) blocks.size.coerceAtLeast(1) else 1
+    override val stepFrames = frames(if (clicked) 1.0 else 0.45)
+    override fun stepName(step: Int) = if (clicked) blocks.getOrNull(step)?.let { it.text.ifBlank { it.items.firstOrNull() ?: "" } } else null
 
     private lateinit var slab: VertexBuffer
     private lateinit var face: FontImageMap
@@ -99,7 +125,9 @@ class Swivel02Slide(
         // One swing to a slab-width, which is what lets any cycle close: at the end of a
         // turn the train has moved a whole number of slabs and the swing is back where it
         // started, so the last frame is the frame before the first.
-        val travel = stage.loop * cycle
+        // Clicked, the train stands at the block the deck is on: slab i sits at (i - position)
+        // slab-widths, so block p is centred at position p and the next comes in from the side.
+        val travel = if (clicked) -stage.position else stage.loop * cycle
         val swing = cos(travel * 2.0 * PI)
 
         val slabStyle = shadeStyle {
@@ -122,9 +150,27 @@ class Swivel02Slide(
         val from = floor(-travel).toInt() - reach
         val to = ceil(-travel).toInt() + reach
 
-        for (i in from..to) drawer.isolated {
-            drawer.translate((i + travel) * SPAN, 0.0, swing * DEPTHS[i.mod(DEPTHS.size)])
-            drawer.rotate(Vector3.UNIT_Y, swing * TURNS[i.mod(TURNS.size)])
+        // Clicked, the slab nearest the middle stands nearest the eye, so the train is painted
+        // from the back forwards: furthest off centre first, the one being read last. Drawn in
+        // index order the slab to its right would paint over it.
+        val order = if (clicked) (from..to).sortedByDescending { abs(it + travel) } else (from..to).toList()
+
+        for (i in order) drawer.isolated {
+            val turn: Double
+            val depth: Double
+            if (clicked) {
+                // How far off centre, in slabs, and the sketch's own wave read off it: the
+                // centred slab is square to the room and at the front, and every slab either
+                // side turns and steps back along one continuous sine. No clamp, no corner.
+                val off = i + travel
+                turn = -TURN_AWAY * sin(off * PI / 2.0)
+                depth = STEP_BACK * (1.0 - cos(off * PI / 2.0))
+            } else {
+                turn = swing * TURNS[i.mod(TURNS.size)]
+                depth = swing * DEPTHS[i.mod(DEPTHS.size)]
+            }
+            drawer.translate((i + travel) * SPAN, 0.0, depth)
+            drawer.rotate(Vector3.UNIT_Y, turn)
 
             drawer.fill = front
             drawer.stroke = null
@@ -232,6 +278,14 @@ class Swivel02Slide(
         /** Every fourth slab swings and steps the same way, so the train has a beat to it. */
         val TURNS = listOf(-45.0, 0.0, 45.0, 0.0)
         val DEPTHS = listOf(0.0, 90.0, 0.0, -90.0)
+
+        /**
+         * Clicked: the amplitude of the wave — how far a slab one place off centre turns away, in
+         * degrees, and how far behind the centred one it stands, in world units. The wave's own
+         * period is four slabs, which is the sketch's beat.
+         */
+        const val TURN_AWAY = 40.0
+        const val STEP_BACK = 90.0
     }
 }
 

@@ -77,6 +77,7 @@ fun main() = application {
     }
 
     program {
+        sketchPreview("Decision", at = 3.0)
         // What stands at each decision. The svgs say where the decisions are and how they
         // are coloured; the sheet says what they look like. DECISION_SHEET=none leaves the
         // dots as the circles they are in the file, which is the piece as drawn — the

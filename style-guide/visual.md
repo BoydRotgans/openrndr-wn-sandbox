@@ -1,9 +1,18 @@
 # Visual
 
 ## Frame
-- **The wall is two projectors, 1920×1080 each, meeting at x = 1920.** Everything composes as two
-  panes: a talk slide is the **right pane** beside the chapter card in the left. Lay out against
-  `stage.bounds`: sizes as a share of the pane **height**, positions as a share of the width.
+- **The installation is two walls, each 12 m wide and 1920×1080, left and right, with the room 8 to
+  10 m away.** In the show they are the two panes of one 3840 canvas meeting at x = 1920: a talk
+  slide is the **right pane** beside the chapter card in the left, and the card stays up for the whole
+  chapter. Lay out against `stage.bounds`: sizes as a share of the pane **height**, positions as a
+  share of the width. Whether the two surfaces are continuous is not yet known; the four backdrops
+  that draw one picture across both depend on it.
+- **A pixel is 6.25 mm on the wall.** `Scale.arcminutes(share)` says what a size becomes from the
+  room; the smallest type here is about three times the comfortable reading threshold, so a size is
+  always a question of hierarchy, never of legibility. Do not enlarge type because it looks small in
+  the combined preview.
+- **The lines every layout stands on are `Frame`'s** — margin 0.02 of the width, title at 0.06 of the
+  height, foot at 0.94 — and `g` in the show rules them over the wall.
 - **A wide moment that carries type or a diagram is still two panes.** Nothing that has to be read
   straddles the seam — no line of type, no list, no chart runs from one projector into the other.
   Split the content: one thing on the left, one on the right (`Programme`: the list left, the key
@@ -40,7 +49,7 @@ handed to the drawer, never looked up in it.
 | slide title | 0.036–0.041 | 39–44 |
 | label on a shape | 0.024–0.030 | 26–32 |
 | body, paragraph | 0.0287, leading 0.035 | 31 / 38 |
-| quote | `setToFit` to the pane | — |
+| quote | `setToFit` to the measure, ranged left | — |
 
 - **Title**: centred at the top (≈ 0.06–0.075) on diagrams; top-left (x 0.02, baseline 0.055) when an
   explanatory paragraph stands under it, as on the ladder. It may change between states only by crossfading.
@@ -50,6 +59,10 @@ handed to the drawer, never looked up in it.
 - An explanatory paragraph is ≤ 35 words and ≤ 6 lines, wrapped to a fixed measure (≈ 0.29 of the width).
 
 ## Imagery
+- **Everything is a precast component seen one of three ways**: as a catalogue specimen (ordered,
+  numbered, named), as a technical drawing (plans, leaders, a share in red), or as sculpture (in the
+  round, lit from one side, a real shadow). A slide says which, and that settles its ground, its
+  movement and whether its type is a caption or a label. See `principles.md`.
 - The vocabulary is the catalogue: svg silhouettes (`data/svg`), meshes in isometric (`IsoPieces`, `data/objects`),
   names and sizes from the register (`data/csv/objects-115-details.csv`).
 - People are the low-poly silhouettes (`Crowd`); maps are pixel grids (`PixelMap`); buildings are blocks (`BlockCity`).

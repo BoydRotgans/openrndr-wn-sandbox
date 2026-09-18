@@ -11,6 +11,7 @@ import org.openrndr.shape.ShapeContour
 import org.openrndr.shape.contour
 import slideshow.Cut
 import slideshow.Mark
+import slideshow.Palette
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
@@ -67,6 +68,21 @@ fun nodes(labels: List<String>): List<TreeNode> = labels.map { TreeNode(it) }
  * A label sits at its own node and ranges away from the middle, which is right for a leaf
  * and approximate for a branch: a branch's label runs back over the curves leaving it.
  * Nothing in the show needs that yet.
+ *
+ * **[highlights] picks a few things out before the fan.** Forty labels arriving at once is a
+ * picture; one arriving is a point. So the first clicks draw one named factor each — its curve
+ * and its label, in [accent], with nothing else on the pane but the root — and only the click
+ * after those opens the whole fan around them. The picked ones keep the accent once the rest
+ * are up, so the two the speaker named stay the two the room can find. The root shrinks to
+ * node size on the very first click either way, since a curve has to have an edge to leave.
+ *
+ * **A highlight stands beside the root while it is the only thing there, and travels to its own
+ * row when the fan opens.** Drawn at its settled place from the start it is wherever its row
+ * happens to fall — "Locatie" is the top of the left column, a line of type in the corner of an
+ * otherwise empty pane — and the one thing this click has to do is let the word be read. So while
+ * the highlights are on their own they are dealt half a row either side of the middle, a stem
+ * each, and the click that opens the fan carries them out to their rows with everything else.
+ * They are named one a side in the show, so the pane reads left, then right, then all of it.
  */
 class TreeSlide(
     /** The branch running down the left of the frame, labels ranged right. */
@@ -76,30 +92,41 @@ class TreeSlide(
     /** The shape the previous slide left standing. See the note above on load order. */
     private val opening: () -> Mark? = { null },
     private val fontPath: String = "data/fonts/default.otf",
-    /** What the root becomes as the tree opens. Null leaves it in the ink it arrived in. */
-    private val accent: ColorRGBa? = ColorRGBa.fromHex("3D5AE0"),
+    /** What the root becomes as the tree opens, and what a highlighted factor is drawn in. Null leaves the ink. */
+    private val accent: ColorRGBa? = Palette.onBlack.structure,
     /** Pane pixels the root settles at, once it is a node rather than the whole subject. */
     private val rootHeight: Double = 94.0,
     private val pace: Double = 1.2,
+    /** Labels drawn one a click, in [accent], before the fan opens. In the order they are named. */
+    private val highlights: List<String> = emptyList(),
     /**
-     * The cue as the fan opens, on click 1 — **not** on arrival.
+     * The cue as the fan opens — **not** on arrival.
      *
      * This slide opens on the city's own last frame, one element on an empty pane, and holds
      * there: a cue on the arrival would mark a cut nobody can see. What it should mark is the
-     * fan coming apart, which is the click after.
+     * fan coming apart, which is the click after the highlights.
      */
-    override val stepCues: List<Sound> = emptyList()
+    private val fanCue: Sound? = null
 ) : Slide() {
     override val name = "Tree"
 
-    /** One click a level, and the first of them is the tree arriving. */
-    override val steps = 1 + maxOf(depthOf(left), depthOf(right))
+    /** A click a highlight, then one click a level, and the first of all is the tree arriving. */
+    override val steps = 1 + highlights.size + maxOf(depthOf(left), depthOf(right))
     override val stepFrames = frames(pace)
+
+    /** The click that opens the whole fan: the one after the last highlight. */
+    private val fanStep: Int get() = 1 + highlights.size
 
     /** Seamless: the first frame here is the last frame of the slide before it. */
     override val transition = Cut
 
-    override fun stepName(step: Int) = if (step == 1) "open the tree" else null
+    override fun stepName(step: Int) = when {
+        step in 1..highlights.size -> highlights[step - 1]
+        step == fanStep -> "open the tree"
+        else -> null
+    }
+
+    override fun stepSound(step: Int): Sound? = if (step == fanStep) fanCue else null
 
     /** The ground is taken from the shape handed over, so the two slides cannot disagree. */
     override val background: ColorRGBa get() = mark?.paper ?: ColorRGBa.BLACK
@@ -143,21 +170,32 @@ class TreeSlide(
 
             val placed = place(branch, side, centre, stage.height, pitch, hub, tip)
             placed.forEach { one ->
-                // Opened from the middle of the fan outwards, which is the order the
-                // bundle at the root can actually come apart in.
-                val grown = smoothstep((stage.on(one.depth) - one.row * STAGGER) / (1.0 - STAGGER))
+                // A highlighted factor has a click of its own and arrives whole; the rest open
+                // from the middle of the fan outwards, which is the order the bundle at the
+                // root can actually come apart in, on the clicks after the highlights.
+                val picked = highlights.indexOf(one.node.label)
+                val grown = if (picked >= 0) stage.on(picked + 1)
+                            else smoothstep((stage.on(fanStep + one.depth - 1) - one.row * STAGGER) / (1.0 - STAGGER))
                 if (grown <= 0.0) return@forEach
+                val tone = if (picked >= 0) accent ?: ink else ink
+
+                // While a highlight is on its own it stands beside the root, half a row off the
+                // middle, and the fan's own click carries it out to its row.
+                val at = if (picked < 0) one.at else {
+                    val waiting = centre.y + (picked - (highlights.size - 1) / 2.0) * pitch
+                    Vector2(one.at.x, waiting + (one.at.y - waiting) * stage.on(fanStep))
+                }
 
                 drawer.fill = null
-                drawer.stroke = ink.opacify(grown)
-                drawer.contour(link(one.from, one.at).sub(0.0, grown))
+                drawer.stroke = tone.opacify(grown)
+                drawer.contour(link(one.from, at).sub(0.0, grown))
 
                 // the label arrives with the last of its own curve
                 val shown = smoothstep((grown - 1.0 + LABEL_IN) / LABEL_IN)
                 if (one.node.label.isNotBlank() && shown > 0.0) {
                     drawer.stroke = null
-                    drawer.fill = ink.opacify(shown)
-                    label(drawer, one.node.label, one.at + Vector2(side * LABEL_GAP, 0.0), scale, side)
+                    drawer.fill = tone.opacify(shown)
+                    label(drawer, one.node.label, at + Vector2(side * LABEL_GAP, 0.0), scale, side)
                 }
             }
         }

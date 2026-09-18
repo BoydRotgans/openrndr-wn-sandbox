@@ -67,7 +67,7 @@ class Deck(
 
     /** Frames into the click being played, and how many it takes. */
     val moveElapsed: Int get() = (frame - current.changedAt).coerceIn(0, moveFrames)
-    val moveFrames: Int get() = current.slide.stepFrames
+    val moveFrames: Int get() = current.length
 
     /** The click in play — going back, the one being undone rather than the one landed on. */
     val movingStep: Int get() = current.movingStep
@@ -192,7 +192,7 @@ class Deck(
         val slide = slides[index]
 
         /** This playhead at another index over the same slide: click, ramp and frame count carried over. */
-        fun at(index: Int): Playhead = Playhead(index, step, startedAt).also { it.from = from; it.changedAt = changedAt }
+        fun at(index: Int): Playhead = Playhead(index, step, startedAt).also { it.from = from; it.changedAt = changedAt; it.length = length }
 
         var step: Int = step
             private set
@@ -201,15 +201,20 @@ class Deck(
         var changedAt = frame
             private set
 
+        /** Frames the click in play takes: the length of the click being landed on or undone. */
+        var length: Int = slide.stepLength(step)
+            private set
+
         fun goTo(target: Int, instant: Boolean) {
             val clamped = target.coerceIn(0, slide.steps - 1)
             from = if (instant) clamped.toDouble() else position
             step = clamped
             changedAt = frame
+            length = slide.stepLength(maxOf(clamped, Math.round(from).toInt()))
         }
 
         val position: Double
-            get() = from + (step - from) * easeInOutCubic(ramp(frame - changedAt, slide.stepFrames))
+            get() = from + (step - from) * easeInOutCubic(ramp(frame - changedAt, length))
 
         /** Going forward this is the click arriving; going back, the one being undone. */
         val movingStep: Int get() = maxOf(step, Math.round(from).toInt())
@@ -217,7 +222,7 @@ class Deck(
         /** Which way the click being played is going; 0 once it has landed. */
         val direction: Int
             get() = when {
-                frame - changedAt >= slide.stepFrames -> 0
+                frame - changedAt >= length -> 0
                 step > from -> 1
                 step < from -> -1
                 else -> 0

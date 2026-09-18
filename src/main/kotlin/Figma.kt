@@ -40,6 +40,7 @@ fun main() = application {
     configure { width = 1280; height = 800 }
 
     program {
+        sketchPreview("Figma", at = 2.0)
         // fetched here rather than before application {}: on macOS OPENRNDR restarts
         // the jvm, so anything above it would run twice
         val frames = fetchFigmaFrames()

@@ -8,6 +8,8 @@ import org.openrndr.KEY_ARROW_UP
 import org.openrndr.KEY_ESCAPE
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
+import org.openrndr.draw.ColorFormat
+import org.openrndr.draw.ColorType
 import org.openrndr.draw.DepthFormat
 import org.openrndr.draw.MagnifyingFilter
 import org.openrndr.draw.MinifyingFilter
@@ -121,7 +123,10 @@ private fun org.openrndr.ApplicationBuilder.present(
         val remote = if (organizing)
             Remote(
                 show, File(settings.order ?: "show-order.json"), settings.organizerPort, File("build/previews"),
-                File(settings.modules ?: "show-modules.json"), references
+                File(settings.modules ?: "show-modules.json"), references,
+                File(settings.intents ?: "show-intents.json"),
+                File(settings.feedback ?: "show-feedback.json"),
+                File(settings.midi ?: "show-midi.json")
             ).takeIf { it.start() }?.also { onClose { it.stop() } }
         else null
 
@@ -129,12 +134,44 @@ private fun org.openrndr.ApplicationBuilder.present(
         // a show must not stall on a click. Silent under `stills`, which jumps through
         // every slide of the deck on a timer and would fire every cue in the show at it.
         val speakers = Speakers()
+
+        // The sound design delivered as a folder, re-keyed from the names in that folder to the
+        // show's own slide ids — see [CueSheet]. Bound against the whole catalogue rather than
+        // the running order, so a slide the order has archived still carries its cues when it is
+        // dragged back in. Once, here, because the binding prints what it matched and a report
+        // repeated every time the order changed would say nothing new.
+        val cueSheet = settings.cueSheet?.boundTo(
+            (catalogue.slideIds.zip(catalogue.slides) + show.slideIds.zip(show.slides))
+                .associate { (id, slide) -> id to slide.steps }
+        )
+
+        /** The id the sheet knows a slide by, which is the id the order file names it by. */
+        fun idAt(index: Int) = ids.getOrElse(index) { "" }
+
+        /** What the deck should sound at [step] of the slide at [index] — the sheet's, or the slide's own. */
+        fun cueAt(index: Int, step: Int) =
+            slides.getOrNull(index)?.let { soundAt(it, idAt(index), step, cueSheet) }
+
         if (settings.sound && !settings.stills) {
-            // Every cue the deck can reach: a slide's own, the marks its clicks make, and the
-            // chapter cards'. The step cues have to be asked for by name — they hang off
-            // `stepSound(step)` rather than a property, so a `mapNotNull` over the slides
-            // misses them and they arrive at `play` with no buffer to their name.
-            speakers.load((if (organizing) catalogue.slides else slides).flatMap { cuesOf(it) } + show.panels.mapNotNull { it.sound } + listOfNotNull(settings.slideBed))
+            // Every cue the deck can reach: a slide's own, the marks its clicks make, the
+            // chapter cards' and the sheet's. The step cues have to be asked for by name — they
+            // hang off `stepSound(step)` rather than a property, so a `mapNotNull` over the
+            // slides misses them and they arrive at `play` with no buffer to their name.
+            //
+            // The whole sheet is decoded rather than only the part the running order reaches,
+            // for the reason it is bound against the catalogue: an order applied while the
+            // window is up may call for any declared slide, and a cue read late is a cue that
+            // lands on the click after the one it was for.
+            // Paired with its own ids: the catalogue is in declaration order and the deck in
+            // running order, so indexing one by the other's names would ask the wrong slide.
+            val loading = if (organizing) catalogue.slides to catalogue.slideIds else slides to ids
+            val declared = loading.first.flatMapIndexed { i: Int, slide: Slide ->
+                cuesOf(slide, loading.second.getOrElse(i) { "" }, cueSheet)
+            }
+            speakers.load(
+                declared + cueSheet?.all.orEmpty() +
+                        show.panels.mapNotNull { it.sound } + listOfNotNull(settings.slideBed)
+            )
         }
 
         // --- two panes -------------------------------------------------------------- //
@@ -174,7 +211,15 @@ private fun org.openrndr.ApplicationBuilder.present(
          * already across, mid-chapter, so it is silent: a cue there would announce a chapter
          * the talk is leaving rather than one it is opening.
          */
-        fun announce(panel: Int) = speakers.play(show.panels.getOrNull(panel)?.sound)
+        fun announce(panel: Int) {
+            // Two openings at one instant is one too many. Where the sheet gives the slide the
+            // show is arriving at a cue of its own, that cue *is* the chapter opening — the
+            // first sheet's `P1-01-hoe-bouw-je-een-wereld-A` is exactly the sting `1-01` was,
+            // redelivered against the slide rather than the card — so the card holds its tongue
+            // and the slide speaks. A chapter whose sheet has not arrived still announces.
+            if (cueAt(deck.index, 0) != null && cueSheet?.owns(idAt(deck.index)) == true) return
+            speakers.play(show.panels.getOrNull(panel)?.sound)
+        }
 
         /** A slide's own cue, where it has one. Cards are announced separately, above. */
         var soundedSlide = -1
@@ -225,6 +270,37 @@ private fun org.openrndr.ApplicationBuilder.present(
         // The previews still to render — a slide, by id since the order can change under them,
         // and one of its three shots each — one a frame. Every declared slide, on or off.
         val previewJobs = ArrayDeque<Pair<String, Int>>()
+
+        /**
+         * An export under way: which slides are left, and how far into the one being written.
+         *
+         * It is declared **here and not in `draw`**, which is the whole of why the first version
+         * did nothing: a `var` inside the draw block is new every frame, so the job was begun,
+         * forgotten and begun again, and the page saw an export that was never running. The
+         * preview queue beside it has the same reason for standing here.
+         *
+         * **Its list is `queue` and not `ids`**, which is not fussiness: the draw loop already
+         * has an `ids` — the running order — and while this was a local class taking a `val ids`,
+         * the getter below read *that* one. The export wrote the right clips under the right
+         * names and reported the show's first two slides as the ones it was writing, which is the
+         * worst shape a bug can take: correct work, wrong account of it. A name of its own cannot
+         * be captured by accident.
+         */
+        class ExportJob(val queue: List<String>) {
+            var at = 0
+            var frame = 0
+            var frames = 0
+            var clip: Clip? = null
+            var deck: Deck? = null
+            var clicks: List<Int> = emptyList()
+            var nextClick = 0
+            var pixels: java.nio.ByteBuffer? = null
+            var target: RenderTarget? = null
+            val written = mutableListOf<String>()
+            val id: String get() = queue.getOrElse(at) { "" }
+        }
+
+        var job: ExportJob? = null
         if (remote != null) {
             catalogue.slideIds.forEach { id ->
                 repeat(3) { k -> if (!File(remote.previewDir, "$id-$k.png").isFile) previewJobs.addLast(id to k) }
@@ -282,6 +358,16 @@ private fun org.openrndr.ApplicationBuilder.present(
 
         var debug = settings.debug
         val overlay = DebugOverlay(runCatching { loadFont("data/fonts/default.otf", 13.0) }.getOrNull())
+
+        // The ruled grid over the whole wall: the opening scene's own grid as a debug mode, drawn on
+        // the window like the overlay. `g` and the organizer switch it. See GridOverlay.
+        var gridOn = false
+        val grid = GridOverlay(runCatching { loadFont("data/fonts/default.otf", 12.0) }.getOrNull())
+
+        // Named into the canvas rather than onto the window, so a filmed run carries it. See
+        // Nameplate — it is the one overlay here that is meant to be in the picture.
+        val nameplate = if (settings.nameplate)
+            Nameplate(runCatching { loadFont("data/fonts/default.otf", NAMEPLATE_SIZE) }.getOrNull()) else null
 
         /** Draws one slide into its own buffer, from a known drawer state. */
         fun paint(target: RenderTarget, shot: Deck.Shot) {
@@ -377,6 +463,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 event.name == "0" -> { deck.home(); openCard() }
                 event.name == "r" -> deck.replay()
                 event.name == "d" -> debug = !debug
+                event.name == "g" -> gridOn = !gridOn
 
                 // The clock controls are part of the debug view, not of the show, so they
                 // do nothing while it is down.
@@ -415,7 +502,11 @@ private fun org.openrndr.ApplicationBuilder.present(
         // filmed run and a watched one are the same run. Written by hand, or by the deck
         // itself off what each state needs; either way the last hold is how long the final
         // state stands before a filmed run ends.
-        val holds = if (settings.cuesAuto) autoCues(slides, startSlide, settings) else settings.cues.map { frames(it) }
+        // Where a hands-off run stops. It bounds the cue list rather than the deck, so the whole
+        // show is still there to click into — see [Settings.until].
+        val untilSlide = untilIndex(slides, settings.until, startSlide)
+        val holds = if (settings.cuesAuto) autoCues(slides, ids, startSlide, untilSlide, settings)
+        else settings.cues.map { frames(it) }
         val cueFrames = if (settings.cuesAuto) holds.dropLast(1) else holds
         val finalHold = holds.lastOrNull() ?: 0
         var cue = 0
@@ -486,6 +577,7 @@ private fun org.openrndr.ApplicationBuilder.present(
             if (deck.index != soundedSlide) {
                 val first = soundedSlide < 0
                 val leaving = slides.getOrNull(soundedSlide)
+                val soundedFrom = soundedSlide
                 soundedSlide = deck.index
 
                 // Every cue that belongs to the slide being left goes out — its arrival cue and
@@ -494,13 +586,14 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // keeps playing rather than dipping between them. A sting declares no fade, so
                 // it is not sustained and is left to ring out.
                 if (leaving != null) {
-                    val arrivingFiles = cuesOf(deck.slide).mapTo(mutableSetOf()) { it.file }
-                    cuesOf(leaving)
+                    val arrivingFiles = cuesOf(deck.slide, idAt(deck.index), cueSheet)
+                        .mapTo(mutableSetOf()) { it.file }
+                    cuesOf(leaving, idAt(soundedFrom), cueSheet)
                         .filter { it.sustained && it.file !in arrivingFiles }
                         .forEach { speakers.release(it) }
                 }
 
-                speakers.play(deck.slide.sound)
+                speakers.play(cueAt(deck.index, 0))
                 // The bed under the talk: up on any slide of a chapter, let go while a wall
                 // or a scene is up. Asking for it again on the next slide does not restart it —
                 // a held loop only picks its fade up from where it stands — so it runs on
@@ -513,7 +606,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // A built slide marks its clicks: a band landing on the stack, and so on.
                 // Forward only — clicking back through a build is a correction, and re-firing
                 // the marks would say it is being built when it is being taken apart.
-                if (deck.step > soundedStep) speakers.play(deck.slide.stepSound(deck.step))
+                if (deck.step > soundedStep) speakers.play(cueAt(deck.index, deck.step))
                 soundedStep = deck.step
             }
 
@@ -647,6 +740,87 @@ private fun org.openrndr.ApplicationBuilder.present(
                 small.colorBuffer(0).saveToFile(File(remote.previewDir, "$id-$k.png"))
             }
 
+            // ---------------------------------------------------------------------------- //
+            //  Exporting the ticked slides, a clip and a score each
+            //
+            //  **It is rendered, not filmed.** `ScreenRecorder` writes one file per program, so
+            //  several slides in one session cannot be filmed that way at all (the note under
+            //  CardStudio); and nothing here has to run at the rate it plays at, since every
+            //  drawer is a pure function of its frame. So a throwaway `Deck` of one slide is
+            //  ticked frame by frame, painted into the pane buffers the way a preview is, and
+            //  read straight into ffmpeg. The clicks land where `midiClicks` puts them — the
+            //  same list the score is written against — so the two cannot disagree.
+            //
+            //  It is done a chunk of frames at a time rather than all at once, so the window
+            //  stays alive and the page can show how far it has got.
+
+            /** Opens the next slide of [j]: its score first, then the pipe it will be drawn into. */
+            fun beginExport(j: ExportJob): Boolean {
+                val id = j.queue.getOrNull(j.at) ?: return false
+                val index = catalogue.slideIds.indexOf(id).takeIf { it >= 0 } ?: return false
+                val slide = catalogue.slides[index]
+                val w = if (slide.wide) settings.width else slideWidth
+                slide.layOut(w, settings.height)
+                val clicks = midiClicks(slide, settings.hold)
+                val tracks = midiTracksOf(slide, clicks = clicks)
+                val mid = remote!!.midiFileOf(id)
+                writeMidi(mid, tracks)
+                val last = tracks.flatMap { it.notes }.maxOfOrNull { frames(it.at + it.length) } ?: 0
+                j.clicks = clicks
+                j.nextClick = 0
+                j.frame = 0
+                j.frames = clipFrames(slide, settings.hold, clicks, last)
+                j.deck = Deck(listOf(slide), 0, Outline.EMPTY)
+                j.pixels = java.nio.ByteBuffer.allocateDirect(w * settings.height * 4)
+                    .order(java.nio.ByteOrder.nativeOrder())
+                // A target of its own rather than the show's pane buffers. A preview may scribble
+                // on those and be repainted next frame without anyone seeing it; an export paints
+                // hundreds of frames into them per tick, and on a wide slide that buffer is the
+                // one the window is showing — so the wall would flicker with the clip being made.
+                j.target = buffer(w, settings.height)
+                j.clip = Clip(remote.clipFileOf(id), w, settings.height, settings.fps)
+                j.written += mid.path
+                println(
+                    "export: %s — %d notes on %d tracks → %s, %.1fs of %dx%d → %s"
+                        .format(id, tracks.sumOf { it.notes.size }, tracks.size, mid.path,
+                            seconds(j.frames), w, settings.height, remote.clipFileOf(id).path)
+                )
+                return true
+            }
+
+            /** As many of this slide's frames as the tick can spare. */
+            fun stepExport(j: ExportJob) {
+                val deck = j.deck ?: return
+                val clip = j.clip ?: return
+                val pixels = j.pixels ?: return
+                val slide = deck.slides[0]
+                val bounds = boundsOf(slide)
+                val target = j.target ?: return
+                val until = System.currentTimeMillis() + EXPORT_BUDGET
+                do {
+                    // The studio's own order: tick, then take the click that falls on this frame,
+                    // then draw — so a filmed run and this one are the same run.
+                    deck.tick(j.frame)
+                    while (j.nextClick < j.clicks.size && j.frame >= j.clicks[j.nextClick]) {
+                        deck.next(); j.nextClick++
+                    }
+                    paint(target, deck.shot(bounds))
+                    target.colorBuffer(0).read(pixels, ColorFormat.RGBa, ColorType.UINT8)
+                    clip.frame(pixels)
+                    j.frame++
+                } while (j.frame < j.frames && System.currentTimeMillis() < until)
+            }
+
+            /** Finishes this slide's clip and moves to the next, or ends the job. */
+            fun endExport(j: ExportJob) {
+                val count = j.clip?.close() ?: 0
+                if (j.clip?.ok == true) j.written += remote!!.clipFileOf(j.id).path
+                println("export: ${j.id} — $count frames written")
+                j.target?.let { it.colorBuffer(0).destroy(); it.detachColorAttachments(); it.destroy() }
+                j.clip = null; j.deck = null; j.pixels = null; j.target = null
+                j.at++
+            }
+
             val slideStage: Stage = when {
                 crossing -> {
                     val from = deck.leavingShot(boundsOf(leaving!!))!!
@@ -675,6 +849,16 @@ private fun org.openrndr.ApplicationBuilder.present(
                 }
             }
 
+            // The plate goes on last and into the canvas, over whatever the frame turned out to
+            // be — a slide, a wall, or two of them handing over. Named off the deck rather than
+            // off the shot, so a frame mid-handover carries the slide it is arriving at.
+            nameplate?.let { plate ->
+                drawer.isolatedWithTarget(canvas) {
+                    drawer.ortho(canvas)
+                    plate.draw(drawer, canvasBounds, ids.getOrElse(deck.index) { deck.slide.name }, deck.step)
+                }
+            }
+
             // The canvas is fitted into the window rather than stretched to it, so a
             // projector of another shape letterboxes instead of distorting the slides.
             val fit = min(width / canvasBounds.width, height / canvasBounds.height)
@@ -688,6 +872,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 if (concreteOn) drawer.shadeStyle = concreteStyle
                 drawer.image(canvas.colorBuffer(0), shown.corner.x, shown.corner.y, shown.width, shown.height)
             }
+
+            if (gridOn && !settings.stills) grid.draw(drawer, shown, canvasBounds, settings.panelWidth)
 
             if (debug && !settings.stills) {
                 overlay.draw(drawer, deck, slideStage, width, height, fps, clock.paused)
@@ -741,6 +927,48 @@ private fun org.openrndr.ApplicationBuilder.present(
                             concreteOn = concrete != null && (command.on ?: !concreteOn)
                             println("organizer: concrete ${if (concreteOn) "on" else "off"}")
                         }
+                        is Remote.Grid -> {
+                            gridOn = command.on ?: !gridOn
+                            println("organizer: grid ${if (gridOn) "on" else "off"}")
+                        }
+                        is Remote.Export -> {
+                            // Only what is ticked and can actually be written down, in the
+                            // order the show declares them, so the run is the talk's own order.
+                            val wanted = command.ids.toSet()
+                            val ids = catalogue.slideIds.filter { it in wanted }
+                            if (ids.isEmpty()) println("export: nothing ticked that can be written down")
+                            else {
+                                previewJobs.clear()
+                                job = ExportJob(ids)
+                                println("export: ${ids.size} slide${if (ids.size == 1) "" else "s"} — ${ids.joinToString(", ")}")
+                            }
+                        }
+                        is Remote.ExportMidi -> {
+                            // The slides as *declared*, not as played: a wall can be wanted as
+                            // MIDI while it is archived or skipped, since the file is the
+                            // timing rather than a record of the run.
+                            val wanted = command.ids.toSet()
+                            catalogue.slideIds.forEachIndexed { i, id ->
+                                val slide = catalogue.slides[i]
+                                if (id !in wanted) return@forEachIndexed
+                                val file = remote.midiFileOf(id)
+                                // The pane the slide composes for, since a slide that deals its
+                                // elements against the frame has no schedule until it has one.
+                                slide.layOut(if (slide.wide) settings.width else slideWidth, settings.height)
+                                // At the pace a filmed run really gives it, so the file and a
+                                // clip of the same slide agree at every click and not just the
+                                // first. A wall that builds on its own clock ignores it.
+                                val clicks = midiClicks(slide, settings.hold)
+                                val tracks = midiTracksOf(slide, clicks = clicks)
+                                writeMidi(file, tracks)
+                                val notes = tracks.sumOf { it.notes.size }
+                                val last = tracks.flatMap { it.notes }.maxOfOrNull { it.at + it.length } ?: 0.0
+                                println("organizer: %s — %d notes on %d tracks, 0 to %.2fs → %s"
+                                    .format(id, notes, tracks.size, last, file.path))
+                            }
+                            // A slide un-ticked leaves its file behind rather than having it
+                            // deleted under it: a MIDI file is somebody's working copy by then.
+                        }
                         is Remote.ApplyModules -> {
                             // The saved modules, stood in the catalogue afresh. A placeholder
                             // whose frames are unchanged is the same object and needs nothing;
@@ -764,9 +992,30 @@ private fun org.openrndr.ApplicationBuilder.present(
                     renderPreview(id, k)
                     remote.previewStamp = System.currentTimeMillis()
                 }
+
+                // The export, a chunk of frames a tick. Previews are held off while it runs:
+                // both paint into the same pane buffers, and a preview landing between two
+                // exported frames would be one frame of another slide in the middle of a clip.
+                job?.let { j ->
+                    if (j.at >= j.queue.size) {
+                        println("export: done — ${j.written.size} files")
+                        job = null
+                    } else if (j.clip == null) {
+                        if (!beginExport(j)) j.at++
+                    } else {
+                        stepExport(j)
+                        if (j.frame >= j.frames) endExport(j)
+                    }
+                }
+                val j = job
+                remote.exporting = if (j == null) "" else j.id
+                remote.exportDone = if (j == null) 0 else j.at
+                remote.exportTotal = j?.queue?.size ?: 0
+                remote.exportFrame = j?.frame ?: 0
+                remote.exportFrames = j?.frames ?: 0
                 remote.snapshot = Remote.Snapshot(
                     deck.index, ids[deck.index], deck.step, deck.slide.steps, frame, previewJobs.size, remote.previewStamp,
-                    concreteOn, concrete != null
+                    concreteOn, concrete != null, gridOn
                 )
             }
 
@@ -789,13 +1038,13 @@ private fun org.openrndr.ApplicationBuilder.present(
  * time, longer for a wall that is one picture. Printed, so it can be copied into
  * `SLIDES_CUES` and tuned by hand where a state wants more or less than the rule gives it.
  */
-private fun autoCues(slides: List<Slide>, start: Int, settings: Settings): List<Int> {
+private fun autoCues(slides: List<Slide>, ids: List<String>, start: Int, until: Int, settings: Settings): List<Int> {
     val holds = mutableListOf<Int>()
-    for (s in start until slides.size) {
+    for (s in start..until) {
         val slide = slides[s]
         val read = if (slide.wide && slide.steps == 1) settings.holdWide else settings.hold
         for (step in 0 until slide.steps) {
-            val settle = if (step == 0) slide.settle else slide.stepFrames
+            val settle = if (step == 0) slide.settle else slide.stepLength(step)
             holds += settle + frames(read)
         }
     }
@@ -803,7 +1052,33 @@ private fun autoCues(slides: List<Slide>, start: Int, settings: Settings): List<
         "cues: auto — " + holds.joinToString(", ") { "%.1f".format(seconds(it)) } +
                 "  (%d states, %.0fs in all)".format(holds.size, seconds(holds.sum()))
     )
+    // By id rather than by `name`, which is the class's and says nothing here — both ends of
+    // chapter 1 are a QuoteSlide, so the line read "Quote to Quote". An id is what the order
+    // file, the organizer and the nameplate call a slide, so it is the one name that is worth
+    // reading back.
+    if (start > 0 || until < slides.lastIndex) println(
+        "cues: %s to %s — slides %d to %d of %d".format(
+            ids.getOrElse(start) { slides[start].name }, ids.getOrElse(until) { slides[until].name },
+            start + 1, until + 1, slides.size
+        )
+    )
     return holds
+}
+
+/**
+ * Resolves `SLIDES_UNTIL`, the last slide a hands-off run plays: a number from 1 or a slide's
+ * name, as [startIndex] reads them, and the end of the deck where it is not set.
+ *
+ * Never before [start], because a run that ends before it begins is a film of one state with no
+ * sign of why. A name that matches nothing runs to the end rather than failing, the same way an
+ * unknown `SLIDES_START` opens at the first slide.
+ */
+private fun untilIndex(slides: List<Slide>, until: String?, start: Int): Int {
+    val wanted = until?.trim().orEmpty()
+    if (wanted.isEmpty()) return slides.lastIndex
+    val at = slideAt(slides, wanted)
+        ?: run { println("no slide called \"$wanted\"; running to the end"); return slides.lastIndex }
+    return at.coerceIn(start, slides.lastIndex)
 }
 
 /**
@@ -815,6 +1090,17 @@ private fun autoCues(slides: List<Slide>, start: Int, settings: Settings): List<
 private const val STILL_HOLD = 95
 
 /**
+ * Milliseconds a tick may spend rendering export frames.
+ *
+ * The export is a job on the draw loop rather than a thread, for the reason everything else the
+ * page asks for is — the slides and the buffers belong to it. So it takes a slice of each frame
+ * and the window stays alive under it: at a third of a 60 Hz frame the show still answers, and a
+ * 25 second clip comes out in well under its own length because nothing here has to be drawn at
+ * the rate it plays at.
+ */
+private const val EXPORT_BUDGET = 20L
+
+/**
  * Every cue a slide can reach: the one it arrives on and the mark each of its clicks makes.
  *
  * One definition rather than two, because the two callers must agree — `load` decodes this set
@@ -823,8 +1109,25 @@ private const val STILL_HOLD = 95
  * and did nothing at all. A step cue hangs off a *method*, so a `mapNotNull` over the slides
  * cannot see it; it has to be asked for by step.
  */
-private fun cuesOf(slide: Slide): List<Sound> =
-    listOfNotNull(slide.sound) + (0 until slide.steps).mapNotNull { slide.stepSound(it) }
+private fun cuesOf(slide: Slide, id: String, sheet: CueSheet?): List<Sound> =
+    (0 until slide.steps.coerceAtLeast(1)).mapNotNull { soundAt(slide, id, it, sheet) }
+
+/**
+ * What one state of one slide sounds like: the sheet's cue where a sheet speaks for the slide,
+ * and otherwise whatever `Slideshow.kt` declared for it.
+ *
+ * **A sheet owns a slide outright rather than filling in around it.** Where it names a slide at
+ * all, a state it leaves bare is silent — the designer chose not to mark it. Falling back state
+ * by state instead would put the old sheet's sound under the new one on exactly the states the
+ * new design left clear, which is the one arrangement nobody asked for. See [CueSheet].
+ *
+ * Step 0 is the slide arriving and is [Slide.sound]; every step above it is a click, and is
+ * [Slide.stepSound]. That is the same numbering the [Nameplate] letters and the sheet's file
+ * names use, which is why there is one function here rather than two.
+ */
+private fun soundAt(slide: Slide, id: String, step: Int, sheet: CueSheet?): Sound? =
+    if (sheet != null && sheet.owns(id)) sheet[id, step]
+    else if (step == 0) slide.sound else slide.stepSound(step)
 
 /**
  * Resolves `SLIDES_START`: a number counting from 1, or a slide's name — "3" and
@@ -833,16 +1136,17 @@ private fun cuesOf(slide: Slide): List<Sound> =
 private fun startIndex(slides: List<Slide>, start: String?): Int {
     val wanted = start?.trim().orEmpty()
     if (wanted.isEmpty()) return 0
+    return slideAt(slides, wanted)
+        ?: run { println("no slide called \"$wanted\"; starting at ${slides.first().name}"); 0 }
+}
 
+/** A number counting from 1, or a slide's name, exactly then by prefix. Null for neither. */
+private fun slideAt(slides: List<Slide>, wanted: String): Int? {
     wanted.toIntOrNull()?.let { return (it - 1).coerceIn(slides.indices) }
-
     val exact = slides.indexOfFirst { it.name.equals(wanted, ignoreCase = true) }
     if (exact >= 0) return exact
     val prefix = slides.indexOfFirst { it.name.startsWith(wanted, ignoreCase = true) }
-    if (prefix >= 0) return prefix
-
-    println("no slide called \"$wanted\"; starting at ${slides.first().name}")
-    return 0
+    return prefix.takeIf { it >= 0 }
 }
 
 /**

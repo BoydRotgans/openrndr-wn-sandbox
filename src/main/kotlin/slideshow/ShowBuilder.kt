@@ -152,6 +152,16 @@ class ShowBuilder internal constructor() {
         settings = settings.copy(slideBed = sound)
     }
 
+    /**
+     * A cue sheet read off a folder, placing its sounds by the state each file names.
+     *
+     * It speaks for the slides it names and nothing else, so a sheet covering one chapter leaves
+     * the rest of the talk sounding exactly as it was declared here. See [CueSheet].
+     */
+    fun cueSheet(sheet: CueSheet?) {
+        settings = settings.copy(cueSheet = sheet)
+    }
+
     /** Open with the debug view up; `d` toggles it either way. */
     fun debug(on: Boolean = true) {
         settings = settings.copy(debug = on)

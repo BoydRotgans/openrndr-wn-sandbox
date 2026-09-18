@@ -1,0 +1,16 @@
+{
+  "note": "Which slides are wanted as MIDI, ticked in the organizer. \"export midi + video\" then writes a clip and a score for each: midi/<id>.mid and midi/<id>.mp4. Every slide can be listed — one with no build of its own is scored on its own states, a note as it arrives and one a click.",
+  "midi": [
+    "100-elementen",
+    "de-fabrieken",
+    "domino-effect",
+    "esg-beoordelingskader",
+    "esg-social-governance",
+    "het-programma",
+    "plain",
+    "the-circle-en-esg",
+    "the-circle-in-elementen",
+    "the-globe",
+    "verticale-integratie"
+  ]
+}
