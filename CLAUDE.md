@@ -3486,3 +3486,19 @@ frames at 2s and 8s of the 6s period are byte-identical.
 The keys are its own `CIRCLE_*` rather than `SLIDES_CARD_*`, for the reason `ImageCardStudio`
 states its own: those are the typeset card's, tuned for a 1.85:1 cell off `subset.svg` and a
 ground that barely shows, and two of the three are wrong here.
+
+## chapter title
+
+[`ChapterTitle.kt`](src/main/kotlin/ChapterTitle.kt) is a prototype chapter card **outside the
+show** — nothing in `Slideshow.kt`, `show-order.json` or the organizer knows it exists:
+
+```
+./gradlew run -Popenrndr.application=ChapterTitleKt
+```
+
+`→` `←` step the four chapters, `r` replays, `p` holds and `.` `,` step, `s` writes a still.
+`TITLE_*` in `.env` steer it; `TITLE_AT=0.3,3` writes stills at those seconds and quits.
+
+The card is one function of the frame, `title(drawer, text, frame)`, composed at the pane's
+1920x1080, so a version worth keeping lifts into a drawer beside `ShadowChapterPanel` by handing
+it `stage.frame`. It opens as a placeholder: the title set to fit, a word at a time rising in.
