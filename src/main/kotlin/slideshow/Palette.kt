@@ -18,8 +18,10 @@ import org.openrndr.color.ColorRGBa
  * Every colour is built with `fromHex`, so it arrives on the wall as written: the plain
  * constructor's colours are sRGB-lifted in a shader (the note under BlockCity in CLAUDE.md).
  *
- * Three palettes are enough for the show: [onBlack] for the slides and the catalogue walls,
- * [onPaper] for a wall that stands on white, [onGrey] for the quote's ground. A slide that
+ * Two palettes are enough for the show: [onBlack] for the slides and the catalogue walls, and
+ * [onPaper] for a wall that stands on white. There is no grey ground: black is what a slide
+ * paints, and the show's concrete overlay (`SLIDES_CONCRETE_FLOOR`) turns black into the dark
+ * grey concrete on the wall, one ground for every slide. A slide that
  * brings its own colour because its content does — the sectors' playful set — takes a palette
  * and adds to it, which is what makes the exception visible as one.
  */
@@ -45,7 +47,6 @@ data class Palette(
         val WHITE: ColorRGBa = ColorRGBa.fromHex("FFFFFF")
         val BLACK: ColorRGBa = ColorRGBa.fromHex("000000")
         val GREY: ColorRGBa = ColorRGBa.fromHex("D9D9D9")
-        val GROUND_GREY: ColorRGBa = ColorRGBa.fromHex("3C3C3C")
         val PAPER: ColorRGBa = ColorRGBa.fromHex("F5F7FA")
 
         /** The slides, and the catalogue walls: white ink on black, a navy shadow that reads on it. */
@@ -61,7 +62,5 @@ data class Palette(
             shadow = ColorRGBa.fromHex("C4C4C4"), shadowDeep = BLACK
         )
 
-        /** The quote's dark grey ground. */
-        val onGrey = onBlack.on(GROUND_GREY)
     }
 }

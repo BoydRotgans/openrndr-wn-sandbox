@@ -100,6 +100,8 @@ data class Settings(
      * through every slide in the deck on a timer and would fire the whole cue sheet at it.
      */
     val sound: Boolean = true,
+    /** Start muted: the cues still run, and the organizer's `sound` button brings them back. See [Speakers.muted]. */
+    val muted: Boolean = false,
 
     /**
      * Width of the left pane, the one carrying the chapter. Null is a single-pane show,
@@ -123,6 +125,8 @@ data class Settings(
      */
     val organizer: Boolean = false,
     val organizerPort: Int = 8765,
+    /** Open the organizer in a browser as it comes up. Off when the launcher starts the show, whose page is already open. */
+    val organizerOpen: Boolean = true,
 
     /**
      * The order file: which slides play, in what order, under which chapters. Read at launch
@@ -194,5 +198,12 @@ data class Settings(
     /** How strongly the stone's grain darkens the picture, from its brightest tones: 1 is the photo as it is, above 1 exaggerates it. */
     val concreteMix: Double = 2.5,
     /** How big one tile of the texture is drawn, in canvas pixels against its own. */
-    val concreteScale: Double = 1.0
+    val concreteScale: Double = 1.0,
+    /**
+     * The darkest the wall goes, before the grain, in linear light: black is lifted to this grey
+     * and then grained like everything else, so every slide paints black and the wall is one grey
+     * concrete behind all of them. 0.045 is `3C3C3C`, the grey the quote and card used to paint
+     * themselves. 0 is the plain multiply, where black stays black.
+     */
+    val concreteFloor: Double = 0.0225
 )

@@ -274,12 +274,15 @@
     <button class="tab" data-view="sketches" title="Every sketch in the project, with a picture and how to run it">Sketches</button>
   </span>
   <span id="live"><i></i><span id="liveText">connecting…</span></span>
+  <button class="ghost" id="projectionBtn" hidden title="Start the presentation on the two projectors — undecorated, 1:1, across the wall — rather than in a window">projection: off</button>
+  <button id="presentBtn" hidden title="Start the show in a window of its own; the page steers it">▶ start presentation</button>
   <span id="progress"></span>
   <span id="exportBar"><span id="exportWhat"></span><span class="track"><span class="fill" id="exportFill"></span></span></span>
   <span class="spacer"></span>
   <span id="status"></span>
   <button class="ghost" id="themeBtn" title="Light or dark">☾</button>
   <button class="ghost" id="concreteBtn" title="Lay the concrete over the whole show, as if projected on a concrete wall" hidden>concrete</button>
+  <button class="ghost" id="muteBtn" title="Mute the show's sound, or bring it back — at once, with the cues still running under it">sound: on</button>
   <button class="ghost" id="gridBtn" title="Rule the layout grid over the wall: cells, the seam, each pane's margin, title line and foot (g in the show)">grid: off</button>
   <button class="ghost" id="followBtn" title="Select whatever the show is on (f)">follow</button>
   <button class="ghost" id="previewsBtn" title="Render the three frames of every slide again">refresh previews</button>
@@ -431,6 +434,10 @@
   let dirty = false;
   let follow = true;
   let liveId = null;
+  // Whether a show is behind the page to steer. Always, when the show serves the page itself;
+  // under the launcher (OrganizerKt), only while the presentation it started is up.
+  let liveOK = true;
+  let presLive = null;
   let stamp = 0;            // preview cache buster
   let lastLeft = 0;
   let archiveOpen = true;
@@ -875,8 +882,8 @@
     $('#onBtn').disabled = archived;
     $('#archiveBtn').textContent = archived ? 'put back' : 'archive';
     const inShow = show.running.includes(c.id);
-    ['#goBtn', '#backBtn', '#fwdBtn', '#replayBtn', '#oneBtn'].forEach(s => $(s).disabled = !inShow);
-    $('#goBtn').title = inShow ? 'Jump the show to this slide' : 'Not in the order the show is playing — save to put it there';
+    ['#goBtn', '#backBtn', '#fwdBtn', '#replayBtn', '#oneBtn'].forEach(s => $(s).disabled = !inShow || !liveOK);
+    $('#goBtn').title = !liveOK ? 'Start the presentation first' : inShow ? 'Jump the show to this slide' : 'Not in the order the show is playing — save to put it there';
     renderSteps();
 
     // the module's own fields
@@ -1046,7 +1053,7 @@
     const b = $('#exportBtn');
     const n = midiWanted.size;
     b.textContent = running ? 'exporting…' : (n ? `export ${n} midi + video` : 'export midi + video');
-    b.disabled = running || !n;
+    b.disabled = running || !n || !liveOK;
     b.className = n && !running ? '' : 'ghost';
     b.title = n
       ? `Write a clip and a score for each ticked slide into ${(show.midiDir || 'midi')}/`
@@ -1255,6 +1262,7 @@
   async function poll() {
     try {
       const s = await (await fetch('/api/state')).json();
+      if (!renderPresentation(s)) return;
       $('#live').classList.add('on'); $('#liveText').textContent = 'live · ' + (s.id || '') + (s.steps > 1 ? ` · click ${s.step}/${s.steps - 1}` : '');
       lastState = s;
       if (s.id !== liveId) {
@@ -1265,6 +1273,7 @@
       renderSteps();
       const cb = $('#concreteBtn'); cb.hidden = !s.hasConcrete;
       cb.classList.toggle('primary', !!s.concrete); cb.textContent = s.concrete ? 'concrete: on' : 'concrete: off';
+      renderMute(s.muted);
       const gb = $('#gridBtn'); gb.classList.toggle('primary', !!s.grid); gb.textContent = s.grid ? 'grid: on' : 'grid: off';
       renderExport(s);
       if (wasExporting && !s.exporting) setStatus(`export done — see ${(show.midiDir || 'midi')}/`);
@@ -1277,6 +1286,68 @@
       $('#live').classList.remove('on'); $('#liveText').textContent = 'show not running';
     }
   }
+
+  // ---------- the presentation, under the launcher ----------
+  //
+  // Served by OrganizerKt, the page has no show behind it until one is started here; the state
+  // then carries `presentation`. Served by the show itself it carries none, and nothing changes.
+
+  /** The button and the live controls, off the polled state. False while there is no show to steer. */
+  function renderPresentation(s) {
+    const p = s.presentation;
+    const b = $('#presentBtn');
+    b.hidden = !p;
+    const pb = $('#projectionBtn'); pb.hidden = !p;
+    if (!p) { liveOK = true; return true; }
+    pb.textContent = p.projection ? 'projection: on' : 'projection: off';
+    pb.classList.toggle('primary', !!p.projection);
+    pb.disabled = !!p.running;
+    pb.title = p.running ? 'Takes effect on the next start' : 'Start the presentation on the two projectors — undecorated, 1:1, across the wall — rather than in a window';
+    b.textContent = p.running ? (p.live ? '■ stop presentation' : '■ stop (loading…)') : '▶ start presentation';
+    b.className = p.running ? 'danger' : 'primary';
+    b.title = p.running ? 'Close the show window; the page stays' : 'Start the show in a window of its own, on the selected slide when ⇧ is held';
+    const was = liveOK;
+    liveOK = !!p.live;
+    ['#previewsBtn', '#gridBtn', '#followBtn'].forEach(sel => $(sel).disabled = !liveOK);
+    // Arriving or leaving, the catalogue changes hands, so it is read again.
+    if (presLive !== null && presLive !== liveOK) refreshShow().then(() => { renderNav(); renderDetail(); });
+    presLive = liveOK;
+    if (was !== liveOK) { renderDetail(); renderExport(s); }
+    if (!liveOK) {
+      renderMute(p.muted);
+      $('#live').classList.remove('on');
+      $('#liveText').textContent = p.starting ? 'presentation loading…' : 'presentation not running';
+      $('#concreteBtn').hidden = true;
+      if (liveId) { liveId = null; document.querySelectorAll('.card.live').forEach(el => el.classList.remove('live')); }
+      return false;
+    }
+    return true;
+  }
+  // ---------- sound ----------
+  let muted = false;
+  function renderMute(on) {
+    muted = !!on;
+    const b = $('#muteBtn');
+    b.textContent = muted ? 'sound: muted' : 'sound: on';
+    b.classList.toggle('primary', muted);
+  }
+  $('#muteBtn').addEventListener('click', async () => {
+    const on = !muted;
+    renderMute(on);   // at once, rather than on the next poll
+    await post('/api/mute', { on });
+  });
+
+  $('#projectionBtn').addEventListener('click', async () => {
+    await post('/api/presentation', { action: 'projection' });
+    poll();
+  });
+  $('#presentBtn').addEventListener('click', async ev => {
+    const running = $('#presentBtn').textContent.startsWith('■');
+    const body = running ? { action: 'stop' } : { action: 'start', ...(ev.shiftKey && selected ? { id: selected } : {}) };
+    await post('/api/presentation', body);
+    setStatus(running ? 'closing the presentation' : 'starting the presentation — it opens once every slide is loaded');
+    poll();
+  });
 
   // ---------- boot ----------
   async function boot() {

@@ -17,6 +17,10 @@ import kotlinx.serialization.json.put
 import slideshow.drawers.PlaceholderSlide
 import java.io.File
 import java.net.InetSocketAddress
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 
@@ -74,7 +78,14 @@ class Remote(
     private val intentsFile: File = File("show-intents.json"),
     private val feedbackFile: File = File("show-feedback.json"),
     private val midiFile: File = File("show-midi.json"),
-    private val midiDir: File = File("midi")
+    private val midiDir: File = File("midi"),
+    /** Open the page in a browser once it is up (on a Mac). */
+    private val open: Boolean = true,
+    /**
+     * Set when this is the launcher's server rather than the show's: there is no draw loop behind
+     * it, and the show is a [Presentation] started from the page. See [forward].
+     */
+    private val presentation: Presentation? = null
 ) {
     sealed interface Command
     data class Go(val id: String, val step: Int) : Command
@@ -91,6 +102,8 @@ class Remote(
     data class Concrete(val on: Boolean?) : Command
     /** The ruled grid over the wall on or off; null flips it. See [GridOverlay]. */
     data class Grid(val on: Boolean?) : Command
+    /** The show's sound muted or not; null flips it. See [Speakers.muted]. */
+    data class Mute(val on: Boolean?) : Command
     /**
      * Write these slides' builds out as MIDI files.
      *
@@ -113,7 +126,8 @@ class Remote(
         val index: Int, val id: String, val step: Int, val steps: Int, val frame: Int,
         val previewsLeft: Int, val previewStamp: Long,
         val concrete: Boolean = false, val hasConcrete: Boolean = false,
-        val grid: Boolean = false
+        val grid: Boolean = false,
+        val muted: Boolean = false, val hasSound: Boolean = false
     )
 
     val commands = ConcurrentLinkedQueue<Command>()
@@ -123,7 +137,7 @@ class Remote(
 
     /** When a preview was last written, so the page knows to fetch it again. */
     @Volatile
-    var previewStamp = 0L
+    var previewStamp = if (presentation != null) newestPreview() else 0L
 
     /** The show as it plays: another arrangement of the same slides once an order is applied. */
     @Volatile
@@ -223,7 +237,7 @@ class Remote(
         server = http
         println("organizer: $url")
         // On a Mac the page is opened for you; elsewhere the address above is printed.
-        if (System.getProperty("os.name").orEmpty().lowercase().contains("mac")) {
+        if (open && System.getProperty("os.name").orEmpty().lowercase().contains("mac")) {
             runCatching { ProcessBuilder("open", url).start() }
         }
         return true
@@ -240,6 +254,21 @@ class Remote(
         try {
             val path = exchange.requestURI.path
             val method = exchange.requestMethod
+            val p = presentation
+            if (p != null && path.startsWith("/api/")) {
+                if (path == "/api/presentation") return presentationRoute(exchange, p)
+                val port = p.port
+                val body = exchange.requestBody.readBytes()
+                // The launcher keeps the mute, so the next show starts as this one was left — and
+                // with no show up, the button still sets how the next one starts.
+                if (path == "/api/mute" && method == "POST") {
+                    val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
+                    p.muted = on ?: !p.muted
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
+                if (port != null && p.live && path != "/api/sketches") return forward(exchange, port, p, body)
+                if (path in LIVE_ONLY) return exchange.json(409, error("the presentation is not running — start it first"))
+            }
             when {
                 path == "/" || path == "/index.html" -> exchange.send(200, page(), "text/html; charset=utf-8")
                 path == "/api/show" && method == "GET" -> exchange.json(200, showJson())
@@ -263,6 +292,10 @@ class Remote(
                     commands += Concrete(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
                 }
+                path == "/api/mute" && method == "POST" -> {
+                    commands += Mute(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
+                    exchange.json(202, ok())
+                }
                 path == "/api/grid" && method == "POST" -> {
                     commands += Grid(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
@@ -280,6 +313,7 @@ class Remote(
                     }
                     order.write(orderFile)
                     commands += Apply(order)
+                    if (presentation != null) show = runCatching { catalogue.arranged(order) }.getOrDefault(catalogue)
                     println("organizer: saved ${orderFile.path} (${order.refs().count { it.on }} slides on)")
                     exchange.json(200, buildJsonObject { put("saved", orderFile.path); put("applied", true) })
                 }
@@ -293,6 +327,7 @@ class Remote(
                     kept.write(modulesFile)
                     modules = kept
                     commands += ApplyModules(kept)
+                    if (presentation != null) reload()
                     println("organizer: saved ${modulesFile.path} (${kept.modules.size} modules to build)")
                     exchange.json(200, buildJsonObject { put("saved", modulesFile.path); put("applied", true) })
                 }
@@ -460,10 +495,85 @@ class Remote(
             put("index", s.index); put("id", s.id); put("step", s.step); put("steps", s.steps)
             put("frame", s.frame); put("previewsLeft", s.previewsLeft); put("previewStamp", s.previewStamp)
             put("concrete", s.concrete); put("hasConcrete", s.hasConcrete); put("grid", s.grid)
+            put("muted", s.muted); put("hasSound", s.hasSound)
             put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
             put("exportFrame", exportFrame); put("exportFrames", exportFrames)
+            presentation?.let { put("presentation", presentationJson(it)) }
         }
     }
+
+    // ------------------------------------------------------------------------------ //
+    // The launcher's half: a server with no show behind it until the page starts one.
+
+    private fun presentationJson(p: Presentation) = buildJsonObject {
+        put("running", p.running); put("starting", p.starting); put("live", p.live)
+        put("projection", p.projection); put("muted", p.muted)
+    }
+
+    /**
+     * GET says whether the show is up; POST `{ "action": "start" | "stop" }` starts or stops it.
+     * `start` may name a slide `id` to open on, which is handed to the show as `SLIDES_START`.
+     * `{ "action": "projection", "on": true }` puts the next start on the projectors.
+     */
+    private fun presentationRoute(exchange: HttpExchange, p: Presentation) {
+        if (exchange.requestMethod == "POST") {
+            val body = exchange.body()
+            when (body["action"]?.jsonPrimitive?.contentOrNull) {
+                "start" -> {
+                    // SLIDES_START takes a number counting from 1 in the running order.
+                    val at = body["id"]?.jsonPrimitive?.contentOrNull?.let { ids.indexOf(it) }?.takeIf { it >= 0 }
+                    p.start(if (at != null) mapOf("SLIDES_START" to "${at + 1}") else emptyMap())
+                }
+                "stop" -> p.stop()
+                // Takes effect on the next start: a window cannot be moved onto the wall from here.
+                "projection" -> p.projection = body["on"]?.jsonPrimitive?.booleanOrNull ?: !p.projection
+                else -> return exchange.json(400, error("action is start, stop or projection"))
+            }
+        }
+        exchange.json(200, presentationJson(p))
+    }
+
+    private val client by lazy { HttpClient.newHttpClient() }
+
+    /**
+     * Hands a request to the show's own server and its answer back to the page, so while the
+     * show is up it is the one state — saves are written and played there, exactly as when it
+     * serves the page itself. The state gains the presentation's standing on the way through.
+     */
+    private fun forward(exchange: HttpExchange, port: Int, p: Presentation, body: ByteArray) {
+        val request = HttpRequest.newBuilder(URI("http://127.0.0.1:$port${exchange.requestURI}"))
+            .method(exchange.requestMethod, if (body.isEmpty()) HttpRequest.BodyPublishers.noBody() else HttpRequest.BodyPublishers.ofByteArray(body))
+            .apply { exchange.requestHeaders.getFirst("Content-Type")?.let { header("Content-Type", it) } }
+            .build()
+        val response = runCatching { client.send(request, HttpResponse.BodyHandlers.ofByteArray()) }.getOrElse {
+            return exchange.json(503, error("the presentation is not answering (${it.message})"))
+        }
+        var bytes = response.body()
+        if (exchange.requestURI.path == "/api/state" && response.statusCode() == 200) {
+            runCatching {
+                val state = Json.parseToJsonElement(bytes.decodeToString()).jsonObject
+                bytes = JsonObject(state + ("presentation" to presentationJson(p))).toString().toByteArray()
+            }
+        }
+        val type = response.headers().firstValue("Content-Type").orElse("application/json; charset=utf-8")
+        exchange.send(response.statusCode(), bytes, type)
+    }
+
+    /**
+     * Reads the files again and rebuilds the catalogue from them — for the launcher once the show
+     * it started has gone, since everything saved while the show was up was saved there.
+     */
+    fun reload() {
+        modules = if (modulesFile.isFile) runCatching { Modules.read(modulesFile) }.getOrDefault(Modules.EMPTY) else Modules.EMPTY
+        intents = if (intentsFile.isFile) runCatching { Intents.read(intentsFile) }.getOrDefault(Intents.EMPTY) else Intents.EMPTY
+        feedback = if (feedbackFile.isFile) runCatching { Feedback.read(feedbackFile) }.getOrDefault(Feedback.EMPTY) else Feedback.EMPTY
+        midi = if (midiFile.isFile) runCatching { MidiWanted.read(midiFile) }.getOrDefault(MidiWanted.EMPTY) else MidiWanted.EMPTY
+        catalogue = runCatching { catalogue.withModules(modules, references) }.getOrDefault(catalogue)
+        show = runCatching { catalogue.arranged(currentOrder()) }.getOrDefault(catalogue)
+        previewStamp = newestPreview()
+    }
+
+    private fun newestPreview(): Long = previewDir.listFiles()?.maxOfOrNull { it.lastModified() } ?: 0L
 
     private fun ok() = buildJsonObject { put("ok", true) }
     private fun error(message: String) = buildJsonObject { put("error", message) }
@@ -483,6 +593,11 @@ class Remote(
     }
 
     companion object {
+        /** What only a running show can do: the launcher refuses these while there is none. */
+        private val LIVE_ONLY = setOf(
+            "/api/go", "/api/click", "/api/replay", "/api/concrete", "/api/grid", "/api/previews", "/api/export"
+        )
+
         private val PREVIEW_NAME = Regex("^[a-z0-9-]+-[0-2]\\.png$")
         private val REFERENCE_NAME = Regex("^[0-9]+-[0-9]+-(wall\\.jpg|pane\\.png)$")
 

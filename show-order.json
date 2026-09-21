@@ -29,6 +29,7 @@
         "verticale-integratie",
         "de-cijfers",
         "de-fabrieken",
+        "projecthighlight-1",
         "kernboodschap-1"
       ]
     },
@@ -48,6 +49,7 @@
         "geen-compensatie",
         "domino-effect",
         "esg-social-governance",
+        "projecthighlight-2",
         "kernboodschap-2"
       ]
     },
@@ -67,6 +69,7 @@
         "verduurzamen-van-beton",
         "verborgen-verhaal",
         "recyclage",
+        "projecthighlight-3",
         "kernboodschap-3"
       ]
     },
@@ -86,13 +89,13 @@
         "reductie-carbon-footprint",
         "demontabel-in-de-stad",
         "the-circle-en-esg",
+        "projecthighlight-4",
         "kernboodschap-4"
       ]
     },
     {
       "moment": "Questions",
       "slides": [
-        "de-sectoren",
         "case-studies"
       ]
     },
@@ -117,6 +120,7 @@
     "shadow-type",
     "yard",
     "shadow-type-soft",
-    "panels-turning"
+    "panels-turning",
+    "de-sectoren"
   ]
 }

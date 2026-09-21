@@ -169,7 +169,9 @@ fun main() = application {
 fun longShadowV3FromEnv(
     concrete: File? = null, detail: Double = 1.0, field: Boolean = false,
     /** The show's own timing for the reveal, over the `LONGSHADOW_V3_REVEAL_*` keys when given. */
-    revealFill: Double? = null, revealAt: Double? = null
+    revealFill: Double? = null, revealAt: Double? = null,
+    /** The show's ground instead of `LONGSHADOW_*_PAPER`, and whether the stone goes into it. */
+    paper: ColorRGBa? = null, groundGrain: Boolean = true
 ): LongShadowV3 {
     // Keys are written as v1's and read through v3's fallback, so each can be overridden alone.
     fun read(key: String) = v3Env(key.removePrefix("LONGSHADOW_"))
@@ -182,7 +184,8 @@ fun longShadowV3FromEnv(
             v3Env("FACE") ?: Env["SLIDES_FONT_BOLD"] ?: "Rockwell-Bold"
         ),
         ink = colour("LONGSHADOW_INK", "FFFFFF"),
-        paper = colour("LONGSHADOW_PAPER", "3D5AE0"),
+        paper = paper ?: colour("LONGSHADOW_PAPER", "3D5AE0"),
+        groundGrain = groundGrain,
         shade = colour("LONGSHADOW_SHADE", "1E3A72"),
         margin = number("LONGSHADOW_MARGIN", 160.0),
         lines = v3Env("LINES")?.toIntOrNull(),

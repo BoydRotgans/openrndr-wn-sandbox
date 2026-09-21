@@ -195,7 +195,7 @@ val chapterCue = cue("1-01.wav")
  * nothing in between.
  */
 val cueSheet = slideshow.CueSheet.read(
-    folders = (Env["SLIDES_CUE_SHEETS"] ?: "data/sounds/P1,data/sounds/P2,data/sounds/P3,data/sounds/P4")
+    folders = (Env["SLIDES_CUE_SHEETS"] ?: "data/sounds/00,data/sounds/P1,data/sounds/P2,data/sounds/P3,data/sounds/P4")
         .split(',').map { it.trim() }.filter { it.isNotEmpty() && !it.equals("none", ignoreCase = true) }
         .map { File(it) },
     gain = cueGain,
@@ -453,7 +453,7 @@ val cardStyle = Env["SLIDES_CARD_STYLE"] ?: "longshadow"
  * The chapters whose card is long shadow type v3 instead of [cardStyle], by number — the drawn
  * stencil title coming up through a field of elements. `none` gives every chapter [cardStyle].
  */
-val cardV3Chapters = (Env["SLIDES_CARD_V3_CHAPTERS"] ?: "1").split(",").map { it.trim() }.filter { it.isNotEmpty() && it != "none" }.toSet()
+val cardV3Chapters = (Env["SLIDES_CARD_V3_CHAPTERS"] ?: "1,2,3,4").split(",").map { it.trim() }.filter { it.isNotEmpty() && it != "none" }.toSet()
 
 /**
  * The card for one section: the chapter's own drawn title, cut into the Shadows facade.
@@ -479,22 +479,50 @@ val cardV3Chapters = (Env["SLIDES_CARD_V3_CHAPTERS"] ?: "1").split(",").map { it
  * with the recipe tuned for v1; a chapter with no picture at all falls back to setting its title
  * as type, so a checkout without `data/` still runs the show rather than four blank cards.
  */
+/**
+ * The long shadow type v3 card for [section]: the sketch's effect with the show's timing — the field
+ * standing as the chapter opens (`SLIDES_CARD_V3_FILL`), the title through from `SLIDES_CARD_V3_AT`.
+ *
+ * **It carries the sketch's own concrete**, `SLIDES_CARD_V3_CONCRETE` and otherwise the sketch's
+ * `LONGSHADOW_V3_CONCRETE`, worked into the effect rather than laid over the frame: the stone goes
+ * into the roofs against its own average, so the type stays white and the light and shadows blend as
+ * they do in the sketch. `none` leaves it to the show's overlay alone. [detail] is real pixels to a
+ * pane pixel — 1 in the show, which composes at canvas scale; `ChapterMidi` films at the sketch's 2.
+ */
+/**
+ * [overlaid] is the show, which lays `SLIDES_CONCRETE` over every frame and turns black into the wall's
+ * grey concrete: there the card paints black like every slide and leaves the ground to that overlay,
+ * so it and the slide beside it are one ground. `ChapterMidi` films the card alone, with no overlay,
+ * and passes false to keep the sketch's own grey and grain.
+ */
+fun longShadowV3Card(section: slideshow.Section, detail: Double = 1.0, overlaid: Boolean = true): LongShadowV3ChapterPanel {
+    val chapterNumber = section.number.substringBefore('.')
+    val concrete = (Env["SLIDES_CARD_V3_CONCRETE"] ?: Env["LONGSHADOW_V3_CONCRETE"] ?: Env["LONGSHADOW_V2_CONCRETE"]
+        ?: Env["LONGSHADOW_CONCRETE"] ?: "data/concrete/concrete-052v2_crop.jpg").takeIf { it != "none" }?.let { File(it) }
+    return LongShadowV3ChapterPanel(
+        section,
+        longShadowV3FromEnv(
+            concrete = concrete,
+            detail = detail,
+            revealFill = Env["SLIDES_CARD_V3_FILL"]?.toDoubleOrNull() ?: 0.0,
+            revealAt = Env["SLIDES_CARD_V3_AT"]?.toDoubleOrNull() ?: 1.0,
+            paper = if (overlaid) slideshow.Palette.BLACK else null,
+            groundGrain = !overlaid
+        ),
+        // The chapter's own words in Rockwell unless a drawn title is named ({n} the chapter).
+        svg = (Env["SLIDES_CARD_V3_SVG"] ?: "none")
+            .takeIf { it != "none" }?.let { File(it.replace("{n}", chapterNumber)) },
+        sound = chapterCue
+    )
+}
+
 fun chapterCard(section: slideshow.Section): slideshow.Slide {
     // Set as type from the chapter's own title, so it needs no picture. No concrete of its own:
     // the show lays one over every frame (SLIDES_CONCRETE), and it keeps white white.
     // Long shadow type v3 on the chapters that ask for it: the field already standing as the chapter
     // opens (FILL 0), the title coming through after AT seconds. The sketch's own keys steer the rest.
     val chapterNumber = section.number.substringBefore('.')
-    if (chapterNumber in cardV3Chapters) return LongShadowV3ChapterPanel(
-        section,
-        longShadowV3FromEnv(
-            revealFill = Env["SLIDES_CARD_V3_FILL"]?.toDoubleOrNull() ?: 0.0,
-            revealAt = Env["SLIDES_CARD_V3_AT"]?.toDoubleOrNull() ?: 1.0
-        ),
-        svg = (Env["SLIDES_CARD_V3_SVG"] ?: Env["LONGSHADOW_V3_SVG"] ?: "data/titles/v5/title0{n}-test3.svg")
-            .takeIf { it != "none" }?.let { File(it.replace("{n}", chapterNumber)) },
-        sound = chapterCue
-    )
+    if (chapterNumber in cardV3Chapters) return longShadowV3Card(section)
     if (cardStyle == "longshadow") return LongShadowChapterPanel(section, longShadowFromEnv(), sound = chapterCue)
 
     val image = File(cardTitles.replace("{n}", section.number.substringBefore('.')))
@@ -568,6 +596,27 @@ fun slideshow.ChapterBuilder.takeaway(n: Int, sentence: String) = slide(
 )
 
 /**
+ * A chapter's project highlight: the storyline brought down to one real building, standing just
+ * before the takeaway so the chapter resolves on a project before it resolves on a sentence.
+ * Every photograph in the case's folder under `SLIDES_HIGHLIGHTS`, a click each, opening on
+ * [lead], with the project named on a bar under them; the slide's id is `projecthighlight-<n>`.
+ * [focus] is where in the lead photograph the crop centres.
+ */
+fun slideshow.ChapterBuilder.highlight(
+    n: Int, case: String, lead: String, project: String, line: String,
+    focus: Vector2 = Vector2(0.5, 0.5), notes: String
+) = slide(
+    ProjectHighlight(
+        File(Env["SLIDES_HIGHLIGHTS"] ?: "data/case-studies/Studie Cases", case), lead,
+        project, line, boldPath = boldFont, textPath = textFont, focus = focus,
+        marks = File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"),
+        instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade"
+    ),
+    title = "Projecthighlight $n",
+    notes = notes
+)
+
+/**
  * Everything a build answers to, declared once and used twice: the tree hangs them off the
  * element the city closes on, and the globe then turns them up one at a time. Reword a line
  * here and both slides follow — in each of them the layout is a function of the list rather
@@ -607,37 +656,42 @@ val chapterMessages = listOf(
 )
 
 /**
- * The group's production sites, as the address list gives them. A pixel each on the map, and the
- * order here is the order [FactoryVisit] counts in. The `B-` postcode prefixes are dropped so
- * every address line reads the same way; the geocoder strips them anyway.
+ * The group's production sites, exactly as "Overzicht fabrieken - Willy Naessens Group.docx" gives
+ * them (data/other/Fabrieken overzicht), in its order: a pixel each on the map, and the order here
+ * is the order [FactoryVisit] counts in. The `B-` postcode prefixes are dropped so every address
+ * line reads the same way; the geocoder strips them anyway. Nancy and the plants off the contact
+ * page are not on that list and are not drawn.
  *
  * Two pairs share an address — Megaton/Structo Prefab Systems and Megaton in Ninove,
  * Intershipping and Interton in Bornem — so each of those takes the free cell beside the other.
+ *
+ * The last entry is not a factory: Transwinaton, the group's own transport arm, is visited as the
+ * bridge out of Seveton and is drawn only while it is — see [Factory.hidden]. Last, so it never
+ * pushes a factory off its cell.
  */
 val factories = listOf(
     Factory("Megaton/Structo Prefab Systems", "Industriezone II, Nederwijk-Oost 279", "9400", "Ninove", "België"),
     Factory("Concreton", "Diebeke 37", "9500", "Geraardsbergen", "België"),
     Factory("Megaton", "Industriezone II, Nederwijk-Oost 279", "9400", "Ninove", "België"),
     Factory("Tripan", "Pannenhuisstraat 44", "3650", "Dilsen", "België"),
-    Factory("FB Groupe France", "69 Avenue Foch", "54001", "Nancy", "Frankrijk"),
     Factory("Alpreco", "Victor Dumonlaan 26", "2830", "Willebroek", "België"),
     Factory("Intershipping", "Oude Sluisweg 30", "2880", "Bornem", "België"),
     Factory("Megaton", "Bedrijvenpark Coupure 7", "9700", "Oudenaarde", "België"),
+    Factory("Willy Naessens Construct", "Bedrijvenpark de Coupure 15-17", "9700", "Oudenaarde", "België"),
     Factory("Altaan", "Industriezone Lanklaar, Siemenslaan 7", "3650", "Dilsen-Stokkem", "België"),
     Factory("Interton", "Oude Sluisweg 30", "2880", "Bornem", "België"),
+    // The name is its founders and its material: Sem, Veerle en Beton — told by FactoryName on
+    // the map rather than on the bar, so the bar does not give it away a click early.
     Factory("Seveton", "Meersbloem Leupegem 58", "9700", "Oudenaarde", "België"),
     Factory("Structo", "Steenkaai 107", "8000", "Brugge", "België"),
-    // The plants the contact page (willynaessens.be/en/contact, read 16 September) lists that the
-    // client's sheet did not: the head office and works, two more Belgian works, two in France
-    // and the Luxembourg plant. Appended, so the visits above keep their numbers.
-    Factory("Willy Naessens Industriebouw", "Kouter 3", "9790", "Wortegem-Petegem", "België"),
-    Factory("Willy Naessens Industriebouw", "Industrieweg 116", "3980", "Tessenderlo", "België"),
-    Factory("Snoeck", "Hooiemeersstraat 10", "8710", "Wielsbeke", "België"),
-    Factory("Willy Naessens Bâtiments Industriels", "Zone du Moulin", "62450", "Bapaume", "Frankrijk"),
-    Factory("Thibault Bâtiment Industriel", "Route Nationale", "76340", "Foucarmont", "Frankrijk"),
-    Factory("Concrelux", "Z.I. Um Monkeler", "L-4149", "Schifflange", "Luxemburg"),
-    Factory("Megaton/Structo Prefab Systems Luxembourg", "Z.I. Um Monkeler", "L-4149", "Schifflange", "Luxemburg")
+    Factory("Concrelux", "Z.I. Um Monkeler, 65 Rue Romain Fandel", "L-4149", "Schifflange", "Luxemburg"),
+    // Transport, Willy Naessens, beton — told by FactoryName, as Seveton's is.
+    Factory("Transwinaton", "Bedrijfsstraat 15", "3990", "Peer", "België", hidden = true)
 )
+
+/** Where the two visited sites sit in [factories]: by name, so reordering the list cannot move a visit. */
+val seveton = factories.indexOfFirst { it.name == "Seveton" }
+val transwinaton = factories.indexOfFirst { it.name == "Transwinaton" }
 
 /**
  * Where the group is without a plant: offices, showrooms and depots off the same contact page,
@@ -918,28 +972,28 @@ val show = slideshow {
             title = "Verticale integratie",
             notes = "Six clicks, a band each. The last is picked out in red."
         )
+        val groupFront = ColorRGBa.fromHex("FF0000")       // the WN red
+        val groupSide = ColorRGBa.fromHex("D40000")        // a shade under it, as the blue's side is
         // The company's figures, a slab a figure and a figure a click — one slide since 16
         // September, where it was two. The same drawer as the train it replaced, carrying
         // a different palette — which is the whole point of the copy being a list
         // the show hands in rather than anything the drawer knows.
         slide(
             Swivel02Slide(
+                // The checked figures of 21 September: the Dutch company, then the group, each
+                // run opened by a slab naming it. Every figure carries its entity as a note, so
+                // a slab read on its own still says whose number it is. Nederland stands in the
+                // train's blue, the group in the WN red.
                 blocks = listOf(
-                    SwivelBlock("350.000 M\u00B3 Betonproductie"),
-                    SwivelBlock("950.000 M\u00B2 Gewelven"),
-                    SwivelBlock("210 miljoen omzet"),        // TO CONFIRM: Dutch company or group (meeting: € 1,4 miljard)
-                    // The travelling slabs that stood in chapter 4 — the six countries, the sites,
-                    // the people and the companies — are the later clicks here since 16 September.
-                    SwivelBlock("Actief in 6 landen"),
-                    SwivelBlock(
-                        items = listOf(
-                            "BELGIË", "NEDERLAND", "LUXEMBURG",
-                            "FRANKRIJK", "DENEMARKEN", "ZWEDEN"   // six: Frankrijk in place of a second Luxemburg
-                        )
-                    ),
-                    SwivelBlock("350 werven per jaar", note = "+ 250 zwembaden"),
-                    SwivelBlock("950 medewerkers"),
-                    SwivelBlock("19 bedrijven")
+                    SwivelBlock("Kerncijfers Nederland"),
+                    SwivelBlock("30 projecten per jaar", note = "Nederland"),
+                    SwivelBlock("85 medewerkers", note = "Nederland"),
+                    SwivelBlock("± 150 miljoen omzet/jaar", note = "Nederland"),
+                    SwivelBlock("Kerncijfers Group", front = groupFront, side = groupSide),
+                    SwivelBlock("250 werven per jaar", note = "Group", front = groupFront, side = groupSide),
+                    SwivelBlock("1,2 miljard omzet/jaar", note = "Group", front = groupFront, side = groupSide),
+                    SwivelBlock("2.750 medewerkers", note = "Group", front = groupFront, side = groupSide),
+                    SwivelBlock("9.000 referenties", note = "Group", front = groupFront, side = groupSide)
                 ),
                 clicked = true,                              // a figure a click, centred and close up
                 across = 700.0,                              // three slabs across the pane: the centred one is the picture
@@ -949,9 +1003,17 @@ val show = slideshow {
                 sound = swivelCue
             ),
             title = "De cijfers",
-            notes = "Een cijfer per click, blauw op zwart: productie, gewelven, omzet, dan de zes " +
-                    "landen, de werven, de mensen en de bedrijven. TO CONFIRM with WN: which entity " +
-                    "the omzet is, and the six countries."
+            notes = "Kerncijfers Willy Naessens Nederland + Willy Naessens Group, een cijfer per " +
+                    "click: Nederland in blauw, de Group in WN-rood. Nederland: 30 projecten per jaar, 85 medewerkers, " +
+                    "± 150 miljoen omzet per jaar. Group: 250 werven per jaar, 1,2 miljard " +
+                    "omzet per jaar, 2.750 medewerkers, 9.000 referenties. Checked 21 September."
+        )
+        highlight(
+            1, "Case Studie - van Cranenbroek Budel", "Van Cranenbroek - De wereld van Bouwen.jpg",
+            "Van Cranenbroek", "Budel",
+            focus = Vector2(0.5, 0.55),
+            notes = "Verhaallijn hoofdstuk 1: van Cranenbroek in Budel, de hal met kolommen. " +
+                    "Location and wording to be confirmed by WN."
         )
         takeaway(1, "We hebben gekeken naar de organisatie achter het bouwen. Na deze gang stellen " +
                 "we de volgende vraag: hoe beoordelen we de keuzes die we maken?")
@@ -1181,6 +1243,13 @@ val show = slideshow {
             notes = "The two databases arrive, are gathered into the analysis, and then what " +
                     "the analysis makes possible \u2014 materiaalgebonden CO\u2082-uitstoot."
         )
+        highlight(
+            2, "Case Studie - VGP Park Nijmegen - B & C", "VGP Park Nijmegen - B & C.jpg",
+            "VGP Park Nijmegen", "Nijmegen  ·  gebouw B & C",
+            focus = Vector2(0.62, 0.5),
+            notes = "Verhaallijn hoofdstuk 2 (ESG): VGP Park Nijmegen, de foto met zonnepanelen. " +
+                    "Wording to be confirmed by WN."
+        )
         takeaway(2, "We hebben besproken hoe we keuzes beoordelen. Na deze gang kijken we waar die " +
                 "keuzes concreet worden: in het materiaal en de levenscyclus van beton.")
     }
@@ -1344,6 +1413,12 @@ val show = slideshow {
             notes = "A wave crosses the row once on arrival and settles — 7.5s, off the " +
                     "slide's own frame count rather than a clock."
         )
+        highlight(
+            3, "Case Studie - Kivits Ridderkerk", "WDP - Kivits Ridderkerk - Koelopslag - Beton als ruggengraat.jpg",
+            "Kivits", "Ridderkerk  ·  koelopslag",
+            notes = "Verhaallijn hoofdstuk 3 (beton): Kivits in Ridderkerk, de koelopslag. " +
+                    "Wording to be confirmed by WN."
+        )
         takeaway(3, "We hebben gekeken naar beton en zijn onderdelen. Straks brengen we die " +
                 "onderdelen samen in het verhaal van The Circle.")
     }
@@ -1395,10 +1470,27 @@ val show = slideshow {
             PixelMap(
                 // Europe around the factories: 1050 km of ground high, centred on the middle of
                 // the cluster rather than on a stated point, so the list decides where it sits.
-                shots = listOf(europe, FactoryVisit(0), FactoryVisit(1), FactoryVisit(2), europe),
-                factories = factories,
-                offices = offices,         // the rest of the group as small blue dots: the Netherlands is an office, not a plant
-                background = ColorRGBa.fromHex("BFD2EE"),   // the sea blue, so it reads as sea against the grey land
+                // Overview, in on Seveton, its name large, the name taken apart into Sem, Veerle en
+                // Beton; the bridge to the group's own transport the same way — Transport, Willy
+                // Naessens, beton — and out again.
+                shots = listOf(
+                    europe,
+                    FactoryVisit(seveton),
+                    FactoryName(seveton),
+                    FactoryName(seveton,
+                        parts = listOf(NamePart("Sem", "Se"), NamePart("Veerle", "ve"), NamePart("Beton", "ton")),
+                        joiners = listOf(", ", " en ")),
+                    FactoryVisit(transwinaton),
+                    FactoryName(transwinaton),
+                    FactoryName(transwinaton,
+                        parts = listOf(NamePart("Transport", "Trans"), NamePart("Willy", "wi"),
+                                       NamePart("Naessens", "na"), NamePart("beton", "ton")),
+                        joiners = listOf(", ", " ", ", ")),
+                    europe
+                ),
+                factories = factories,     // the factories alone for now: `offices` is not drawn
+                footer = false,            // no name bar for now: the name card is the only lettering
+                background = wnBlue,       // the sea in the navy the chapter card's shadows are cast in (LONGSHADOW_SHADE)
                 dot = wnRed,
                 picked = wnBlue,           // the selected factory's dot turns blue...
                 pickedPulse = wnSky,       // ...and pulses toward the lighter blue
@@ -1415,8 +1507,9 @@ val show = slideshow {
                 textPath = textFont
             ),
             title = "De fabrieken",
-            notes = "Every factory a red dot on a grey map. Then in on the first three " +
-                    "in the list, a click each, and out again."
+            notes = "Every factory a red dot on a grey map. Seveton uitgelicht: Sem, Veerle en Beton. " +
+                    "Daarna een klein bruggetje naar onze eigen transporttak Transwinaton \u2013 " +
+                    "Transport, Willy Naessens, beton. Then out again."
         )
         // The Circle itself, out of the IFC: the building as red lines on a dotted ground, the
         // three labels swapping on the click. tools/ifc_to_tri.py makes data/circle from the
@@ -1506,6 +1599,12 @@ val show = slideshow {
                     "Social: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe " +
                     "functies, noden en generaties. Governance: systematiek, meetbaarheid en " +
                     "herhaalbaarheid in ontwerp en uitvoering. Then all three, then the joint closes."
+        )
+        highlight(
+            4, "Case Studie - Intervest The Circle", "k-Intervest Herstal + technieken  170.jpg",
+            "Intervest", "Herstal  ·  ons eerst verkochte Circle-pand",
+            notes = "Verhaallijn hoofdstuk 4 (The Circle): Intervest, ons eerst verkochte " +
+                    "Circle-pand, de buitenkant. Wording to be confirmed by WN."
         )
         takeaway(4, "Laten we dit nu naast concrete projecten leggen. Welke vragen roept dit op " +
                 "voor uw eigen praktijk?")
@@ -1744,39 +1843,40 @@ val show = slideshow {
         notes = "A collage of the sectors, each stood for by a precast element; a click " +
                 "takes each full frame in turn, the camera pulling back between them."
     )
-    // The case studies as blueprints, after the sectors: a project a click, its plan on the left
-    // projector and a second drawing on the right, the facts in the corners of both. Drawings cut
-    // out of data/blue-prints/blue-prints.pdf into SLIDES_BLUEPRINTS. PLACEHOLDER: the function,
-    // location and realisation are ??? in the blueprints for most; Kievits II's are the sketch's.
+    // The case studies across the whole wall, through the project highlight's effect: each project's
+    // photographs on the left projector and its blueprints on the right, a click a view, built up out
+    // of the catalogue's marks and dissolved into the whole picture. Photos from the case studies'
+    // folders (SLIDES_HIGHLIGHTS), drawings from SLIDES_BLUEPRINTS; Panattoni Almelo's is its own pdf,
+    // rendered and inverted to white on black like the others. The lines under the names are drafts,
+    // Kivits' from the blueprints; Panattoni Waalwijk, Sas van Gent and Prohuis have drawings only and
+    // Intervest photos only. `CaseBlueprints`, the version before, is still in scene-drawers.
     scene(
-        slideshow.drawers.CaseBlueprints(
-            cases = listOf(
-                slideshow.drawers.BlueprintCase("van Cranenbroek", "van-cranenbroek-a.png", "van-cranenbroek-b.png"),
-                slideshow.drawers.BlueprintCase("VGP Nijmegen", "vgp-nijmegen-a.png", "vgp-nijmegen-b.png",
-                    location = "Nijmegen"),
-                slideshow.drawers.BlueprintCase("Panattoni Waalwijk", "panattoni-waalwijk-a.png", "panattoni-waalwijk-b.png",
-                    location = "Waalwijk"),
-                slideshow.drawers.BlueprintCase("Kievits II", "kvitis-ridderkerk-a.png", "kvitis-ridderkerk-b.png",
-                    function = listOf("10.000 m² magazijn", "24 laaddocks"),     // a builder's words, not a department store
-                    location = "Ridderkerk", realisation = "30 weken",
-                    // The composed views after the overview. PLACEHOLDER regions: the mechanism
-                    // is in place, the facade details worth showing are WN's to name.
-                    details = listOf(
-                        slideshow.drawers.BlueprintDetail('a', 0.05, 0.05, 0.4, 0.4, "Detail: de hoek van de plattegrond (PLACEHOLDER)"),
-                        slideshow.drawers.BlueprintDetail('b', 0.55, 0.3, 0.4, 0.4, "Detail: de gewelven (PLACEHOLDER)")
-                    )),
-                slideshow.drawers.BlueprintCase("Panattoni Sas van Gent", "panattoni-sas-van-gent-a.png", "panattoni-sas-van-gent-b.png",
-                    location = "Sas van Gent"),
-                slideshow.drawers.BlueprintCase("Prohuis", "prohuis-a.png", "prohuis-b.png"),
+        CaseStudies(
+            projects = listOf(
+                CaseProject("Van Cranenbroek", "Budel", "Case Studie - van Cranenbroek Budel",
+                    listOf("van-cranenbroek-a.png", "van-cranenbroek-b.png")),
+                CaseProject("VGP Park Nijmegen", "Nijmegen  ·  gebouw B & C", "Case Studie - VGP Park Nijmegen - B & C",
+                    listOf("vgp-nijmegen-a.png", "vgp-nijmegen-b.png")),
+                CaseProject("Kivits", "Ridderkerk  ·  10.000 m² magazijn", "Case Studie - Kivits Ridderkerk",
+                    listOf("kvitis-ridderkerk-a.png", "kvitis-ridderkerk-b.png")),
+                CaseProject("Intervest", "Herstal  ·  ons eerst verkochte Circle-pand", "Case Studie - Intervest The Circle"),
+                CaseProject("Panattoni", "Almelo", "Case Studie - Panattoni Almelo", listOf("panattoni-almelo-a.png")),
+                CaseProject("Panattoni", "Waalwijk", blueprints = listOf("panattoni-waalwijk-a.png", "panattoni-waalwijk-b.png")),
+                CaseProject("Panattoni", "Sas van Gent", blueprints = listOf("panattoni-sas-van-gent-a.png", "panattoni-sas-van-gent-b.png")),
+                CaseProject("Prohuis", blueprints = listOf("prohuis-a.png", "prohuis-b.png")),
             ),
-            folder = File(Env["SLIDES_BLUEPRINTS"] ?: "data/case-blueprints"),
+            photoFolder = File(Env["SLIDES_HIGHLIGHTS"] ?: "data/case-studies/Studie Cases"),
+            blueprintFolder = File(Env["SLIDES_BLUEPRINTS"] ?: "data/case-blueprints"),
             boldPath = boldFont,
-            textPath = textFont
+            textPath = textFont,
+            marks = File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"),
+            concrete = File(Env["SLIDES_CASE_CONCRETE"] ?: "data/concrete"),
+            instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade"
         ),
         title = "Case studies",
-        notes = "The case studies as blueprints: a project a click, plan on the left projector and a second " +
-                "drawing on the right, name, function, location and realisation in the corners. " +
-                "PLACEHOLDER: most facts are still ??? in the blueprints."
+        notes = "De case studies over de hele wand: per project de foto's links en de blauwdrukken rechts, " +
+                "een click per beeld, opgebouwd uit de catalogus en opgelost in het hele beeld. " +
+                "DRAFT: de regels onder de namen."
     )
     // The ending: one sentence, one action, and a code to scan. PROPOSAL: the sentence is the
     // fourth chapter's own line, the action and the address are placeholders until WN says
@@ -1879,8 +1979,10 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         mix = Env["${prefix}_MIX"]?.let { Env.boolean("${prefix}_MIX") } ?: settings.mix,
         stills = Env.boolean("${prefix}_STILLS"),
         sound = Env["${prefix}_SOUND"]?.let { Env.boolean("${prefix}_SOUND") } ?: settings.sound,
+        muted = Env["${prefix}_MUTED"]?.let { Env.boolean("${prefix}_MUTED") } ?: settings.muted,
         organizer = Env["${prefix}_ORGANIZER"]?.let { Env.boolean("${prefix}_ORGANIZER") } ?: settings.organizer,
         organizerPort = Env["${prefix}_ORGANIZER_PORT"]?.toIntOrNull() ?: settings.organizerPort,
+        organizerOpen = Env["${prefix}_ORGANIZER_OPEN"]?.let { Env.boolean("${prefix}_ORGANIZER_OPEN") } ?: settings.organizerOpen,
         order = Env["${prefix}_ORDER"]?.takeIf { it.isNotBlank() } ?: settings.order,
         modules = Env["${prefix}_MODULES"]?.takeIf { it.isNotBlank() } ?: settings.modules,
         intents = Env["${prefix}_INTENTS"]?.takeIf { it.isNotBlank() } ?: settings.intents,
@@ -1890,6 +1992,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         concrete = Env["${prefix}_CONCRETE"]?.takeIf { it.isNotBlank() } ?: settings.concrete,
         concreteOn = Env["${prefix}_CONCRETE_ON"]?.let { Env.boolean("${prefix}_CONCRETE_ON") } ?: settings.concreteOn,
         concreteMix = Env["${prefix}_CONCRETE_MIX"]?.toDoubleOrNull() ?: settings.concreteMix,
-        concreteScale = Env["${prefix}_CONCRETE_SCALE"]?.toDoubleOrNull() ?: settings.concreteScale
+        concreteScale = Env["${prefix}_CONCRETE_SCALE"]?.toDoubleOrNull() ?: settings.concreteScale,
+        concreteFloor = Env["${prefix}_CONCRETE_FLOOR"]?.toDoubleOrNull() ?: settings.concreteFloor
     )
 )

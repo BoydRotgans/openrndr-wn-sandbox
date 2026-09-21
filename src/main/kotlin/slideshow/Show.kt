@@ -126,14 +126,15 @@ private fun org.openrndr.ApplicationBuilder.present(
                 File(settings.modules ?: "show-modules.json"), references,
                 File(settings.intents ?: "show-intents.json"),
                 File(settings.feedback ?: "show-feedback.json"),
-                File(settings.midi ?: "show-midi.json")
+                File(settings.midi ?: "show-midi.json"),
+                open = settings.organizerOpen
             ).takeIf { it.start() }?.also { onClose { it.stop() } }
         else null
 
         // The cues, decoded before the first frame for the same reason the slides are —
         // a show must not stall on a click. Silent under `stills`, which jumps through
         // every slide of the deck on a timer and would fire every cue in the show at it.
-        val speakers = Speakers()
+        val speakers = Speakers().apply { muted = settings.muted }
 
         // The sound design delivered as a folder, re-keyed from the names in that folder to the
         // show's own slide ids — see [CueSheet]. Bound against the whole catalogue rather than
@@ -316,7 +317,7 @@ private fun org.openrndr.ApplicationBuilder.present(
         // Laid on only where the canvas meets the window, so no slide, still or preview carries
         // it.
         //
-        // **It only ever darkens.** Light on a wall is the picture times the stone, and stone is
+        // **It only ever darkens, but for the floor.** Light on a wall is the picture times the stone, and stone is
         // never brighter than white — dividing the texture by its *average* instead pushed every
         // lighter-than-average pixel past white, so a white piece clipped to flat white with a
         // few specks and read as overexposed. So the grain is measured against the texture's
@@ -345,13 +346,21 @@ private fun org.openrndr.ApplicationBuilder.present(
                     // zero everywhere and the whole frame comes out black.
                     float stone = pow(dot(texture(p_stone, uv).rgb, vec3(0.299, 0.587, 0.114)), 1.0 / 2.2);
                     float grain = min(stone / p_bright, 1.0);
-                    x_fill.rgb *= clamp(1.0 - p_mix * (1.0 - grain), 0.0, 1.0);
+                    // Black is lifted to the floor first, so a black slide is dark stone rather
+                    // than a hole in the wall. Only what is near black: the lift fades out as the
+                    // brightest channel rises, so a navy or a blue keeps its colour — lifting every
+                    // dark channel alike added grey to them and washed the chapter card's blues out.
+                    float nearBlack = 1.0 - smoothstep(0.0, p_floorReach, max(x_fill.r, max(x_fill.g, x_fill.b)));
+                    x_fill.rgb = (x_fill.rgb + p_floor * nearBlack) * clamp(1.0 - p_mix * (1.0 - grain), 0.0, 1.0);
                 """.trimIndent()
                 parameter("stone", stone)
                 parameter("canvas", Vector2(canvasBounds.width, canvasBounds.height))
                 parameter("tile", Vector2(stone.width * settings.concreteScale, stone.height * settings.concreteScale))
                 parameter("mix", settings.concreteMix)
                 parameter("bright", concreteBright)
+                parameter("floor", settings.concreteFloor)
+                // Linear light: 0.06 is about 70 of 255, under the navy's blue channel.
+                parameter("floorReach", 0.06)
             }
         }
         var concreteOn = settings.concreteOn && concrete != null
@@ -927,6 +936,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                             concreteOn = concrete != null && (command.on ?: !concreteOn)
                             println("organizer: concrete ${if (concreteOn) "on" else "off"}")
                         }
+                        is Remote.Mute -> {
+                            speakers.muted = command.on ?: !speakers.muted
+                            println("organizer: sound ${if (speakers.muted) "muted" else "on"}")
+                        }
                         is Remote.Grid -> {
                             gridOn = command.on ?: !gridOn
                             println("organizer: grid ${if (gridOn) "on" else "off"}")
@@ -1015,7 +1028,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 remote.exportFrames = j?.frames ?: 0
                 remote.snapshot = Remote.Snapshot(
                     deck.index, ids[deck.index], deck.step, deck.slide.steps, frame, previewJobs.size, remote.previewStamp,
-                    concreteOn, concrete != null, gridOn
+                    concreteOn, concrete != null, gridOn,
+                    muted = speakers.muted, hasSound = speakers.ready
                 )
             }
 

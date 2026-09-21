@@ -47,8 +47,16 @@ import kotlin.random.Random
 /**
  * The social and governance pillars told as a crowd: one person, then the group around them,
  * then the lines between them, then the group as an arrow with one out in front, then the
- * whole as a disc with a share of it marked out. Five states, a click apart, read off
+ * whole as a turning globe drawn in people. Five states, a click apart, read off
  * `data/ref/social.pdf`.
+ *
+ * **The whole is the globe slide's globe, in people.** Only its grid is drawn: people standing
+ * along the meridians, in the one's white, and along the parallels, in [share], on a sphere
+ * tilted so its north pole leans toward the viewer. It turns once in [spin] seconds and every
+ * person rides round with it; only the near half is drawn, and a person shrinks toward the rim
+ * and is gone before the far side, so the sphere turns away rather than reading as a disc. A full disc of people with the grid picked out in colour was
+ * the first version, and `GlobeSlide` had already found why the lines alone read better. The one
+ * the slide opened on becomes one of the globe's people and turns with the rest.
  *
  * **Every figure is a slot, and a slot keeps its figure across the whole slide.** Each of the
  * five states is a *formation* — a list of places, one a slot — and the deck's `position`
@@ -100,21 +108,10 @@ class Crowd(
     private val one: ColorRGBa = ColorRGBa.fromHex("FFFFFF"),
     /** The crowd. */
     private val many: ColorRGBa = ColorRGBa.fromHex("4674D6"),
-    /** The share of the whole marked out on the last click. */
+    /** The globe's parallels, on the last click; its meridians are in [one]. */
     private val share: ColorRGBa = ColorRGBa.fromHex("FF0000"),
-    /**
-     * Seconds for the whole to turn once, like a globe: the disc is read as a sphere tilted
-     * toward the viewer, and the figures standing on its lines of latitude and longitude take the
-     * share's colour — the familiar globe grid, drawn in people — with the meridians travelling
-     * round as it turns. 0 holds the share still, as the crescent it was drawn as.
-     */
+    /** Seconds for the globe of the whole to turn once; 0 holds it still. */
     private val spin: Double = 60.0,
-    /**
-     * Whether the globe's people are alive: wherever a meridian passes over a figure, it pops
-     * out and back in as someone else. Only in the globe, and only along those lines, so the
-     * crowd changes where the grid moves and nowhere else.
-     */
-    private val alive: Boolean = true,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     /** The crowd's grid: columns across the pane, rows about the middle, and the row pitch and figure height as shares of the pane's height. */
     private val columns: Int = 11,
@@ -148,19 +145,19 @@ class Crowd(
     private class Variant(val start: Int, val count: Int, val height: Double)
 
     /** A place in a formation: where the feet stand, how tall an adult is there, and the colour. */
-    private class Spot(val foot: Vector2, val size: Double, val tint: ColorRGBa, val globe: GlobePoint? = null) {
+    private class Spot(val foot: Vector2, val size: Double, val tint: ColorRGBa, val sphere: SpherePoint? = null) {
         val centre: Vector2 get() = foot - Vector2(0.0, size / 2.0)
     }
 
     /**
-     * Where a figure of the whole stands on the globe: its longitude at its own centre and half
-     * a cell to either side and above and below it, and whether a parallel passes within those
-     * samples. A grid line is drawn through a figure when it falls between the samples, which
-     * keeps every line one figure wide however the sphere foreshortens it.
+     * Where a person of the globe stands on the sphere, in radians before it has turned. Their
+     * place on the pane is worked out per frame from how far it has turned since.
      */
-    private class GlobePoint(val lons: DoubleArray, val onParallel: Boolean) {
-        val lon: Double get() = lons[0]
-    }
+    private class SpherePoint(val lat: Double, val lon: Double)
+
+    /** The globe: its middle and radius on the pane, where [Spot]s with a [SpherePoint] are projected. */
+    private var globeMid = Vector2.ZERO
+    private var globeRadius = 1.0
 
     /** One state of the crowd: a spot a slot, and the middle and unit its spots are measured from. */
     private class Formation(val spots: List<Spot>, val centre: Vector2, val unit: Double)
@@ -342,51 +339,69 @@ class Crowd(
         val leader = Spot(Vector2(tip + w * ARROW_LEAD, h / 2.0 + a / 2.0), a, one)
         val arrow = assemble(network, arrowCells.sortedBy { (it.centre - arrowMid).squaredLength }, arrowMid, a, lead = leader)
 
-        // 4: the whole. Tiny figures on a grid, kept to a disc, with the share marked out as
-        // the part of the disc that lies outside a second circle standing left of it — a
-        // crescent along the right edge, widest at the middle and tapering to the top and
-        // bottom. The one comes back to the centre.
-        val t = h * DISC_FIGURE
-        val dp = h * DISC_ROW
-        val dc = w * DISC_COL
-        val radius = h * DISC_RADIUS
-        val discMid = Vector2(w / 2.0, h / 2.0 + h * DISC_DROP)
-        val bite = discMid - Vector2(BITE * radius, 0.0)
-        // A point on the pane to its latitude and longitude on the globe, which is tilted so its
-        // north pole leans toward the viewer the way a school globe is drawn.
-        val tilt = TILT * PI / 180.0
-        fun globeAt(p: Vector2): Pair<Double, Double> {
-            var x = (p.x - discMid.x) / radius
-            var y = -(p.y - discMid.y) / radius
-            val r2 = x * x + y * y
-            if (r2 > 1.0) { val k = 1.0 / sqrt(r2); x *= k; y *= k }
-            val z = sqrt(max(1.0 - x * x - y * y, 0.0))
-            val by = y * cos(tilt) + z * sin(tilt)
-            val bz = -y * sin(tilt) + z * cos(tilt)
-            return asin(by.coerceIn(-1.0, 1.0)) to atan2(x, bz)
-        }
-        val discCells = buildList {
-            val down = (radius / dp).toInt() + 1
-            val across = (radius / dc).toInt() + 1
-            for (r in -down until down) for (c in -across until across) {
-                val centre = discMid + Vector2((c + 0.5) * dc, (r + 0.5) * dp)
-                if ((centre - discMid).length > radius - t / 2.0) continue
-                val sx = dc * LINE_REACH
-                val sy = dp * LINE_REACH
-                val samples = listOf(Vector2.ZERO, Vector2(-sx, 0.0), Vector2(sx, 0.0), Vector2(0.0, -sy), Vector2(0.0, sy))
-                    .map { globeAt(centre + it) }
-                val lat = LAT_STEP * PI / 180.0
-                // The outline of the globe counts as a line too, as it does on any drawing of one.
-                val rim = (centre - discMid).length > radius - t / 2.0 - max(dc, dp) * RIM
-                val parallel = rim || samples.map { floor(it.first / lat).toInt() }.distinct().size > 1
-                val globe = GlobePoint(samples.map { it.second }.toDoubleArray(), parallel)
-                val marked = if (spin > 0.0) onGrid(globe, 0.0) else (centre - bite).length > BITE_RADIUS * radius
-                add(Spot(centre + Vector2(0.0, t / 2.0), t, if (marked) share else one, globe))
+        // 4: the whole, as the globe slide's globe drawn in people: the meridians and the parallels
+        // of a tilted sphere, a person every so far along each line, spaced by what the line asks
+        // of a standing figure — a figure high up a meridian, which runs up the pane, and a little
+        // over half that along a parallel, which runs across it. The meridians stop short of the
+        // poles, where twelve of them would meet in a knot. Ordered with the near half first,
+        // nearest the middle, so the people of the arrow go to the side the room can see.
+        val t = h * GLOBE_FIGURE
+        globeRadius = h * DISC_RADIUS
+        globeMid = Vector2(w / 2.0, h / 2.0 + h * DISC_DROP)
+        val points = buildList {
+            val along = GLOBE_ALONG * t / globeRadius
+            val across = GLOBE_ACROSS * t / globeRadius
+            val pole = POLE_GAP * PI / 180.0
+            for (m in 0 until (360.0 / MERIDIAN_STEP).toInt()) {
+                val lon = m * MERIDIAN_STEP * PI / 180.0
+                val n = ((PI - 2.0 * pole) / along).toInt()
+                for (i in 0..n) add(SpherePoint(-PI / 2.0 + pole + i * (PI - 2.0 * pole) / n, lon) to one)
             }
-        }.sortedBy { (it.centre - discMid).squaredLength }
-        val whole = assemble(arrow, discCells.drop(1), discMid, t, lead = discCells.first())
+            val bands = (90.0 / LAT_STEP).toInt()
+            for (b in -bands + 1 until bands) {
+                val lat = b * LAT_STEP * PI / 180.0
+                val n = (2.0 * PI * cos(lat) / across).toInt()
+                for (i in 0 until n) add(SpherePoint(lat, i * 2.0 * PI / n) to share)
+            }
+        }
+        val globeCells = points.map { (p, tint) ->
+            val (at, depth) = project(p, 0.0)
+            Triple(Spot(at + Vector2(0.0, t / 2.0), t, tint, p), depth, at)
+        }.sortedWith(compareBy({ it.second <= 0.0 }, { (it.third - globeMid).squaredLength })).map { it.first }
+        // The one is not held still in the middle: it takes the globe's place nearest the middle and
+        // turns away with everyone else, so nothing on the globe stands apart from it.
+        val whole = assemble(arrow, globeCells.drop(1), globeMid, t, lead = globeCells.first())
 
         return listOf(single, crowd, network, arrow, whole)
+    }
+
+    /**
+     * A point of the sphere on the pane once the globe has turned by [turn], and its depth toward
+     * the viewer — 1 at the near pole of the view, 0 at the rim, below 0 round the back. The
+     * tilt leans the north pole toward the viewer, the way a school globe is drawn.
+     */
+    private fun project(p: SpherePoint, turn: Double): Pair<Vector2, Double> {
+        val tilt = TILT * PI / 180.0
+        val lon = p.lon + turn
+        val x = cos(p.lat) * sin(lon)
+        val by = sin(p.lat)
+        val bz = cos(p.lat) * cos(lon)
+        val y = by * cos(tilt) - bz * sin(tilt)
+        val z = by * sin(tilt) + bz * cos(tilt)
+        return Vector2(globeMid.x + x * globeRadius, globeMid.y - y * globeRadius) to z
+    }
+
+    /**
+     * Where [spot] stands this frame, and how tall: as laid out, or for a person of the globe,
+     * where the turn has carried them — smaller toward the rim so the sphere turns away, and
+     * nothing at all once round the back.
+     */
+    private fun placed(spot: Spot, turn: Double): Pair<Vector2, Double> {
+        val p = spot.sphere ?: return spot.foot to spot.size
+        val (at, depth) = project(p, turn)
+        val seen = smoothstep(depth / RIM_FADE)
+        val size = spot.size * (1.0 - RELIEF + RELIEF * depth.coerceIn(0.0, 1.0)) * seen
+        return (at + Vector2(0.0, size / 2.0)) to size
     }
 
     /**
@@ -569,33 +584,32 @@ class Crowd(
             val grow: Double
             when {
                 a != null && b != null -> {
-                    foot = a.foot + (b.foot - a.foot) * t
-                    size = a.size + (b.size - a.size) * t
-                    tint = toward(globeTint(a, turn), globeTint(b, turn), t)
+                    val (fa, sa) = placed(a, turn)
+                    val (fb, sb) = placed(b, turn)
+                    foot = fa + (fb - fa) * t
+                    size = sa + (sb - sa) * t
+                    tint = toward(a.tint, b.tint, t)
                     grow = 1.0
                 }
                 b != null -> {   // arriving: stands up where it will stand, the middle first
-                    foot = b.foot; size = b.size; tint = globeTint(b, turn)
+                    val (fb, sb) = placed(b, turn)
+                    foot = fb; size = sb; tint = b.tint
                     grow = arrival(i - nFrom, nTo - nFrom, arriving)
                 }
                 a != null -> {   // leaving
-                    foot = a.foot; size = a.size; tint = globeTint(a, turn)
+                    val (fa, sa) = placed(a, turn)
+                    foot = fa; size = sa; tint = a.tint
                     grow = 1.0 - arrival(i - nTo, nFrom - nTo, arriving)
                 }
                 else -> continue
             }
-            val globe = if (to == formations.last()) b else if (from == formations.last()) a else null
-            // Counted off the figure's western sample: the meridians travel east, so that is where
-            // a line first reaches the figure, and the swap lands as it turns blue rather than
-            // leaving a hole in the middle of the line.
-            val live = person(i, globe?.globe?.lons?.get(1) ?: Double.NaN, turn)
-            val popped = grow * live.scale
-            if (popped <= 0.0) continue
+            val popped = grow
+            if (popped <= 0.0 || size <= 0.0) continue
             shown[i] = true
-            variantOf[i] = live.variant
+            variantOf[i] = order[i]
             val o = i * 8
             place[o] = foot.x.toFloat(); place[o + 1] = foot.y.toFloat()
-            place[o + 2] = (size * popped * if (live.flipped) -1.0 else 1.0).toFloat()
+            place[o + 2] = (size * popped * if (flipped[i]) -1.0 else 1.0).toFloat()
             place[o + 3] = (size * popped).toFloat()
             place[o + 4] = tint.r.toFloat(); place[o + 5] = tint.g.toFloat(); place[o + 6] = tint.b.toFloat(); place[o + 7] = 1f
         }
@@ -638,57 +652,12 @@ class Crowd(
 
     private var wholeSince = -1
 
-    private class Person(val variant: Int, val flipped: Boolean, val scale: Double)
-
-    /**
-     * Who stands in slot [i], standing at longitude [lon] on the globe once it has turned by
-     * [turn]. **A figure is swapped each time a meridian reaches it**, so the people change along
-     * the lines of the grid and the swaps travel with the turn. How many meridians have passed is
-     * counted off the angle — a pure function of the frame, like everything else — and each count
-     * is a new person, hashed from the slot and the count.
-     *
-     * The swap is a cut, on the same instant the figure turns blue: it once dipped to nothing
-     * and sprang back, and at this size a figure shrinking reads as a hole going black in the
-     * middle of a line rather than as someone stepping in. Off the globe, and before it has
-     * turned at all, everyone is who the deal made them.
-     */
-    private fun person(i: Int, lon: Double, turn: Double): Person {
-        val still = Person(order[i], flipped[i], 1.0)
-        if (!alive || spin <= 0.0 || i == 0 || lon.isNaN() || turn <= 0.0) return still
-        val step = LON_STEP * PI / 180.0
-        val phase = lon - turn
-        val passed = floor(lon / step).toInt() - floor(phase / step).toInt()
-        val variant = if (passed == 0) order[i] else (order[i] + 1 + (unit(i, 3 + passed) * (variants.size - 1)).toInt()) % variants.size
-        val flip = if (passed == 0) flipped[i] else unit(i, 1000 + passed) < 0.5
-        return Person(variant, flip, 1.0)
-    }
-
-
     /** A value in [0, 1) hashed from a slot and a salt: the same numbers give the same value every run. */
     private fun unit(i: Int, salt: Int): Double {
         var x = i * 374761393 + salt * 668265263 + seed * 2147483647
         x = (x xor (x ushr 13)) * 1274126177
         x = x xor (x ushr 16)
         return (x.toLong() and 0xffffffL) / 16777216.0
-    }
-
-    /** A figure of the whole takes the share's colour while a grid line runs through it; any other keeps its own. */
-    private fun globeTint(spot: Spot, turn: Double): ColorRGBa {
-        val globe = spot.globe
-        return if (spin <= 0.0 || globe == null) spot.tint else if (onGrid(globe, turn)) share else one
-    }
-
-    /**
-     * Whether a line of the grid runs through [p] once the globe has turned by [turn]: a parallel,
-     * which never moves, or a meridian, which travels east as the globe turns. A meridian is
-     * there when the samples round the figure fall in different sectors — a whole number of
-     * sectors round, so the seam at 180 degrees is itself a meridian and not a false line.
-     */
-    private fun onGrid(p: GlobePoint, turn: Double): Boolean {
-        if (p.onParallel) return true
-        val step = LON_STEP * PI / 180.0
-        val first = floor((p.lons[0] - turn) / step)
-        return p.lons.any { floor((it - turn) / step) != first }
     }
 
     /** Where a line meets a figure: chest height, which the body then covers. */
@@ -812,16 +781,26 @@ class Crowd(
          */
         const val ARROW_POINT = 1.0
 
-        /** The disc: figure height and grid on the height; its radius, and how far below the middle it sits. */
-        const val DISC_FIGURE = 0.024
-        const val DISC_ROW = 0.03
-        const val DISC_COL = 0.0146
-        const val DISC_RADIUS = 0.44
-        const val DISC_DROP = 0.02
+        /** The globe: its radius and how far below the middle it sits, as shares of the pane's height. */
+        const val DISC_RADIUS = 0.36
+        const val DISC_DROP = 0.035
 
-        /** The share: the circle whose outside marks it stands this far left of the disc's middle, this much bigger. */
-        const val BITE = 0.49
-        const val BITE_RADIUS = 1.11
+        /**
+         * A person of the globe, as a share of the pane's height, and how far apart they stand in
+         * their own heights: up a meridian, and along a parallel. The meridians stop this many
+         * degrees short of each pole.
+         */
+        const val GLOBE_FIGURE = 0.04
+        const val GLOBE_ALONG = 1.0
+        const val GLOBE_ACROSS = 0.55
+        const val POLE_GAP = 16.0
+
+        /** Degrees between the globe's meridians: its columns of people. */
+        const val MERIDIAN_STEP = 18.0
+
+        /** How much smaller a person is at the rim than in the middle, and the depth they fade out over. */
+        const val RELIEF = 0.35
+        const val RIM_FADE = 0.3
 
         /** The two phases of a click with travel in it: the travel over this much of it, the arrivals from here. */
         const val TRAVEL = 0.55
@@ -838,14 +817,9 @@ class Crowd(
         const val CHEST = 0.72
 
 
-        /** The globe grid: degrees between meridians and between parallels, and how far the north pole leans toward the viewer. */
-        const val LON_STEP = 30.0
+        /** The globe grid: degrees between parallels, and how far the north pole leans toward the viewer. */
         const val LAT_STEP = 30.0
         const val TILT = 23.0
-        /** How far either side of a figure, in cells, a grid line may pass and still run through it: the lines' width. */
-        const val LINE_REACH = 0.65
-        /** How deep the outline of the globe is, in cells. */
-        const val RIM = 0.9
         const val LINE = 2.0
 
         val INSTANCE = vertexFormat {

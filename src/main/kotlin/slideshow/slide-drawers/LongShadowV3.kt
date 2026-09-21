@@ -15,6 +15,7 @@ import org.openrndr.draw.colorBuffer
 import org.openrndr.draw.isolated
 import org.openrndr.draw.isolatedWithTarget
 import org.openrndr.draw.loadFont
+import org.openrndr.draw.font.loadFace
 import org.openrndr.draw.loadImage
 import org.openrndr.draw.renderTarget
 import org.openrndr.draw.shadeStyle
@@ -23,7 +24,9 @@ import org.openrndr.extra.svg.loadSVG
 import org.openrndr.shape.Rectangle
 import org.openrndr.shape.Shape
 import org.openrndr.shape.contains
+import slideshow.Arrival
 import slideshow.frames
+import slideshow.pitchStep
 import slideshow.seconds
 import java.io.File
 import java.nio.ByteBuffer
@@ -95,6 +98,12 @@ class LongShadowV3(
     private val concreteMix: Double = 1.0,
     /** How hard the grain marks the roofs, taken against the stone's own average so white stays white. */
     private val roofMix: Double = 1.0,
+    /**
+     * Whether the stone goes into the ground as well as the roofs. Off in the show, which lays its
+     * own concrete over every frame: grained twice, the card's ground came out darker than the
+     * quote beside it on the same grey.
+     */
+    private val groundGrain: Boolean = true,
     /** Real pixels to one pane pixel in the buffers: 2 for a sketch filmed at 4K detail, 1 in the show. */
     private val detail: Double = 1.0,
     /** Whether lower towers are packed round the title — circles and slabs filling the frame. */
@@ -380,7 +389,8 @@ class LongShadowV3(
      */
     fun draw(drawer: Drawer, bounds: Rectangle, text: String, frame: Int, plate0: Plate? = null, svg: File? = null) {
         // With reveal, a drawn title in an svg is the final type when one is given and readable.
-        val drawn = if (fieldOrder == "reveal") svg?.let { svgTitle(it) } else null
+        // With no svg the title is the chapter's own words, set in the face as outlines.
+        val drawn = if (fieldOrder == "reveal") svg?.let { svgTitle(it) } ?: typeTitle(text) else null
         val plate = plate0 ?: if (drawn == null && (fieldOrder == "build" || fieldOrder == "reveal")) textPlate(drawer, text) else null
         // The sun: turning at a steady rate, sinking on an ease that slows toward the horizon,
         // then holding low while it goes on turning.
@@ -752,7 +762,7 @@ class LongShadowV3(
      * the face and built of blocks). [touches] is whether a piece reaches into a cell.
      */
     private class Title(val key: String, val boxes: List<Rectangle>, val shapes: List<Shape?>, val round: List<Boolean>,
-                        val touches: (Int, Rectangle) -> Boolean) {
+                        val lineCount: Int = 2, val touches: (Int, Rectangle) -> Boolean) {
         val bounds: Rectangle = boxes.reduce { a, b ->
             val x0 = min(a.x, b.x); val y0 = min(a.y, b.y)
             Rectangle(x0, y0, maxOf(a.x + a.width, b.x + b.width) - x0, maxOf(a.y + a.height, b.y + b.height) - y0)
@@ -782,14 +792,21 @@ class LongShadowV3(
             .map { it.shape }
             .filter { !it.empty && it.bounds.width * it.bounds.height < WIDE * HIGH * 0.5 }
         if (shapes.isEmpty()) { println("long shadow v3: nothing black in ${file.path}"); return@getOrPut null }
-        // The outline sampled every few pixels, not at its curve points: a straight edge has points
-        // only at its two ends and would cross a cell with none inside it, leaving that element
-        // standing under the letter.
+        println("long shadow v3: ${file.path}, ${shapes.size} pieces")
+        shapeTitle("svg:${file.path}", shapes)
+    }
+
+    /**
+     * A title of drawn pieces, each its own [Shape]. A piece reaches into a cell when its outline
+     * crosses the cell or the cell's middle or a corner is inside it. The outline is sampled every
+     * few pixels, not at its curve points: a straight edge has points only at its two ends and would
+     * cross a cell with none inside it, leaving that element standing under the letter.
+     */
+    private fun shapeTitle(key: String, shapes: List<Shape>, lineCount: Int = 2): Title {
         val outlines = shapes.map { sh ->
             sh.contours.flatMap { c -> c.equidistantPositions((c.length / 3.0).toInt().coerceAtLeast(8)) }
         }
-        println("long shadow v3: ${file.path}, ${shapes.size} pieces")
-        Title("svg:${file.path}", shapes.map { it.bounds }, shapes, shapes.map { false }) { i, cell ->
+        return Title(key, shapes.map { it.bounds }, shapes, shapes.map { false }, lineCount) { i, cell ->
             shapes[i].bounds.intersects(cell) &&
                 (outlines[i].any { cell.contains(it) } || shapes[i].contains(cell.center) ||
                     listOf(cell.corner, cell.corner + Vector2(cell.width, 0.0), cell.corner + Vector2(0.0, cell.height),
@@ -797,12 +814,97 @@ class LongShadowV3(
         }
     }
 
+    /** The face as outlines, for [typeTitle]: read off the same file the atlas is, with no GL context. */
+    private val face by lazy { loadFace(fontPath) }
+
+    /**
+     * [text] set in the face as outlines, as large as the pane less [margin] allows, ranged left on
+     * the margin and centred down the pane, a letter a piece —
+     * the drawn stencil title's part played by the chapter's own words. Every way of breaking the
+     * words into lines is tried and the one that sets them biggest is kept; a line breaks between
+     * words or after a hyphen, and a hyphen that does not end a line closes up, so
+     * "verantwoor-delijkheid" reads whole on one line and hyphenated across two. Needs no GL context,
+     * so the score can be written off it as well as the picture drawn.
+     */
+    private fun typeTitle(text: String): Title? = titles.getOrPut("type:$text") {
+        // Pieces a line may break after: each word, split again after any hyphen.
+        class Token(val text: String, val hyphen: Boolean, val spaceAfter: Boolean)
+        val tokens = text.trim().split(Regex("\\s+")).flatMap { word ->
+            val parts = word.split("-")
+            parts.mapIndexed { k, part ->
+                if (k < parts.lastIndex) Token(part, true, false) else Token(part, false, true)
+            }
+        }.filter { it.text.isNotEmpty() }
+        if (tokens.isEmpty()) return@getOrPut null
+        val unit = 1.0                                     // measured at 1 px to the em, then scaled
+        fun advance(s: String): Double = s.indices.sumOf { k ->
+            face.glyphForCharacter(s[k]).advanceWidth(unit) + if (k > 0) face.kernAdvance(unit, s[k - 1], s[k]) else 0.0
+        }
+        fun lineText(from: Int, to: Int) = buildString {
+            for (k in from until to) {
+                append(tokens[k].text)
+                if (tokens[k].hyphen && k == to - 1) append('-')
+                else if (tokens[k].spaceAfter && k < to - 1) append(' ')
+            }
+        }
+        // Every set of breaks, which is few for a chapter title: 2^(tokens - 1).
+        val area = Rectangle(margin, margin, WIDE - 2 * margin, HIGH - 2 * margin)
+        // The line's height off the outlines themselves, ascender top to descender foot: the face's
+        // ascent and descent metrics are not in the units its glyph shapes are, and set the lines
+        // over one another at half their height.
+        val tall = "bdfhklgjpqyÀ".map { face.glyphForCharacter(it).shape(unit) }.filter { !it.empty }.map { it.bounds }
+        val top = tall.minOf { it.y }
+        // The breaks are chosen at the face's full line height and only then closed up by [leading]:
+        // judged at the tight pitch, an extra line costs little height, and the search broke
+        // "De / wereld van / bouwen" for a hair more size.
+        val extent = tall.maxOf { it.y + it.height } - top
+        val pitch = leading * extent
+        var best: List<String> = listOf(lineText(0, tokens.size))
+        var bestSize = 0.0
+        for (mask in 0 until (1 shl (tokens.size - 1))) {
+            val lines = mutableListOf<String>()
+            var from = 0
+            for (k in 1 until tokens.size) if (mask and (1 shl (k - 1)) != 0) { lines += lineText(from, k); from = k }
+            lines += lineText(from, tokens.size)
+            if (this.lines != null && lines.size != this.lines) continue
+            val size = min(area.width / lines.maxOf { advance(it) }, area.height / (extent * lines.size))
+            if (size > bestSize) { bestSize = size; best = lines }
+        }
+        // Closed up, the lines leave room to set them larger, up to the width.
+        bestSize = min(area.width / best.maxOf { advance(it) }, area.height / (pitch * best.size))
+        // Set the lines ranged left, a glyph a piece: every line's first letter has its ink on the
+        // margin, not its advance box, so a round D and a straight W stand on the same edge.
+        val shapes = mutableListOf<Shape>()
+        best.forEachIndexed { row, line ->
+            val first = face.glyphForCharacter(line.first()).shape(bestSize)
+            var x = margin - if (first.empty) 0.0 else first.bounds.x
+            val baseline = row * pitch * bestSize - top * bestSize
+            line.forEachIndexed { k, c ->
+                if (k > 0) x += face.kernAdvance(bestSize, line[k - 1], c)
+                val glyph = face.glyphForCharacter(c)
+                val shape = glyph.shape(bestSize)
+                if (!shape.empty) shapes += shape.transform(org.openrndr.math.transforms.buildTransform {
+                    translate(x, baseline)
+                })
+                x += glyph.advanceWidth(bestSize)
+            }
+        }
+        if (shapes.isEmpty()) return@getOrPut null
+        val boxes = shapes.map { it.bounds }
+        val ink = Rectangle(boxes.minOf { it.x }, boxes.minOf { it.y },
+            boxes.maxOf { it.x + it.width } - boxes.minOf { it.x }, boxes.maxOf { it.y + it.height } - boxes.minOf { it.y })
+        val shift = Vector2(0.0, HIGH / 2.0 - ink.center.y)       // centred down the pane only
+        val placed = shapes.map { it.transform(org.openrndr.math.transforms.buildTransform { translate(shift) }) }
+        println("long shadow v3: \"$text\" set in the face over ${best.size} lines, ${(pitch * bestSize).roundToInt()} px a line, ${placed.size} pieces")
+        shapeTitle("type:$text", placed, best.size)
+    }
+
     /**
      * An element to every cell of the window's grid, once and kept. A cell any piece of the title
      * reaches into is one that goes; the order they go in is their distance from the title's middle,
      * 0 to 1, blended with [revealScatter] of a seeded shuffle, so the type opens from its centre.
      */
-    private fun coversFor(drawer: Drawer, title: Title): List<Cover> = covers.getOrPut(title.key) {
+    private fun coversFor(drawer: Drawer?, title: Title): List<Cover> = covers.getOrPut(title.key) {
         val random = Random(yardSeed)
         val middle = title.bounds.center
         // v1's field, over the whole frame: a module grid, sizes largest first, circles on the
@@ -839,12 +941,16 @@ class LongShadowV3(
     private val starts = mutableMapOf<String, DoubleArray>()
 
     /**
-     * The reveal at [time] seconds: the elements click up into every cell within [revealFill], the
-     * frame stands full, and from [revealAt] those over the title sink one by one. A piece of the
-     * title clicks up once every element over it has gone, so the type is never covered while it
-     * stands and the frame is never open under an element that has not moved.
+     * The reveal's whole schedule, worked out once: the elements, when each piece of the title rises,
+     * and when the side elements leave and the title settles. [reveal] draws off it and [midi] writes
+     * it down, so the file and the picture cannot disagree.
      */
-    private fun reveal(drawer: Drawer, title: Title, time: Double) {
+    private class Plan(val cells: List<Cover>, val start: DoubleArray, val whole: Double,
+                       val leaveFrom: Double, val settleFrom: Double)
+
+    private val plans = mutableMapOf<String, Plan>()
+
+    private fun planFor(drawer: Drawer?, title: Title): Plan = plans.getOrPut(title.key) {
         val cells = coversFor(drawer, title)
         val clear = clears.getOrPut(title.key) {
             DoubleArray(title.boxes.size) { i ->
@@ -865,8 +971,93 @@ class LongShadowV3(
         // and when they are all in the floor the title comes down to a sliver of its height.
         val whole = (start.maxOrNull() ?: revealAt) + revealRise
         val leaveFrom = whole + revealHold
-        val settleFrom = leaveFrom + revealLeaveSpread + revealLeaveTime
-        val st = ((time - settleFrom) / revealSettle.coerceAtLeast(0.01)).coerceIn(0.0, 1.0)
+        Plan(cells, start, whole, leaveFrom, leaveFrom + revealLeaveSpread + revealLeaveTime)
+    }
+
+    /**
+     * The reveal as MIDI lanes: every block's own note each time it animates, off the same [Plan] the
+     * picture is drawn from. Regular blocks and letter blocks are kept apart — separate lanes, so
+     * separate tracks and channels, and separate registers: an element's pitch is its size, the
+     * biggest lowest and a circle a semitone over a slab of its size; a letter's is its place in
+     * the reading order, two octaves up. Times are frames from the card coming up.
+     *
+     * Off the drawn title in [svg] when there is one, and otherwise [text] set in the face — both
+     * outlines, so neither needs a GL context.
+     */
+    fun midi(svg: File?, text: String): Pair<List<String>, List<Arrival>> {
+        val title = svg?.let { svgTitle(it) } ?: typeTitle(text) ?: run {
+            println("long shadow v3: midi has no title to score, neither an svg at ${svg?.path} nor words")
+            return emptyList<String>() to emptyList()
+        }
+        val plan = planFor(null, title)
+        val lanes = mutableListOf<String>()
+        fun lane(name: String) = lanes.size.also { lanes += name }
+        val arriving = if (revealFill > 0.0) lane("elements in") else -1
+        val overTitle = lane("elements out, over the title")
+        val beside = lane("elements out, beside the title")
+        val letters = lane("letters in")
+        val settle = lane("title settles")
+
+        // An element prefers a pitch for its size, the biggest lowest and a circle a step over a slab
+        // of its size, spread across the elements' register; a letter prefers its place in the
+        // reading order, lines then left to right, spread across the letters' register above it.
+        val areas = plan.cells.map { (it.box.width * it.box.height).roundToInt() }.distinct().sortedDescending()
+        val classes = (2 * areas.size).coerceAtLeast(1)
+        fun elementPitch(c: Cover) = (2 * areas.indexOf((c.box.width * c.box.height).roundToInt()) + if (c.round) 1 else 0) *
+            (ELEMENT_NOTES - 1) / maxOf(1, classes - 1)
+        val lineHeight = title.bounds.height / title.lineCount
+        val reading = title.boxes.indices.sortedWith(compareBy({ ((title.boxes[it].center.y - title.bounds.y) / lineHeight).toInt() }, { title.boxes[it].x }))
+        val letterPitch = IntArray(title.boxes.size).also { p ->
+            reading.forEachIndexed { k, i -> p[i] = ELEMENT_NOTES + k * (LETTER_NOTES - 1) / maxOf(1, reading.size - 1) }
+        }
+
+        // What each block wants: a lane, a pitch, a start and a length.
+        class Want(val lane: Int, val pitch: Int, val start: Int, val length: Int, val lo: Int, val hi: Int)
+        val wants = mutableListOf<Want>()
+        val elements = 0 to ELEMENT_NOTES - 1
+        val letterRange = ELEMENT_NOTES to ELEMENT_NOTES + LETTER_NOTES - 1
+        for (c in plan.cells) {
+            val pitch = elementPitch(c)
+            if (arriving >= 0 && c.arrive.isFinite())
+                wants += Want(arriving, pitch, frames(c.arrive), frames(clickIn).coerceAtLeast(1), elements.first, elements.second)
+            if (c.sink != null) wants += Want(overTitle, pitch, frames(c.sink), frames(revealSink).coerceAtLeast(1), elements.first, elements.second)
+            else wants += Want(beside, pitch, frames(plan.leaveFrom + c.leave * revealLeaveSpread), frames(revealLeaveTime).coerceAtLeast(1), elements.first, elements.second)
+        }
+        for (i in title.boxes.indices)
+            wants += Want(letters, letterPitch[i], frames(plan.start[i]), frames(revealRise).coerceAtLeast(1), letterRange.first, letterRange.second)
+        wants += Want(settle, ELEMENT_NOTES - 12, frames(plan.settleFrom), frames(revealSettle).coerceAtLeast(1), 0, ELEMENT_NOTES + LETTER_NOTES - 1)
+
+        // **Every block its own voice.** A MIDI channel has one note per pitch at a time, so two
+        // blocks on one pitch overlapping cut the first short, and two starting on the same frame
+        // become one note — 12 letters vanished that way and 37 elements came out under 50 ms. So a
+        // block takes its preferred pitch when that pitch is free on its lane, and otherwise the
+        // nearest free one in its own register, going outward. Only when every pitch in the register
+        // is sounding does it take the one that frees soonest.
+        val freeAt = HashMap<Pair<Int, Int>, Int>()
+        val out = mutableListOf<Arrival>()
+        for (w in wants.sortedWith(compareBy({ it.start }, { it.lane }, { it.pitch }))) {
+            val span = w.hi - w.lo
+            val candidates = (0..2 * span).map { k -> w.pitch + if (k % 2 == 0) k / 2 else -(k + 1) / 2 }.filter { it in w.lo..w.hi }
+            val pitch = candidates.firstOrNull { (freeAt[w.lane to it] ?: Int.MIN_VALUE) <= w.start }
+                ?: candidates.minBy { freeAt[w.lane to it] ?: Int.MIN_VALUE }
+            freeAt[w.lane to pitch] = w.start + w.length
+            out += Arrival(w.lane, pitch, w.start, w.length)
+        }
+        return lanes to out.sortedBy { it.start }
+    }
+
+    /**
+     * The reveal at [time] seconds: the elements click up into every cell within [revealFill], the
+     * frame stands full, and from [revealAt] those over the title sink one by one. A piece of the
+     * title clicks up once every element over it has gone, so the type is never covered while it
+     * stands and the frame is never open under an element that has not moved.
+     */
+    private fun reveal(drawer: Drawer, title: Title, time: Double) {
+        val plan = planFor(drawer, title)
+        val cells = plan.cells
+        val start = plan.start
+        val leaveFrom = plan.leaveFrom
+        val st = ((time - plan.settleFrom) / revealSettle.coerceAtLeast(0.01)).coerceIn(0.0, 1.0)
         val titleHeight = 1.0 - (1.0 - revealFinal) * st * st * (3.0 - 2.0 * st)
         drawer.stroke = null
         fun seat(t: Double): Double {        // 0 to 1 with a small overshoot: a part seating
@@ -932,11 +1123,11 @@ class LongShadowV3(
      * They rise in a ripple out from the title: a tower's start is its distance from the title's
      * middle, so the field comes up after the type and spreads to the edges.
      */
-    private fun fieldFor(drawer: Drawer, text: String, plate: Plate?, whole: Boolean = false): List<Tower> =
+    private fun fieldFor(drawer: Drawer?, text: String, plate: Plate?, whole: Boolean = false): List<Tower> =
         fields.getOrPut(if (whole) "whole" else if (plate != null) "plate:${plate.labels}" else "text:$text") {
             // [whole]: the frame packed edge to edge with nothing kept clear — the reveal's field,
             // which stands over the title until the title's elements go.
-            val title = if (whole) Occupancy(0, 0, IntArray(1), Vector2(WIDE / 2.0, HIGH / 2.0)) else occupancy(drawer, text, plate)
+            val title = if (whole) Occupancy(0, 0, IntArray(1), Vector2(WIDE / 2.0, HIGH / 2.0)) else occupancy(drawer!!, text, plate)
             val random = Random(fieldSeed)
             val across = (WIDE / fieldUnit).toInt().coerceAtLeast(1)
             val down = (HIGH / fieldUnit).toInt().coerceAtLeast(1)
@@ -1443,7 +1634,7 @@ class LongShadowV3(
             x_fill = vec4(clamp(mix(ground, top, roof), 0.0, 1.0), 1.0);
         """
         parameter("pane", Vector2(WIDE, HIGH))
-        parameter("mix", concreteMix)
+        parameter("mix", if (groundGrain) concreteMix else 0.0)
         parameter("roofMix", roofMix)
     }
 
@@ -1469,6 +1660,9 @@ class LongShadowV3(
         const val SQUARE_CUT = 0.93
         /** A leaving tower this share of its height or less is hidden rather than drawn nearly flat. */
         const val HIDE_BELOW = 0.04
+        /** The elements' register, in semitones up from the file's base, and the letters' above it. */
+        const val ELEMENT_NOTES = 60
+        const val LETTER_NOTES = 44
         /** The tallest a tower of the field may stand, as a share of the title: always under it. */
         const val TALLEST_TOWER = 0.95
         /** Pane pixels to one pixel of the probe the packing reads the title's outline off. */

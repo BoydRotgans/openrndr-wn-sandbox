@@ -76,9 +76,22 @@ class EndingScene(
         drawer.fill = ink.opacify(said)
         bold.setToFit(sentence, box, SIZE, 1.15).draw(drawer, box.center)
 
-        // The code, growing from its middle, the action over it and the address under it.
-        val cx = pane * (1.0 + CODE_X)
-        val cy = h * CODE_Y
+        // The right pane is one stack — the action, the code, the address — laid out at full size
+        // and centred on the pane's middle, level with the sentence, so the three read as one group
+        // with even gaps rather than a headline adrift at the top and a caption jammed under the
+        // code. A line is placed by its baseline; its ink starts a cap height above it.
+        val cx = pane * 1.5
+        val actionLines = text.wrapped(action, (pane * ACTION_W) * SIZE / (h * ACTION))
+        val outer = h * CODE * (1.0 + 2.0 * QUIET)
+        val stack = CAP * h * ACTION + (actionLines.size - 1) * h * ACTION_LEAD +
+            h * GAP_ABOVE + outer + h * GAP_BELOW + CAP * h * URL
+        val top = (h - stack) / 2.0
+        val firstBaseline = top + CAP * h * ACTION
+        val codeTop = firstBaseline + (actionLines.size - 1) * h * ACTION_LEAD + h * GAP_ABOVE
+        val cy = codeTop + outer / 2.0
+        val urlBaseline = codeTop + outer + h * GAP_BELOW + CAP * h * URL
+
+        // The code, growing from its middle.
         val side = h * CODE * shown
         if (modules.isNotEmpty() && shown > 0.0) {
             val n = modules.size
@@ -92,11 +105,11 @@ class EndingScene(
             }
         }
         drawer.fill = accent.opacify(asked)
-        text.wrapped(action, (pane * ACTION_W) * SIZE / (h * ACTION)).forEachIndexed { i, line ->
-            drawer.setLine(line, bold, Vector2(cx, h * ACTION_Y + i * h * ACTION_LEAD), h * ACTION, SIZE, align = 0.5)
+        actionLines.forEachIndexed { i, line ->
+            drawer.setLine(line, bold, Vector2(cx, firstBaseline + i * h * ACTION_LEAD), h * ACTION, SIZE, align = 0.5)
         }
         drawer.fill = ink.opacify(shown)
-        drawer.setLine(url, text, Vector2(cx, cy + h * CODE / 2.0 + h * URL_GAP), h * URL, SIZE, align = 0.5)
+        drawer.setLine(url, text, Vector2(cx, urlBaseline), h * URL, SIZE, align = 0.5)
     }
 
     private companion object {
@@ -104,17 +117,19 @@ class EndingScene(
         const val MARGIN = 0.06
         const val SENTENCE_TOP = 0.22
         const val SENTENCE_H = 0.56
-        /** The code's centre as a share of the right pane, and its side as a share of the height: half the pane, so it scans from the seats. */
-        const val CODE_X = 0.5
-        const val CODE_Y = 0.6
+        /** The code's side as a share of the height — half of it, so it scans from the seats — and its white border as a share of the side. */
         const val CODE = 0.5
         const val QUIET = 0.06
         /** The action is the headline of the wall: title size on the pane, over the code. */
         const val ACTION = 0.06
         const val ACTION_LEAD = 0.07
         const val ACTION_W = 0.86
-        const val ACTION_Y = 0.2
-        const val URL = 0.028
-        const val URL_GAP = 0.07
+        /** The address, large enough to be read off the wall and typed, not just a caption. */
+        const val URL = 0.036
+        /** From the action's baseline to the code, and from the code to the address's cap height. */
+        const val GAP_ABOVE = 0.05
+        const val GAP_BELOW = 0.04
+        /** A capital's height as a share of the type size, to place a line by its ink rather than its baseline. */
+        const val CAP = 0.72
     }
 }

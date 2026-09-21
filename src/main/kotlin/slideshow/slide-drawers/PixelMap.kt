@@ -25,8 +25,11 @@ import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
+import slideshow.drawers.advanceOf
 import slideshow.drawers.setLine
+import slideshow.easeInOutCubic
 import slideshow.frames
+import slideshow.linear
 import slideshow.smoothstep
 import java.io.File
 import kotlin.math.PI
@@ -59,16 +62,41 @@ class FactoryCluster(val name: String, val span: Double) : MapShot
 class FactoryVisit(val factory: Int, val span: Double = 175.0) : MapShot
 
 /**
- * A factory as it is written in the address list. [lonLat] places it outright and skips the
- * geocoder, for an address the service gets wrong. [note] is set under the address when the
- * camera is on it, a line each; empty leaves the room for the speaker.
+ * A beat on one factory's **name**: the camera holds where [FactoryVisit] put it, the map is
+ * veiled and the name is set large over it. Given [parts], the name comes apart into the words it
+ * was made of — the letters each word gave the name travel to their place in that word and turn
+ * the dot's red, and the rest of each word fades in around them, [joiners] between the words.
+ *
+ * So a visit on Seveton followed by `FactoryName(i)` and then `FactoryName(i, parts)` is three
+ * clicks: the factory, SEVETON, and SEM, VEERLE EN BETON with SE, VE and TON still red. Two name
+ * shots in a row read as one card that changes — it does not fade out between them.
  */
+class FactoryName(
+    val factory: Int,
+    val parts: List<NamePart> = emptyList(),
+    /** What stands between the words, one fewer than [parts]; a space where short. */
+    val joiners: List<String> = emptyList(),
+    val span: Double = 175.0
+) : MapShot
+
+/** One word a name was made from, and the piece of it the name kept: "Sem" gave Seveton "Se". */
+class NamePart(val word: String, val kept: String)
+
 /**
  * A place named on the map for reference — a city near the factories, placed by its centre. Given
  * in degrees rather than geocoded: a city centre is common knowledge and does not move.
  */
 class City(val name: String, val lon: Double, val lat: Double)
 
+/**
+ * A factory as it is written in the address list. [lonLat] places it outright and skips the
+ * geocoder, for an address the service gets wrong. [note] is set under the address when the
+ * camera is on it, a line each; empty leaves the room for the speaker.
+ *
+ * [hidden] is a place that is not a factory but is visited as one — the transport arm, say. Its
+ * dot is drawn only while the camera is on it, fading in as the camera arrives, and it counts
+ * for nothing else: not the cluster's middle, not a country's tint.
+ */
 class Factory(
     val name: String,
     val street: String,
@@ -76,7 +104,8 @@ class Factory(
     val place: String,
     val country: String,
     val note: List<String> = emptyList(),
-    val lonLat: Vector2? = null
+    val lonLat: Vector2? = null,
+    val hidden: Boolean = false
 )
 
 /**
@@ -146,6 +175,16 @@ class PixelMap(
     /** The city names: a grey, so they sit under the red rather than beside it. */
     private val cityInk: ColorRGBa = ColorRGBa.fromHex("4D4D4D"),
     override val background: ColorRGBa = ColorRGBa.fromHex("F5F5F5"),
+    /** What veils the map while a name stands on it, and how far. */
+    private val veil: ColorRGBa = ColorRGBa.fromHex("F5F5F5"),
+    private val veilAmount: Double = 0.8,
+    /** A name set large; the letters it kept from its words turn [dot] as it comes apart. */
+    private val nameInk: ColorRGBa = ColorRGBa.fromHex("111111"),
+    /**
+     * The black bar naming a visited factory along the foot of the pane. Off, a visit centres its
+     * dot on the whole pane and a name stands in the middle of it.
+     */
+    private val footer: Boolean = true,
     /** Where a visited factory's dot stands across the pane, as a share of its width: the middle. */
     private val anchor: Double = 0.5,
     private val boldPath: String = "data/fonts/default.otf",
@@ -166,6 +205,7 @@ class PixelMap(
         is MapFrame -> shot.name
         is FactoryCluster -> shot.name
         is FactoryVisit -> factories.getOrNull(shot.factory)?.name
+        is FactoryName -> factories.getOrNull(shot.factory)?.name?.let { if (shot.parts.isEmpty()) "$it, large" else "$it, apart" }
         null -> null
     }
 
@@ -181,6 +221,8 @@ class PixelMap(
     private var cluster: Vector2 = Vector2(BENELUX.lon, BENELUX.lat)
     private lateinit var bold: FontImageMap
     private lateinit var text: FontImageMap
+    /** The face a name is set large in, loaded big so it is not a magnified atlas. */
+    private lateinit var hero: FontImageMap
     /** The pixel map, counted once and then only moved and scaled. See [freeze]. */
     private var frozen: Frozen? = null
 
@@ -204,6 +246,7 @@ class PixelMap(
     override fun load(program: Program) {
         bold = program.loadFont(boldPath, NAME_EM, TYPE_CHARACTERS, contentScale = 1.0)
         text = program.loadFont(textPath, TEXT_EM, TYPE_CHARACTERS, contentScale = 1.0)
+        hero = program.loadFont(boldPath, HERO_EM, TYPE_CHARACTERS, contentScale = 1.0)
 
         val began = System.currentTimeMillis()
         val countries = runCatching { loadCountries(source()) }
@@ -241,13 +284,13 @@ class PixelMap(
             if (lonLat == null) println("  %-32s NOT FOUND — not drawn".format(office.name))
             lonLat?.let { webMercator(it) }
         }
-        cluster = places.filterNotNull().takeIf { it.isNotEmpty() }
+        cluster = places.filterIndexed { k, _ -> !factories[k].hidden }.filterNotNull().takeIf { it.isNotEmpty() }
             ?.let { Vector2(median(it.map { p -> p.x }), median(it.map { p -> p.y })) }
             ?: Vector2(BENELUX.lon, BENELUX.lat)
 
         val counts = IntArray(countries.size)
-        places.forEach { place ->
-            if (place == null) return@forEach
+        places.forEachIndexed { j, place ->
+            if (place == null || factories[j].hidden) return@forEachIndexed
             val k = countries.indexOfFirst { country -> country.polygons.any { inside(place, it) } }
             if (k >= 0) counts[k]++
         }
@@ -255,7 +298,7 @@ class PixelMap(
         fills = greys(countries).mapIndexed { k, grey -> grey.towards(tint, tintMax * counts[k] / most) }
 
         println("pixel map: %d countries, %d factories, %d other sites (%s) in %.1fs".format(
-            countries.size, sites.count { it != null }, officeSpots.count { it != null },
+            countries.size, sites.filterIndexed { k, _ -> !factories[k].hidden }.count { it != null }, officeSpots.count { it != null },
             countries.indices.filter { counts[it] > 0 }.joinToString { "${countries[it].code} ${counts[it]}" },
             (System.currentTimeMillis() - began) / 1000.0))
     }
@@ -275,9 +318,24 @@ class PixelMap(
 
         val p = stage.position.coerceIn(0.0, (shots.size - 1).toDouble())
         val i = floor(p).toInt().coerceAtMost((shots.size - 2).coerceAtLeast(0))
-        val t = p - i
         val a = shots[i]
         val b = shots.getOrElse(i + 1) { a }
+
+        // **A name is off the map before the camera leaves, and the camera is there before a name
+        // arrives.** A click from a name card to somewhere else fades the name over its first
+        // [HANDOFF] with the camera still, and moves the camera over the rest; into a name card
+        // from elsewhere, the other way round. Where the camera does not move — a visit to its own
+        // name — the name takes the whole click. Each window is eased on its own, off the click's
+        // linear time, so neither starts with the speed the deck's ease had reached.
+        val eased = p - i
+        val raw = linear(eased)
+        val moves = factoryOf(a) == null || factoryOf(a) != factoryOf(b)
+        fun window(from: Double, to: Double) = easeInOutCubic(((raw - from) / (to - from)).coerceIn(0.0, 1.0))
+        val (t, nameT) = when {
+            moves && a is FactoryName && b !is FactoryName -> window(HANDOFF, 1.0) to window(0.0, HANDOFF)
+            moves && b is FactoryName && a !is FactoryName -> window(0.0, 1.0 - HANDOFF) to window(1.0 - HANDOFF, 1.0)
+            else -> eased to eased
+        }
         val centre = centreOf(a, w, h, frozen.dots).mix(centreOf(b, w, h, frozen.dots), t)
         val span = exp(ln(spanOf(a)) + (ln(spanOf(b)) - ln(spanOf(a))) * t)
         val pixelsPerKm = h / span
@@ -297,16 +355,22 @@ class PixelMap(
         // How selected each factory is, and how far the bar is up. The bar comes with the first
         // visit and goes with the last, and **stays up between two visits** — only its lettering
         // changes — so stepping from one factory to the next does not drop it and raise it again.
+        // A name shot is a visit for all of this, so a factory stays selected under its name.
+        //
+        // How present something is at this position is the straight blend of the two shots either
+        // side, so a run of shots on one factory holds it at 1 all the way through rather than
+        // dipping between them; [LABEL_REACH] then keeps a label to the last third of its click.
+        fun presence(at: Double = t, of: (MapShot) -> Double) = of(a) * (1.0 - at) + of(b) * at
         val radius = frozen.cellKm * pixelsPerKm * DOT
         val selected = DoubleArray(frozen.dots.size)
-        val named = shots.mapIndexedNotNull { k, shot ->
-            if (shot !is FactoryVisit) return@mapIndexedNotNull null
-            val near = smoothstep(1.0 - abs(stage.position - k) * LABEL_REACH)
-            if (near <= 0.0 || shot.factory !in factories.indices) return@mapIndexedNotNull null
-            selected[shot.factory] = maxOf(selected[shot.factory], near)
-            factories[shot.factory] to near
+        val named = factories.indices.mapNotNull { f ->
+            val u = presence { if (factoryOf(it) == f) 1.0 else 0.0 }
+            val near = smoothstep(1.0 - (1.0 - u) * LABEL_REACH)
+            if (near <= 0.0) return@mapNotNull null
+            selected[f] = near
+            factories[f] to near
         }
-        val barUp = if (a is FactoryVisit && b is FactoryVisit) 1.0 else named.maxOfOrNull { it.second } ?: 0.0
+        val barUp = if (factoryOf(a) != null && factoryOf(b) != null) 1.0 else named.maxOfOrNull { it.second } ?: 0.0
 
         // --- the dots ------------------------------------------------------------------- //
         //
@@ -329,7 +393,13 @@ class PixelMap(
 
         frozen.dots.forEachIndexed { j, centre ->
             if (centre == null) return@forEachIndexed
-            drawer.fill = if (selected[j] > 0.0) dot.towards(blue, selected[j]) else dot
+            // A hidden place is there only while it is visited, and arrives already blue.
+            if (factories[j].hidden && selected[j] <= 0.0) return@forEachIndexed
+            drawer.fill = when {
+                factories[j].hidden -> blue.opacify(selected[j])
+                selected[j] > 0.0 -> dot.towards(blue, selected[j])
+                else -> dot
+            }
             drawer.circle(screen(centre), radius)
         }
 
@@ -348,9 +418,95 @@ class PixelMap(
             drawer.setLine(city.name, text, Vector2(at.x, at.y + citySize * CAP), citySize, TEXT_EM, align = 0.5)
         }
 
+        // --- a name, large ------------------------------------------------------------- //
+
+        val shown = presence(nameT) { if (it is FactoryName) 1.0 else 0.0 }
+        if (shown > 0.0) {
+            // The card with words, where the click is between the whole name and the name apart:
+            // it carries the mapping, and [apart] says how far along it the letters are.
+            val card = listOf(a, b).filterIsInstance<FactoryName>().maxBy { it.parts.size }
+            // Only a click between two name cards takes the name apart or puts it back; one to or
+            // from anywhere else fades the card as it stands, rather than reassembling it on the way out.
+            fun isApart(shot: MapShot) = if (shot is FactoryName && shot.parts.isNotEmpty()) 1.0 else 0.0
+            val apart = if (a is FactoryName && b is FactoryName) presence(nameT, ::isApart) else isApart(card)
+            val middle = Vector2(w / 2.0, (h - barOffset(h) * smoothstep(barUp)) / 2.0)
+            drawer.fill = veil.opacify(veilAmount * smoothstep(shown))
+            drawer.rectangle(0.0, 0.0, w, h)
+            nameCard(drawer, card, middle, w, h, smoothstep(shown), apart)
+        }
+
         // --- the bar -------------------------------------------------------------------- //
 
-        if (barUp > 0.0) bar(drawer, w, h, barUp, named)
+        if (footer && barUp > 0.0) bar(drawer, w, h, barUp, named)
+    }
+
+    /**
+     * The name set large at [middle], and taken apart by [apart]. Every letter is placed on its own,
+     * so a letter the name kept from a word can travel from its place in the name to its place in
+     * that word: both lines are laid out whole at their own size, and a letter moves and scales
+     * between its two positions. Letters only in the words fade in over the back half of the move;
+     * a letter only in the name fades out over the front half.
+     */
+    private fun nameCard(drawer: Drawer, card: FactoryName, middle: Vector2, w: Double, h: Double, shown: Double, apart: Double) {
+        val name = factories.getOrNull(card.factory)?.name?.uppercase() ?: return
+        val words = card.parts.map { it.word.uppercase() }
+        val phrase = buildString {
+            words.forEachIndexed { k, word ->
+                if (k > 0) append(card.joiners.getOrElse(k - 1) { " " }.uppercase())
+                append(word)
+            }
+        }
+
+        // Which letter of the phrase came from which letter of the name.
+        val from = IntArray(phrase.length) { -1 }
+        var cursor = 0
+        var wordStart = 0
+        card.parts.forEachIndexed { k, part ->
+            if (k > 0) wordStart += card.joiners.getOrElse(k - 1) { " " }.length
+            val kept = part.kept.uppercase()
+            val inName = name.indexOf(kept, cursor)
+            val inWord = words[k].indexOf(kept)
+            if (inName >= 0 && inWord >= 0) {
+                kept.indices.forEach { c -> from[wordStart + inWord + c] = inName + c }
+                cursor = inName + kept.length
+            }
+            wordStart += words[k].length
+        }
+        val used = from.filter { it >= 0 }.toSet()
+
+        // One size each, the largest that fits the pane: the name bigger, the phrase what it can be.
+        fun widthAt(line: String, size: Double) = hero.advanceOf(line) * size / HERO_EM
+        val nameSize = minOf(h * HERO, w * HERO_WIDE / (widthAt(name, 1.0).coerceAtLeast(1e-6)))
+        val phraseSize = if (phrase.isEmpty()) nameSize
+            else minOf(nameSize, w * PHRASE_WIDE / (widthAt(phrase, 1.0).coerceAtLeast(1e-6)))
+        fun letters(line: String, size: Double): List<Vector2> {
+            val left = middle.x - widthAt(line, size) / 2.0
+            val baseline = middle.y + size * CAP_HEIGHT / 2.0
+            return line.indices.map { i -> Vector2(left + widthAt(line.substring(0, i), size), baseline) }
+        }
+        val inName = letters(name, nameSize)
+        val inPhrase = letters(phrase, phraseSize)
+        val move = smoothstep(apart)
+        val size = nameSize + (phraseSize - nameSize) * move
+        // One rise for every letter, off the size the card stands at, so the card comes and goes whole.
+        val rise = (1.0 - shown) * size * RISE
+        name.indices.filter { it !in used }.forEach { i ->
+            drawer.fill = nameInk.opacify(shown * (1.0 - smoothstep(apart * 2.0)))
+            drawer.setLine(name[i].toString(), hero, inName[i] + Vector2(0.0, rise), nameSize, HERO_EM)
+        }
+        phrase.indices.forEach { i ->
+            if (phrase[i] == ' ') return@forEach
+            val j = from[i]
+            if (j >= 0) {
+                drawer.fill = nameInk.towards(dot, move).opacify(shown)
+                drawer.setLine(phrase[i].toString(), hero, inName[j].mix(inPhrase[i], move) + Vector2(0.0, rise), size, HERO_EM)
+            } else {
+                val arrive = smoothstep(apart * 2.0 - 1.0)
+                if (arrive <= 0.0) return@forEach
+                drawer.fill = nameInk.opacify(shown * arrive)
+                drawer.setLine(phrase[i].toString(), hero, inPhrase[i] + Vector2(0.0, rise + (1.0 - arrive) * phraseSize * RISE), phraseSize, HERO_EM)
+            }
+        }
     }
 
     /**
@@ -389,6 +545,9 @@ class PixelMap(
         }
     }
 
+    /** How much of the pane's foot the bar takes: its height, or nothing with the [footer] off. */
+    private fun barOffset(h: Double) = if (footer) barHeight(h) else 0.0
+
     /** The bar's height: its padding, the name, and the address plus the longest note under it. */
     private fun barHeight(h: Double): Double {
         val lines = 1 + (factories.maxOfOrNull { it.note.size } ?: 0)
@@ -407,7 +566,7 @@ class PixelMap(
      * nudged to the nearest free one when two share, so a dot is fixed to the map like the cells.
      */
     private fun freeze(drawer: Drawer, mesh: Mesh, w: Double, h: Double): Frozen {
-        val reference = shots.firstOrNull { it !is FactoryVisit } ?: BENELUX
+        val reference = shots.firstOrNull { factoryOf(it) == null } ?: BENELUX
         val middle = centreOf(reference, w, h, emptyList())
         val cellKm = cell * spanOf(reference) / h
         val cols = ceil(w / cell).toInt() * REACH
@@ -472,18 +631,27 @@ class PixelMap(
         return Frozen(w.toInt(), h.toInt(), image, corner, cellKm, cols, rows, dots, officeDots)
     }
 
+    /** The factory a shot is on — a visit or a name — or null for a shot on the map at large. */
+    private fun factoryOf(shot: MapShot): Int? = when (shot) {
+        is FactoryVisit -> shot.factory
+        is FactoryName -> shot.factory
+        else -> null
+    }?.takeIf { it in factories.indices }
+
     // A span is stated in km of ground, and Mercator stretches the ground by latitude, so it is
     // laid on the map as that many km times the stretch where the shot is looking.
     private fun latitudeOf(shot: MapShot) = when (shot) {
         is MapFrame -> shot.lat
         is FactoryCluster -> cluster.y
         is FactoryVisit -> places.getOrNull(shot.factory)?.y ?: BENELUX.lat
+        is FactoryName -> places.getOrNull(shot.factory)?.y ?: BENELUX.lat
     }
 
     private fun spanOf(shot: MapShot) = mercatorStretch(latitudeOf(shot)) * when (shot) {
         is MapFrame -> shot.span
         is FactoryCluster -> shot.span
         is FactoryVisit -> shot.span
+        is FactoryName -> shot.span
     }
 
     /**
@@ -493,8 +661,9 @@ class PixelMap(
     private fun centreOf(shot: MapShot, w: Double, h: Double, dots: List<Vector2?>): Vector2 = when (shot) {
         is MapFrame -> webMercator(Vector2(shot.lon, shot.lat))
         is FactoryCluster -> webMercator(cluster)
-        is FactoryVisit -> (dots.getOrNull(shot.factory) ?: sites.getOrNull(shot.factory))
-            ?.let { it + Vector2(w / 2.0 - anchor * w, -barHeight(h) / 2.0) * (spanOf(shot) / h) }
+        is FactoryVisit, is FactoryName -> factoryOf(shot)
+            ?.let { f -> dots.getOrNull(f) ?: sites.getOrNull(f) }
+            ?.let { it + Vector2(w / 2.0 - anchor * w, -barOffset(h) / 2.0) * (spanOf(shot) / h) }
             ?: webMercator(Vector2(BENELUX.lon, BENELUX.lat))
     }
 
@@ -670,6 +839,23 @@ private const val SEPARATOR = "  ·  "
  * one another, and at 0.017 they were a hair apart.
  */
 private const val CITY = 0.015
+
+/**
+ * A name set large: at most this share of the pane's height and of its width, the words it comes
+ * apart into at most [PHRASE_WIDE] of the width; the em its face loads at; its cap height as a
+ * share of the size, for centring it on the map left above the bar.
+ */
+private const val HERO = 0.26
+private const val HERO_WIDE = 0.7
+private const val PHRASE_WIDE = 0.86
+private const val HERO_EM = 256.0
+private const val CAP_HEIGHT = 0.7
+
+/**
+ * The share of a click between a name card and another place that the name takes to go (or come),
+ * the camera holding still meanwhile; the camera has the rest.
+ */
+private const val HANDOFF = 0.35
 
 /** How far below its place the lettering starts rising from, as a share of the name's size. */
 private const val RISE = 0.35

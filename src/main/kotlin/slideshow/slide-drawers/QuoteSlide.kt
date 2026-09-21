@@ -41,9 +41,11 @@ class QuoteSlide(
     private val lines: Int? = null
 ) : Slide() {
     override val name = "Quote"
-    override val background = Palette.onGrey.paper
+    // Black like every slide: the grey concrete it stands on is the show's overlay, laid over the
+    // whole wall, so the quote and the chapter card beside it are one ground by construction.
+    override val background = Palette.onBlack.paper
 
-    private val ink = Palette.onGrey.ink
+    private val ink = Palette.onBlack.ink
     private lateinit var face: FontImageMap
 
     override fun load(program: Program) {

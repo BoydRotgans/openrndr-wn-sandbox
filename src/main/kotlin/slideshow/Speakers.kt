@@ -18,6 +18,7 @@ import org.lwjgl.openal.AL10.alGenBuffers
 import org.lwjgl.openal.AL10.alGenSources
 import org.lwjgl.openal.AL10.alGetError
 import org.lwjgl.openal.AL10.alGetSourcei
+import org.lwjgl.openal.AL10.alListenerf
 import org.lwjgl.openal.AL10.alSourcePlay
 import org.lwjgl.openal.AL10.alSourceStop
 import org.lwjgl.openal.AL10.alSourcef
@@ -288,6 +289,18 @@ class Speakers(
         finished.forEach { fading.remove(it) }
     }
 
+    /**
+     * Nothing heard, and everything still running under it. It is the listener's gain rather
+     * than a stop, so the cues go on firing, fading and looping — the log, and with it a filmed
+     * run's soundtrack, is untouched — and unmuting finds a bed where it has got to rather than
+     * starting it over.
+     */
+    var muted = false
+        set(value) {
+            field = value
+            if (ready) alListenerf(AL_GAIN, if (value) 0f else 1f)
+        }
+
     /** Everything off at once — the loops included, with no fade. */
     fun silence() {
         if (!ready) return
@@ -325,6 +338,7 @@ class Speakers(
         }
         if (!opened) println("sound: no audio device — the show runs silent")
         ready = opened
+        if (opened && muted) alListenerf(AL_GAIN, 0f)
         if (opened) Runtime.getRuntime().addShutdownHook(Thread { runCatching { close() } })
         return opened
     }

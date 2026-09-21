@@ -48,6 +48,11 @@
         "text": "not a fan of the object use; make it just a plain box but use the contour of the one used at \"Eigen transport\" i like that one.",
         "done": true,
         "at": "2026-09-16"
+      },
+      {
+        "text": "all slides with black should have a bit of the dark grey concrete blending texture, the same ground as the chapter card on the left, to make them coherent. Done globally in the concrete overlay, not per slide.",
+        "done": true,
+        "at": "2026-09-18"
       }
     ],
     "hoe-bouw-je-een-wereld": [
@@ -55,6 +60,41 @@
         "text": "at the quotes take away these \"titles above\" like \"Vanavond kijken.. etc you can take that out.",
         "done": true,
         "at": "2026-09-16"
+      },
+      {
+        "text": "chapter titles: instead of the svg shapes for type, use the Rockwell font to draw the 4 titles large, integrated in the visual.",
+        "done": true,
+        "at": "2026-09-18"
+      },
+      {
+        "text": "chapter titles: make the type left aligned, and make the blocks turn down faster.",
+        "done": true,
+        "at": "2026-09-18"
+      },
+      {
+        "text": "chapter title and quote: the left and right have a different shade of background; align them the same, for all chapter + quote sections.",
+        "done": true,
+        "at": "2026-09-18"
+      },
+      {
+        "text": "chapter titles: make the sentence reveal faster.",
+        "done": true,
+        "at": "2026-09-18"
+      },
+      {
+        "text": "chapter titles: make the leading more narrow.",
+        "done": true,
+        "at": "2026-09-18"
+      },
+      {
+        "text": "chapter titles: keep the shadow long; do not shrink it at the end.",
+        "done": true,
+        "at": "2026-09-18"
+      },
+      {
+        "text": "chapter titles: the tile colours look a bit plain / flattened out; correct this.",
+        "done": true,
+        "at": "2026-09-18"
       }
     ],
     "everything-a-build-answers-to": [
@@ -88,6 +128,13 @@
         "text": "the arrow state 2-21; is not a full arrow check the frame; and fix it",
         "done": true,
         "at": "2026-09-16"
+      }
+    ],
+    "ending": [
+      {
+        "text": "can you better layout this spacing; the qr code and text on top with link below is a bit off",
+        "done": true,
+        "at": "2026-09-18"
       }
     ]
   }

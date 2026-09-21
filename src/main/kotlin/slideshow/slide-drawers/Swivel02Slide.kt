@@ -35,7 +35,13 @@ data class SwivelBlock(
     /** A smaller line, sitting low on the face. */
     val note: String? = null,
     /** Items set small and ranged left, one to a line, instead of [text]. */
-    val items: List<String> = emptyList()
+    val items: List<String> = emptyList(),
+    /** This slab's front colour, where it differs from the train's. */
+    val front: ColorRGBa? = null,
+    /** This slab's side colour, where it differs from the train's. */
+    val side: ColorRGBa? = null,
+    /** Whether a click rests on this slab. One that does not is carried past within a click. */
+    val stop: Boolean = true
 ) {
     val isEmpty: Boolean get() = text.isBlank() && note.isNullOrBlank() && items.isEmpty()
 }
@@ -104,9 +110,23 @@ class Swivel02Slide(
     private val cycle = lcm(TURNS.size, blocks.size.coerceAtLeast(1))
 
     override val loop = if (clicked) 0 else frames(pace * cycle)
-    override val steps get() = if (clicked) blocks.size.coerceAtLeast(1) else 1
+    /**
+     * The slabs a click rests on, by index in [blocks]. A slab left out still stands in the
+     * train; the click either side of it simply travels the extra slab-width.
+     */
+    private val stops = blocks.indices.filter { blocks[it].stop }.ifEmpty { listOf(0) }
+
+    /** Which slab the train is centred on at a continuous step, read between the stops. */
+    private fun centred(position: Double): Double {
+        val last = stops.size - 1
+        val k = floor(position).toInt().coerceIn(0, last)
+        if (k == last) return stops[last] + (position - last)
+        return stops[k] + (stops[k + 1] - stops[k]) * (position - k)
+    }
+
+    override val steps get() = if (clicked) stops.size else 1
     override val stepFrames = frames(if (clicked) 1.0 else 0.45)
-    override fun stepName(step: Int) = if (clicked) blocks.getOrNull(step)?.let { it.text.ifBlank { it.items.firstOrNull() ?: "" } } else null
+    override fun stepName(step: Int) = if (clicked) blocks.getOrNull(stops.getOrElse(step) { -1 })?.let { it.text.ifBlank { it.items.firstOrNull() ?: "" } } else null
 
     private lateinit var slab: VertexBuffer
     private lateinit var face: FontImageMap
@@ -120,14 +140,14 @@ class Swivel02Slide(
         val halfWidth = across / 2.0
         val halfHeight = halfWidth * stage.height / stage.width
         drawer.ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1000.0, 1000.0)
-        drawer.lookAt(Vector3(0.0, 300.0, -300.0), Vector3.ZERO)
+        drawer.lookAt(EYE, Vector3.ZERO)
 
         // One swing to a slab-width, which is what lets any cycle close: at the end of a
         // turn the train has moved a whole number of slabs and the swing is back where it
         // started, so the last frame is the frame before the first.
         // Clicked, the train stands at the block the deck is on: slab i sits at (i - position)
         // slab-widths, so block p is centred at position p and the next comes in from the side.
-        val travel = if (clicked) -stage.position else stage.loop * cycle
+        val travel = if (clicked) -centred(stage.position) else stage.loop * cycle
         val swing = cos(travel * 2.0 * PI)
 
         val slabStyle = shadeStyle {
@@ -172,6 +192,10 @@ class Swivel02Slide(
             drawer.translate((i + travel) * SPAN, 0.0, depth)
             drawer.rotate(Vector3.UNIT_Y, turn)
 
+            // a slab may carry its own colours, so one train can hold two runs apart
+            val block = blocks.getOrNull(i.mod(blocks.size.coerceAtLeast(1)))
+            slabStyle.parameter("front", block?.front ?: front)
+            slabStyle.parameter("side", block?.side ?: side)
             drawer.fill = front
             drawer.stroke = null
             drawer.shadeStyle = slabStyle
@@ -200,18 +224,24 @@ class Swivel02Slide(
         drawer.isolated {
             drawer.translate(0.0, 0.0, -DEPTH / 2.0 - 0.5)
             drawer.scale(-1.0, -1.0, 1.0)
+            // The camera looks down on the train, so a face is foreshortened to cos(pitch) of
+            // its height and type set square on it comes out squat and wide. Set taller by the
+            // same factor, it reads at its own proportions on screen.
+            drawer.scale(1.0, UPRIGHT, 1.0)
 
             if (block.items.isNotEmpty()) items(drawer, block.items)
 
-            if (block.text.isNotBlank()) {
-                val (lines, scale) = fitted(block.text, HEADLINE)
-                TypeBlock(lines, scale, ATLAS, LEADING, face).draw(drawer, Vector2.ZERO)
-            }
-
-            block.note?.takeIf { it.isNotBlank() }?.let {
-                val (lines, scale) = fitted(it, NOTE)
-                TypeBlock(lines, scale, ATLAS, LEADING, face).draw(drawer, Vector2(0.0, HEIGHT * 0.30))
-            }
+            // The headline and its note are one stack, centred on the face with one gap
+            // between them, so a long headline pushes the note down rather than into it.
+            val headline = block.text.takeIf { it.isNotBlank() }?.let { fitted(it, HEADLINE) }
+                ?.let { (lines, scale) -> TypeBlock(lines, scale, ATLAS, LEADING, face) }
+            val note = block.note?.takeIf { it.isNotBlank() }?.let { fitted(it, NOTE) }
+                ?.let { (lines, scale) -> TypeBlock(lines, scale, ATLAS, LEADING, face) }
+            val gap = if (headline != null && note != null) NOTE_GAP else 0.0
+            val total = (headline?.height ?: 0.0) + gap + (note?.height ?: 0.0)
+            var y = -total / 2.0
+            headline?.let { it.draw(drawer, Vector2(0.0, y + it.height / 2.0)); y += it.height + gap }
+            note?.let { it.draw(drawer, Vector2(0.0, y + it.height / 2.0)) }
         }
     }
 
@@ -270,6 +300,15 @@ class Swivel02Slide(
         const val HEADLINE = 34.0
         const val NOTE = 19.0
         const val ITEM = 19.0
+
+        /** Where the camera stands; it looks down on the train at the angle this makes. */
+        val EYE = Vector3(0.0, 300.0, -300.0)
+
+        /** How much taller type is set than it should read, to undo the camera's look down. */
+        val UPRIGHT = EYE.length / kotlin.math.hypot(EYE.x, EYE.z)
+
+        /** Headline to note, in world units on the face. */
+        const val NOTE_GAP = 14.0
 
         const val LEADING = 1.16
         const val ITEM_LEADING = 1.34
