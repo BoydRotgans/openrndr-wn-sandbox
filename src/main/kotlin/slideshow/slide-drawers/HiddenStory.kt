@@ -48,10 +48,9 @@ class Reduction(
  * under a world-horizontal plane, in a second one; the plane stands at the share of the piece's
  * height, which for a prism is its share of the volume. It rises with the click.
  *
- * **The leaders end on the silhouette, not on the box.** A piece's any-angle box is a bound
- * and mostly air at the corners, so a leader drawn to it points at nothing. The piece's own
- * corners are projected to the screen every frame and the leaders go to the topmost, rightmost
- * and leftmost of them — on the piece, wherever it has turned to.
+ * **The leaders end on the spin axis, and the labels stand off the any-angle reach.** Both are
+ * constants of the piece, so nothing written about it moves while it turns. They were read off
+ * its turning corners before, and walked with them.
  *
  * **Between pieces the camera pulls back.** The leaving piece shrinks to nothing over the first
  * half of the click and the arriving one grows over the second, so the pane is never two pieces
@@ -101,6 +100,63 @@ class HiddenStory(
             if (mesh == null) { println("hidden story: no mesh $file"); null } else name to iso.fit(mesh, WIDEST)
         }.toMap()
         register = details?.takeIf { it.isFile }?.let { loadPieceDetails(it) } ?: emptyList()
+        surfaces = fitted.mapValues { (_, f) -> f.mesh.surface }
+    }
+
+    /** Each piece's triangles in its own normalised frame, for finding the solid under a leader. */
+    private var surfaces: Map<String, List<Vector3>> = emptyMap()
+
+    /**
+     * Every distance along the line [o] + t·[d] at which it crosses one of [tris], sorted and with
+     * the crossings on a shared edge counted once — taken in pairs, in and out, they are the
+     * spans of the line that lie inside the solid.
+     */
+    private fun spans(tris: List<Vector3>, o: Vector3, d: Vector3): List<ClosedFloatingPointRange<Double>> {
+        val hits = mutableListOf<Double>()
+        for (i in 0 until tris.size - 2 step 3) {
+            val a = tris[i]; val e1 = tris[i + 1] - a; val e2 = tris[i + 2] - a
+            val pv = d.cross(e2)
+            val det = e1.dot(pv)
+            if (kotlin.math.abs(det) < 1e-12) continue
+            val tv = o - a
+            val u = tv.dot(pv) / det
+            if (u < -1e-9 || u > 1.0 + 1e-9) continue
+            val qv = tv.cross(e1)
+            val v = d.dot(qv) / det
+            if (v < -1e-9 || u + v > 1.0 + 1e-9) continue
+            hits += e2.dot(qv) / det
+        }
+        val crossings = hits.sorted().fold(mutableListOf<Double>()) { out, t ->
+            if (out.isEmpty() || t - out.last() > 1e-6) out += t; out
+        }
+        return crossings.chunked(2).filter { it.size == 2 }.map { it[0]..it[1] }
+    }
+
+    /**
+     * Where on the piece a leader asked to end at [height] (mesh units, from its centre) ends, in
+     * the piece's own frame. On the spin axis when the axis is inside the piece there — the one
+     * point that stays put as it turns. Where it is not, as in `WAND_27`'s doorway, the nearest
+     * solid along either of the piece's horizontal axes at that height: a point on the jamb,
+     * close to the axis, which comes round smoothly with the piece rather than jumping.
+     * Given [toEye], the point is carried out to the near face first.
+     */
+    private fun leaderEnd(tris: List<Vector3>, height: Double, toEye: Vector3? = null): Vector3 {
+        val here = Vector3(0.0, height, 0.0)
+        // Asked for the face the camera sees: from the axis toward the eye to where the piece is
+        // left — so the saving's leader lands on the red edge on the near face rather than on a
+        // point inside the piece, which projects onto the blue above it.
+        if (toEye != null && tris.isNotEmpty()) {
+            val front = spans(tris, here, toEye).maxOfOrNull { it.endInclusive }
+            if (front != null && front >= 0.0) return here + toEye * front
+        }
+        if (tris.isEmpty() || spans(tris, Vector3.ZERO, Vector3.UNIT_Y).any { height in it }) return here
+        val sideways = listOf(Vector3.UNIT_X, Vector3.UNIT_Z).flatMap { axis ->
+            spans(tris, here, axis).map { r ->
+                val t = if (0.0 in r) 0.0 else if (kotlin.math.abs(r.start) < kotlin.math.abs(r.endInclusive)) r.start else r.endInclusive
+                here + axis * t
+            }
+        }
+        return sideways.minByOrNull { (it - here).length } ?: here
     }
 
     private fun pieceOf(state: Int) = if (state == 0) reductions.first().piece else reductions[state - 1].piece
@@ -151,18 +207,31 @@ class HiddenStory(
         }
         iso.draw(drawer, w, h, placed, ink, background, background)
 
-        // The piece's own corners on the pane, for the leaders to end on — kept with their
-        // world positions, so a corner can be carried to another height and projected again.
+        // Where the leaders end and the labels stand, **none of it read off the turning piece**.
+        // They ended on its topmost, rightmost and leftmost corner once, and as it turned a
+        // different corner became each of those, so the labels walked and the lines jumped from
+        // corner to corner (review of 22 September). A leader now ends on the spin axis, which
+        // stays put however the piece turns, and a label stands just clear of the piece's
+        // any-angle reach, which is a constant.
         val main = placed.lastOrNull() ?: return
         fun project(world: Vector3) = Vector2(w / 2.0 + world.dot(iso.right), h / 2.0 - world.dot(iso.up))
-        val worlds = main.mesh.points.map { q ->
+        val reach = main.mesh.spinRadius * main.scale
+        val half = main.mesh.halfHeight * main.scale
+        val middle = project(main.centre)
+        val topReach = middle.y - (half * cos(iso.pitch) + reach * sin(iso.pitch))
+        val tris = surfaces[main.mesh.name] ?: emptyList()
+        // The camera's direction across the ground, in the piece's own frame as it now stands.
+        val eyeWorld = Vector3(iso.eye.x, 0.0, iso.eye.z).normalized
+        val toEye = Vector3(eyeWorld.x * cos(main.angle) - eyeWorld.z * sin(main.angle), 0.0,
+            eyeWorld.x * sin(main.angle) + eyeWorld.z * cos(main.angle))
+        fun onPiece(height: Double, facing: Boolean = false): Vector2 {
+            val q = leaderEnd(tris, height / main.scale, if (facing) toEye else null)
             val r = Vector3(q.x * cos(main.angle) + q.z * sin(main.angle), q.y, -q.x * sin(main.angle) + q.z * cos(main.angle))
-            main.centre + r * main.scale
+            return project(main.centre + r * main.scale)
         }
-        val corners = worlds.map { project(it) }
-        val topmost = corners.minBy { it.y }
-        val leftmost = corners.minBy { it.x }
-        val rightmost = corners.maxBy { it.x }
+        val topmost = onPiece(half)
+        val rightmost = onPiece(half * SIDE_HIGH)
+        val leftmost = onPiece(-half * SIDE_LOW)
 
         // The register, crossfading when the piece changes.
         fun register(name: String, alpha: Double) {
@@ -190,17 +259,17 @@ class HiddenStory(
         if (leversAlpha > 0.0 && levers.isNotEmpty()) {
             drawer.fill = lettering.opacify(leversAlpha)
             levers.getOrNull(0)?.let { l ->
-                val at = Vector2(topmost.x, topmost.y - h * LEVER_UP)
+                val at = Vector2(topmost.x, topReach - h * LEVER_UP)
                 drawer.setLine(l, bold, Vector2(at.x, at.y - gap), size, SIZE, align = 0.5)
                 leader(at, topmost, leversAlpha)
             }
             levers.getOrNull(1)?.let { l ->
-                val at = Vector2(rightmost.x + w * LEVER_OUT, rightmost.y)
+                val at = Vector2(middle.x + reach + w * LEVER_OUT, rightmost.y)
                 drawer.setLine(l, bold, Vector2(at.x + gap, at.y + size * 0.34), size, SIZE, align = 0.0)
                 leader(at, rightmost, leversAlpha)
             }
             levers.getOrNull(2)?.let { l ->
-                val at = Vector2(leftmost.x - w * LEVER_OUT, leftmost.y)
+                val at = Vector2(middle.x - reach - w * LEVER_OUT, leftmost.y)
                 drawer.setLine(l, bold, Vector2(at.x - gap, at.y + size * 0.34), size, SIZE, align = 1.0)
                 leader(at, leftmost, leversAlpha)
             }
@@ -208,10 +277,9 @@ class HiddenStory(
 
         // The saving: the figure beside the piece, what it is for under it, then how. The
         // block stands to the right and above the piece's far end, and its leader leaves the
-        // subject line for **the red level itself**: the corner of the piece nearest the
-        // lettering, carried to the height of the cut and projected again, so the line lands
-        // exactly where the red begins on the silhouette. It ended on a corner of the piece
-        // before, which put the line and the figure it explains a hand apart.
+        // subject line for **the red level itself**, on the spin axis: the height where the red
+        // begins, at the one point of the piece that does not move as it turns. It went to the
+        // corner nearest the lettering before, and that corner changed as the piece came round.
         fun saving(r: Reduction, alpha: Double) {
             if (alpha <= 0.0) return
             val x = w * SAVING_X
@@ -226,13 +294,8 @@ class HiddenStory(
                 }
             }
             val anchor = Vector2(x - gap, y + h * LEAD * 1.4 - size * 0.34)
-            val nearestIndex = corners.indices.filter { corners[it].x < anchor.x - gap }
-                .minByOrNull { (corners[it] - anchor).length } ?: corners.indices.minBy { corners[it].x }
             val level = main.cut
-            val target = if (level != null) {
-                val c = worlds[nearestIndex]
-                project(Vector3(c.x, level, c.z))
-            } else corners[nearestIndex]
+            val target = if (level != null) onPiece(level - main.centre.y, facing = true) else middle
             leader(anchor, target, alpha)
         }
         val ra = reductions.getOrNull(a - 1)
@@ -261,6 +324,9 @@ class HiddenStory(
         const val SAVING_Y = 0.26
         const val LEVER_UP = 0.06
         const val LEVER_OUT = 0.05
+        /** Where on the axis the side levers' leaders end, as a share of the half height. */
+        const val SIDE_HIGH = 0.35
+        const val SIDE_LOW = 0.35
         const val GAP = 0.008
         const val LINE = 2.0
 

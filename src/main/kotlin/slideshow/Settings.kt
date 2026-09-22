@@ -150,6 +150,57 @@ data class Settings(
     val intents: String? = null,
 
     /**
+     * The subtitles file: what is said over each state of each slide, in Dutch — see [Subtitles].
+     * Edited in the organizer; only drawn in [subtitleMode]. Null, or no file there, has none.
+     */
+    val subtitles: String? = null,
+    /**
+     * The extended subtitles file: the whole presentation as it would be given, a line for every
+     * state — see [SubtitleTrack]. Null, or no file there, has none.
+     */
+    val subtitlesExtended: String? = null,
+    /**
+     * Which file is read: `default` or `extended`. The organizer's `voice-over` selector switches
+     * it while the show runs. On the extended track, with subtitles on, the deck advances itself
+     * once each state's line has been said.
+     */
+    val subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
+    /**
+     * Subtitle mode: the line said over the state on the wall, a card at a time at a speaker's
+     * pace, drawn into the canvas so a filmed run carries it — and a hands-off run
+     * (`SLIDES_CUES=auto`) holds every state until its last card has been read. The organizer's
+     * `subtitles` button and `s` in the show switch it while it runs.
+     */
+    val subtitleMode: Boolean = false,
+    /** The pace, in characters a second. See [Pace]. */
+    val subtitleCps: Double = Pace.DEFAULT_CPS,
+    /**
+     * The voice: the folder holding a subtitle track rendered as speech, `<track>/<id>-<LETTER>.wav`
+     * — see [VoiceTrack]. Played under the cards in subtitle mode, and where a state has one the
+     * state is held for the voice's length rather than the text's estimate. Null has none.
+     */
+    val voice: String? = null,
+    /** The voice's gain, 0..1, onto the source. */
+    val voiceGain: Double = 1.0,
+    /**
+     * Whether the voice is spoken. Independent of [subtitleMode]: the talk can be heard with or
+     * without its words on the wall, and on the extended track either one makes the deck present
+     * itself. The organizer's `voice` button and `v` in the show switch it.
+     */
+    val voiceOn: Boolean = false,
+    /**
+     * The mix: a gain per track of the sound — voice, design, music — see [Layer]. All three play
+     * at once; this is how loud each is, and 0 mutes one. The organizer's `mix` panel moves them
+     * live, and a filmed run's soundtrack is made at the mix it was played at.
+     */
+    val levels: Map<Layer, Double> = mapOf(Layer.VOICE to 0.3, Layer.DESIGN to 1.0, Layer.MUSIC to 1.0),
+    /**
+     * Trace the voice: print each line as it is asked for and, a fifth of a second later, whether
+     * OpenAL is really playing it — how a voice that "sometimes does not play" is caught.
+     */
+    val soundTrace: Boolean = false,
+
+    /**
      * The feedback file: notes written against a slide in the organizer while it is watched,
      * each ticked off once acted on — see [Feedback]. It carries no behaviour and the deck
      * never reads it. Null, or no file there, starts an empty one on the first note.

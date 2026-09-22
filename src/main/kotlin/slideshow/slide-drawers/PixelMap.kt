@@ -94,8 +94,8 @@ class City(val name: String, val lon: Double, val lat: Double)
  * camera is on it, a line each; empty leaves the room for the speaker.
  *
  * [hidden] is a place that is not a factory but is visited as one — the transport arm, say. Its
- * dot is drawn only while the camera is on it, fading in as the camera arrives, and it counts
- * for nothing else: not the cluster's middle, not a country's tint.
+ * dot stands on the map like any other, so the visit picks it out rather than conjuring it, but
+ * it counts for nothing else: not the cluster's middle, not a country's tint.
  */
 class Factory(
     val name: String,
@@ -393,13 +393,10 @@ class PixelMap(
 
         frozen.dots.forEachIndexed { j, centre ->
             if (centre == null) return@forEachIndexed
-            // A hidden place is there only while it is visited, and arrives already blue.
-            if (factories[j].hidden && selected[j] <= 0.0) return@forEachIndexed
-            drawer.fill = when {
-                factories[j].hidden -> blue.opacify(selected[j])
-                selected[j] > 0.0 -> dot.towards(blue, selected[j])
-                else -> dot
-            }
+            // Every place stands on the map from the start, a hidden one too, so a visit only
+            // ever picks out a dot that is already there — the transport arm used to appear
+            // out of nothing as the camera arrived (review of 22 September).
+            drawer.fill = if (selected[j] > 0.0) dot.towards(blue, selected[j]) else dot
             drawer.circle(screen(centre), radius)
         }
 

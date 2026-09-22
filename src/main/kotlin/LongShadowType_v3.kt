@@ -270,6 +270,13 @@ fun longShadowV3FromEnv(
         revealRise = number("LONGSHADOW_REVEAL_RISE", 1.0),
         revealFinal = number("LONGSHADOW_REVEAL_FINAL", 0.08).coerceIn(0.0, 1.0),
         revealSettle = number("LONGSHADOW_REVEAL_SETTLE", 2.5),
+        fieldLayout = read("LONGSHADOW_FIELD_LAYOUT") ?: "modules",
+        // The highlight's own marks unless named; only read when the field is a mosaic.
+        marks = if ((read("LONGSHADOW_FIELD_LAYOUT") ?: "modules") != "mosaic") emptyList()
+            else loadMarkTemplates(File(read("LONGSHADOW_FIELD_MARKS") ?: Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"))
+                .also { if (it.isEmpty()) println("long shadow v3: no marks for the mosaic field, plain slabs instead") }
+                .map { it.triangles to it.aspect },
+        mosaicColumns = read("LONGSHADOW_MOSAIC_COLUMNS")?.toIntOrNull()?.coerceAtLeast(1) ?: 6,
     )
 }
 

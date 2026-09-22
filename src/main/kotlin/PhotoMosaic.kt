@@ -21,6 +21,7 @@ import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import org.openrndr.math.Vector4
 import org.openrndr.shape.Rectangle
+import slideshow.MosaicCells
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.roundToInt
@@ -85,7 +86,7 @@ fun loadPhoto(drawer: Drawer, file: File, longest: Int = 2560): ColorBuffer {
  * **The packing leaves no black but the joints.** [area] is tiled exactly by a grid of [columns]
  * coarse cells on the marks' own proportion, less [hole], and each cell is split at random — more
  * often the coarser it is — into quarters, or into two halves side by side or one over the other,
- * down to cells no thinner than [THINNEST]. Halving a 1.8:1 cell gives a 0.9:1 or a 3.6:1 one,
+ * down to cells no thinner than [MosaicCells.THINNEST]. Halving a 1.8:1 cell gives a 0.9:1 or a 3.6:1 one,
  * which is the range the catalogue runs, so every leaf can stand a mark of nearly its own shape:
  * one of the [NEAREST] nearest in proportion, **stretched to fill the cell less [GAP]**. Fitting
  * each mark by its proportion was tried first and left the pane mostly black.
@@ -116,6 +117,15 @@ class PhotoMosaic(
     private val columns: Int = 6,
     /** How many coarse cells the label's hole takes along the foot, from the left; 0 for none. */
     holeCells: Int = 0,
+    /** How many coarse rows up from the foot the hole takes. */
+    holeRows: Int = 1,
+    /**
+     * Whether a photograph dissolves out of its marks into the whole image once it has built. False
+     * keeps it in the grid: seen through the marks while it stands, handed over through them. A
+     * concrete picture — a drawing — dissolves either way, since its marks are stone and only the
+     * dissolve shows the drawing at all.
+     */
+    private val dissolves: Boolean = true,
     /**
      * Where this area's front runs in the whole sweep: 0..1 for a mosaic of its own, 0..0.5 and
      * 0.5..1 for two panes that build and hand over as one wall.
@@ -137,10 +147,21 @@ class PhotoMosaic(
 
     /** The label's hole: whole coarse cells in the bottom left corner, or null. */
     val hole: Rectangle? = if (holeCells <= 0) null
-        else Rectangle(area.x, area.y + area.height - cellHeight, cellWidth * holeCells, cellHeight)
+        else Rectangle(area.x, area.y + area.height - cellHeight * holeRows, cellWidth * holeCells, cellHeight * holeRows)
 
-    private class Packing(val elements: VertexBuffer, val cells: VertexBuffer)
+    /**
+     * One leaf of a packing as the schedule sees it: its cell, its place in the build and handover
+     * front ([order]), and its own turn in the dissolve ([fade]) — the very numbers its vertices
+     * carry, so a score read off them is the order the shader stands the marks in.
+     */
+    class Leaf(val cell: Rectangle, val order: Double, val fade: Double)
+
+    private class Packing(val elements: VertexBuffer, val cells: VertexBuffer, val leaves: List<Leaf>)
     private val packings = HashMap<Int, Packing>()
+
+    /** Picture [key]'s packing, leaf by leaf, for writing its build down as timing. */
+    fun schedule(key: Int): List<Leaf> =
+        if (templates.isEmpty()) emptyList() else packings.getOrPut(key) { packed(seed + key) }.leaves
 
     /**
      * The mosaic at one moment. [picture] gives a key's image, where in it the crop centres, and
@@ -160,17 +181,17 @@ class PhotoMosaic(
         if (to == null || to == from) {
             val clock = opening ?: Double.MAX_VALUE
             val build = (clock / BUILD).coerceIn(0.0, 1.0)
-            val dissolve = ((clock - BUILD - HOLD) / DISSOLVE).coerceIn(0.0, 1.0)
+            val dissolve = if (!dissolves && !picture(from).concrete) 0.0 else ((clock - BUILD - HOLD) / DISSOLVE).coerceIn(0.0, 1.0)
             if (dissolve < 1.0) layer(drawer, px, zoom, picture, from, ELEMENTS, if (build < 1.0) BUILD_UP else STAND, build)
             if (dissolve > 0.0) layer(drawer, px, zoom, picture, from, CELLS, STAND, dissolve)
             return
         }
         val breakUp = (click / REFORM).coerceIn(0.0, 1.0)
         val handover = ((click - REFORM) / HANDOVER).coerceIn(0.0, 1.0)
-        val dissolve = ((click - REFORM - HANDOVER - HOLD) / DISSOLVE).coerceIn(0.0, 1.0)
+        val dissolve = if (!dissolves && !picture(to).concrete) 0.0 else ((click - REFORM - HANDOVER - HOLD) / DISSOLVE).coerceIn(0.0, 1.0)
         if (handover <= 0.0) {
             layer(drawer, px, zoom, picture, from, ELEMENTS, STAND, 1.0)
-            layer(drawer, px, zoom, picture, from, CELLS, STAND, 1.0 - breakUp)
+            if (dissolves || picture(from).concrete) layer(drawer, px, zoom, picture, from, CELLS, STAND, 1.0 - breakUp)
         } else {
             if (handover < 1.0) layer(drawer, px, zoom, picture, from, ELEMENTS, LEAVE, handover)
             if (dissolve < 1.0) layer(drawer, px, zoom, picture, to, ELEMENTS, ARRIVE, handover)
@@ -223,44 +244,24 @@ class PhotoMosaic(
         // no two neighbours are the same slab.
         class Leaf(val template: Int, val cell: Rectangle, val order: Double, val fade: Double, val stone: Vector4)
         val leaves = ArrayList<Leaf>()
-        fun cell(r: Rectangle, depth: Int) {
-            val chance = SPLIT[depth.coerceAtMost(SPLIT.size - 1)]
-            if (random.nextDouble() < chance) {
-                val halfW = r.width / 2.0
-                val halfH = r.height / 2.0
-                val kind = random.nextDouble()
-                val parts = when {
-                    kind < QUARTERS && minOf(halfW, halfH) >= THINNEST -> listOf(
-                        Rectangle(r.x, r.y, halfW, halfH), Rectangle(r.x + halfW, r.y, halfW, halfH),
-                        Rectangle(r.x, r.y + halfH, halfW, halfH), Rectangle(r.x + halfW, r.y + halfH, halfW, halfH)
-                    )
-                    kind < QUARTERS + (1.0 - QUARTERS) / 2.0 && minOf(halfW, r.height) >= THINNEST -> listOf(
-                        Rectangle(r.x, r.y, halfW, r.height), Rectangle(r.x + halfW, r.y, halfW, r.height)
-                    )
-                    minOf(r.width, halfH) >= THINNEST -> listOf(
-                        Rectangle(r.x, r.y, r.width, halfH), Rectangle(r.x, r.y + halfH, r.width, halfH)
-                    )
-                    else -> emptyList()
-                }
-                if (parts.isNotEmpty()) { parts.forEach { cell(it, depth + 1) }; return }
-            }
-            val aspect = r.width / r.height
+        fun cell(r: Rectangle) = MosaicCells.split(r, random) { leaf ->
+            val aspect = leaf.width / leaf.height
             val nearest = templates.indices.sortedBy { abs(ln(templates[it].aspect / aspect)) }.take(NEAREST)
             val pick = nearest[random.nextInt(nearest.size)]
             val across = sweep.start + (sweep.endInclusive - sweep.start) *
-                    ((r.center.x - area.x) / area.width).coerceIn(0.0, 1.0)
+                    ((leaf.center.x - area.x) / area.width).coerceIn(0.0, 1.0)
             val order = (across * (1.0 - JITTER) + random.nextDouble() * JITTER).coerceIn(0.0, 1.0)
             val stone = Vector4(
                 random.nextInt(3).toDouble(),
                 TONE.start + random.nextDouble() * (TONE.endInclusive - TONE.start),
                 random.nextDouble(), random.nextDouble()
             )
-            leaves += Leaf(pick, r, order, random.nextDouble(), stone)
+            leaves += Leaf(pick, leaf, order, random.nextDouble(), stone)
         }
         for (row in 0 until rows) for (column in 0 until columns) {
             val r = Rectangle(area.x + column * cellWidth, area.y + row * cellHeight, cellWidth, cellHeight)
             if (hole?.contains(r.center) == true) continue          // the label's hole
-            cell(r, 0)
+            cell(r)
         }
 
         val format = vertexFormat {
@@ -302,7 +303,7 @@ class PhotoMosaic(
             }
             if (leaves.isEmpty()) repeat(3) { write(Vector3.ZERO); write(Vector2.ZERO); write(0.0f); write(Vector4.ZERO) }
         }
-        return Packing(elements, cells)
+        return Packing(elements, cells, leaves.map { Leaf(it.cell, it.order, it.fade) })
     }
 
     companion object {
@@ -321,11 +322,8 @@ class PhotoMosaic(
          * cell splits at each depth, the share of splits that quarter rather than halve, and how
          * many marks nearest a cell's shape it may draw from.
          */
-        const val SHAPE = 1.85
-        const val THINNEST = 22.0
-        const val GAP = 3.0
-        val SPLIT = doubleArrayOf(0.8, 0.6, 0.45, 0.3, 0.15)
-        const val QUARTERS = 0.5
+        const val SHAPE = MosaicCells.SHAPE
+        const val GAP = MosaicCells.GAP
         const val NEAREST = 3
 
         /**

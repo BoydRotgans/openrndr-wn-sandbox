@@ -27,6 +27,7 @@ import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
+import slideshow.smoothstep
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -82,7 +83,19 @@ class CircleBuilding(
 ) : Slide() {
 
     override val name = "The Circle"
-    override val steps get() = callouts.size.coerceAtLeast(1)
+    /** A click a label: each set builds up a label at a time, then gives way to the next set. */
+    override val steps get() = callouts.sumOf { it.size }.coerceAtLeast(1)
+
+    /** Which set state [s] shows, and how many of its labels are up. */
+    private fun stateOf(s: Int): Pair<Int, Int> {
+        var left = s
+        callouts.forEachIndexed { k, set ->
+            if (left < set.size) return k to left + 1
+            left -= set.size
+        }
+        return (callouts.size - 1).coerceAtLeast(0) to (callouts.lastOrNull()?.size ?: 0)
+    }
+    override fun stepName(step: Int): String? = stateOf(step).let { (k, n) -> callouts.getOrNull(k)?.getOrNull(n - 1)?.text }
 
     private lateinit var bold: FontImageMap
     private lateinit var text: FontImageMap
@@ -226,23 +239,71 @@ class CircleBuilding(
         // The title after the model, which writes depth across the pane.
         title()
 
-        // The callouts, one set a state, out and back on the ladder's rule.
+        // The callouts, a click a label. Each stands in one row above the building, centred over
+        // the point it names, with a straight leader dropping to it — so no two leaders cross and
+        // no label sits on another (review of 22 September: stacked in the corner on slanting
+        // leaders they overlapped). Where two labels of a set would touch, the row is pushed
+        // apart and the leader turns once, level, to reach its point.
         val p = stage.position.coerceIn(0.0, (steps - 1).toDouble())
         val a = floor(p).toInt()
         val b = min(a + 1, steps - 1)
         val t = p - a
         val out = (1.0 - t / FADE).coerceIn(0.0, 1.0)
         val back = ((t - (1.0 - FADE)) / FADE).coerceIn(0.0, 1.0)
-        fun set(list: List<Callout>, alpha: Double) {
+        val arrive = smoothstep(t)
+        val size = h * LABEL
+        val rowY = h * LABEL_Y
+        val gap = w * LABEL_GAP
+        drawer.fontMap = bold
+
+        fun setOf(k: Int): List<Pair<Callout, Vector2>> = callouts.getOrElse(k) { emptyList() }.map { c ->
+            c to project(Vector3(lo.x + (hi.x - lo.x) * c.at.x, lo.y + (hi.y - lo.y) * c.at.y, lo.z + (hi.z - lo.z) * c.at.z))
+        }
+        // Label centres along the row: over the point, then pushed apart left to right and held
+        // inside the pane. A whole set is laid out at once, so a label does not move as the next arrives.
+        fun row(set: List<Pair<Callout, Vector2>>): List<Double> {
+            val widths = set.map { bold.advanceWithSubscripts(it.first.text) * size / SIZE }
+            val order = set.indices.sortedBy { set[it].second.x }
+            val xs = DoubleArray(set.size) { set[it].second.x }
+            var right = w * EDGE
+            for (i in order) {
+                xs[i] = maxOf(xs[i], right + widths[i] / 2.0)
+                right = xs[i] + widths[i] / 2.0 + gap
+            }
+            val over = right - gap - w * (1.0 - EDGE)
+            if (over > 0.0) for (i in order) xs[i] -= over
+            return xs.toList()
+        }
+        fun draw(k: Int, count: Int, alpha: Double, newest: Double) {
             if (alpha <= 0.0) return
-            list.forEachIndexed { i, c ->
-                val target = project(Vector3(lo.x + (hi.x - lo.x) * c.at.x, lo.y + (hi.y - lo.y) * c.at.y, lo.z + (hi.z - lo.z) * c.at.z))
-                val at = Vector2(w * (1.0 - EDGE), h * (LABEL_Y + i * LABEL_PITCH))
-                drawer.leaderLabel(listOf(c.text), at, target, bold, h * LABEL, SIZE, ink, h * LABEL_LEAD, alpha, align = 1.0, gap = w * 0.008)
+            val set = setOf(k)
+            val xs = row(set)
+            set.take(count).forEachIndexed { i, (c, target) ->
+                val shown = alpha * if (i == count - 1) newest else 1.0
+                if (shown <= 0.0) return@forEachIndexed
+                drawer.stroke = null
+                drawer.fill = ink.opacify(shown)
+                drawer.setLine(c.text, bold, Vector2(xs[i], rowY), size, SIZE, align = 0.5)
+                // Down from under the words to the point's height, level to it if the row moved.
+                val top = Vector2(xs[i], rowY + size * 0.45)
+                val knee = Vector2(xs[i], target.y)
+                drawer.stroke = ink.opacify(shown)
+                drawer.strokeWeight = 2.0
+                val drop = (knee.y - top.y).coerceAtLeast(0.0)
+                val level = kotlin.math.abs(target.x - knee.x)
+                val grown = (drop + level) * shown
+                drawer.lineSegment(top, top + Vector2(0.0, minOf(grown, drop)))
+                if (grown > drop && level > 0.5) drawer.lineSegment(knee, knee + (target - knee).normalized * (grown - drop))
+                drawer.stroke = null
             }
         }
-        if (a == b) set(callouts.getOrElse(a) { emptyList() }, 1.0)
-        else { set(callouts.getOrElse(a) { emptyList() }, out); set(callouts.getOrElse(b) { emptyList() }, back) }
+        val (ka, na) = stateOf(a)
+        val (kb, nb) = stateOf(b)
+        when {
+            a == b -> draw(ka, na, 1.0, 1.0)
+            ka == kb -> draw(kb, nb, 1.0, arrive)                 // the next label of the same set
+            else -> { draw(ka, na, out, 1.0); draw(kb, nb, back, 1.0) }   // a new set: out, then in
+        }
     }
 
     private class Rectangle2(val x: Double, val y: Double, val w: Double, val h: Double)
@@ -258,7 +319,8 @@ class CircleBuilding(
         const val LABEL = 0.028
         const val LABEL_LEAD = 0.034
         const val LABEL_Y = 0.2
-        const val LABEL_PITCH = 0.09
+        /** The least air between two labels on the row, as a share of the pane's width. */
+        const val LABEL_GAP = 0.03
         /** Metres the faces are pushed in along their normals, so an edge on a face wins the depth test. */
         const val PUSH = 0.04
         const val DOT_PITCH = 6.0

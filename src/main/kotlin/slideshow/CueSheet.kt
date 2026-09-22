@@ -142,7 +142,9 @@ class CueSheet private constructor(
                         println("cues: ${file.name} does not end in a state letter — ignored")
                         continue
                     }
-                    val slug = slugOf(name.substring(0, cut)).replace(Regex("^p?\\d+-\\d+-"), "")
+                    // The slide number is optional: `P4-plain-A` names its slide as well as
+                    // `P4-03-100-elementen-A` does, and was ignored until 22 September.
+                    val slug = slugOf(name.substring(0, cut)).replace(Regex("^p?\\d+-(\\d+-)?"), "")
                     states.getOrPut(slug) { mutableMapOf() }[step] =
                         Sound(file, gain = gain, fadeOut = if (lengthOf(file) > hold) frames(fadeOut) else 0)
                 }

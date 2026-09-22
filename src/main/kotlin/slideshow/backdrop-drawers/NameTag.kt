@@ -13,7 +13,7 @@ import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
 import slideshow.easeInOutCubic
-import slideshow.frames
+import slideshow.FPS
 import kotlin.math.min
 
 /**
@@ -49,6 +49,10 @@ class NameTag(
     private val fontPath: String = "data/fonts/default.otf",
     /** The rule under the name. The house red, where the show hands one in. */
     private val accent: ColorRGBa = ColorRGBa.WHITE,
+    /** Which projector the tag stands in: 0 the left, 1 the right. */
+    private val pane: Int = 0,
+    /** The whole tag's size against the one it was designed at. */
+    private val scale: Double = 1.0,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val sound: Sound? = null
 ) : Backdrop() {
@@ -63,48 +67,59 @@ class NameTag(
         face = program.loadFont(fontPath, SIZE, TYPE_CHARACTERS, contentScale = 1.0)
     }
 
-    override fun draw(drawer: Drawer, stage: Stage) {
-        // The name stands in the left pane; its measure is that pane's, not the wall's.
+    override fun draw(drawer: Drawer, stage: Stage) = tag(drawer, stage, stage.frame / FPS.toDouble())
+
+    /**
+     * The tag [seconds] into its own build — name, rule, company, title — and standing whole from
+     * [BUILT] on. The name tag's own draw hands it the slide's clock; a wall that stands the tag
+     * beside something else hands it whatever clock it arrives on, a click's, say.
+     */
+    fun tag(drawer: Drawer, stage: Stage, seconds: Double) {
+        fun since(from: Double, length: Double) = ((seconds - from) / length).coerceIn(0.0, 1.0)
+        // The name stands in one pane; its measure is that pane's, not the wall's.
         //
-        // **The right pane is plain black, and that is a decision.** The opening wall was drawn
-        // into it for a day, so the catalogue went on drawing itself while the speaker was
+        // **The other pane is plain black, and that is a decision.** The opening wall was drawn
+        // into the empty one for a day, so the catalogue went on drawing itself while the speaker was
         // introduced; it was taken out on 16 September. A drawing that moves beside a name being
         // read is a second thing to attend to, and the one moment in the evening that wants none.
+        //
+        // [pane] and [scale] move and size the whole block: the show stands it smaller in the
+        // right projector (review of 22 September), where it had stood large in the left.
         val paneWidth = stage.width / 2.0
-        val inset = paneWidth * INSET
-        val measure = paneWidth - 2.0 * inset
+        val inset = paneWidth * pane + paneWidth * INSET
+        val measure = paneWidth - 2.0 * paneWidth * INSET
 
-        val big = fit(presenter, stage.height * NAME, measure)
-        val mid = fit(organisation, stage.height * ORGANISATION, measure)
-        val small = fit(role, stage.height * ROLE, measure)
+        val big = fit(presenter, stage.height * NAME * scale, measure)
+        val mid = fit(organisation, stage.height * ORGANISATION * scale, measure)
+        val small = fit(role, stage.height * ROLE * scale, measure)
 
         // The block is built from the top down and then centred as a whole, so adding a
         // field or resetting a size re-balances it rather than shifting everything by hand.
         val nameHeight = big * SIZE
-        val gapToRule = stage.height * 0.055
-        val gapAfterRule = stage.height * 0.055
-        val gapToRole = stage.height * 0.032
+        val gapToRule = stage.height * 0.055 * scale
+        val gapAfterRule = stage.height * 0.055 * scale
+        val gapToRole = stage.height * 0.032 * scale
         val block = nameHeight + gapToRule + gapAfterRule +
                 mid * SIZE + gapToRole + small * SIZE
         var y = stage.center.y - block / 2.0 + nameHeight
 
-        val arrived = easeInOutCubic(stage.since(0, frames(0.9)))
+        val arrived = easeInOutCubic(since(0.0, 0.9))
         drawer.fill = ink.opacify(arrived)
         // A hand's breadth of rise as it comes up, so the card settles rather than appears
-        line(drawer, presenter, inset, y - (1.0 - arrived) * stage.height * 0.015, big)
+        line(drawer, presenter, inset, y - (1.0 - arrived) * stage.height * 0.015 * scale, big)
 
         y += gapToRule
-        val drawn = easeInOutCubic(stage.since(frames(0.35), frames(0.7)))
+        val drawn = easeInOutCubic(since(0.35, 0.7))
         drawer.stroke = null
         drawer.fill = accent
-        drawer.rectangle(inset, y, big * face.advanceOf(presenter) * RULE * drawn, stage.height * WEIGHT)
+        drawer.rectangle(inset, y, big * face.advanceOf(presenter) * RULE * drawn, stage.height * WEIGHT * scale.coerceAtLeast(0.6))
 
         y += gapAfterRule
-        drawer.fill = ink.opacify(easeInOutCubic(stage.since(frames(0.7), frames(0.6))))
+        drawer.fill = ink.opacify(easeInOutCubic(since(0.7, 0.6)))
         line(drawer, organisation, inset, y + mid * SIZE, mid)
 
         y += mid * SIZE + gapToRole
-        drawer.fill = ink.opacify(0.62 * easeInOutCubic(stage.since(frames(0.95), frames(0.6))))
+        drawer.fill = ink.opacify(0.62 * easeInOutCubic(since(0.95, 0.6)))
         line(drawer, role, inset, y + small * SIZE, small)
     }
 
@@ -127,16 +142,19 @@ class NameTag(
         }
     }
 
-    private companion object {
+    companion object {
+        /** Seconds the tag's build takes, name to title. */
+        const val BUILT = 1.55
+
         /** The atlas size everything is scaled down from. Large, so nothing is ever scaled up. */
-        const val SIZE = 240.0
+        private const val SIZE = 240.0
 
         // Sizes as a share of the pane's height, positions as a share of its width.
-        const val NAME = 0.095
-        const val ORGANISATION = 0.040
-        const val ROLE = 0.029
-        const val INSET = 0.085
-        const val WEIGHT = 0.0035
+        private const val NAME = 0.095
+        private const val ORGANISATION = 0.040
+        private const val ROLE = 0.029
+        private const val INSET = 0.085
+        private const val WEIGHT = 0.0035
 
         /**
          * How far the rule runs, **as a share of the name it sits under** rather than of the
@@ -147,6 +165,6 @@ class NameTag(
          * rule twice the length of the name it belongs to reads as a divider across the frame
          * instead of a mark under a word.
          */
-        const val RULE = 0.62
+        private const val RULE = 0.62
     }
 }

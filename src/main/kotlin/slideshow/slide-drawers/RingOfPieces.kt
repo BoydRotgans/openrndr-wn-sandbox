@@ -31,7 +31,9 @@ import kotlin.math.sin
  * piece after another, each turning slowly on its own axis. No clicks — it lays itself down
  * on the slide's own frame count, a piece at a time along the path, and then keeps turning.
  *
- * **The path is a drawing, and until the drawing arrives it is a plain ring open at the top.**
+ * **The path is the WN mark**, `data/logo/wn-mark.svg`: its centreline traced off the logo png by
+ * `tools/trace_wn_mark.py`, the open ring and the arch rising into it as one closed stroke.
+ * **Without it the path is a plain ring open at the top.**
  * [path] names an svg of the mark; its longest contour is resampled at even spacing — the
  * opening wall's rule for a pen at constant speed — and fitted to the pane. Without one, the
  * ring stands in as a placeholder and the load says so: the mark's own path is the one thing
@@ -50,6 +52,8 @@ class RingOfPieces(
     private val boldPath: String = "data/fonts/default.otf",
     private val ink: ColorRGBa = ColorRGBa.fromHex("8C8C8C"),
     private val lettering: ColorRGBa = ColorRGBa.WHITE,
+    /** The tone a piece lands in, before it settles into [ink]. */
+    private val arriving: ColorRGBa = ColorRGBa.WHITE,
     /** Seconds between one piece landing and the next, and seconds a piece takes to land. */
     private val cadence: Double = 0.07,
     private val landing: Double = 0.6,
@@ -131,15 +135,20 @@ class RingOfPieces(
         val placed = fitted.mapIndexedNotNull { i, f ->
             val landed = smoothstep(stage.since(i * frames(cadence), frames(landing)))
             if (landed <= 0.0) return@mapIndexedNotNull null
+            // A piece lands white and a size up and settles into the grey over [GLOW] seconds, so
+            // the one arriving is seen arriving (review of 22 September: in the grey from the
+            // first frame, a run of 115 landing a fifteenth of a second apart read as the ring
+            // simply filling in).
+            val glow = 1.0 - smoothstep(stage.since(i * frames(cadence) + frames(landing * 0.5), frames(GLOW)))
             val q = points[i % points.size]
             // pane pixels, then the wall's centred frame: x right, y up
             val px = corner.x + (q.x - pathBox.x) * scale
             val py = corner.y + (q.y - pathBox.y) * scale - h * DROP * (1.0 - landed)
             val sx = px - w / 2.0
             val sy = h / 2.0 - py
-            val size = unit * landed
+            val size = unit * landed * (1.0 + POP * glow)
             val angle = turn + 2.0 * PI * ((i * 0.6180339887498949) % 1.0)
-            IsoPlaced(f.mesh, iso.right * sx + iso.up * sy, f.scale * size, angle, ink, casts = false)
+            IsoPlaced(f.mesh, iso.right * sx + iso.up * sy, f.scale * size, angle, ink.mix(arriving, glow), casts = false)
         }
         iso.draw(drawer, w, h, placed, ink, background, background)
     }
@@ -149,6 +158,9 @@ class RingOfPieces(
         const val WIDEST = 2.4
         const val UNIT = 0.075
         const val DROP = 0.05
+        /** Seconds a landed piece takes to settle from white into the grey, and how much larger it lands. */
+        const val GLOW = 1.2
+        const val POP = 0.35
         const val GAP_DEG = 26.0
         const val MARGIN = 0.16
         const val TOP = 0.15

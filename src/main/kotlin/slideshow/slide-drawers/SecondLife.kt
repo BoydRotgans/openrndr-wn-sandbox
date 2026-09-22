@@ -13,12 +13,16 @@ import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import org.openrndr.shape.ShapeContour
+import slideshow.Arrival
+import slideshow.PITCH_SPAN
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.setLine
 import slideshow.frames
+import slideshow.linear
+import slideshow.pitchStep
 import slideshow.smoothstep
 import java.io.File
 import kotlin.math.PI
@@ -27,13 +31,13 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * One element's second life, across the pane: a panel stands, the floor it stood on lies
- * beside it, the floor is broken, the rubble is sieved to grit, and a new panel stands at the
- * end. Five states, four clicks.
+ * One element's second life, across the pane: a panel stands, the same panel stands beside it
+ * at the end of its first life, it is broken, the rubble is sieved to grit, and a new panel
+ * stands at the end. Five states, four clicks.
  *
  *     0  the panel, standing
- *     1  the floor slab lies down beside it
- *     2  the panel goes dark and the slab breaks into shards
+ *     1  the same door wall beside it, in red: the one to be taken down
+ *     2  the panel goes dark and the red wall falls and breaks into shards
  *     3  the panel goes, the shards sieve down to rubble and a cloud of grit lies to the right
  *     4  a new panel, white, stands at the far right
  *
@@ -43,9 +47,13 @@ import kotlin.random.Random
  * columns each state shows: everything already down travels left as the next stage arrives,
  * and the story reads left to right.
  *
- * **The shatter is a Voronoi of the slab's plan**, seeded, clipped cell by cell against the
- * bisectors of every other seed — twenty-odd cells, so the quadratic clip costs nothing — and
- * each shard is scattered a little from where it broke. The shards are flat polygons on the
+ * **What breaks is the door wall itself, not a floor slab** (review of 22 September: a flat
+ * plate beside a wall in the round read as a different object). The shatter is a Voronoi of the
+ * wall's *elevation*, laid flat where it fell, seeded and clipped cell by cell against the
+ * bisectors of every other seed; a cell whose middle falls in the doorway is not there, so the
+ * rubble keeps the opening's shape. The doorway is read off the mesh — a ray through the wall's
+ * thickness at the cell's middle meets nothing — so any panel breaks along its own outline.
+ * Each shard is scattered a little from where it broke. The shards are flat polygons on the
  * ground plane in the same isometric view the pieces stand in; the sieving shrinks each one
  * about its own middle, and the grit is a seeded scatter of points on the plane beside them.
  *
@@ -56,7 +64,8 @@ class SecondLife(
     private val title: String = "Recyclage",
     private val objects: File,
     private val panel: String = "WAND_27",
-    private val slab: String = "PREDAL",
+    /** What stands beside the panel and breaks; null for the panel itself. */
+    private val slab: String? = null,
     /** A caption a stage, "" for none. */
     private val captions: List<String> = listOf("", "", "Puin ter plekke gebroken", "Gezeefd", "Hergebruikt"),
     private val boldPath: String = "data/fonts/default.otf",
@@ -66,7 +75,7 @@ class SecondLife(
     private val paper: ColorRGBa = ColorRGBa.WHITE,
     private val dark: ColorRGBa = ColorRGBa.fromHex("2E2E2E"),
     private val seed: Int = 7,
-    private val shards: Int = 26,
+    private val shards: Int = 40,
     private val grit: Int = 260,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val stepFrames: Int = frames(1.2),
@@ -100,25 +109,56 @@ class SecondLife(
         fun mesh(name: String) = File(objects, "$name.obj").takeIf { it.isFile }?.let { loadObjMesh(it) }
             ?: run { println("second life: no mesh $name in $objects"); null }
         panelFit = mesh(panel)?.let { iso.fit(it, WIDEST) }
-        slabFit = mesh(slab)?.let { iso.fit(it, WIDEST) }
+        slabFit = (slab?.let { mesh(it) } ?: panelFit?.mesh)?.let { iso.fit(it, WIDEST) }
 
         val random = Random(seed)
         slabFit?.let { f ->
             val pts = f.mesh.points
-            val x0 = pts.minOf { it.x }; val x1 = pts.maxOf { it.x }
-            val z0 = pts.minOf { it.z }; val z1 = pts.maxOf { it.z }
-            slabTop = pts.maxOf { it.y }
-            val seeds = List(shards) { Vector2(x0 + random.nextDouble() * (x1 - x0), z0 + random.nextDouble() * (z1 - z0)) }
-            cells = seeds.mapIndexed { i, s ->
-                var poly = listOf(Vector2(x0, z0), Vector2(x1, z0), Vector2(x1, z1), Vector2(x0, z1))
+            // The wall's elevation: its long horizontal axis across, its height down the plan.
+            val alongX = pts.maxOf { it.x } - pts.minOf { it.x } >= pts.maxOf { it.z } - pts.minOf { it.z }
+            fun across(v: Vector3) = if (alongX) v.x else v.z
+            val u0 = pts.minOf { across(it) }; val u1 = pts.maxOf { across(it) }
+            val v0 = pts.minOf { it.y }; val v1 = pts.maxOf { it.y }
+            slabTop = 0.0
+            val tris = f.mesh.surface
+            val through = if (alongX) Vector3.UNIT_Z else Vector3.UNIT_X
+            fun solid(at: Vector2): Boolean {
+                if (tris.isEmpty()) return true
+                val o = (if (alongX) Vector3(at.x, at.y, 0.0) else Vector3(0.0, at.y, at.x)) - through * 10.0
+                return crossings(tris, o, through) > 0
+            }
+            val seeds = List(shards) { Vector2(u0 + random.nextDouble() * (u1 - u0), v0 + random.nextDouble() * (v1 - v0)) }
+            cells = seeds.mapIndexedNotNull { i, s ->
+                var poly = listOf(Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1))
                 seeds.forEachIndexed { j, o -> if (j != i) poly = clip(poly, (s + o) / 2.0, o - s) }
+                if (poly.size < 3) return@mapIndexedNotNull null
                 val middle = poly.fold(Vector2.ZERO) { acc, v -> acc + v } / poly.size.toDouble()
-                val dir = (middle - Vector2((x0 + x1) / 2.0, (z0 + z1) / 2.0)).let { if (it.length > 1e-9) it.normalized else Vector2.ZERO }
-                Shard(poly.map { it - middle }, middle, dir * (THROW_MIN + random.nextDouble() * THROW_SPREAD), (random.nextDouble() - 0.5) * TURN)
+                val dir = (middle - Vector2((u0 + u1) / 2.0, (v0 + v1) / 2.0)).let { if (it.length > 1e-9) it.normalized else Vector2.ZERO }
+                val shard = Shard(poly.map { it - middle }, middle, dir * (THROW_MIN + random.nextDouble() * THROW_SPREAD), (random.nextDouble() - 0.5) * TURN)
+                shard.takeIf { solid(middle) }
             }
         }
         dust = List(grit) { Vector2(gauss(random), gauss(random)) }
         dustWhen = List(grit) { random.nextDouble() }
+    }
+
+    /** How many times the line [o] + t·[d], t > 0, crosses [tris]: nonzero when it passes through the solid. */
+    private fun crossings(tris: List<Vector3>, o: Vector3, d: Vector3): Int {
+        var n = 0
+        for (i in 0 until tris.size - 2 step 3) {
+            val a = tris[i]; val e1 = tris[i + 1] - a; val e2 = tris[i + 2] - a
+            val pv = d.cross(e2)
+            val det = e1.dot(pv)
+            if (kotlin.math.abs(det) < 1e-12) continue
+            val tv = o - a
+            val u = tv.dot(pv) / det
+            if (u < 0.0 || u > 1.0) continue
+            val qv = tv.cross(e1)
+            val v = d.dot(qv) / det
+            if (v < 0.0 || u + v > 1.0) continue
+            if (e2.dot(qv) / det > 0.0) n++
+        }
+        return n
     }
 
     private fun gauss(r: Random): Double {
@@ -190,12 +230,12 @@ class SecondLife(
             val tint = ink.mix(dark, broken).mix(background, sieved)
             if (grown > 0.0) placed += IsoPlaced(stood.mesh, stood.centre, stood.scale, stood.angle, tint, casts = false)
         }
-        // The slab, lying flat, until it has broken.
+        // The same wall beside it, in red and still, until it falls and breaks.
         val slabScale = slabF.scale * unit
         if (laid > 0.0 && broken < 0.5) {
             val size = unit * smoothstep(laid)
-            val stood = iso.standing(slabF, columnX(1), floor, size, 0.0)
-            placed += IsoPlaced(stood.mesh, stood.centre, stood.scale, 0.0, accent.mix(background, (broken / 0.5).coerceIn(0.0, 1.0)), casts = false)
+            val stood = iso.standing(slabF, columnX(1), floor, size, FACING)
+            placed += IsoPlaced(stood.mesh, stood.centre, stood.scale, stood.angle, accent.mix(background, (broken / 0.5).coerceIn(0.0, 1.0)), casts = false)
         }
         // The new panel, white, growing from the floor.
         if (reused > 0.0) {
@@ -263,13 +303,52 @@ class SecondLife(
         }
     }
 
+    // ------------------------------------------------------------------------------------ //
+    //  The steps and clicks as MIDI
+    //
+    //  The states lane is the floor every slide has — a note as it arrives and one a click. The
+    //  other two are what the clicks stand up: the shards all break on the second click at once,
+    //  so they are one chord, pitched by how high in the wall each broke; the grit comes in grain
+    //  by grain across the third, on the same `dustWhen` stagger `draw` reads, pitched by where
+    //  it lies across the heap. The draw loop runs those windows on the eased `on(n)`, so the
+    //  frames are taken back through `linear` — the note lands when the grain really shows.
+
+    override val lanes: List<String> get() = listOf("states", "shards", "grit")
+
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val states = super.arrivals(clicks)
+        val broke = clicks.getOrNull(1)?.let { c ->
+            val ranked = cells.indices.sortedBy { cells[it].middle.y }
+            ranked.mapIndexed { rank, i ->
+                Arrival(1, pitchStep(rank, ranked.size, SHARD_SPAN), c, stepLength(2))
+            }
+        }.orEmpty()
+        val sieved = clicks.getOrNull(2)?.let { c ->
+            val click = stepLength(3)
+            val ranked = dust.indices.sortedBy { dust[it].x }
+            ranked.mapIndexed { rank, i ->
+                val from = dustWhen[i] * 0.6
+                val a = linear(from)
+                val b = linear((from + 0.4).coerceAtMost(1.0))
+                Arrival(2, pitchStep(rank, ranked.size, PITCH_SPAN), c + (click * a).toInt(),
+                    (click * (b - a)).toInt().coerceAtLeast(1))
+            }
+        }.orEmpty()
+        return states + broke + sieved
+    }
+
     private companion object {
+        /** The shards' chord runs four octaves, so forty pieces barely share a pitch. */
+        const val SHARD_SPAN = 48
+
         const val SIZE = 200.0
         const val WIDEST = 1.3
         const val UNIT = 0.42
         const val FLOOR = 0.2
         const val PITCH = 0.3
         const val SPIN = 40.0
+        /** The red wall's yaw: turned a little off square so it reads in the round. */
+        const val FACING = 0.5
         const val SIEVE = 0.7
         /** How far a shard is thrown from where it broke, in the slab's own units, how much that varies, and how far it may turn, in radians. */
         const val THROW_MIN = 0.08

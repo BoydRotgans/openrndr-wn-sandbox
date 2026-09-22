@@ -19,6 +19,26 @@ import java.io.File
  * Nothing plays it yet. [Slide.sound] is read by no one; the playback engine is the next
  * piece, and this is the reference it will read.
  */
+/**
+ * The three tracks of the show's sound, each with a level of its own in [Speakers]: the spoken
+ * voice-over, the sound design (cues, stings, the base loop under the slides) and the music
+ * (the ambience and the dinner beds under the walls). They always play together; the mix is how
+ * loud each one is.
+ *
+ * It exists because the three were delivered at very different levels: the voice renders at about
+ * −18 LUFS, the design's cues at −31 to −51, so one gain for all of them buried the design under
+ * the voice as if it were not there.
+ */
+enum class Layer {
+    VOICE, DESIGN, MUSIC;
+
+    val key: String get() = name.lowercase()
+
+    companion object {
+        fun of(name: String?): Layer? = entries.firstOrNull { it.key == name?.trim()?.lowercase() }
+    }
+}
+
 data class Sound(
     /** The file. A wav, read once at load — a show must not hitch on a click. */
     val file: File,
@@ -48,12 +68,16 @@ data class Sound(
     val fadeIn: Int = 0,
     val fadeOut: Int = 0,
     /**
-     * Brought to the sheet's common loudness at load, as every cue is by default. Off, the file
-     * plays at its own level times [gain] — which is what a bed that has to sit far under the
-     * talk wants: levelled, a quiet file is simply boosted back up, so making it quieter would
-     * change nothing.
+     * Brought to a common loudness (-23 dBFS, peaks under -6) at load. **Off by default**: the
+     * file plays exactly as delivered, at its own level times [gain]. Levelling boosted the
+     * quiet stems of the sound design by up to 34 dB and made cues far too loud in the room.
      */
-    val levelled: Boolean = true
+    val levelled: Boolean = false,
+    /**
+     * Which track of the mix this is on — the voice, the sound design or the music — so each can
+     * be levelled and muted on its own while all three play together. See [Layer].
+     */
+    val layer: Layer = Layer.DESIGN
 ) {
     constructor(
         path: String, gain: Double = 1.0, loop: Boolean = false,

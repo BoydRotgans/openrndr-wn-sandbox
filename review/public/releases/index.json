@@ -1,0 +1,14 @@
+{
+ "releases": [
+  {
+   "slug": "2026-09-21",
+   "name": "Release 21 September",
+   "created": "2026-09-21"
+  },
+  {
+   "slug": "2026-09-22",
+   "name": "Release 22 September",
+   "created": "2026-09-22"
+  }
+ ]
+}

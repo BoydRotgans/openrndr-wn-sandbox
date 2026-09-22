@@ -1,0 +1,3 @@
+{
+  "rewrites": [{ "source": "/((?!releases/).*)", "destination": "/index.html" }]
+}

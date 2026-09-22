@@ -5,6 +5,12 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.ColorBuffer
 import org.openrndr.draw.ColorFormat
 import org.openrndr.draw.ColorType
+import org.openrndr.draw.DrawPrimitive
+import org.openrndr.draw.VertexBuffer
+import org.openrndr.draw.vertexBuffer
+import org.openrndr.draw.vertexFormat
+import org.openrndr.math.Vector3
+import slideshow.MosaicCells
 import org.openrndr.draw.DepthFormat
 import org.openrndr.draw.Drawer
 import org.openrndr.draw.FontImageMap
@@ -243,6 +249,21 @@ class LongShadowV3(
     private val revealRise: Double = 1.0,
     private val revealFinal: Double = 0.08,
     private val revealSettle: Double = 2.5,
+    /**
+     * How the reveal's field is laid. `modules`: v1's module grid, with streets and gardens.
+     * `mosaic`: the project highlight's grid — [mosaicColumns] coarse cells across on the marks'
+     * 1.85 proportion, each split at random into quarters or halves down to 22 px, every leaf
+     * standing one of [marks] stretched to it less a 3 px joint ([slideshow.MosaicCells]). The towers
+     * keep their heights, tones and shadows either way; only the plan they stand on changes.
+     */
+    private val fieldLayout: String = "modules",
+    /**
+     * The catalogue marks a mosaic cell stands, each its triangles about its centre at height 1 and
+     * its proportion — `ObjectTemplate` handed over as plain values, since that class is in the
+     * default package. Empty stands plain slabs instead.
+     */
+    private val marks: List<Pair<List<Vector2>, Double>> = emptyList(),
+    private val mosaicColumns: Int = 6,
 ) {
     private lateinit var font: FontImageMap
     private lateinit var mask: RenderTarget
@@ -253,6 +274,8 @@ class LongShadowV3(
     private val plates = mutableMapOf<String, Plate?>()
     private val fields = mutableMapOf<String, List<Tower>>()
     private lateinit var probe: RenderTarget
+    /** [marks] as vertex buffers, one a mark, built in [load]. */
+    private var markBuffers: List<VertexBuffer> = emptyList()
 
     /** One tower of the field: a circle or a slab, its height, its roof's tone and when it rises. */
     private class Tower(
@@ -260,7 +283,9 @@ class LongShadowV3(
         /** Which of the title's own pieces stands here, or -1 for a plain slab or circle. */
         val piece: Int = -1,
         /** Whether that piece is turned a quarter to fit its cell. */
-        val turned: Boolean = false
+        val turned: Boolean = false,
+        /** Which of [marks] stands here, stretched to [box], or -1. */
+        val mark: Int = -1
     )
 
     private val low2 = low.coerceAtLeast(2.0)
@@ -282,6 +307,14 @@ class LongShadowV3(
         // Where the title stands, at a quarter of the pane: all the packing has to ask it.
         probe = renderTarget((WIDE / PROBE).toInt(), (HIGH / PROBE).toInt()) { colorBuffer(type = ColorType.FLOAT32) }
         card = renderTarget(WIDE.toInt(), HIGH.toInt(), contentScale = detail) { colorBuffer() }
+        markBuffers = marks.map { (triangles, _) ->
+            vertexBuffer(vertexFormat { position(3) }, triangles.size.coerceAtLeast(3)).also { vb ->
+                vb.put {
+                    triangles.forEach { write(Vector3(it.x, it.y, 0.0)) }
+                    repeat(3 - triangles.size.coerceAtMost(3)) { write(Vector3.ZERO) }
+                }
+            }
+        }
         stone = concrete?.let { file ->
             if (!file.isFile) { println("long shadow v3: no concrete at ${file.path}"); null }
             else loadImage(file).also {
@@ -434,7 +467,9 @@ class LongShadowV3(
                 lay.parameter("paper", paper)
                 lay.parameter("ink", ink)
                 lay.parameter("shade", shade)
-                val (cw, ch) = if (fieldOrder == "reveal")
+                val (cw, ch) = if (fieldOrder == "reveal" && fieldLayout == "mosaic")
+                    (WIDE / mosaicColumns) to (HIGH / MosaicCells.rows(Rectangle(0.0, 0.0, WIDE, HIGH), mosaicColumns))
+                else if (fieldOrder == "reveal")
                     (WIDE / (WIDE / fieldUnit).toInt().coerceAtLeast(1)) to (HIGH / (HIGH / fieldUnit).toInt().coerceAtLeast(1))
                 else gridCell()
                 lay.parameter("cell", Vector2(cw, ch))
@@ -754,7 +789,9 @@ class LongShadowV3(
     private class Cover(val box: Rectangle, val round: Boolean, val height: Double, val tone: Double,
                         val arrive: Double, val sink: Double?,
                         /** For one that stays through the reveal: its place, 0 to 1, in the leaving afterwards. */
-                        val leave: Double = 0.0)
+                        val leave: Double = 0.0,
+                        /** Which of [marks] stands here, or -1 for a slab or a circle. */
+                        val mark: Int = -1)
 
     /**
      * The final type the reveal opens onto, in pane pixels: a piece a box, drawn as its own [shape]
@@ -929,7 +966,8 @@ class LongShadowV3(
                 // A fill of 0 has the field standing from the first frame, no arrival at all.
                 arrive = if (revealFill <= 0.0) Double.NEGATIVE_INFINITY else revealFill * random.nextDouble(),
                 sink = rank[t]?.let { revealAt + it * revealSpread },
-                leave = leave[t] ?: 0.0
+                leave = leave[t] ?: 0.0,
+                mark = t.mark
             )
         }
         println("long shadow v3: ${towers.size} elements fill the frame, ${over.size} of them over the title")
@@ -996,7 +1034,9 @@ class LongShadowV3(
         val overTitle = lane("elements out, over the title")
         val beside = lane("elements out, beside the title")
         val letters = lane("letters in")
-        val settle = lane("title settles")
+        // Only a title that really comes down gets a note for it: at `revealFinal` 1 it stands
+        // full height and nothing moves, so a note there would mark a block that never moved.
+        val settle = if (revealFinal < 1.0) lane("title settles") else -1
 
         // An element prefers a pitch for its size, the biggest lowest and a circle a step over a slab
         // of its size, spread across the elements' register; a letter prefers its place in the
@@ -1025,7 +1065,7 @@ class LongShadowV3(
         }
         for (i in title.boxes.indices)
             wants += Want(letters, letterPitch[i], frames(plan.start[i]), frames(revealRise).coerceAtLeast(1), letterRange.first, letterRange.second)
-        wants += Want(settle, ELEMENT_NOTES - 12, frames(plan.settleFrom), frames(revealSettle).coerceAtLeast(1), 0, ELEMENT_NOTES + LETTER_NOTES - 1)
+        if (settle >= 0) wants += Want(settle, ELEMENT_NOTES - 12, frames(plan.settleFrom), frames(revealSettle).coerceAtLeast(1), 0, ELEMENT_NOTES + LETTER_NOTES - 1)
 
         // **Every block its own voice.** A MIDI channel has one note per pitch at a time, so two
         // blocks on one pitch overlapping cut the first short, and two starting on the same frame
@@ -1066,7 +1106,7 @@ class LongShadowV3(
             val s = 1.70158
             return 1.0 + (s + 1.0) * (t - 1.0) * (t - 1.0) * (t - 1.0) + s * (t - 1.0) * (t - 1.0)
         }
-        class Draw(val box: Rectangle, val shape: Shape?, val round: Boolean, val height: Double, val tone: Double)
+        class Draw(val box: Rectangle, val shape: Shape?, val round: Boolean, val height: Double, val tone: Double, val mark: Int = -1)
         val draws = mutableListOf<Draw>()
         for (c in cells) {
             var h = c.height * seat((time - c.arrive) / clickIn)
@@ -1082,7 +1122,7 @@ class LongShadowV3(
             val garden = c.height == 0.0
             val present = if (garden) time >= c.arrive + clickIn / 2.0 && (c.sink?.let { time < it + revealSink / 2.0 }
                 ?: (time < leaveFrom + c.leave * revealLeaveSpread + revealLeaveTime / 2.0)) else h > HIDE_BELOW * c.height
-            if (present) draws += Draw(c.box, null, c.round, h, c.tone)
+            if (present) draws += Draw(c.box, null, c.round, h, c.tone, c.mark)
         }
         for (i in title.boxes.indices) {
             // Rising, not clicking: out of the floor and easing to a stop.
@@ -1092,8 +1132,16 @@ class LongShadowV3(
         }
         for (d in draws.sortedBy { it.height }) {
             drawer.fill = ColorRGBa(d.height, 1.0, d.tone, 1.0)
+            val buffer = markBuffers.getOrNull(d.mark)
             when {
                 d.shape != null -> drawer.shape(d.shape)
+                buffer != null -> drawer.isolated {
+                    // A mark is height 1 and its proportion wide about its centre, y up: stretched
+                    // to fill its cell, as the highlight stands them.
+                    drawer.translate(d.box.center)
+                    drawer.scale(d.box.width / marks[d.mark].second, -d.box.height)
+                    drawer.vertexBuffer(buffer, DrawPrimitive.TRIANGLES)
+                }
                 d.round -> drawer.circle(d.box.center, min(d.box.width, d.box.height) / 2.0)
                 else -> drawer.rectangle(d.box)
             }
@@ -1124,7 +1172,8 @@ class LongShadowV3(
      * middle, so the field comes up after the type and spreads to the edges.
      */
     private fun fieldFor(drawer: Drawer?, text: String, plate: Plate?, whole: Boolean = false): List<Tower> =
-        fields.getOrPut(if (whole) "whole" else if (plate != null) "plate:${plate.labels}" else "text:$text") {
+        if (whole && fieldLayout == "mosaic") fields.getOrPut("mosaic") { mosaicField() }
+        else fields.getOrPut(if (whole) "whole" else if (plate != null) "plate:${plate.labels}" else "text:$text") {
             // [whole]: the frame packed edge to edge with nothing kept clear — the reveal's field,
             // which stands over the title until the title's elements go.
             val title = if (whole) Occupancy(0, 0, IntArray(1), Vector2(WIDE / 2.0, HIGH / 2.0)) else occupancy(drawer!!, text, plate)
@@ -1360,6 +1409,38 @@ class LongShadowV3(
             println("long shadow v3: ${placed.size} towers on a ${across}x$down grid round the title, of ${usable.size} of the title's pieces")
             placed
         }
+
+    /**
+     * The reveal's field on the project highlight's grid: [mosaicColumns] coarse cells across the
+     * pane, split by [MosaicCells.split] exactly as the highlight splits its own, each leaf inset by
+     * half the joint and standing one of the three [marks] nearest its proportion, stretched to fill
+     * it. Heights and tones are the module field's — [fieldLow] to [fieldHigh] with [fieldJitter],
+     * roofs [fieldDark] to [fieldLight] — so the shadows work as they always did, and fall into the
+     * marks' notches as well as across the joints.
+     */
+    private fun mosaicField(): List<Tower> {
+        val random = Random(fieldSeed)
+        val area = Rectangle(0.0, 0.0, WIDE, HIGH)
+        val rows = MosaicCells.rows(area, mosaicColumns)
+        val cw = WIDE / mosaicColumns
+        val ch = HIGH / rows
+        val placed = mutableListOf<Tower>()
+        for (row in 0 until rows) for (column in 0 until mosaicColumns) {
+            MosaicCells.split(Rectangle(column * cw, row * ch, cw, ch), random) { leaf ->
+                val box = leaf.offsetEdges(-MosaicCells.GAP / 2.0)
+                val aspect = box.width / box.height
+                val nearest = marks.indices.sortedBy { kotlin.math.abs(kotlin.math.ln(marks[it].second / aspect)) }.take(3)
+                val mark = if (nearest.isEmpty()) -1 else nearest[random.nextInt(nearest.size)]
+                placed += Tower(box, round = false, mark = mark,
+                    height = (fieldLow + (fieldHigh - fieldLow) * random.nextDouble() +
+                        fieldJitter * (random.nextDouble() * 2.0 - 1.0)).coerceIn(0.05, TALLEST_TOWER),
+                    tone = fieldDark + (fieldLight - fieldDark) * random.nextDouble(),
+                    start = 0.0)
+            }
+        }
+        println("long shadow v3: ${placed.size} marks on the highlight's grid, $mosaicColumns x $rows coarse cells, ${marks.size} marks to pick from")
+        return placed
+    }
 
     /** Where the title stands, as a summed-area table over the probe, for asking any box at once. */
     private class Occupancy(val w: Int, val h: Int, val sums: IntArray, val centre: Vector2) {

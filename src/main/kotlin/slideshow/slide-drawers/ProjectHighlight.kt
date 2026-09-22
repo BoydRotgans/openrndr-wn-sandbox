@@ -22,10 +22,13 @@ import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
 import org.openrndr.math.Vector4
 import org.openrndr.shape.Rectangle
+import slideshow.Arrival
 import slideshow.Breathe
+import slideshow.PITCH_SPAN
 import slideshow.Frame
 import slideshow.Palette
 import slideshow.Slide
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceWithSubscripts
@@ -102,11 +105,17 @@ class ProjectHighlight(
     /**
      * Every photo in [folder], a click each, ending on the [lead]; false shows the lead alone.
      */
-    private val everyPhoto: Boolean = true
+    private val everyPhoto: Boolean = true,
+    /** What the opening sounds like: the elements building and the first photo dissolving out of them. */
+    private val arrival: Sound? = null,
+    /** What every click sounds like: the photo breaking up, the handover and the next one dissolving. */
+    private val click: Sound? = null
 ) : Slide() {
     override val name = "Highlight"
     override val background: ColorRGBa = Palette.onBlack.paper
     override val settle get() = frames(PhotoMosaic.OPENING)
+    override val sound get() = arrival
+    override fun stepSound(step: Int) = click
 
     /** The photographs, the lead last. */
     private val photos: List<File> = (folder.listFiles() ?: emptyArray())
@@ -215,7 +224,59 @@ class ProjectHighlight(
         }
     }
 
+    // ------------------------------------------------------------------------------------ //
+    //  The build as MIDI
+    //
+    //  Every mark is a note, read off the same leaves the shader stands them from: its place on
+    //  the front for when it grows or goes, its own random for when its cell fills. **Pitch is
+    //  height on the pane**, top highest, because the front sweeps left to right — so at any
+    //  moment the marks landing together are a column, and a column is a chord from the foot of
+    //  the pane to its head rather than a run of one pitch trimming itself away.
+
+    override val lanes: List<String> get() = listOf("marks in", "marks out", "cells fill", "break up")
+
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val m = mosaic ?: return super.arrivals(clicks)
+        if (pictures.isEmpty()) return super.arrivals(clicks)
+        val w = PhotoMosaic.WINDOW
+        val dw = PhotoMosaic.DISSOLVE_WINDOW
+        fun pitch(leaf: PhotoMosaic.Leaf) =
+            ((1.0 - leaf.cell.center.y / pane.y) * PITCH_SPAN).toInt().coerceIn(0, PITCH_SPAN)
+        fun f(seconds: Double) = frames(seconds)
+        val tick = f(FILL_NOTE).coerceAtLeast(1)
+
+        /** Picture [key]'s cells filling, [at] seconds after [from]. */
+        fun dissolve(key: Int, from: Int, at: Double) = m.schedule(key).map { leaf ->
+            if (instant) Arrival(2, pitch(leaf), from + f(at + PhotoMosaic.DISSOLVE * leaf.fade), tick)
+            else Arrival(2, pitch(leaf), from + f(at + PhotoMosaic.DISSOLVE * leaf.fade * (1.0 - dw)),
+                f(PhotoMosaic.DISSOLVE * dw).coerceAtLeast(1))
+        }
+
+        // The opening: each mark grows over its own window of the build, then the cells fill.
+        val opening = m.schedule(0).map { leaf ->
+            Arrival(0, pitch(leaf), f(PhotoMosaic.BUILD * leaf.order * (1.0 - w)), f(PhotoMosaic.BUILD * w).coerceAtLeast(1))
+        } + dissolve(0, 0, PhotoMosaic.BUILD + PhotoMosaic.HOLD)
+
+        // A click: the photo breaks up, the old marks go before the new ones grow, and they fill.
+        val handovers = clicks.withIndex().filter { it.index + 1 < pictures.size }.flatMap { (i, c) ->
+            val half = f(PhotoMosaic.HANDOVER * w / 2.0).coerceAtLeast(1)
+            val start = PhotoMosaic.REFORM
+            listOf(Arrival(3, PITCH_SPAN / 2, c, f(PhotoMosaic.REFORM).coerceAtLeast(1))) +
+                m.schedule(i).map { leaf ->
+                    Arrival(1, pitch(leaf), c + f(start + PhotoMosaic.HANDOVER * leaf.order * (1.0 - w)), half)
+                } +
+                m.schedule(i + 1).map { leaf ->
+                    Arrival(0, pitch(leaf), c + f(start + PhotoMosaic.HANDOVER * (leaf.order * (1.0 - w) + w / 2.0)), half)
+                } +
+                dissolve(i + 1, c, start + PhotoMosaic.HANDOVER + PhotoMosaic.HOLD)
+        }
+        return opening + handovers
+    }
+
     private companion object {
+        /** Seconds a cell's note lasts in the instant dissolve, where the fill itself takes one frame. */
+        const val FILL_NOTE = 0.15
+
         /** How many coarse cells across, the packing's seed, and how many cells the label's hole takes. */
         const val COLUMNS = 6
         const val SEED = 7

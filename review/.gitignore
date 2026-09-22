@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.local
+.vercel
+# a release's web video is hundreds of megabytes; manifest and thumbs are committed,
+# the film is uploaded to storage by scripts/publish-release.mjs
+public/releases/*/video.mp4
+.env*

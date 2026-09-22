@@ -44,14 +44,20 @@ fun main() {
         onStopped = { remote.reload() },
         projectionEnvironment = { projectionEnvironment(settings.width) },
         projection = Env.boolean("SLIDES_PROJECTION"),
-        muted = settings.muted
-    )
+        muted = settings.muted,
+        subtitles = settings.subtitleMode,
+        subtitleTrack = settings.subtitleTrack,
+        voice = settings.voiceOn
+    ).also { p -> settings.levels.forEach { (layer, gain) -> p.mix[layer] = gain } }
     remote = Remote(
         declared, File(settings.order ?: "show-order.json"), settings.organizerPort, File("build/previews"),
         File(settings.modules ?: "show-modules.json"), references,
         File(settings.intents ?: "show-intents.json"),
         File(settings.feedback ?: "show-feedback.json"),
         File(settings.midi ?: "show-midi.json"),
+        subtitlesFile = File(settings.subtitles ?: "show-subtitles.json"),
+        subtitlesExtendedFile = File(settings.subtitlesExtended ?: "show-subtitles-extended.json"),
+        voiceDir = settings.voice?.let { File(it) },
         open = settings.organizerOpen,
         presentation = presentation
     )

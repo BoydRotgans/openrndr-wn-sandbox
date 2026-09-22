@@ -1,4 +1,8 @@
-package slideshow.drawers
+// ============================================================================ //
+//  No `package` declaration: The Circle's column stands catalogue pieces in the
+//  round through IsoPieces and loadObjMesh, both in the default package, which a
+//  named package cannot import from. The folder is slide-drawers all the same.
+// ============================================================================ //
 
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
@@ -11,7 +15,11 @@ import org.openrndr.shape.Rectangle
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
+import slideshow.drawers.TYPE_CHARACTERS
+import slideshow.drawers.advanceOf
 import slideshow.frames
+import slideshow.smoothstep
+import java.io.File
 import kotlin.math.min
 
 /** One box in a phase: its code set bold, and what it is. */
@@ -40,6 +48,13 @@ class LifePhase(val code: String, val name: String, val steps: List<LifeStep>)
  * leaves, so the five of the use phase are shorter than the three of production without either
  * being told so. Reword a phase or add a step and the drawing re-proportions.
  *
+ * **The Circle's column is not empty while it waits to be named.** It comes up as its four boxes,
+ * each holding a catalogue piece in the round, turning slowly and grey; then a click a step names
+ * one, and its piece turns the house red as it is named. It was one white plate that divided into
+ * four on a single click until 22 September, and stood empty and white a whole state before that.
+ * The pieces are the real ones out of `data/objects`, drawn through `IsoPieces` as the hidden
+ * story draws them, each fitted into the top of its box so the name has the foot of it.
+ *
  * The two weights are set as one run — the code bold, the name regular — and wrapped together,
  * so "A2 Transport naar fabricage plek" breaks where it will fit rather than at a place stated
  * for one column width. That matters here because the same label is set at four widths as the
@@ -53,6 +68,13 @@ class LifeCycle(
     private val closing: LifePhase,
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
+    /** The catalogue pieces standing in The Circle's boxes, one a step, by name in [objects]. */
+    private val pieces: List<String> = emptyList(),
+    private val objects: File = File("data/objects"),
+    /** Seconds a piece takes to turn once. */
+    private val spin: Double = 30.0,
+    /** A piece before its step is named. */
+    private val waiting: ColorRGBa = ColorRGBa.fromHex("B8BCC4"),
     private val ink: ColorRGBa = ColorRGBa.fromHex("FF0000"),
     /** The column frames. The Figma export's blue, not the draaiboek's navy. */
     private val frame: ColorRGBa = ColorRGBa.fromHex("4674D6"),
@@ -65,17 +87,20 @@ class LifeCycle(
 
     override val name = "Life cycle"
 
-    /** A click a column, then one that empties the last, then one that fills it again. */
-    override val steps = phases.size + 2
+    /** A click a column, then one that puts The Circle up, then one a step that names it. */
+    override val steps = phases.size + 1 + closing.steps.size
 
     private val emptied get() = phases.size          // the click that puts The Circle up
-    private val filled get() = phases.size + 1       // the click that fills it
+    private val filled get() = phases.size + 1       // the click that names its first step
 
-    override fun stepName(step: Int) = when (step) {
-        emptied -> "break the cycle"
-        filled -> "the circle"
+    override fun stepName(step: Int) = when {
+        step == emptied -> "break the cycle"
+        step >= filled -> closing.steps.getOrNull(step - filled)?.name
         else -> phases.getOrNull(step)?.code
     }
+
+    private val iso = IsoPieces(shade = 1.0)
+    private var fitted: List<IsoFitted?> = emptyList()
 
     private lateinit var bold: FontImageMap
     private lateinit var text: FontImageMap
@@ -83,6 +108,13 @@ class LifeCycle(
     override fun load(program: Program) {
         bold = program.loadFont(boldPath, SIZE, TYPE_CHARACTERS, contentScale = 1.0)
         text = program.loadFont(textPath, SIZE, TYPE_CHARACTERS, contentScale = 1.0)
+        if (pieces.isNotEmpty()) iso.load()
+        fitted = pieces.map { name ->
+            val file = File(objects, "$name.obj")
+            val mesh = if (file.isFile) loadObjMesh(file) else null
+            if (mesh == null) println("life cycle: no mesh $file")
+            mesh?.let { iso.fit(it, WIDEST) }
+        }
     }
 
     override fun draw(drawer: Drawer, stage: Stage) {
@@ -100,10 +132,9 @@ class LifeCycle(
         val top = stage.height * TOP
         val height = stage.height * (BOTTOM - TOP)
 
-        // The last column is taken away and given back, so the two clicks after the phases
-        // are a crossfade in place rather than anything moving.
+        // The last column is taken away and The Circle crossfades in its place, nothing moving.
         val gone = stage.on(emptied)
-        val back = stage.on(filled)
+        var circleBox: Rectangle? = null
 
         phases.forEachIndexed { i, phase ->
             // A column is only drawn once it has started arriving, and fades up as it does.
@@ -119,15 +150,57 @@ class LifeCycle(
             // The Circle stands in the last column's place: the same frame, filled the other
             // way round — white boxes and red type, so the break reads as a change of kind.
             if (last && gone > 0.0) {
-                column(drawer, stage, box, closing, gone, paper, ink, fill = back)
+                column(drawer, stage, box, closing, gone, paper, ink, named = { k -> stage.on(filled + k) })
+                circleBox = box
             }
         }
+        circleBox?.let { pieces(drawer, stage, it, gone) }
     }
+
+    /**
+     * The Circle's pieces, one in the top of each box: growing in as the column arrives, turning
+     * slowly, grey until their step is named and red from then on.
+     */
+    private fun pieces(drawer: Drawer, stage: Stage, box: Rectangle, arrived: Double) {
+        if (fitted.none { it != null }) return
+        val w = stage.width
+        val h = stage.height
+        val turn = 2.0 * Math.PI * stage.frame / frames(spin)
+        val placed = boxesOf(stage, box, closing.steps.size).mapIndexedNotNull { k, at ->
+            val f = fitted.getOrNull(k) ?: return@mapIndexedNotNull null
+            val area = pieceArea(at)
+            val unit = area.height * FIT * smoothstep(arrived)
+            if (unit <= 0.5) return@mapIndexedNotNull null
+            val scale = f.scale * unit
+            // The ground set so the piece's any-angle box is centred in its area.
+            val floor = h / 2.0 - area.center.y - f.mesh.halfHeight * scale * iso.up.y
+            val stood = iso.standing(f, area.center.x - w / 2.0, floor, unit, turn + k * GOLDEN)
+            val named = stage.on(filled + k)
+            IsoPlaced(stood.mesh, stood.centre, stood.scale, stood.angle, waiting.mix(ink, named), casts = false)
+        }
+        iso.draw(drawer, w, h, placed, ink, background, background)
+    }
+
+    /** The boxes of a column of [n] under its heading. */
+    private fun boxesOf(stage: Stage, box: Rectangle, n: Int, fill: Double = 1.0): List<Rectangle> {
+        val head = stage.height * HEADER
+        val pad = stage.width * PAD
+        val inner = Rectangle(box.corner.x + pad, box.corner.y + head, box.width - 2.0 * pad, box.height - head - pad)
+        val gap = stage.height * BOX_GAP * fill
+        val each = (inner.height - (n - 1) * gap) / n
+        return List(n) { i -> Rectangle(inner.corner.x, inner.corner.y + i * (each + gap), inner.width, each) }
+    }
+
+    /** Where a piece stands in its box, and where its name goes under it. */
+    private fun pieceArea(at: Rectangle) = Rectangle(at.x, at.y, at.width, at.height * PIECE_SHARE)
+    private fun nameArea(at: Rectangle) = Rectangle(at.x, at.y + at.height * PIECE_SHARE, at.width, at.height * (1.0 - PIECE_SHARE))
 
     /** One column: its frame, its heading, and the boxes the heading leaves room for. */
     private fun column(
         drawer: Drawer, stage: Stage, box: Rectangle, phase: LifePhase,
-        shown: Double, boxInk: ColorRGBa, boxText: ColorRGBa, fill: Double = 1.0
+        shown: Double, boxInk: ColorRGBa, boxText: ColorRGBa,
+        /** For The Circle: how far each box's step has been named, which sets its name under its piece. */
+        named: ((Int) -> Double)? = null
     ) {
         if (shown <= 0.0) return
 
@@ -144,29 +217,17 @@ class LifeCycle(
 
         // The boxes share what the heading leaves, so five of them are shorter than three
         // without either being stated.
-        val pad = stage.width * PAD
-        val inner = Rectangle(
-            box.corner.x + pad, box.corner.y + head,
-            box.width - 2.0 * pad, box.height - head - pad
-        )
-
-        // [fill] opens the gaps rather than fading the boxes in, which is what makes The
-        // Circle arrive as a plate that *divides* into four: closed up they are one white
-        // panel, and the click cuts them apart. A fade would put two pictures on top of each
-        // other for half a second; this has one picture throughout.
-        val gap = stage.height * BOX_GAP * fill
-        val each = (inner.height - (phase.steps.size - 1) * gap) / phase.steps.size
-
-        phase.steps.forEachIndexed { i, step ->
-            val at = Rectangle(inner.corner.x, inner.corner.y + i * (each + gap), inner.width, each)
+        boxesOf(stage, box, phase.steps.size).forEachIndexed { i, at ->
+            val step = phase.steps[i]
             drawer.fill = boxInk.opacify(shown)
             drawer.rectangle(at)
 
-            if (fill <= 0.0) return@forEachIndexed
-            drawer.fill = boxText.opacify(shown * fill)
+            val alpha = named?.invoke(i) ?: 1.0
+            if (alpha <= 0.0) return@forEachIndexed
+            drawer.fill = boxText.opacify(shown * alpha)
             val label = if (step.code.isEmpty()) listOf(step.name to text)
             else listOf(step.code to bold, " ${step.name}" to text)
-            wrapped(drawer, label, at, stage.height * LABEL / SIZE)
+            wrapped(drawer, label, if (named != null && fitted.any { it != null }) nameArea(at) else at, stage.height * LABEL / SIZE)
         }
     }
 
@@ -243,5 +304,12 @@ class LifeCycle(
         const val HEAD = 0.030
         const val LABEL = 0.030
         const val LEADING = 1.25
+
+        /** The Circle's boxes: the share of a box its piece stands in, how much of that the piece fills, and the widest it may be. */
+        const val PIECE_SHARE = 0.64
+        const val FIT = 0.88
+        const val WIDEST = 3.6
+        /** Each piece a golden turn out of phase with the one above it. */
+        const val GOLDEN = 2.39996
     }
 }

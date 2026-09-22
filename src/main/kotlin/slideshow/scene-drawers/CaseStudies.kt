@@ -21,6 +21,7 @@ import slideshow.frames
 import slideshow.linear
 import slideshow.smoothstep
 import java.io.File
+import kotlin.math.floor
 
 /**
  * One project of the case studies: its photographs, a folder under the case studies, and its
@@ -33,7 +34,12 @@ class CaseProject(
     /** The project's folder of photographs, inside the case studies folder; null for none. */
     val photos: String? = null,
     /** The project's drawings, by file name inside the blueprints folder. */
-    val blueprints: List<String> = emptyList()
+    val blueprints: List<String> = emptyList(),
+    /**
+     * The facts set under the name, each a key and a value — "Functie", "Opdrachtgever",
+     * "Locatie", "Realisatietijd" — in the order given. When there are any, [line] is not set.
+     */
+    val facts: List<Pair<String, String>> = emptyList()
 )
 
 /**
@@ -45,7 +51,7 @@ class CaseProject(
  * **Two panes, one wall.** Each projector is its own [PhotoMosaic] on the same grid, so the joints
  * line up across the seam, and their fronts are the two halves of one sweep — the build and every
  * handover cross the wall from the left edge to the right as a single front. Nothing to read
- * crosses the seam: the label stands in a hole in the left pane.
+ * crosses the seam: each projector carries its own copy of the lettering.
  *
  * **A project is its photos beside its drawings.** Its views are as many as the longer of the two
  * lists, and the shorter holds its last picture while the other goes on, so a side that has nothing
@@ -56,6 +62,17 @@ class CaseProject(
  * one picked a mark, cut from its own place and at its own tone — and give way to the black
  * drawing as they dissolve. Drawings are **fitted whole** rather than cropped — a plan cut to fill the pane loses
  * its edges — and the black past a drawing's edge is its own ground. Photos fill the pane.
+ *
+ * **It can run on its own clock** ([cycle]), every view holding and handing over to the next and
+ * the last back round to the first, the way a backdrop does — the show runs it so since 22
+ * September, when a click a view was asked to become a wall that goes round by itself. And the
+ * photographs can **stay in the grid** ([dissolves] false): seen through the marks while they stand
+ * rather than dissolving into the whole photograph, which was asked for the same day. A drawing
+ * still dissolves out of its concrete, since that is the only way it is seen.
+ *
+ * **Each project carries its facts** — function, client, location, the time it took — set in the
+ * four corners of both projectors, the same on each, after the blueprint sketch. A project without
+ * them sets its one line where the function goes.
  *
  * **The label changes with the project, not with the view**: the name and its line fade out through
  * the first half of the handover into a new project and in through the second, and within a project
@@ -76,6 +93,13 @@ class CaseStudies(
     private val concrete: File = File("data/concrete"),
     /** Whether a mark gives way to its whole cell in one frame (true) or crossfades in. */
     private val instant: Boolean = true,
+    /** Whether a picture dissolves out of its marks into the whole image, or stays in the grid. */
+    private val dissolves: Boolean = true,
+    /**
+     * Seconds each view holds before the next, running on the wall's own clock round and round like
+     * a backdrop; null steps a view a click.
+     */
+    private val cycle: Double? = null,
     /** The wall everything is laid out for; `draw` fits it into whatever it gets. */
     private val wall: Vector2 = Vector2(3840.0, 1080.0)
 ) : Scene() {
@@ -83,6 +107,9 @@ class CaseStudies(
     override val background: ColorRGBa = Palette.onBlack.paper
     override val settle get() = frames(PhotoMosaic.OPENING)
     override val stepFrames get() = frames(PhotoMosaic.CLICK)
+
+    /** Seconds a handover takes: the whole click, since a drawing still dissolves at the end of it. */
+    private val handoverLength get() = PhotoMosaic.CLICK
 
     /** Every picture, and whether it is a drawing, in the order they are keyed. */
     private class Source(val file: File, val drawing: Boolean)
@@ -115,7 +142,7 @@ class CaseStudies(
         }
     }
 
-    override val steps get() = views.size.coerceAtLeast(1)
+    override val steps get() = if (cycle != null) 1 else views.size.coerceAtLeast(1)
     override fun stepName(step: Int) = views.getOrNull(step)?.let { projects[it.project].name }
 
     private val palette = Palette.onBlack
@@ -137,10 +164,10 @@ class CaseStudies(
         val templates = loadMarkTemplates(marks)
         if (templates.isEmpty()) println("case studies: no marks at ${marks.path}")
         val pane = wall.x / 2.0
-        left = PhotoMosaic(Rectangle(0.0, 0.0, pane, wall.y), templates, holeCells = LABEL_CELLS,
-            sweep = 0.0..0.5, instant = instant, seed = 101, concretes = stones)
+        left = PhotoMosaic(Rectangle(0.0, 0.0, pane, wall.y), templates,
+            sweep = 0.0..0.5, instant = instant, dissolves = dissolves, seed = 101, concretes = stones)
         right = PhotoMosaic(Rectangle(pane, 0.0, pane, wall.y), templates,
-            sweep = 0.5..1.0, instant = instant, seed = 202, concretes = stones)
+            sweep = 0.5..1.0, instant = instant, dissolves = dissolves, seed = 202, concretes = stones)
         left.prepare(sources.indices)
         right.prepare(sources.indices)
     }
@@ -148,12 +175,38 @@ class CaseStudies(
     override fun draw(drawer: Drawer, stage: Stage) {
         if (views.isEmpty()) return
         val px = Vector2(stage.width / wall.x, stage.height / wall.y)
-        val at = stage.position.coerceIn(0.0, (views.size - 1).toDouble())
-        val from = at.toInt()
-        val s = linear(at - from) * PhotoMosaic.CLICK          // seconds into the click, evenly
-        val next = (from + 1).takeIf { s > 0.0 && it < views.size }
-        // The opening runs only on the first state, so stepping back finds it whole.
-        val opening = if (stage.step == 0 && stage.position == 0.0) stage.frame / frames(1.0).toDouble() else null
+        val from: Int
+        val s: Double
+        val next: Int?
+        val opening: Double?
+        if (cycle != null) {
+            // On the wall's own clock: the first view builds, and then every view holds [cycle]
+            // seconds and hands over to the next, the last back round to the first — a function
+            // of the frame, so it scrubs and films like every backdrop.
+            val t = stage.frame / frames(1.0).toDouble()
+            val open = PhotoMosaic.OPENING
+            val period = cycle + handoverLength
+            if (t < open + cycle) {
+                from = 0; s = 0.0; next = null; opening = t
+            } else {
+                val u = t - open - cycle
+                val k = floor(u / period).toInt()
+                val within = u - k * period
+                if (within < handoverLength) {
+                    from = k % views.size; next = (k + 1) % views.size; s = within
+                } else {
+                    from = (k + 1) % views.size; next = null; s = 0.0
+                }
+                opening = null
+            }
+        } else {
+            val at = stage.position.coerceIn(0.0, (views.size - 1).toDouble())
+            from = at.toInt()
+            s = linear(at - from) * PhotoMosaic.CLICK          // seconds into the click, evenly
+            next = (from + 1).takeIf { s > 0.0 && it < views.size }
+            // The opening runs only on the first state, so stepping back finds it whole.
+            opening = if (stage.step == 0 && stage.position == 0.0) stage.frame / frames(1.0).toDouble() else null
+        }
         val zoom = 1.0 + DRIFT * breathe.at(stage.frame)
         val a = views[from]
         val b = next?.let { views[it] }
@@ -182,36 +235,73 @@ class CaseStudies(
     }
 
     /**
-     * A project's name over its line, in the hole the left pane's grid left for it: centred down
-     * the box, ranged left on the pane's margin, either set smaller only if it would not fit.
+     * A project's lettering in the four corners of **both** projectors, the same on each: its name
+     * top left in the bold with its client under it, what it is top right from the middle of the
+     * pane on two lines, where it is bottom left and how long it took bottom right. The layout of
+     * the blueprint sketch handed over on 22 September; it replaced a label in a hole in the grid.
+     * A band of shade under the top and foot keeps the white type readable over a photograph.
      */
     private fun label(drawer: Drawer, project: CaseProject, shown: Double) {
         if (shown <= 0.0) return
-        val box = left.hole ?: return
-        val inset = (wall.x / 2.0) * Frame.MARGIN
-        val measure = box.width - 2.0 * inset
-        fun fit(piece: String, face: FontImageMap, size: Double, em: Double) =
-            if (piece.isEmpty()) size
-            else minOf(size, measure / (face.advanceWithSubscripts(piece) / em).coerceAtLeast(1e-6))
-        val nameSize = fit(project.name, bold, wall.y * NAME, NAME_EM)
-        val lineSize = fit(project.line, text, wall.y * TEXT, TEXT_EM)
-        val block = nameSize * ASCENT + (if (project.line.isEmpty()) 0.0 else lineSize * (NAME_LEAD + DESCENT))
-        val rise = (1.0 - shown) * nameSize * RISE
-        var baseline = box.y + (box.height - block) / 2.0 + nameSize * ASCENT + rise
-        val x = box.x + inset
+        fun fact(key: String) = project.facts.firstOrNull { it.first == key }?.second
+        val function = fact("Functie")?.split(" · ") ?: listOf(project.line).filter { it.isNotEmpty() }
+        val client = fact("Opdrachtgever")
+        val place = fact("Locatie")
+        val time = fact("Realisatietijd")?.let { "Realisatie: $it" }
+        val pane = wall.x / 2.0
+        val size = wall.y * CORNER
+        val lead = size * CORNER_LEAD
+        val top = wall.y * CORNER_TOP
+        val foot = wall.y * (1.0 - CORNER_FOOT)
+        val rise = (1.0 - shown) * size * RISE
         drawer.stroke = null
-        drawer.fill = palette.ink.opacify(shown)
-        drawer.setLine(project.name, bold, Vector2(x, baseline), nameSize, NAME_EM)
-        if (project.line.isNotEmpty()) {
-            baseline += lineSize * NAME_LEAD
-            drawer.fill = QUIET.opacify(shown)
-            drawer.setLine(project.line, text, Vector2(x, baseline), lineSize, TEXT_EM)
+        for (p in 0..1) {
+            val left = p * pane + pane * CORNER_X
+            val middle = p * pane + pane * CORNER_MIDDLE
+            val room = pane * (1.0 - CORNER_MIDDLE - CORNER_X)
+            fun fit(piece: String, face: FontImageMap, em: Double) =
+                minOf(size, room / (face.advanceWithSubscripts(piece) / em).coerceAtLeast(1e-6))
+            // The shade bands, fading down from the top and up from the foot.
+            drawer.shadeStyle = null
+            listOf(0.0 to 1.0, wall.y to -1.0).forEach { (edge, dir) ->
+                val band = wall.y * SHADE_BAND
+                for (i in 0 until 12) {
+                    val t = i / 12.0
+                    drawer.fill = ColorRGBa.BLACK.opacify(SHADE * (1.0 - t) * (1.0 - t) * shown)
+                    val y = edge + dir * band * t
+                    drawer.rectangle(Rectangle(p * pane, if (dir > 0) y else y - band / 12.0, pane, band / 12.0))
+                }
+            }
+            drawer.fill = palette.ink.opacify(shown)
+            drawer.setLine(project.name, bold, Vector2(left, top + rise), fit(project.name, bold, NAME_EM), NAME_EM)
+            client?.let {
+                drawer.fill = palette.ink.opacify(shown)
+                drawer.setLine(it, text, Vector2(left, top + lead + rise), fit(it, text, TEXT_EM), TEXT_EM)
+            }
+            drawer.fill = palette.ink.opacify(shown)
+            function.forEachIndexed { i, line ->
+                drawer.setLine(line, text, Vector2(middle, top + i * lead + rise), fit(line, text, TEXT_EM), TEXT_EM)
+            }
+            place?.let { drawer.setLine(it, text, Vector2(left, foot - rise), fit(it, text, TEXT_EM), TEXT_EM) }
+            time?.let { drawer.setLine(it, text, Vector2(middle, foot - rise), fit(it, text, TEXT_EM), TEXT_EM) }
         }
     }
 
     private companion object {
-        /** How many coarse cells of the left pane's foot the label's hole takes. */
-        const val LABEL_CELLS = 2
+        /**
+         * The corners, read off the sketch: type at a twenty-fifth of the height, the first
+         * baseline a sixteenth down and the last one twenty-fourth up, set in from the pane's edge
+         * a thirtieth of its width, the second column from just past its middle.
+         */
+        const val CORNER = 0.04
+        const val CORNER_LEAD = 1.2
+        const val CORNER_TOP = 0.075
+        const val CORNER_FOOT = 0.045
+        const val CORNER_X = 0.032
+        const val CORNER_MIDDLE = 0.52
+        /** The shade under the type: how dark at the edge, and how far in it fades. */
+        const val SHADE = 0.8
+        const val SHADE_BAND = 0.24
 
         const val WORDS_IN = 0.6
         const val DRIFT = 0.05
@@ -221,7 +311,7 @@ class CaseStudies(
         const val NAME = 0.046
         const val TEXT = 0.024
         const val NAME_EM = 64.0
-        const val TEXT_EM = 32.0
+        const val TEXT_EM = 64.0
         const val NAME_LEAD = 1.6
         const val ASCENT = 0.75
         const val DESCENT = 0.3

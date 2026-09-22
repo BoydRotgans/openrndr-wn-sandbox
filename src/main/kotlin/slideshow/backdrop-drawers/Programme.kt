@@ -29,8 +29,9 @@ class Entry(val label: String, val chapter: Boolean = false, val message: String
  * programme as a menu**, the four chapters numbered and set large in the order the show plays
  * them, the courses and moments between them as small quiet labels; **the right pane is the
  * chapter that is forward**, its number and its key message. Before any chapter is forward the right pane is
- * empty, since the list is the title; after the last it carries all four messages together, the
- * whole evening on one pane. A click a chapter; the last click settles the whole.
+ * empty, since the list is the title; after the last it carries the title alone, large, as the
+ * name tag carries the speaker's name (review of 22 September: the four messages stacked there
+ * were a lot of text, and read as the list said twice). A click a chapter; the last click settles the whole.
  *
  * It carried a large "Het programma" wordmark in the right pane once, and dropped it on 16
  * September: a list of the evening does not need to be told what it is. [title] is set small
@@ -53,7 +54,13 @@ class Programme(
     private val accent: ColorRGBa = Palette.onBlack.accent,
     override val background: ColorRGBa = Palette.onBlack.paper,
     override val stepFrames: Int = frames(0.8),
-    override val sound: Sound? = null
+    override val sound: Sound? = null,
+    /**
+     * The one pane the list stands in, with nothing on the other: null is the list left and the
+     * chapter's message right. The intro wall stands the list alone in the right projector beside
+     * the speaker's name, a click a chapter bringing it forward among the others dimmed.
+     */
+    val side: Int? = null
 ) : Backdrop() {
 
     override val name = "Programme"
@@ -114,10 +121,14 @@ class Programme(
         fun forward(s: Int) = if (s in 1..chapters.size) chapters[s - 1] else -1
         val fa = forward(a); val fb = forward(b)
 
-        // --- the left pane: the menu --------------------------------------------------- //
-        val x = pane * MARGIN
+        // --- the menu, in the left pane or in [side] -------------------------------------- //
+        val x = pane * (side ?: 0) + pane * MARGIN
         val headed = if (opening) smoothstep(stage.since(0, frames(ARRIVE))) else 1.0
-        drawer.fill = quiet.opacify(headed * QUIET)
+        // The small heading gives way to the large title on the right at the end.
+        val lastState = chapters.size + 1
+        fun headingAt(s: Int) = if (s == lastState && side == null) 0.0 else 1.0
+        val heading = headingAt(a) + (headingAt(b) - headingAt(a)) * t
+        drawer.fill = quiet.opacify(headed * QUIET * heading)
         drawer.setLine(title, text, Vector2(x, h * HEADING_Y), h * MOMENT, SIZE)
 
         val weights = entries.map { if (it.chapter) CHAPTER else 1.0 }
@@ -152,6 +163,7 @@ class Programme(
         }
 
         // --- the right pane: the chapter that is forward, or at the end the whole evening -- //
+        if (side != null) return
         val right = Rectangle(pane + pane * MARGIN, h * RIGHT_TOP, pane * (1.0 - 2.0 * MARGIN), h * (RIGHT_BOTTOM - RIGHT_TOP))
         val last = chapters.size + 1
         fun message(f: Int, alpha: Double) {
@@ -165,20 +177,14 @@ class Programme(
                 drawer.setLine(line, text, Vector2(right.x, right.y + h * (MESSAGE_Y + j * MESSAGE_LEAD)), h * MESSAGE, SIZE)
             }
         }
-        // The whole evening: every chapter's number and message, stacked in equal shares.
+        // The whole evening: the list on the left says it all, so the right pane carries only the
+        // title, set as the name tag sets the speaker's name — large, ranged left, level with the
+        // middle. It carried all four messages stacked once, which was the list read twice.
         fun whole(alpha: Double) {
-            if (alpha <= 0.0 || chapters.isEmpty()) return
-            val share = right.height / chapters.size
-            chapters.forEachIndexed { k, f ->
-                val e = entries[f]
-                val top = right.y + k * share
-                drawer.fill = accent.opacify(alpha)
-                drawer.setLine((k + 1).toString(), bold, Vector2(right.x, top + h * ALL_SIZE * 1.4), h * ALL_SIZE * 1.4, SIZE)
-                drawer.fill = ink.opacify(alpha)
-                text.wrapped(e.message, (right.width - pane * NUMBER_W) * SIZE / (h * ALL_SIZE)).forEachIndexed { j, line ->
-                    drawer.setLine(line, text, Vector2(right.x + pane * NUMBER_W, top + h * ALL_SIZE * (1.4 + j * ALL_LEAD)), h * ALL_SIZE, SIZE)
-                }
-            }
+            if (alpha <= 0.0) return
+            val size = h * TITLE_BIG
+            drawer.fill = ink.opacify(alpha)
+            drawer.setLine(title, bold, Vector2(right.x, h * 0.5 + size * 0.34), size, SIZE)
         }
         fun rightAt(s: Int, alpha: Double) = when {
             s in 1..chapters.size -> message(chapters[s - 1], alpha)
@@ -201,9 +207,8 @@ class Programme(
         const val CHAPTER_SIZE = 0.056
         const val MOMENT = 0.026
         const val QUIET = 0.7
-        /** The whole evening on the right pane at the end: message size and leading. */
-        const val ALL_SIZE = 0.03
-        const val ALL_LEAD = 1.25
+        /** The title on the right pane at the end: the name tag's name size. */
+        const val TITLE_BIG = 0.095
         const val DIM = 0.3
         const val RIGHT_TOP = 0.2
         const val RIGHT_BOTTOM = 0.8

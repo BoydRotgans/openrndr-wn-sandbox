@@ -34,6 +34,11 @@ import kotlin.math.min
  * three files were cut from one layout, so they share a scale — one unit is one unit in all
  * three — and the joints state themselves in the path data:
  *
+ * - **Where the lower pair stands across is set by the outer edges, not the tabs.** They are
+ *   1066.0 wide against the bar's 1067.6, so they stand 0.8 in, level with it to under a pixel
+ *   either side. Centring the bar's left tab in its socket instead put them 5.2 left of the bar,
+ *   a visible step on both outer edges; the few units of play that leaves round each tab are
+ *   inside the seal below, so they never show.
  * - Social's right edge runs out to 535.4 and is cut back to 502.0 in four places; Governance's
  *   body starts at x=33 with four tabs reaching to x=0. So a tab is 33 deep and a socket 33.5,
  *   and closed, Governance's tab tips sit on Social's socket floor: **Governance stands 501.0
@@ -204,6 +209,23 @@ class EsgFramework(
         val apart = 1.0 - stage.on(closing)
         val middle = assembly.center
 
+        // The joint sealed as it closes. The drawings' tabs are a few units short of the sockets
+        // they drop into — the bar's by 3.5 and 4, Governance's side teeth by 1 to 3 — so a closed
+        // framework showed black hairlines along every joint (review of 22 September). Under the
+        // pieces, the region the two lower ones tile is filled in their red over the last part of
+        // the close, so nothing shows through once they are home and nothing changes before.
+        val sealed = ((stage.on(closing) - SEAL) / (1.0 - SEAL)).coerceIn(0.0, 1.0)
+        if (sealed > 0.0 && pieces.size == 3) {
+            val (_, left, right) = pieces
+            val x0 = left.at.x
+            val x1 = right.at.x + right.size.x
+            val y0 = min(left.at.y, right.at.y)
+            val y1 = min(left.at.y + left.size.y, right.at.y + right.size.y)
+            drawer.fill = ink.opacify(sealed * stage.on(pieces.size - 1))
+            drawer.stroke = null
+            drawer.rectangle(Rectangle(home + Vector2(x0, y0) * scale, (x1 - x0) * scale, (y1 - y0) * scale))
+        }
+
         pieces.forEachIndexed { i, piece ->
             val shown = stage.on(i)
             if (shown <= 0.0) return@forEachIndexed
@@ -321,12 +343,15 @@ class EsgFramework(
         /**
          * The joint, in units of the bar's own width, read off the path data — see the class
          * note. [TOOTH] is how far the right piece stands from the left, [DROP] how far both
-         * stand below the bar, and [SOCIAL_X] the nudge that centres the bar's left tab in the
-         * left piece's socket.
+         * stand below the bar, and [SOCIAL_X] where the lower pair stands across, set so their outer
+         * edges run level with the bar's.
          */
         const val TOOTH = 500.982 / 1067.6
         const val DROP = 250.037 / 1067.6
-        const val SOCIAL_X = -5.2 / 1067.6
+        const val SOCIAL_X = 0.8 / 1067.6
+
+        /** How far through the closing click the seal under the joint starts to come in. */
+        const val SEAL = 0.85
 
         const val TITLE = 0.036
         const val LABEL = 0.024

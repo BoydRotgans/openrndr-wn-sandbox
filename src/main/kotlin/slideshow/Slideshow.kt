@@ -24,12 +24,19 @@ import slideshow.Scene
 import slideshow.backdrops.BlockCity
 import slideshow.backdrops.CityBlock02
 import slideshow.backdrops.NameTag
+import slideshow.backdrops.IntroWall
 import slideshow.backdrops.PlainScene
 import slideshow.backdrops.Programme
 import slideshow.backdrops.EndingScene
 import slideshow.playlist
+import slideshow.stemCue
 import slideshow.backdrops.Entry
 import slideshow.backdrops.ShadowFacade
+import slideshow.backdrops.ShadowMosaic
+import slideshow.Sound
+import slideshow.Stage
+import slideshow.frames
+import slideshow.linear
 import slideshow.backdrops.Skew3D
 import slideshow.arrangedFromFile
 import slideshow.present
@@ -60,10 +67,7 @@ import slideshow.drawers.Crowd
 import slideshow.drawers.EsgFramework
 import slideshow.drawers.LcaMark
 import slideshow.drawers.LcaSource
-import slideshow.drawers.LifeCycle
 import slideshow.drawers.LifeCycleAnalysis
-import slideshow.drawers.LifePhase
-import slideshow.drawers.LifeStep
 import slideshow.drawers.QuoteSlide
 import slideshow.drawers.Swivel01Slide
 import slideshow.drawers.Swivel02Slide
@@ -148,7 +152,7 @@ val slideLoop: slideshow.Sound? = (Env["SLIDES_BASE_LOOP"] ?: File(soundFolder, 
  * in one place — [ambience] is separate because a bed under people talking is a different
  * job from a mark on a click.
  */
-val cueGain = Env["SLIDES_CUE_GAIN"]?.toDoubleOrNull() ?: 0.8
+val cueGain = Env["SLIDES_CUE_GAIN"]?.toDoubleOrNull() ?: 1.0
 
 /**
  * A cue off the sheet, at the level they are all set to. Fades in seconds, for reading — the
@@ -229,10 +233,11 @@ val lcaFields = listOf("Materiaal", "Leverancier", "Transportwijze", "Herkomst",
  */
 val ambience = slideshow.Sound(
     File(Env["SLIDES_AMBIENCE"] ?: "data/sounds/ambiencebackingtrackV2.wav"),
-    gain = 0.6,
+    gain = 1.0,
     loop = true,
     fadeIn = slideshow.frames(6.0),
-    fadeOut = slideshow.frames(2.5)
+    fadeOut = slideshow.frames(2.5),
+    layer = slideshow.Layer.MUSIC     // a room under the walls, levelled with the dinner beds
 )
 
 /**
@@ -596,6 +601,25 @@ fun slideshow.ChapterBuilder.takeaway(n: Int, sentence: String) = slide(
 )
 
 /**
+ * The project highlight's sound, off the designer's four stems in `SLIDES_HIGHLIGHT_SOUNDS`
+ * (`data/sounds/General`). They share one 13.4 s timeline scored against a filmed highlight, so
+ * each cue is its two stems summed and cut from the frame its state starts on: the opening at 0 s
+ * — the elements building ("Reveal") and the photo dissolving out of them ("Build") — and a click
+ * at 6.30 s, the break-up and handover and then the next dissolve. See [stemCue].
+ */
+val highlightSounds = File(Env["SLIDES_HIGHLIGHT_SOUNDS"] ?: "data/sounds/General")
+val highlightArrival = stemCue(
+    "highlight-arrival",
+    listOf("chapterInReveal", "chapterInBuild").map { File(highlightSounds, "project-highlight-$it.wav") },
+    from = 0.0, to = 3.5, gain = cueGain
+)
+val highlightClick = stemCue(
+    "highlight-click",
+    listOf("chapterTransitionReveal", "chapterTransitionBuild").map { File(highlightSounds, "project-highlight-$it.wav") },
+    from = 6.30, to = 10.0, gain = cueGain
+)
+
+/**
  * A chapter's project highlight: the storyline brought down to one real building, standing just
  * before the takeaway so the chapter resolves on a project before it resolves on a sentence.
  * Every photograph in the case's folder under `SLIDES_HIGHLIGHTS`, a click each, opening on
@@ -610,7 +634,8 @@ fun slideshow.ChapterBuilder.highlight(
         File(Env["SLIDES_HIGHLIGHTS"] ?: "data/case-studies/Studie Cases", case), lead,
         project, line, boldPath = boldFont, textPath = textFont, focus = focus,
         marks = File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"),
-        instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade"
+        instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade",
+        arrival = highlightArrival, click = highlightClick
     ),
     title = "Projecthighlight $n",
     notes = notes
@@ -624,7 +649,7 @@ fun slideshow.ChapterBuilder.highlight(
  */
 val leftFactors = listOf(
     "Locatie", "Bodemgesteldheid", "Topografie", "Bereikbaarheid",
-    "Transport", "Logistiek", "Materiaalbeschikbaarheid", "Sourcing",
+    "Productie", "Logistiek", "Materiaalbeschikbaarheid", "Sourcing",
     "Levertermijnen", "Arbeidsmarkt", "Vakmanschap", "Onderaannemers",
     "Bouwkosten", "Inflatie", "Rentevoeten", "Financiering",
     "Vergunningen", "Bestemmingsplan", "Bouwvoorschriften",
@@ -633,7 +658,7 @@ val leftFactors = listOf(
 
 val rightFactors = listOf(
     "Waterbeheer", "Nutsvoorzieningen", "Netcongestie", "Riolering",
-    "Fundering", "Constructiekeuzes", "Architectonisch ontwerp",
+    "Fundering", "Materiaal", "Transport", "Constructiekeuzes", "Architectonisch ontwerp",
     "Technische installaties", "Digitalisering/BIM", "Planning",
     "Risicobeheer", "Kwaliteitscontrole", "Veiligheidsbeheer",
     "Omwonenden", "Participatie", "Politieke besluitvorming",
@@ -666,8 +691,8 @@ val chapterMessages = listOf(
  * Intershipping and Interton in Bornem — so each of those takes the free cell beside the other.
  *
  * The last entry is not a factory: Transwinaton, the group's own transport arm, is visited as the
- * bridge out of Seveton and is drawn only while it is — see [Factory.hidden]. Last, so it never
- * pushes a factory off its cell.
+ * bridge out of Seveton; its dot stands with the others from the start, but it is left out of the
+ * cluster's middle — see [Factory.hidden]. Last, so it never pushes a factory off its cell.
  */
 val factories = listOf(
     Factory("Megaton/Structo Prefab Systems", "Industriezone II, Nederwijk-Oost 279", "9400", "Ninove", "België"),
@@ -743,6 +768,72 @@ val openingWall = OpeningScene(
     // the room the wall stands in, fading up under it and out as the talk starts
     sound = ambience
 )
+
+/**
+ * The city builder: the shadow mosaic in close-up as a town, blue building going up, greying and
+ * coming down, among red WN units that are taken apart and put together again elsewhere. One
+ * function because the show stands it three times — the First course's wall, the Second course's,
+ * and chapter 4's "Demontabel in de stad" as a slide beside its card — and three copies of forty
+ * arguments would drift. [wall] false composes it for the 1920 pane at one projector's density.
+ */
+fun cityMosaic(
+    seed: Int = 33,
+    name: String = "Shadow mosaic close",
+    sound: Sound? = mainBed,
+    wall: Boolean = true,
+    clicks: Int = 1,
+    stepFrames: Int = frames(0.45),
+    clusters: List<List<Int>> = listOf(listOf(4), listOf(2, 3), listOf(6), listOf(2, 2, 3), listOf(3, 4)),
+    stateLength: Double = 25.6,
+    stagger: Double = 1.3,
+    move: Double = 4.0,
+    smallUnits: Int = 36,
+    unitsOnClick: Int? = null,
+    tweak: (ShadowMosaic) -> ShadowMosaic = { it }
+): ShadowMosaic = ShadowMosaic(
+        marks = {
+            loadMarkTemplates(File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"))
+                .map { it.triangles to it.aspect }
+        },
+        wallWidth = if (wall) 3840.0 else 1920.0,
+        boxColumns = if (wall) 4 else 2,        // boxes cut on two coarse cells to a projector,
+        columns = if (wall) 8 else 4,           // packed finer: at 4 a dark box was one slab
+        innerColumns = if (wall) 16 else 12,  // a pane: a building of three needs a strip the roads leave
+        tower = 140.0, band = 70.0, gap = 3.0,  // shorter shadows than the black wall: on a light
+        elevation = 32.0,                       // ground at 220 and 22 degrees they streaked half a
+                                                // projector and weighed on the blue
+paper = ColorRGBa.fromHex("2B2D31"),     // a dark grey ground
+        fieldLow = wnBlue, fieldHigh = wnSky,
+        // The story: what is built conventionally is blue and ages to grey where it stands until it
+        // is taken down; the WN elements are red, never age, and are lifted and set down elsewhere.
+        blues = 1.0,                            // every building mark blue: the conventional fabric
+        oldLow = ColorRGBa.fromHex("8C9199"), oldHigh = ColorRGBa.fromHex("C3C7CD"),
+        grow = 8.0, hold = 40.0, emptyHold = 8.0, // built, forty seconds of greying, down, a gap
+        accentLow = ColorRGBa.fromHex("C40000"), accentHigh = wnRed,
+        // The red units always stand as buildings, and there come to be more of them: one of four,
+        // two and three, one of six, two, two and three, three and four — each taken apart and put
+        // together again elsewhere a unit at a time; new ones built up out of the floor where they
+        // stand, and at the end of the round three taken down, so it can begin again.
+        clusters = clusters,
+        stateLength = stateLength, stagger = stagger, move = move, unitLift = 0.8,
+        // And small red elements, one more every twelve seconds for seven minutes, each reused
+        // plot to plot, the blue giving way where one stands: more and more red the longer it runs.
+        smallUnits = smallUnits, smallColumns = 32, smallSites = 3, smallHop = 16.0, smallMove = 3.0,
+        smallEvery = 12.0, smallFirst = 8.0,
+        handover = true,                        // boxes build up and down in pairs, never dark
+        city = true, roadWidth = 70.0,          // roads straight and curved, and two parks,
+        roadTone = ColorRGBa.fromHex("35383D"), parkTone = ColorRGBa.fromHex("30343A"), // a shade off the ground
+        shade = ColorRGBa.fromHex("0E0F12"), shadowStrength = 0.85,
+        concrete = (Env["SLIDES_CARD_V3_CONCRETE"] ?: Env["LONGSHADOW_V3_CONCRETE"]
+            ?: "data/concrete/concrete-052v2_crop.jpg").takeIf { it != "none" }?.let { File(it) },
+        seed = seed,
+        name = name,
+        sound = sound,
+        wall = wall,
+        clicks = clicks,
+        stepFrames = stepFrames,
+        unitsOnClick = unitsOnClick
+    ).let(tweak)
 
 val show = slideshow {
 
@@ -841,32 +932,54 @@ val show = slideshow {
                 "rather than on a click."
     )
 
-    // The programme of the evening: the moments and the four chapters in one line across the
-    // wall, a click a chapter with its key message. The entries are the order file's moments
-    // and the chapters' titles, stated here so a renamed moment is one change. See Programme.
+    // The intro wall: Erik's name standing on the left as the name tag left it, the programme of
+    // the evening in the right projector alone, a click a chapter, and on the last click Erik hands
+    // over to the guest from StudioBuik, named on the right level with him, for the dinner (review
+    // of 22 September). The entries are the order file's moments and the chapters' titles, stated
+    // here so a renamed moment is one change. See IntroWall, Programme and NameTag.
     backdrop(
-        Programme(
-            entries = listOf(
-                Entry("Opening"),
-                Entry("Aperitief"),
-                Entry("De wereld van bouwen", chapter = true, message = chapterMessages[0]),
-                Entry("Voorgerecht"),
-                Entry("Waardekader en verantwoordelijkheid", chapter = true, message = chapterMessages[1]),
-                Entry("Eerste gang"),
-                Entry("Beton: ruggengraat en transitie", chapter = true, message = chapterMessages[2]),
-                Entry("Tweede gang"),
-                Entry("The Circle: een nieuwe manier van denken", chapter = true, message = chapterMessages[3]),
-                Entry("Vragen"),
-                Entry("Dessert"),
-                Entry("Uitloop")
+        IntroWall(
+            host = NameTag(
+                presenter = "Erik Koremans",
+                organisation = "Willy Naessens NEDERLAND",
+                role = "Chief Commercial and Sustainability Officer (CCSO)",
+                fontPath = boldFont,
+                accent = wnRed
             ),
-            boldPath = boldFont,
-            textPath = textFont,
-            accent = wnRed
+            programme = Programme(
+                entries = listOf(
+                    Entry("Opening"),
+                    Entry("Aperitief"),
+                    Entry("De wereld van bouwen", chapter = true, message = chapterMessages[0]),
+                    Entry("Voorgerecht"),
+                    Entry("Waardekader en verantwoordelijkheid", chapter = true, message = chapterMessages[1]),
+                    Entry("Eerste gang"),
+                    Entry("Beton: ruggengraat en transitie", chapter = true, message = chapterMessages[2]),
+                    Entry("Tweede gang"),
+                    Entry("The Circle: een nieuwe manier van denken", chapter = true, message = chapterMessages[3]),
+                    Entry("Vragen"),
+                    Entry("Dessert"),
+                    Entry("Uitloop")
+                ),
+                boldPath = boldFont,
+                textPath = textFont,
+                accent = wnRed,
+                side = 1
+            ),
+            // PLACEHOLDER: the guest's name and title are still to come.
+            guest = NameTag(
+                presenter = "[Naam]",
+                organisation = "StudioBuik",
+                role = "[Functie]",
+                fontPath = boldFont,
+                accent = wnRed,
+                pane = 1
+            )
         ),
         title = "Het programma",
-        notes = "De avond in vier delen, geserveerd tussen de gangen. Een click per hoofdstuk " +
-                "brengt het naar voren met zijn kernboodschap; de laatste click toont het geheel."
+        notes = "Erik links, het programma rechts: de avond in vier delen, geserveerd tussen de gangen, " +
+                "een click per hoofdstuk en een voor het geheel. De laatste click: Erik stelt [Naam] van " +
+                "StudioBuik voor, als introductie op het diner. DRAFT: haar naam en functie."
     )
 
     chapter("De wereld van bouwen") {
@@ -905,20 +1018,21 @@ val show = slideshow {
                 right = nodes(rightFactors),
                 opening = { city.closingMark },
                 fontPath = boldFont,
-                // Two factors named first, one a click, then the fan. They stand beside the root
+                // Four factors named first, one a click, then the fan. They stand beside the root
                 // while they are the only thing on the pane and travel out to their rows when it
-                // opens, so one is read on the left, then one on the right, then all of them.
-                // **One from each list, in that order** — Locatie is the left branch and
-                // Constructiekeuzes the right, and the slide reads left-then-right because of it.
-                // PROPOSAL: which two is the speaker's call.
-                highlights = listOf("Locatie", "Constructiekeuzes"),
+                // opens. The four and their order are the voice-over's (data/subtitles, 21
+                // September): "op welke locatie, welke materialen we kiezen, hoe we produceren,
+                // hoe we transporteren". **They alternate sides** — Locatie and Productie are in
+                // the left list, Materiaal and Transport in the right — so the pane reads left,
+                // right, left, right, as it did with two.
+                highlights = listOf("Locatie", "Materiaal", "Productie", "Transport"),
                 // On the fan's click, not the arrival: this slide opens on the city's own
                 // last frame and holds there, so what the cue marks is the fan coming apart.
                 fanCue = treeCue
             ),
             title = "Everything a build answers to",
-            notes = "The element the city closed on becomes the root. Click 1 names Locatie, " +
-                    "click 2 Constructiekeuzes, click 3 fans out everything a build answers to. " +
+            notes = "The element the city closed on becomes the root. Clicks 1 to 4 name Locatie, " +
+                    "Materiaal, Productie and Transport, click 5 fans out everything a build answers to. " +
                     "Nesting a label with node(\"...\", node(\"...\")) adds a level and costs a click."
         )
 
@@ -1129,12 +1243,13 @@ val show = slideshow {
                     Measure(Measure.Kind.PANEL, "Opwekken eigen groene stroom", 2),
                     Measure(Measure.Kind.BATTERY, "Opslaan groene stroom in batterij", 2)
                 ),
+                single = 2,                 // cranes and trucks a click each, then the other four together
                 illustrations = File(Env["SLIDES_ILLUSTRATIONS"] ?: "data/illustrations"),
                 boldPath = boldFont,
                 textPath = textFont,
                 accent = wnRed,
                 blue = ColorRGBa.fromHex("3D5AE0"),
-                stepCues = List(7) { markCue }      // the certificate going, then a mark an illustration
+                stepCues = List(4) { markCue }      // the certificate going, a mark a named measure, and one for the rest
             ),
             title = "Geen compensatie",
             notes = "In plaats van ons te richten op CO\u2082-neutrale certificeringen op basis van " +
@@ -1219,12 +1334,15 @@ val show = slideshow {
                 )),
                 boldPath = boldFont,
                 textPath = textFont,
+                // A piece in each of The Circle's boxes, turning, red as its step is named.
+                pieces = listOf("WAND_27", "TANDBALK", "PREDAL", "FUND"),
                 stepCues = List(5) { markCue }      // a mark as each column lands: a counted build
             ),
             title = "Levenscyclus van betonproducten",
             notes = "Four phases, a click each, then the end-of-life column is replaced by " +
-                    "The Circle and its four steps arrive. Zonder sloop: demonteren, " +
-                    "transport, opslag, opnieuw gebruiken."
+                    "The Circle — four boxes with a catalogue piece turning in each — and a " +
+                    "click a step names them. Zonder sloop: demonteren, transport, opslag, " +
+                    "opnieuw gebruiken."
         )
         // The B half of the same reference: the two databases feeding one calculation, and
         // what that calculation is for. Off data/ref/Levenscyclus van betonproducten-2.pdf,
@@ -1395,8 +1513,7 @@ val show = slideshow {
         slide(
             SecondLife(
                 objects = yardObjects,
-                panel = "WAND_27",          // the doorway is the ear-clipping proof
-                slab = "WERKVLOER_2",       // a floor that is modelled lying flat; PREDAL stands upright in the export
+                panel = "WAND_27",          // the doorway is the ear-clipping proof; the same wall breaks
                 boldPath = boldFont,
                 textPath = textFont,
                 ink = ColorRGBa.fromHex("3D5AE0"),
@@ -1442,13 +1559,13 @@ val show = slideshow {
         slide(
             RingOfPieces(
                 objects = yardObjects,
-                path = Env["SLIDES_MARK"]?.takeIf { it.isNotBlank() }?.let { File(it) },   // PLACEHOLDER until the WN ring arrives as svg
+                path = File(Env["SLIDES_MARK"] ?: "data/logo/wn-mark.svg"),   // the mark's centreline, tools/trace_wn_mark.py
                 boldPath = boldFont
             ),
             title = "The Circle in elementen",
             notes = "The Circle is een concept dat laat zien hoe een gebouw m\u00E9\u00E9r kan zijn dan " +
                     "een optelsom van materialen. No clicks: the pieces land along the ring on the " +
-                    "slide's own clock. Waiting on the WN ring as svg (SLIDES_MARK)."
+                    "slide's own clock, along the WN mark (SLIDES_MARK), each landing white and settling grey."
         )
         // Every silhouette of the front sheet once, packed at one height in the red, and dealt
         // out again on the click. See HundredElements.
@@ -1490,7 +1607,7 @@ val show = slideshow {
                 ),
                 factories = factories,     // the factories alone for now: `offices` is not drawn
                 footer = false,            // no name bar for now: the name card is the only lettering
-                background = wnBlue,       // the sea in the navy the chapter card's shadows are cast in (LONGSHADOW_SHADE)
+                background = ColorRGBa.BLACK, // the sea black, the wall's own ground under the concrete (review of 22 September; it was the navy)
                 dot = wnRed,
                 picked = wnBlue,           // the selected factory's dot turns blue...
                 pickedPulse = wnSky,       // ...and pulses toward the lighter blue
@@ -1520,14 +1637,14 @@ val show = slideshow {
                 callouts = listOf(
                     listOf(
                         // Two or three words a callout: a label, not a sentence.
-                        Callout("3D-model uit de webtool", Vector3(0.5, 1.0, 0.5)),
-                        Callout("Plan, automatisch", Vector3(0.9, 0.5, 0.5)),
-                        Callout("CO\u2082 per gebouw, automatisch", Vector3(0.8, 0.0, 0.9))
+                        Callout("3D-model uit de webtool", Vector3(0.2, 1.0, 0.8)),
+                        Callout("Plan, automatisch", Vector3(0.5, 1.0, 0.5)),
+                        Callout("CO\u2082 per gebouw, automatisch", Vector3(0.8, 1.0, 0.2))
                     ),
                     listOf(
-                        Callout("Demontabel bouwen", Vector3(0.5, 1.0, 0.5)),
-                        Callout("Bouwstenen hergebruikt", Vector3(0.9, 0.5, 0.5)),
-                        Callout("Bouwstenen op voorraad", Vector3(0.8, 0.0, 0.9))
+                        Callout("Demontabel bouwen", Vector3(0.2, 1.0, 0.8)),
+                        Callout("Bouwstenen hergebruikt", Vector3(0.5, 1.0, 0.5)),
+                        Callout("Bouwstenen op voorraad", Vector3(0.8, 1.0, 0.2))
                     )
                 ),
                 boldPath = boldFont,
@@ -1537,7 +1654,8 @@ val show = slideshow {
             ),
             title = "Gebouw uit de webtool",
             notes = "In plaats van lineair bouwen wordt een circulaire gedachte geschetst: bouwen met " +
-                    "demontabele elementen, voor de volgende gebruiker. Click 1 swaps the label set."
+                    "demontabele elementen, voor de volgende gebruiker. A label a click, left to right across " +
+                    "the roof; the fourth click swaps to the second set."
         )
         // The ordinary process against the process with reuse: two columns of steps, the copy
         // taking its steps across, the removed steps turning red, disassembly sliding in. See
@@ -1574,10 +1692,26 @@ val show = slideshow {
                 objects = yardObjects,
                 picks = listOf("WAND_27", "TT-590-2400-120", "KOLOM", "TANDBALK", "PREDAL", "BALK")
             ),
+            title = "Demontabel in de stad, blokken",
+            notes = "The first version, kept for later: the block city with catalogue pieces on its " +
+                    "roofs, lifted on the click and set down on other roofs. Click 1 lifts every piece."
+        )
+        // The city builder beside the card, at one projector's density: two red buildings that the
+        // click takes apart and puts together again elsewhere, a unit at a time, while the blue goes
+        // up and comes down around them (review of 22 September). See cityMosaic.
+        slide(
+            cityMosaic(
+                seed = 35, name = "Demontabel", sound = null,
+                wall = false, clicks = 2, stepFrames = frames(8.0),
+                clusters = listOf(listOf(3, 2), listOf(2, 3)),
+                stateLength = 16.0, stagger = 0.8, move = 3.0,
+                smallUnits = 0,
+                unitsOnClick = 1
+            ),
             title = "Demontabel in de stad",
             notes = "Bouwen met demontabele elementen; bouwen met het idee dat onderdelen later " +
                     "hergebruikt kunnen worden; bouwen voor de volgende gebruiker, niet alleen " +
-                    "voor de eerste. Click 1 lifts every piece to another roof."
+                    "voor de eerste. Click 1 takes the red buildings apart and builds them again elsewhere."
         )
         // The framework of chapter 2 again, this time saying what each piece stands for in The
         // Circle: a piece a click with its notes beside it and the others dimmed, then all three
@@ -1625,6 +1759,44 @@ val show = slideshow {
         notes = "The pieces laid end to end at one height, one colour with a long sharp " +
                 "shadow, passing slowly and each turning on its own axis."
     )
+
+    // Building and unbuilding, box by box: each projector divided into boxes of different sizes,
+    // each filled from its own middle by a growing circle of light blocks, held, then emptied by a
+    // dark circle from the same middle, every box on its own delay. The look is after the Binpack06
+    // clip. Loops in 32 s. The Opening course's wall for now, on its bed. See ShadowMosaic.
+    backdrop(
+        ShadowMosaic(
+            marks = {
+                loadMarkTemplates(File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"))
+                    .map { it.triangles to it.aspect }
+            },
+            // The chapter card's own stone, worked into the roofs so they read as concrete.
+            concrete = (Env["SLIDES_CARD_V3_CONCRETE"] ?: Env["LONGSHADOW_V3_CONCRETE"]
+                ?: "data/concrete/concrete-052v2_crop.jpg").takeIf { it != "none" }?.let { File(it) },
+            // A third of the pace it was built at: on the projection a box filling in ten seconds
+            // read as hurried (review of 22 September). A cycle is 96 s.
+            grow = 30.0, hold = 18.0,
+            // Coming up six seconds into its own clock, so the first boxes are already filling as
+            // the wall arrives rather than a circle starting from a point (review of 22 September).
+            lead = 6.0,
+            sound = starterBed
+        ),
+        title = "Shadow mosaic",
+        notes = "Each projector in boxes; each box fills from its middle with a circle of light " +
+                "blocks, holds, and empties again under a dark circle, every box on its own delay.")
+
+    // The shadow mosaic in close-up as a town, telling the story of the two ways of building: roads
+    // and parks never built; blue blocks going up in boxes, greying where they stand over forty
+    // seconds and taken down, in pairs, one going up as another comes down; and six red WN units that
+    // never age and always stand together as buildings — one, then two, one, three — each building
+    // taken apart where it stands and put together again elsewhere, a unit at a time.
+    // On a dark grey ground. The First course's wall for now, on its bed. See ShadowMosaic.
+    backdrop(
+        cityMosaic(),
+        title = "Shadow mosaic close",
+        notes = "A town of blue blocks that go up, grey with age where they stand and are taken " +
+                "down, among red WN units that stand as one building, then two, one, three — moved " +
+                "a unit at a time and never ageing.")
 
     // The gallery: the whole catalogue on a dense grid, every piece once, all turning slowly
     // with the phase rippling across the field — calm, because nothing starts or stops.
@@ -1685,6 +1857,16 @@ val show = slideshow {
         title = "Block city, plain",
         notes = "The block city with every face plain, in the house colours: navy masses on " +
                 "white with a red block here and there. Loops every four minutes."
+    )
+
+    // The city builder again, as the Second course's wall in the block city's place (review of
+    // 22 September: build the course's city out of the catalogue, red and blue). The First
+    // course's wall on another seed, so the town is laid out afresh. See cityMosaic.
+    backdrop(
+        cityMosaic(seed = 34, name = "Stad in opbouw", sound = null),
+        title = "Stad in opbouw",
+        notes = "The shadow mosaic close as the Second course's wall: blue building going up and " +
+                "coming down, red WN units moved as buildings. It replaced the plain block city."
     )
 
     // DRAFT. A pictogram chart on a wall going from the house red to the navy and back: a
@@ -1853,14 +2035,43 @@ val show = slideshow {
     scene(
         CaseStudies(
             projects = listOf(
+                // The facts are the client's, off data/other/project-details-case-studies.txt; each
+                // function is the area and a short line cut from the paragraph given there.
+                // Panattoni first (review of 22 September).
+                CaseProject("Panattoni Almelo", "Almelo", "Case Studie - Panattoni Almelo", listOf("panattoni-almelo-a.png"),
+                    facts = listOf(
+                        "Functie" to "55.000 m² · warehouse, BREEAM Excellent",
+                        "Opdrachtgever" to "Panattoni Nederland",
+                        "Locatie" to "Newton 6, Almelo",
+                        "Realisatietijd" to "62 weken")),
                 CaseProject("Van Cranenbroek", "Budel", "Case Studie - van Cranenbroek Budel",
-                    listOf("van-cranenbroek-a.png", "van-cranenbroek-b.png")),
+                    listOf("van-cranenbroek-a.png", "van-cranenbroek-b.png"),
+                    facts = listOf(
+                        "Functie" to "13.250 m² · afhaalmagazijn met kantoor",
+                        "Opdrachtgever" to "Van Cranenbroek",
+                        "Locatie" to "Randweg-Zuid 8, Budel",
+                        "Realisatietijd" to "34 weken")),
+                // Blocks B and C together, as the file asks: the whole park is what is shown.
                 CaseProject("VGP Park Nijmegen", "Nijmegen  ·  gebouw B & C", "Case Studie - VGP Park Nijmegen - B & C",
-                    listOf("vgp-nijmegen-a.png", "vgp-nijmegen-b.png")),
-                CaseProject("Kivits", "Ridderkerk  ·  10.000 m² magazijn", "Case Studie - Kivits Ridderkerk",
-                    listOf("kvitis-ridderkerk-a.png", "kvitis-ridderkerk-b.png")),
-                CaseProject("Intervest", "Herstal  ·  ons eerst verkochte Circle-pand", "Case Studie - Intervest The Circle"),
-                CaseProject("Panattoni", "Almelo", "Case Studie - Panattoni Almelo", listOf("panattoni-almelo-a.png")),
+                    listOf("vgp-nijmegen-a.png", "vgp-nijmegen-b.png"),
+                    facts = listOf(
+                        "Functie" to "± 130.000 m² · logistiek park, blok B en C",
+                        "Opdrachtgever" to "VGP Group",
+                        "Locatie" to "Rietgraaf 2a, Oosterhout",
+                        "Realisatietijd" to "104 weken")),
+                CaseProject("WDP Kivits", "Ridderkerk", "Case Studie - Kivits Ridderkerk",
+                    listOf("kvitis-ridderkerk-a.png", "kvitis-ridderkerk-b.png"),
+                    facts = listOf(
+                        "Functie" to "34.000 m² · koelopslag, 30 koelcellen",
+                        "Opdrachtgever" to "WDP",
+                        "Locatie" to "Selderijweg 70, Ridderkerk",
+                        "Realisatietijd" to "52 weken")),
+                // No realisation time in the client's file.
+                CaseProject("Intervest", "Herstal  ·  ons eerst verkochte Circle-pand", "Case Studie - Intervest The Circle",
+                    facts = listOf(
+                        "Functie" to "40.000 m² · vier loodsen, een The Circle-project",
+                        "Opdrachtgever" to "Intervest",
+                        "Locatie" to "Herstal")),
                 CaseProject("Panattoni", "Waalwijk", blueprints = listOf("panattoni-waalwijk-a.png", "panattoni-waalwijk-b.png")),
                 CaseProject("Panattoni", "Sas van Gent", blueprints = listOf("panattoni-sas-van-gent-a.png", "panattoni-sas-van-gent-b.png")),
                 CaseProject("Prohuis", blueprints = listOf("prohuis-a.png", "prohuis-b.png")),
@@ -1871,12 +2082,17 @@ val show = slideshow {
             textPath = textFont,
             marks = File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"),
             concrete = File(Env["SLIDES_CASE_CONCRETE"] ?: "data/concrete"),
-            instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade"
+            instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade",
+            // Round and round on its own clock, like a backdrop, and the pictures kept in the
+            // grid rather than dissolved (review of 22 September).
+            dissolves = false,
+            cycle = 6.0
         ),
         title = "Case studies",
         notes = "De case studies over de hele wand: per project de foto's links en de blauwdrukken rechts, " +
-                "een click per beeld, opgebouwd uit de catalogus en opgelost in het hele beeld. " +
-                "DRAFT: de regels onder de namen."
+                "gezien door de catalogus, en de wand gaat vanzelf rond. Functie, opdrachtgever, " +
+                "locatie en realisatietijd uit de projectgegevens van WN; Waalwijk, Sas van Gent en " +
+                "Prohuis hebben die nog niet."
     )
     // The ending: one sentence, one action, and a code to scan. PROPOSAL: the sentence is the
     // fourth chapter's own line, the action and the address are placeholders until WN says
@@ -1986,6 +2202,18 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         order = Env["${prefix}_ORDER"]?.takeIf { it.isNotBlank() } ?: settings.order,
         modules = Env["${prefix}_MODULES"]?.takeIf { it.isNotBlank() } ?: settings.modules,
         intents = Env["${prefix}_INTENTS"]?.takeIf { it.isNotBlank() } ?: settings.intents,
+        subtitles = Env["${prefix}_SUBTITLES"]?.takeIf { it.isNotBlank() } ?: settings.subtitles,
+        subtitlesExtended = Env["${prefix}_SUBTITLES_EXTENDED"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesExtended,
+        subtitleTrack = Env["${prefix}_SUBTITLE_TRACK"]?.takeIf { it.isNotBlank() }?.let { slideshow.SubtitleTrack.of(it) } ?: settings.subtitleTrack,
+        subtitleMode = Env["${prefix}_SUBTITLE_MODE"]?.let { Env.boolean("${prefix}_SUBTITLE_MODE") } ?: settings.subtitleMode,
+        subtitleCps = Env["${prefix}_SUBTITLE_CPS"]?.toDoubleOrNull() ?: settings.subtitleCps,
+        voice = Env["${prefix}_VOICE"]?.takeIf { it.isNotBlank() && it != "none" } ?: settings.voice,
+        voiceGain = Env["${prefix}_VOICE_GAIN"]?.toDoubleOrNull() ?: settings.voiceGain,
+        voiceOn = Env["${prefix}_VOICE_ON"]?.let { Env.boolean("${prefix}_VOICE_ON") } ?: settings.voiceOn,
+        levels = slideshow.Layer.entries.associateWith { layer ->
+            Env["${prefix}_MIX_${layer.name}"]?.toDoubleOrNull() ?: settings.levels[layer] ?: 1.0
+        },
+        soundTrace = Env["${prefix}_SOUND_TRACE"]?.let { Env.boolean("${prefix}_SOUND_TRACE") } ?: settings.soundTrace,
         feedback = Env["${prefix}_FEEDBACK"]?.takeIf { it.isNotBlank() } ?: settings.feedback,
         midi = Env["${prefix}_MIDI"]?.takeIf { it.isNotBlank() } ?: settings.midi,
         references = Env["${prefix}_REFERENCES"]?.takeIf { it.isNotBlank() } ?: settings.references,

@@ -14,6 +14,7 @@ import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
+import slideshow.smoothstep
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -104,8 +105,15 @@ class LifeCycleAnalysis(
         val braceX = stage.width * BRACE_X
         val analysisY = stage.center.y
 
+        // The first source has no click to arrive on — the slide opens on it — so it builds on
+        // the slide's own clock instead, words then threads, the way the second builds on its
+        // click (review of 22 September: it stood there whole from the first frame). Only while
+        // the slide is still on its opening state, so stepping back to it finds it built.
+        val opening = stage.step == 0 && stage.position < 1e-6
+        val first = if (opening) smoothstep(stage.since(frames(OPEN_DELAY), stepFrames)) else 1.0
+
         sources.forEachIndexed { i, source ->
-            val shown = stage.on(i)
+            val shown = if (i == 0) first else stage.on(i)
             if (shown <= 0.0) return@forEachIndexed
 
             // The two bands the sources stand in, split evenly about the middle.
@@ -307,6 +315,9 @@ class LifeCycleAnalysis(
         const val MEANS = 0.022
         const val RULE = 0.0022
 
+
+        /** Seconds the first source waits after the slide comes up before it builds. */
+        const val OPEN_DELAY = 0.3
 
         const val MIX_SEED = 7
         const val MIX_GRAINS = 17

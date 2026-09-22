@@ -1,0 +1,373 @@
+{
+  "note": "De uitgebreide voice-over: de presentatie zoals ze gegeven wordt, een regel voor elke staat van elke slide, in de stem van de spreker, ontwikkeld uit show-subtitles.json (het script van 21 september) en uit wat er op de muur staat bij elke click. Sleutels zijn de letters van het naamplaatje: A is de staat waarop de slide opkomt, B de eerste click. SLIDES_SUBTITLE_TRACK=extended, of de voice-over-keuze in de organizer, leest dit bestand; met de ondertitels aan loopt de show dan vanzelf door zodra een regel gezegd is. De wanden tussen de gangen (aankomst, aperitief, de gangen, dessert, uitloop) hebben geen regel: daar is de spreker stil. Cijfers uit de projectgegevens van WN; namen en functie van de gast zijn PLACEHOLDER. Concept, door te nemen met de spreker.",
+  "voiceover": {
+    "source": "show-subtitles.json + wat elke staat op de muur laat zien (22 september)",
+    "slides": {
+      "who-is-speaking": {
+        "heading": "Naamkaart · Erik Koremans"
+      },
+      "het-programma": {
+        "heading": "Het programma · Erik links, de avond rechts",
+        "note": "A de lijst; B tot E een hoofdstuk per click; F het geheel; G de gast van StudioBuik, naam en functie PLACEHOLDER."
+      },
+      "hoe-bouw-je-een-wereld": {
+        "heading": "H1 · De wereld van bouwen · het citaat"
+      },
+      "the-catalogue-city": {
+        "heading": "Kaart Den Bosch · de stad uit onze elementen",
+        "note": "A de hele stad; B de camera duwt in en de elementen gaan in een raster; C het raster loopt leeg tot één element."
+      },
+      "everything-a-build-answers-to": {
+        "heading": "Object met opbouwende labels · de boom",
+        "note": "A opent op het laatste beeld van de stad; B tot E Locatie, Materiaal, Productie, Transport; F de waaier."
+      },
+      "the-globe": {
+        "heading": "Globe met tekstlabels · de catalogus als wereldbol"
+      },
+      "verticale-integratie": {
+        "heading": "Verticale integratie · de stapel, een vak per click",
+        "note": "Tien vakken, tien staten: A het eerste vak, J het laatste, in het rood."
+      },
+      "de-cijfers": {
+        "heading": "Kerncijfers · een cijfer per click, Nederland blauw, de groep rood"
+      },
+      "de-fabrieken": {
+        "heading": "Locatiekaart · elke fabriek een rode stip",
+        "note": "A het overzicht; B in op Seveton; C de naam; D Sem, Veerle en Beton; E in op Transwinaton; F de naam; G Transport, Willy Naessens, beton; H het overzicht."
+      },
+      "projecthighlight-1": {
+        "heading": "Projecthighlight · Van Cranenbroek, Budel",
+        "note": "Twee foto's: A de eerste, B de foto van het hoofdstuk, de hal met kolommen."
+      },
+      "kernboodschap-1": {
+        "heading": "Kernboodschap 1 · vóór het voorgerecht"
+      },
+      "esg-is-geen-checklist": {
+        "heading": "H2 · Waardekader en verantwoordelijkheid · het citaat"
+      },
+      "esg-beoordelingskader": {
+        "heading": "ESG · drie stukken, dan sluit de verbinding",
+        "note": "A Environmental; B Social; C Governance; D de drie sluiten in elkaar."
+      },
+      "co2-prestatieladder": {
+        "heading": "Environment · de prestatieladder, oud en nieuw",
+        "note": "A de ladder tot 2025, vijf treden; B WN op trede 3; C vijf worden drie; D de nieuwe trede 1; E trede 2 en 3; F WN op trede 1."
+      },
+      "co2-behaald": {
+        "heading": "Grafieken · de cijfers achter de ladder",
+        "note": "A de linkerstaven; B de doellijn; C de rechtergrafiek; D de maatregelen. De cijfers zijn PLACEHOLDER tot WN ze bevestigt."
+      },
+      "geen-compensatie": {
+        "heading": "Certificaat · niet compenseren, reduceren",
+        "note": "A het certificaat alleen; B de kranen; C de vrachtwagens; D de andere vier samen; E het certificaat weg, de maatregelen sluiten op."
+      },
+      "domino-effect": {
+        "heading": "Domino-effect · één boom, negen, vijfentwintig, één woord"
+      },
+      "esg-social-governance": {
+        "heading": "Social · Governance · de mensen",
+        "note": "A één figuur; B de groep; C de lijnen; D de pijl; E de wereldbol van mensen."
+      },
+      "projecthighlight-2": {
+        "heading": "Projecthighlight · VGP Park Nijmegen, gebouw B en C",
+        "note": "Drie foto's: A en B de andere twee, C de foto van het hoofdstuk, het dak met zonnepanelen."
+      },
+      "kernboodschap-2": {
+        "heading": "Kernboodschap 2 · vóór de eerste gang"
+      },
+      "we-gieten-kennis": {
+        "heading": "H3 · Beton: ruggengraat en transitie · het citaat"
+      },
+      "co2-impact-van-beton": {
+        "heading": "CO2-impact van beton · één kolom, drie keer gelezen"
+      },
+      "levenscyclus-van-betonproducten": {
+        "heading": "Levenscyclus · vier fasen, dan The Circle",
+        "note": "A tot D de vier fasen; E de laatste kolom wordt The Circle, vier vakken met een draaiend element; F tot I de vier stappen benoemd."
+      },
+      "levenscyclusanalyse": {
+        "heading": "Levenscyclusanalyse · twee databases, één berekening",
+        "note": "A de database van aangekochte materialen; B de database betonmengsels; C samengebracht; D wat het mogelijk maakt; E wat dat betekent."
+      },
+      "verduurzamen-van-beton": {
+        "heading": "Verduurzamen van beton · samenstelling, productie, meting"
+      },
+      "verborgen-verhaal": {
+        "heading": "Verborgen verhaal · één element, en wat eraf ging",
+        "note": "A een element met zijn register en de drie hefbomen; B dertig procent op het gevelelement; C vijftien op de vloerplaat; D twintig op de balk."
+      },
+      "recyclage": {
+        "heading": "Recyclage · een wand, en zijn tweede leven",
+        "note": "A de wand staat; B ze gaat neer; C gebroken; D gezeefd; E opnieuw ingezet."
+      },
+      "projecthighlight-3": {
+        "heading": "Projecthighlight · Kivits, Ridderkerk",
+        "note": "Twee foto's: A de eerste, B de foto van het hoofdstuk, de koelopslag."
+      },
+      "kernboodschap-3": {
+        "heading": "Kernboodschap 3 · vóór de tweede gang"
+      },
+      "we-bouwen-vandaag": {
+        "heading": "H4 · The Circle · het citaat"
+      },
+      "the-circle-in-elementen": {
+        "heading": "Circle logo · de elementen landen langs het merkteken"
+      },
+      "100-elementen": {
+        "heading": "100 elementen · het veld, en opnieuw gedeeld"
+      },
+      "gebouw-uit-de-webtool": {
+        "heading": "Het gebouw uit de webtool · een label per click",
+        "note": "A het 3D-model; B de plannen; C de CO2; D demontabel; E hergebruikt; F op voorraad."
+      },
+      "reductie-carbon-footprint": {
+        "heading": "Reductie carbon footprint · twee kolommen van stappen",
+        "note": "A het gewone proces; B de kopie ernaast; C de eerste drie stappen rood, tachtig procent; D demonteren in hun plaats, twintig procent."
+      },
+      "demontabel-in-de-stad": {
+        "heading": "Stad · blauw bouwt en breekt af, rood verhuist"
+      },
+      "the-circle-en-esg": {
+        "heading": "The Circle en ESG · de drie stukken, met hun betekenis",
+        "note": "A Environment met zijn noten; B Social; C Governance; D alle drie; E de verbinding sluit."
+      },
+      "projecthighlight-4": {
+        "heading": "Projecthighlight · Intervest, Herstal",
+        "note": "Drie foto's: A en B de andere twee, C de foto van het hoofdstuk, de buitenkant."
+      },
+      "kernboodschap-4": {
+        "heading": "Kernboodschap 4 · vóór de vragen"
+      },
+      "case-studies": {
+        "heading": "Case studies · de hele wand, foto's links, tekeningen rechts"
+      },
+      "ending": {
+        "heading": "Ending · één zin, één actie, de code"
+      }
+    }
+  },
+  "subtitles": {
+    "who-is-speaking": {
+      "A": "Goedenavond, en van harte welkom. Mijn naam is Erik Koremans, Chief Commercial and Sustainability Officer bij Willy Naessens Nederland. Fijn dat u er vanavond bij bent. Vanavond nemen we u mee in de manier waarop wij naar bouwen kijken: wat we maken, waarom we het zo maken, en waar we naartoe willen."
+    },
+    "het-programma": {
+      "A": "Het programma van vanavond ziet u hier rechts. We vertellen ons verhaal in vier delen, geserveerd tussen de gangen door: een hoofdstuk, een gang, een hoofdstuk, een gang.",
+      "B": "Het eerste deel gaat over de wereld van bouwen. De vraag die daar centraal staat: hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst niet te belasten?",
+      "C": "Het tweede deel is ons waardekader. ESG is voor ons geen checklist, maar de systematische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren.",
+      "D": "Het derde deel gaat over beton: de ruggengraat van ons werk, en een materiaal in transitie. We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter.",
+      "E": "En het vierde deel is The Circle: een nieuwe manier van denken. Bouwen vandaag, met het oog op wie na ons komt.",
+      "F": "Na het vierde deel is er ruimte voor uw vragen, en daarna het dessert. Zo ziet de avond eruit.",
+      "G": "Maar eerst het eten. Ik geef graag het woord aan [Naam] van StudioBuik, die u vertelt wat er vanavond op tafel komt. Daarna beginnen we met het eerste hoofdstuk: de wereld van bouwen."
+    },
+    "hoe-bouw-je-een-wereld": {
+      "A": "Hoofdstuk één: de wereld van bouwen. Ik begin met de vraag die boven alles hangt wat we vanavond bespreken. Hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst niet te belasten?"
+    },
+    "the-catalogue-city": {
+      "A": "Dit is Den Bosch, van boven gezien. Elk gebouw dat u ziet is opgebouwd uit onze eigen elementen, een stad als catalogus. Onze samenleving leunt op structuren die we vanzelfsprekend vinden.",
+      "B": "We komen dichterbij. Scholen, logistieke centra, voedingsbedrijven, zwembaden, distributiehubs. Achter elk daarvan zit een gebouw, en achter elk gebouw zitten onderdelen als deze.",
+      "C": "En als we blijven inzoomen, blijft er één element over. Eén onderdeel, uit een catalogus van honderd. Laten we daar even bij stilstaan."
+    },
+    "everything-a-build-answers-to": {
+      "A": "Want achter al die gebouwen zit een netwerk van beslissingen. Neem dit ene element.",
+      "B": "Op welke locatie bouwen we?",
+      "C": "Welke materialen kiezen we?",
+      "D": "Hoe produceren we?",
+      "E": "En hoe transporteren we?",
+      "F": "En dat zijn er nog maar vier. Bodem, vergunningen, netcongestie, arbeidsmarkt, stikstof, financiering: een gebouw beantwoordt aan tientallen factoren tegelijk. Elk van deze lijnen is een keuze die iemand moet maken."
+    },
+    "the-globe": {
+      "A": "En elke keuze draagt gewicht, letterlijk en figuurlijk, voor mens en planeet. Alles wat u hier rond de bol ziet draaien, komt uiteindelijk terug in de wereld waarin we bouwen. Dat is de verantwoordelijkheid die bij dit vak hoort."
+    },
+    "verticale-integratie": {
+      "A": "Hoe gaan wij daarmee om? De Willy Naessens Group is een speler die niet alleen bouwt, maar een hele keten beheert. Het begint bij een eigen ontwerp- en engineeringafdeling.",
+      "B": "Eigen prefabricatie: de elementen komen uit onze eigen fabrieken.",
+      "C": "Eigen grond- en omgevingswerken.",
+      "D": "Eigen funderingsploegen en eigen paalmachines.",
+      "E": "Eigen transport, van de fabriek naar de werf.",
+      "F": "Eigen montageploegen, die het gebouw ter plaatse opbouwen.",
+      "G": "Een eigen dakdichtingsbedrijf.",
+      "H": "Een eigen alu-schrijn- en glasbedrijf, voor de gevels.",
+      "I": "Een eigen technische afdeling.",
+      "J": "En eigen after sales. Van ontwerp en fundering tot prefab, transport, montage en beheer. Als opdrachtgever koopt u rechtstreeks bij de fabriek, en dat geeft maximale zekerheid over planning, budget en kwaliteit."
+    },
+    "de-cijfers": {
+      "A": "Verticale integratie is voor ons een manier om verantwoordelijkheid niet uit te besteden, maar zelf op te nemen. Een paar cijfers om dat tastbaar te maken. Eerst Willy Naessens Nederland.",
+      "B": "Dertig projecten per jaar.",
+      "C": "Vijfentachtig medewerkers.",
+      "D": "Ongeveer honderdvijftig miljoen euro omzet per jaar.",
+      "E": "En dan de groep als geheel, in het rood.",
+      "F": "Tweehonderdvijftig werven per jaar.",
+      "G": "Eén komma twee miljard euro omzet per jaar.",
+      "H": "Tweeduizend zevenhonderdvijftig medewerkers.",
+      "I": "En negenduizend referenties. Dat is de schaal waarop we werken, en de schaal waarop onze keuzes doorwegen."
+    },
+    "de-fabrieken": {
+      "A": "Waar gebeurt dat allemaal? Dit is de kaart van de groep: elke rode stip is een fabriek. Dertien productiesites in België, Nederland en Frankrijk, en de rest van Europa eromheen.",
+      "B": "Laten we er één uitlichten. We zoomen in op een van onze fabrieken: Seveton.",
+      "C": "Seveton.",
+      "D": "De naam vertelt zijn eigen verhaal: Sem, Veerle en Beton. Achter elke fabriek in de groep zitten mensen, een plek en één materiaal.",
+      "E": "En vlak daarnaast een tak die geen fabriek is, maar wel onmisbaar: Transwinaton, ons eigen transportbedrijf.",
+      "F": "Transwinaton.",
+      "G": "Transport, Willy Naessens, beton. Ook het vervoer van onze elementen houden we in eigen hand. U zag het net al in de keten.",
+      "H": "Zo ligt het netwerk erbij: fabrieken, transport, en de werven daaromheen. Dat brengt me bij een concreet project."
+    },
+    "projecthighlight-1": {
+      "A": "Van Cranenbroek in Budel. Wat u hier ziet is een afhaalmagazijn met kantoor van ruim dertienduizend vierkante meter, gebouwd in vierendertig weken.",
+      "B": "En dit is de hal van binnen: een ruimte die rust op onze kolommen. Alles wat we tot nu toe hebben besproken, de keten, de fabrieken, het transport, komt hier samen in één gebouw."
+    },
+    "kernboodschap-1": {
+      "A": "Om mee te nemen uit dit eerste deel: we hebben gekeken naar de organisatie achter het bouwen. Na deze gang stellen we de volgende vraag: hoe beoordelen we de keuzes die we maken? Maar eerst het voorgerecht. Smakelijk."
+    },
+    "esg-is-geen-checklist": {
+      "A": "Welkom terug. Hoofdstuk twee: waardekader en verantwoordelijkheid. Voor de gang stelde ik de vraag hoe we onze keuzes beoordelen. Het antwoord begint hier. ESG is geen checklist, maar de systematische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren."
+    },
+    "esg-beoordelingskader": {
+      "A": "Verantwoordelijkheid: niet als abstract begrip, maar als dagelijkse praktijk. ESG is een beoordelingskader met drie pijlers. De eerste is Environmental: onze impact op het milieu. Klimaat, energie, materialen.",
+      "B": "De tweede is Social: maatschappelijke verantwoordelijkheid. Arbeidsomstandigheden, veiligheid, diversiteit, de omgeving waarin we werken.",
+      "C": "De derde is Governance: goed bestuur. Ethisch ondernemen, transparantie, risicobeheer.",
+      "D": "En de drie grijpen in elkaar. ESG geeft inzicht in duurzaamheidsprestaties en niet-financiële risico's, en steeds vaker gebruiken investeerders, toezichthouders en klanten precies deze criteria om te bepalen hoe toekomstbestendig een organisatie is. Voor ons betekent het concreet: niet alleen financieel rendement, maar ook onze impact op mens, milieu en bestuur. Drie pijlers, niet als modewoorden, maar als kompas."
+    },
+    "co2-prestatieladder": {
+      "A": "We beginnen bij Environment. CO₂-uitstoot is voor ons niet alleen een getal, maar een instelling: elke liter brandstof, elke kilowattuur, elke gereden kilometer vertaalt zich in impact, en dus ook in kansen om te verbeteren. Daarvoor is de CO₂-prestatieladder ons instrument. Tot 2025 had die vijf treden.",
+      "B": "Willy Naessens was in 2025 gecertificeerd op trede drie.",
+      "C": "In 2026 is de ladder herzien: de eerste drie treden zijn samengevoegd.",
+      "D": "Samen vormen ze de nieuwe trede één: CO₂-reductie in de eigen organisatie. Een footprint opstellen, energiemanagement, reductiedoelen, interne communicatie. Het gas in onze gebouwen, de brandstof in onze voertuigen en machines, én de uitstoot van de energie die we inkopen.",
+      "E": "Daarboven trede twee: CO₂-reductie in de keten. Een klimaattransitieplan, de productie van ingekochte materialen, transport door derden, woon-werkverkeer. En trede drie: CO₂-reductie naar nul in 2050, met een voortrekkersrol in de sector en transparante rapportage over de voortgang.",
+      "F": "Op de nieuwe ladder staat Willy Naessens op trede één. Dezelfde positie, geen stap terug. We werken nu aan trede twee, met als doel trede drie en nul CO₂-uitstoot in 2050."
+    },
+    "co2-behaald": {
+      "A": "De cijfers daarachter. Links ziet u onze CO₂-uitstoot per geïndexeerde omzet, van 2020 tot 2024: zesentwintig procent minder.",
+      "B": "De lijn erover is de doelstelling, en de staven blijven eronder.",
+      "C": "Rechts onze eigen productie van groene stroom: van vijf komma twee gigawattuur in 2024 naar zes komma twee in 2026. Een gigawattuur erbij.",
+      "D": "En de maatregelen daaronder. Al onze betonfabrieken hebben het CSC Silver-statuut. Ze draaien op opgevangen regenwater, en zand en grind uit het spoelwater worden gerecupereerd. Sinds 2022 kopen we groene stroom voor wat we niet zelf opwekken, en op de werf werken we met elektrische aansluitingen, met een batterij voor de pieken."
+    },
+    "geen-compensatie": {
+      "A": "Wat we bewust niet doen, is compenseren. In plaats van ons te richten op CO₂-neutrale certificeringen op basis van compensatie van emissies, leggen we de nadruk op daadwerkelijke emissiereducties.",
+      "B": "Elektrische kranen.",
+      "C": "Elektrische vrachtwagens.",
+      "D": "Elektrische bussen, elektrisch woon-werkverkeer, het opwekken van eigen groene stroom en het opslaan ervan in batterijen. Elektrificatie van transport en apparatuur, stap voor stap.",
+      "E": "Het certificaat mag weg. Wat blijft, is de maatregel zelf. Niet compenseren. Reduceren."
+    },
+    "domino-effect": {
+      "A": "Duurzaamheid heeft bovendien een domino-effect. Herinnert u zich de boom van daarnet, alles waaraan een gebouw beantwoordt? Zet in het midden een duurzaam element.",
+      "B": "Dan wordt het gebouw eromheen makkelijker duurzaam.",
+      "C": "En de straat, en de wijk, en de stad. Het gebruik van duurzame materialen maakt het gemakkelijker om complete gebouwen als duurzaam te classificeren.",
+      "D": "Eén woord, opgebouwd uit onze eigen elementen: duurzaam."
+    },
+    "esg-social-governance": {
+      "A": "Dan de tweede pijler, Social. Het begint bij één mens.",
+      "B": "En de groep om die mens heen: onze medewerkers. Opleiding, veiligheid en werkzekerheid vormen de basis.",
+      "C": "Tussen die mensen lopen lijnen. Zo denkt de groep ook na over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving.",
+      "D": "De derde pijler, Governance, is de richting die de groep neemt, met één die voorop gaat. Transparante rapportering, externe audits, certificering en langetermijnrelaties met partners: dat is de structuur achter de waarden.",
+      "E": "En samen vormen ze een wereld, opgebouwd uit mensen. Dat is ESG voor ons: geen afvinklijst, maar de mensen en het bestuur achter elke keuze."
+    },
+    "projecthighlight-2": {
+      "A": "Een project waar dit samenkomt: VGP Park Nijmegen, gebouw B en C. Een logistiek park van ruim honderddertigduizend vierkante meter.",
+      "B": "Gebouwd in honderdvier weken, voor VGP Group.",
+      "C": "En het dak: vol zonnepanelen. Een gebouw dat zijn eigen groene stroom opwekt. Environment, in de praktijk."
+    },
+    "kernboodschap-2": {
+      "A": "Om mee te nemen: we hebben besproken hoe we keuzes beoordelen. Na deze gang kijken we waar die keuzes concreet worden: in het materiaal en de levenscyclus van beton. Geniet van de eerste gang."
+    },
+    "we-gieten-kennis": {
+      "A": "Hoofdstuk drie: beton, ruggengraat en transitie. We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
+    },
+    "co2-impact-van-beton": {
+      "A": "Laten we eerlijk zijn over het materiaal. Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal. Maar in beton is cement veruit het meest vervuilende bestanddeel: ongeveer tachtig procent van de totale CO₂-uitstoot van het materiaal. De rode band in deze kolom.",
+      "B": "Wereldwijd is beton verantwoordelijk voor zo'n zeven procent van de CO₂-uitstoot.",
+      "C": "In Nederland is dat één komma negen procent. Klein op de kolom, groot in absolute zin, en precies daarom de plek waar wij het verschil kunnen maken."
+    },
+    "levenscyclus-van-betonproducten": {
+      "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt. Kijk naar de levenscyclus van een betonproduct. Eerst de productfase: grondstofwinning, transport naar de fabriek, productie.",
+      "B": "Dan de bouwfase: transport naar de bouwplaats, en montage.",
+      "C": "De gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing. Tientallen jaren.",
+      "D": "En dan het einde van de levensduur: sloop, transport, afvalverwerking, verwijdering. Zo gaat het nu. Lineair.",
+      "E": "Wij vervangen die laatste kolom. In plaats van sloop komt The Circle: vier stappen, met in elk vak een echt element uit onze catalogus.",
+      "F": "Elementen demonteren, in plaats van slopen.",
+      "G": "Transport.",
+      "H": "Opslag.",
+      "I": "En opnieuw gebruiken. Beton als materiaal in transitie, niet als statisch gegeven."
+    },
+    "levenscyclusanalyse": {
+      "A": "Hoe weten we wat een element werkelijk kost aan CO₂? Met een levenscyclusanalyse. Aan de ene kant een database van alle aangekochte materialen.",
+      "B": "Aan de andere kant een database van onze betonmengsels: elke samenstelling, elk bindmiddel.",
+      "C": "Die twee brengen we samen in de analyse.",
+      "D": "En dat maakt mogelijk wat vroeger een schatting was: de materiaalgebonden CO₂-uitstoot, product per product.",
+      "E": "Levenscyclusanalyse laat objectief toe om de verduurzaming van betonproducten in kaart te brengen. Meten is de basis van elke verbetering die volgt."
+    },
+    "verduurzamen-van-beton": {
+      "A": "De Willy Naessens Group benadert beton op drie niveaus. Ten eerste op samenstelling: minder cement, lagere klinker, nieuwe bindmiddelen, zelfs beton zonder cement. De wolk die u ziet mengen is precies dat: verschillende samenstellingen die in elkaar overgaan.",
+      "B": "Ten tweede op productie: aandacht voor water, energie en grondstoffen, processen zonder verlies, hergebruik van granulaten. De kringloop die u ziet is die van kalk. Branden, blussen, mengen, verharden. CO₂ gaat eruit, en komt er weer in.",
+      "C": "En ten derde op meting: via de levenscyclusanalyse wordt de CO₂-voetafdruk van betonproducten precies in kaart gebracht, product per product. De staven laten zien hoe die voetafdruk stap voor stap daalt."
+    },
+    "verborgen-verhaal": {
+      "A": "Elk element, van gevelpaneel tot gewelf, heeft een verborgen verhaal: hoeveel CO₂ erin belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn. Dit is zo'n element, met zijn gegevens uit het register en de drie hefbomen eromheen.",
+      "B": "In gevelelementen haalden we dertig procent CO₂ weg, het rode deel. Minder cement, de overstap van CEM I naar CEM II, het gebruik van CEM III A, en alternatieve samenstellingen.",
+      "C": "In gewelven, de vloerplaten, vijftien procent.",
+      "D": "En in gewapend beton, zoals deze balk, twintig procent. Elk van die reducties volgen we via de levenscyclusanalyse. Geen belofte, maar een meting."
+    },
+    "recyclage": {
+      "A": "En aan het einde van een leven? Reststromen kunnen weer grondstof worden. Dit is een wandelement uit onze catalogus.",
+      "B": "Het komt naar beneden.",
+      "C": "Het puin wordt ter plaatse gebroken.",
+      "D": "Gezeefd.",
+      "E": "En opnieuw ingezet, in een nieuw element. Zo blijven zowel de herkomst als de kwaliteit controleerbaar, en wordt extra transport vermeden."
+    },
+    "projecthighlight-3": {
+      "A": "Een project waar beton letterlijk de ruggengraat is: Kivits in Ridderkerk, voor WDP. Een koelopslag van vierendertigduizend vierkante meter met dertig koelcellen, gebouwd in tweeënvijftig weken.",
+      "B": "Koelen vraagt massa, isolatie en precisie. En dat is precies wat prefab beton hier levert."
+    },
+    "kernboodschap-3": {
+      "A": "Om mee te nemen: we hebben gekeken naar beton en zijn onderdelen. Na deze gang brengen we die onderdelen samen in het verhaal van The Circle. Geniet van de tweede gang."
+    },
+    "we-bouwen-vandaag": {
+      "A": "Hoofdstuk vier: The Circle, een nieuwe manier van denken. We bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke balk, elke plaat is niet alleen een drager van lasten, maar ook een drager van verantwoordelijkheid, kansen en toekomst."
+    },
+    "the-circle-in-elementen": {
+      "A": "The Circle is een concept dat laat zien hoe een gebouw méér kan zijn dan een optelsom van materialen. Wat u ziet landen zijn onze elementen, stuk voor stuk, langs de lijn van ons eigen merkteken. Een cirkel, gemaakt van de onderdelen zelf."
+    },
+    "100-elementen": {
+      "A": "The Circle gaat uit van vaste betonelementen, een modulair stramien en een digitale ontwerptool. Dit zijn ze: honderd elementen met vaste afmetingen, geen maatontwerp, op een stramien van twaalf bij vierentwintig meter.",
+      "B": "Dezelfde honderd, anders gerangschikt. Dat is het idee: uit één vaste set ontstaat elke keer een ander gebouw."
+    },
+    "gebouw-uit-de-webtool": {
+      "A": "Zo ziet zo'n gebouw eruit, rechtstreeks uit onze webtool: The Circle, als 3D-model, in rode lijnen. Het ontwerp past zich automatisch aan aan de noden van het project.",
+      "B": "De plannen worden automatisch gegenereerd.",
+      "C": "En de CO₂ van het hele gebouw wordt meteen meeberekend. Materiaalgebruik en impact, in één beweging.",
+      "D": "Het gebouw is demontabel.",
+      "E": "De bouwstenen kunnen hergebruikt worden.",
+      "F": "En ze kunnen op voorraad gemaakt worden, nog voor er een opdrachtgever is."
+    },
+    "reductie-carbon-footprint": {
+      "A": "Wat betekent dat voor de voetafdruk? Links het gewone proces: grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats, montage. In plaats van lineair bouwen, ontwerpen, produceren, bouwen, afbreken, schetsen we een circulaire gedachte.",
+      "B": "Rechts hetzelfde proces, voor een gebouw uit hergebruikte bouwstenen.",
+      "C": "De eerste drie stappen vervallen: geen nieuwe grondstoffen, geen transport naar de fabriek, geen productie. Dat is tachtig procent van de voetafdruk.",
+      "D": "In hun plaats komt één stap: het demonteren van de bouwblokken. Wat overblijft is twintig procent."
+    },
+    "demontabel-in-de-stad": {
+      "A": "Zo ziet dat eruit in een stad. De blauwe blokken zijn bouwen zoals het nu gaat: opbouwen, verouderen, afbreken. De rode zijn onze demontabele elementen: twee gebouwen.",
+      "B": "En kijk: ze worden uit elkaar genomen, verplaatst en elders opnieuw opgebouwd, element voor element. Bouwen met het idee dat onderdelen later hergebruikt kunnen worden. Bouwen voor de volgende gebruiker, niet alleen voor de eerste."
+    },
+    "the-circle-en-esg": {
+      "A": "The Circle verbindt expliciet met de ESG-principes van hoofdstuk twee. Environment: minder materiaal, hergebruik, een lagere CO₂-voetafdruk.",
+      "B": "Social: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe functies, nieuwe noden en nieuwe generaties.",
+      "C": "Governance: systematiek, meetbaarheid en herhaalbaarheid in ontwerp en uitvoering.",
+      "D": "Drie pijlers. Dezelfde als aan het begin van de avond.",
+      "E": "En ze sluiten in elkaar. Dat is The Circle."
+    },
+    "projecthighlight-4": {
+      "A": "Het eerste Circle-gebouw dat we verkochten: Intervest in Herstal. Vier loodsen, samen veertigduizend vierkante meter.",
+      "B": "Binnen: de vaste elementen, het stramien, de techniek.",
+      "C": "En buiten: een gebouw dat er staat om ooit weer uit elkaar te gaan. Dat is geen zwakte, maar zijn waarde."
+    },
+    "kernboodschap-4": {
+      "A": "Om mee te nemen: laten we dit nu naast concrete projecten leggen. Welke vragen roept dit op voor uw eigen praktijk? Ik hoor het graag."
+    },
+    "case-studies": {
+      "A": "Op de wand ziet u een aantal van die projecten voorbijkomen: telkens de foto's links en de tekeningen rechts, met functie, opdrachtgever, locatie en bouwtijd. Panattoni in Almelo, Van Cranenbroek, VGP Nijmegen, Kivits, Intervest. Uw vragen zijn welkom."
+    },
+    "ending": {
+      "A": "We bouwen vandaag, met het oog op wie na ons komt. Wilt u meer weten over The Circle, scan dan de code op de wand. Dank u wel voor uw aandacht, en nog een fijne avond."
+    }
+  }
+}

@@ -26,6 +26,8 @@ import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.IntVector2
 import org.openrndr.shape.Rectangle
 import slideshow.drawers.PlaceholderSlide
+import slideshow.drawers.TYPE_CHARACTERS
+import slideshow.drawers.Type
 import java.io.File
 import kotlin.math.min
 
@@ -127,6 +129,9 @@ private fun org.openrndr.ApplicationBuilder.present(
                 File(settings.intents ?: "show-intents.json"),
                 File(settings.feedback ?: "show-feedback.json"),
                 File(settings.midi ?: "show-midi.json"),
+                subtitlesFile = File(settings.subtitles ?: "show-subtitles.json"),
+                subtitlesExtendedFile = File(settings.subtitlesExtended ?: "show-subtitles-extended.json"),
+                voiceDir = settings.voice?.let { File(it) },
                 open = settings.organizerOpen
             ).takeIf { it.start() }?.also { onClose { it.stop() } }
         else null
@@ -134,7 +139,20 @@ private fun org.openrndr.ApplicationBuilder.present(
         // The cues, decoded before the first frame for the same reason the slides are —
         // a show must not stall on a click. Silent under `stills`, which jumps through
         // every slide of the deck on a timer and would fire every cue in the show at it.
-        val speakers = Speakers().apply { muted = settings.muted }
+        val speakers = Speakers().apply {
+            muted = settings.muted
+            settings.levels.forEach { (layer, gain) -> setMix(layer, gain) }
+        }
+
+        // The subtitle tracks as speech, where they have been rendered — see VoiceTrack. Read
+        // here, ahead of the speakers loading, so the files are decoded with the cues.
+        val voices = SubtitleTrack.entries.mapNotNull { track ->
+            VoiceTrack.read(settings.voice, track, settings.voiceGain)?.let { track to it }
+        }.toMap().toMutableMap()
+        // The renderer writes into the folder while the show is up, so it is read again every few
+        // seconds and what is new is decoded — a handful of short files, never the whole set. Not
+        // on a filmed run, which must be the same run however long it takes to make.
+        var voicesReadAt = 0
 
         // The sound design delivered as a folder, re-keyed from the names in that folder to the
         // show's own slide ids — see [CueSheet]. Bound against the whole catalogue rather than
@@ -171,7 +189,8 @@ private fun org.openrndr.ApplicationBuilder.present(
             }
             speakers.load(
                 declared + cueSheet?.all.orEmpty() +
-                        show.panels.mapNotNull { it.sound } + listOfNotNull(settings.slideBed)
+                        show.panels.mapNotNull { it.sound } + listOfNotNull(settings.slideBed) +
+                        voices.values.flatMap { it.all }
             )
         }
 
@@ -378,6 +397,47 @@ private fun org.openrndr.ApplicationBuilder.present(
         val nameplate = if (settings.nameplate)
             Nameplate(runCatching { loadFont("data/fonts/default.otf", NAMEPLATE_SIZE) }.getOrNull()) else null
 
+        // What is said over each state, a card at a time — see Subtitles. Read whether or not the
+        // mode is on, so the organizer's button can switch it on mid-show; the face is loaded
+        // here rather than on the first card, so switching it on never stalls a frame.
+        // Both tracks are read, so the organizer's selector can switch between them mid-show;
+        // `subtitles` is whichever is in force. See SubtitleTrack.
+        voices.forEach { (track, v) -> println("voice: ${track.key} — ${v.size} states rendered under ${v.dir.path}") }
+        val tracks = mutableMapOf(
+            SubtitleTrack.DEFAULT to Subtitles.readOrEmpty(settings.subtitles ?: "show-subtitles.json"),
+            SubtitleTrack.EXTENDED to Subtitles.readOrEmpty(settings.subtitlesExtended ?: "show-subtitles-extended.json")
+        )
+        var subtitleTrack = settings.subtitleTrack
+        fun subtitles(): Subtitles = tracks[subtitleTrack] ?: Subtitles.EMPTY
+        // Spoken or not, apart from whether the words are on the wall — see Settings.voiceOn.
+        var voiceOn = settings.voiceOn
+        fun voice(): VoiceTrack? = voices[subtitleTrack]?.takeIf { voiceOn }
+        /** Frames the voice for this state runs, or null where none is rendered or it is off. */
+        fun voiceFrames(index: Int, step: Int): Int? = voice()?.frames(ids.getOrElse(index) { "" }, step)
+        // The voice being said, and when the one for the state just reached is due — a breath
+        // after the click, the same lead the first card takes.
+        var voicePlaying: Sound? = null
+        var voiceDue = -1
+        var voiceCheckAt = -1
+        tracks.forEach { (track, it) ->
+            if (it.size > 0) println(
+                "subtitles: ${track.key} — ${it.size} slides with a line" +
+                        (if (track == subtitleTrack && settings.subtitleMode) ", subtitle mode on" else "") +
+                        (if (track == SubtitleTrack.EXTENDED) " (presents: the deck runs itself on this track)" else "")
+            )
+        }
+        var subtitleMode = settings.subtitleMode
+        val pace = Pace(settings.subtitleCps)
+        val subtitleOverlay = SubtitleOverlay(
+            runCatching { loadFont(Type.file, SubtitleOverlay.EM, TYPE_CHARACTERS, contentScale = 1.0) }.getOrNull(),
+            SubtitleOverlay.EM
+        )
+        // The state the line is being said over, and the frame it was reached on: a card's time is
+        // counted from there, so a click back or a replay says the line again from its start.
+        var subtitleState = -1 to -1
+        var subtitleSince = 0
+        var subtitleStageFrame = 0
+
         /** Draws one slide into its own buffer, from a known drawer state. */
         fun paint(target: RenderTarget, shot: Deck.Shot) {
             drawer.isolatedWithTarget(target) {
@@ -473,6 +533,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 event.name == "r" -> deck.replay()
                 event.name == "d" -> debug = !debug
                 event.name == "g" -> gridOn = !gridOn
+                event.name == "s" -> subtitleMode = !subtitleMode
+                event.name == "v" -> voiceOn = !voiceOn
 
                 // The clock controls are part of the debug view, not of the show, so they
                 // do nothing while it is down.
@@ -481,6 +543,11 @@ private fun org.openrndr.ApplicationBuilder.present(
                 debug && (event.name == "," || event.name == "comma") -> clock.step(-1)
             }
         }
+
+        // The state log's marks, kept for the whole run and written beside the film at the end.
+        val stateMarks = mutableListOf<StateMark>()
+        var markedSlide = -1
+        var markedStep = -1
 
         if (settings.record) {
             extend(ScreenRecorder().apply {
@@ -493,7 +560,11 @@ private fun org.openrndr.ApplicationBuilder.present(
             // The soundtrack is rendered from the log once the film is on disk, which is
             // after the program ends — so it is handed out rather than done here. The
             // frame count is the clock's last, which is the film's length in deck frames.
-            leave { Soundtrack.export(speakers.log.toList(), clock.frame, File(settings.video), settings.mix) }
+            leave {
+                Soundtrack.export(speakers.log.toList(), clock.frame, File(settings.video), settings.mix)
+                // What was on screen when, for cutting the film into its states — see StatesLog.
+                StatesLog.write(stateMarks, clock.frame, show, StatesLog.file(File(settings.video)))
+            }
         }
 
         // One png per click of every slide, then quit: the whole deck as a contact sheet,
@@ -514,7 +585,8 @@ private fun org.openrndr.ApplicationBuilder.present(
         // Where a hands-off run stops. It bounds the cue list rather than the deck, so the whole
         // show is still there to click into — see [Settings.until].
         val untilSlide = untilIndex(slides, settings.until, startSlide)
-        val holds = if (settings.cuesAuto) autoCues(slides, ids, startSlide, untilSlide, settings)
+        val holds = if (settings.cuesAuto)
+            autoCues(slides, ids, startSlide, untilSlide, settings, subtitles().takeIf { subtitleMode || voiceOn }, pace, voice())
         else settings.cues.map { frames(it) }
         val cueFrames = if (settings.cuesAuto) holds.dropLast(1) else holds
         val finalHold = holds.lastOrNull() ?: 0
@@ -531,6 +603,14 @@ private fun org.openrndr.ApplicationBuilder.present(
             val frame = clock.advance(seconds)
             deck.tick(frame)
             panelDeck?.tick(frame)
+            // The state log: one mark per state the deck reaches, on the frame the click starts.
+            // Frame-accurate by construction, because it is read off the deck the film is
+            // drawn from rather than worked out again afterwards.
+            if (settings.record && (deck.index != markedSlide || deck.step != markedStep)) {
+                stateMarks += StateMark(frame, deck.index, deck.step)
+                markedSlide = deck.index
+                markedStep = deck.step
+            }
             // fades run off the same frame count as everything else, so a bed comes up over
             // the same six seconds whether the show is watched, filmed or stepped
             speakers.tick(frame)
@@ -641,6 +721,14 @@ private fun org.openrndr.ApplicationBuilder.present(
                     speakers.close()
                     application.exit()
                 }
+            } else if ((subtitleMode || voiceOn) && subtitleTrack == SubtitleTrack.EXTENDED && !settings.stills) {
+                // The presented run: on the extended track the deck runs itself, each state held
+                // for what a hands-off run would hold it — its line said, and a beat after — and
+                // then clicked on. The arrows still work: a click lands on a new state, whose
+                // clock starts again from there. It stands where the deck runs out. See SubtitleTrack.
+                val stand = standFrames(deck.slide, deck.step, subtitles()[ids.getOrElse(deck.index) { "" }, deck.step], settings, pace, voiceFrames(deck.index, deck.step))
+                val more = deck.step < deck.slide.steps - 1 || deck.index < slides.lastIndex
+                if (more && frame - subtitleSince >= stand) forward()
             } else if (autoStepFrames > 0 && frame - lastAutoStep >= autoStepFrames) {
                 lastAutoStep = frame
                 forward()
@@ -868,6 +956,66 @@ private fun org.openrndr.ApplicationBuilder.present(
                 }
             }
 
+            // The line said over this state, in subtitle mode: into the canvas like the plate, so a
+            // filmed run carries it, and always inside the slide's own projector — see Subtitles.
+            val reached = deck.index to deck.step
+            if (reached != subtitleState || slideStage.frame < subtitleStageFrame) {
+                subtitleState = reached
+                subtitleSince = frame
+                // The voice of the state left is cut, over its short fade, and the new state's is
+                // due a breath from now — whether or not one is rendered, which is asked then.
+                voicePlaying?.let { speakers.release(it) }
+                voicePlaying = null
+                voiceDue = frame + frames(Pace.LEAD_SECONDS)
+            }
+            subtitleStageFrame = slideStage.frame
+            if (!voiceOn && voicePlaying != null) {
+                speakers.release(voicePlaying)
+                voicePlaying = null
+            }
+            if (settings.voice != null && settings.sound && !settings.record && !settings.stills &&
+                frame - voicesReadAt >= frames(VOICE_RESCAN)
+            ) {
+                voicesReadAt = frame
+                val track = subtitleTrack
+                VoiceTrack.read(settings.voice, track, settings.voiceGain)?.let { fresh ->
+                    val was = voices[track]?.size ?: 0
+                    speakers.load(fresh.all)
+                    voices[track] = fresh
+                    if (fresh.size != was) println("voice: ${track.key} — ${fresh.size} states rendered")
+                }
+            }
+            if (voiceOn && voiceDue in 0..frame) {
+                voiceDue = -1
+                val key = "${ids.getOrElse(deck.index) { "" }}-${letter(deck.step)}"
+                val line = voice()?.sound(ids.getOrElse(deck.index) { "" }, deck.step)
+                if (line != null) {
+                    speakers.play(line, restart = true)
+                    voicePlaying = line
+                    voiceCheckAt = frame + frames(0.2)
+                    if (settings.soundTrace) println("trace: frame $frame  voice $key asked")
+                } else if (settings.soundTrace) println("trace: frame $frame  voice $key — no file on ${subtitleTrack.key}")
+            }
+            if (settings.soundTrace && voiceCheckAt in 0..frame) {
+                voiceCheckAt = -1
+                voicePlaying?.let { v ->
+                    println("trace: frame $frame  voice ${v.file.nameWithoutExtension} " +
+                            if (speakers.isPlaying(v)) "playing" else "NOT PLAYING")
+                }
+            }
+            if (subtitleMode) {
+                val said = subtitles()[ids.getOrElse(deck.index) { "" }, deck.step]
+                val fit = voiceFrames(deck.index, deck.step)?.let { pace.spoken(it) }
+                pace.at(said, frame - subtitleSince, fit)?.let { card ->
+                    drawer.isolatedWithTarget(canvas) {
+                        drawer.ortho(canvas)
+                        val pane = if (hasPanels) Rectangle(slideOffsetX, 0.0, slideWidth.toDouble(), settings.height.toDouble())
+                        else canvasBounds
+                        subtitleOverlay.draw(drawer, pane, card, frame - subtitleSince - card.at, pace)
+                    }
+                }
+            }
+
             // The canvas is fitted into the window rather than stretched to it, so a
             // projector of another shape letterboxes instead of distorting the slides.
             val fit = min(width / canvasBounds.width, height / canvasBounds.height)
@@ -923,7 +1071,13 @@ private fun org.openrndr.ApplicationBuilder.present(
 
                 while (true) {
                     when (val command = remote.commands.poll() ?: break) {
-                        is Remote.Go -> ids.indexOf(command.id).takeIf { it >= 0 }?.let { deck.goTo(it, command.step, cut = true) }
+                        is Remote.Go -> ids.indexOf(command.id).takeIf { it >= 0 }?.let {
+                            // Asked for the state already on the wall: the deck has nowhere to go,
+                            // so say its line again from the start — choosing a state on the page
+                            // is how its voice is heard a second time.
+                            if (it == deck.index && command.step == deck.step) subtitleState = -1 to -1
+                            deck.goTo(it, command.step, cut = true)
+                        }
                         Remote.Forward -> forward()
                         Remote.Backward -> backward()
                         Remote.Replay -> deck.replay()
@@ -939,6 +1093,33 @@ private fun org.openrndr.ApplicationBuilder.present(
                         is Remote.Mute -> {
                             speakers.muted = command.on ?: !speakers.muted
                             println("organizer: sound ${if (speakers.muted) "muted" else "on"}")
+                        }
+                        is Remote.Subtitle -> {
+                            subtitleMode = command.on ?: !subtitleMode
+                            println("organizer: subtitles ${if (subtitleMode) "on" else "off"}")
+                        }
+                        is Remote.ApplySubtitles -> {
+                            tracks[command.track] = command.subtitles
+                            // said again from its start, so an edited line is seen whole
+                            if (command.track == subtitleTrack) subtitleState = -1 to -1
+                        }
+                        is Remote.Mix -> {
+                            speakers.setMix(command.layer, command.gain)
+                            println("organizer: mix ${command.layer.key} %.2f".format(command.gain))
+                        }
+                        is Remote.Voice -> {
+                            voiceOn = command.on ?: !voiceOn
+                            // switched on mid-state, the line is said from its start
+                            if (voiceOn) subtitleState = -1 to -1
+                            println("organizer: voice ${if (voiceOn) "on" else "off"}")
+                        }
+                        is Remote.Track -> {
+                            subtitleTrack = command.track
+                            // the new track's line for this state, from its start
+                            subtitleState = -1 to -1
+                            voicePlaying?.let { speakers.release(it) }
+                            voicePlaying = null
+                            println("organizer: voice-over ${subtitleTrack.key}")
                         }
                         is Remote.Grid -> {
                             gridOn = command.on ?: !gridOn
@@ -1029,7 +1210,9 @@ private fun org.openrndr.ApplicationBuilder.present(
                 remote.snapshot = Remote.Snapshot(
                     deck.index, ids[deck.index], deck.step, deck.slide.steps, frame, previewJobs.size, remote.previewStamp,
                     concreteOn, concrete != null, gridOn,
-                    muted = speakers.muted, hasSound = speakers.ready
+                    muted = speakers.muted, hasSound = speakers.ready,
+                    subtitles = subtitleMode, subtitleTrack = subtitleTrack, voice = voiceOn,
+                    mix = Layer.entries.associateWith { speakers.mixOf(it) }
                 )
             }
 
@@ -1052,16 +1235,26 @@ private fun org.openrndr.ApplicationBuilder.present(
  * time, longer for a wall that is one picture. Printed, so it can be copied into
  * `SLIDES_CUES` and tuned by hand where a state wants more or less than the rule gives it.
  */
-private fun autoCues(slides: List<Slide>, ids: List<String>, start: Int, until: Int, settings: Settings): List<Int> {
+internal fun autoCues(
+    slides: List<Slide>, ids: List<String>, start: Int, until: Int, settings: Settings,
+    subtitles: Subtitles? = null, pace: Pace = Pace(), voice: VoiceTrack? = null
+): List<Int> {
     val holds = mutableListOf<Int>()
+    var lengthened = 0
     for (s in start..until) {
         val slide = slides[s]
         val read = if (slide.wide && slide.steps == 1) settings.holdWide else settings.hold
         for (step in 0 until slide.steps) {
-            val settle = if (step == 0) slide.settle else slide.stepLength(step)
-            holds += settle + frames(read)
+            // In subtitle mode a state stands until its line has been said and a beat after it,
+            // where that is longer than the rule would hold it anyway.
+            val said = subtitles?.get(ids.getOrElse(s) { "" }, step).orEmpty()
+            val stand = standFrames(slide, step, said, settings, pace, voice?.frames(ids.getOrElse(s) { "" }, step))
+            if (stand > standFrames(slide, step, "", settings, pace)) lengthened++
+            holds += stand
         }
     }
+    if (subtitles != null) println("cues: subtitle mode — $lengthened states held longer to say their line" +
+            if (voice != null) ", timed by the voice where one is rendered" else "")
     println(
         "cues: auto — " + holds.joinToString(", ") { "%.1f".format(seconds(it)) } +
                 "  (%d states, %.0fs in all)".format(holds.size, seconds(holds.sum()))
@@ -1079,6 +1272,32 @@ private fun autoCues(slides: List<Slide>, ids: List<String>, start: Int, until: 
     return holds
 }
 
+/** Seconds a state stands after its last subtitle card has gone, on a hands-off run. */
+private const val SUBTITLE_TAIL = 1.0
+
+/** Seconds between reads of the voice folder while the show is up — see [VoiceTrack]. */
+private const val VOICE_RESCAN = 4.0
+
+/**
+ * Frames a state stands on a run that clicks for itself: long enough for it to finish moving —
+ * its click, or the slide's own opening — plus a reading time, longer for a wall that is one
+ * picture; and where [said] is spoken over it, at least until the last card has gone and a beat
+ * after. One rule, read by the cue list a filmed run writes and by the presented run on the
+ * extended track, so the two cannot disagree about how long a state is held. With [voiced], the
+ * frames a rendered voice for the state runs, the speech is timed by the voice rather than
+ * estimated from the text — see [VoiceTrack].
+ */
+internal fun standFrames(slide: Slide, step: Int, said: String, settings: Settings, pace: Pace, voiced: Int? = null): Int {
+    val settle = if (step == 0) slide.settle else slide.stepLength(step)
+    val read = if (slide.wide && slide.steps == 1) settings.holdWide else settings.hold
+    val spoken = when {
+        voiced != null -> pace.spoken(voiced) + frames(SUBTITLE_TAIL)
+        said.isBlank() -> 0
+        else -> pace.length(said) + frames(SUBTITLE_TAIL)
+    }
+    return maxOf(settle + frames(read), spoken)
+}
+
 /**
  * Resolves `SLIDES_UNTIL`, the last slide a hands-off run plays: a number from 1 or a slide's
  * name, as [startIndex] reads them, and the end of the deck where it is not set.
@@ -1087,7 +1306,7 @@ private fun autoCues(slides: List<Slide>, ids: List<String>, start: Int, until: 
  * sign of why. A name that matches nothing runs to the end rather than failing, the same way an
  * unknown `SLIDES_START` opens at the first slide.
  */
-private fun untilIndex(slides: List<Slide>, until: String?, start: Int): Int {
+internal fun untilIndex(slides: List<Slide>, until: String?, start: Int): Int {
     val wanted = until?.trim().orEmpty()
     if (wanted.isEmpty()) return slides.lastIndex
     val at = slideAt(slides, wanted)
@@ -1147,7 +1366,7 @@ private fun soundAt(slide: Slide, id: String, step: Int, sheet: CueSheet?): Soun
  * Resolves `SLIDES_START`: a number counting from 1, or a slide's name — "3" and
  * "Reveal" both work, and an unknown one opens at the first slide rather than failing.
  */
-private fun startIndex(slides: List<Slide>, start: String?): Int {
+internal fun startIndex(slides: List<Slide>, start: String?): Int {
     val wanted = start?.trim().orEmpty()
     if (wanted.isEmpty()) return 0
     return slideAt(slides, wanted)

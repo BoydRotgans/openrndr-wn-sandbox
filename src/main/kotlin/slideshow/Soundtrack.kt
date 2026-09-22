@@ -27,15 +27,15 @@ import kotlin.math.min
  * the sample its frame maps to. Frame-accurate whatever the encoder did, and rendered again
  * from the log alone if the levels change.
  *
- * **It is the speakers' own arithmetic, run offline.** The levelling is the same two-pass
- * decode ([level]), the fades are the same ramp of the frame, a sustained cue keeps one voice
+ * **It is the speakers' own arithmetic, run offline.** The decode is the same ([level], which
+ * leaves a file at its own level unless levelling is asked for), the fades are the same ramp of the frame, a sustained cue keeps one voice
  * and picks a fade up from wherever the gain had got to, a loop wraps and a one-shot rings out
  * — the driver's rules, replayed frame by frame over the log so the soundtrack is what the
  * room would have heard had the machine kept up.
  *
- * **The mix is held under full scale, not clipped.** Cues are levelled to -23 dBFS with a -6
- * dB ceiling each, and two landing together can pass 0; rather than clip, the whole track is
- * brought down by whatever the loudest moment needs and the report says by how much.
+ * **The mix is never turned down.** Cues play at their files' own levels and are summed as
+ * they are; where two landing together pass 0 dBFS the samples clip, and the report says how
+ * many. No normalising and no trim, so the film sounds as the files do.
  *
  * `ffmpeg` on the path muxes the wav into the film; without it the wav stands beside the mp4
  * for a later [remix], which is also how to re-render after a level is changed.
@@ -44,9 +44,6 @@ object Soundtrack {
 
     /** The output: 16-bit stereo at a film's rate. */
     const val RATE = 48000
-
-    /** Below full scale by this much, so the mix never touches 0 dBFS. */
-    private const val HEADROOM = 0.99f
 
     /** The wav, the log and the mix that stand beside a film. */
     fun logFile(video: File) = File(video.parentFile, video.nameWithoutExtension + ".cues")
@@ -94,7 +91,7 @@ object Soundtrack {
             for (cue in log) {
                 val s = cue.sound
                 out.println(
-                    "${cue.frame}\t${if (cue.release) "release" else "play"}\t${s.gain}\t${s.loop}\t${s.fadeIn}\t${s.fadeOut}\t${s.file.path}\t${s.levelled}"
+                    "${cue.frame}\t${if (cue.release) "release" else "play"}\t${s.gain}\t${s.loop}\t${s.fadeIn}\t${s.fadeOut}\t${s.file.path}\t${s.levelled}\t${s.layer.key}"
                 )
             }
         }
@@ -112,7 +109,8 @@ object Soundtrack {
             Speakers.Cue(
                 frame = t[0].toIntOrNull() ?: return@mapNotNull null,
                 sound = Sound(File(t[6]), t[2].toDouble(), t[3].toBoolean(), t[4].toInt(), t[5].toInt(),
-                    levelled = t.getOrNull(7)?.toBooleanStrictOrNull() ?: true),
+                    levelled = t.getOrNull(7)?.toBooleanStrictOrNull() ?: false,
+                    layer = Layer.of(t.getOrNull(8)) ?: Layer.DESIGN),
                 release = t[1] == "release"
             )
         }
@@ -149,7 +147,7 @@ object Soundtrack {
      * Renders [log] into a stereo wav of [frames] deck frames. False, and says why, if
      * nothing could be rendered.
      */
-    fun render(log: List<Speakers.Cue>, frames: Int, out: File, levelled: Boolean = true): Boolean {
+    fun render(log: List<Speakers.Cue>, frames: Int, out: File, levelled: Boolean = false): Boolean {
         if (log.isEmpty() || frames <= 0) return false
 
         val tracks = HashMap<String, Track?>()
@@ -291,14 +289,16 @@ object Soundtrack {
             }
         }
 
-        // held under full scale rather than clipped
+        // Summed as delivered and never turned down: the files' own levels are the mix. Where
+        // two cues land together and pass full scale the samples clip, and the report says so.
         var peak = 0f
-        for (v in mix) if (abs(v) > peak) peak = abs(v)
-        val trim = if (peak > HEADROOM) HEADROOM / peak else 1f
-        if (trim < 1f) println("soundtrack: peak %.2f dBFS, whole mix brought down %.1f dB".format(20 * log10(peak), -20 * log10(trim)))
+        var over = 0
+        for (v in mix) { if (abs(v) > peak) peak = abs(v); if (abs(v) > 1f) over++ }
+        println("soundtrack: peak %.2f dBFS%s".format(20 * log10(peak.coerceAtLeast(1e-9f)),
+            if (over > 0) ", $over samples over full scale clip" else ""))
 
         val bytes = ByteBuffer.allocate(total * 4).order(ByteOrder.LITTLE_ENDIAN)
-        for (v in mix) bytes.putShort(((v * trim).coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort())
+        for (v in mix) bytes.putShort((v.coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort())
         val format = AudioFormat(RATE.toFloat(), 16, 2, true, false)
         out.parentFile?.mkdirs()
         AudioInputStream(ByteArrayInputStream(bytes.array()), format, total.toLong()).use {

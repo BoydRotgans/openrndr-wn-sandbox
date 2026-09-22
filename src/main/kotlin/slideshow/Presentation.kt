@@ -30,7 +30,15 @@ class Presentation(
     /** Whether the next start goes onto the projectors. The page's toggle. */
     @Volatile var projection: Boolean = false,
     /** Whether the show starts muted: the page's sound button, kept across starts. */
-    @Volatile var muted: Boolean = false
+    @Volatile var muted: Boolean = false,
+    /** Whether the show starts in subtitle mode: the page's subtitles button, kept across starts. */
+    @Volatile var subtitles: Boolean = false,
+    /** Which subtitle track the show starts on: the page's voice-over selector, kept across starts. */
+    @Volatile var subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
+    /** Whether the show starts with the voice spoken: the page's voice button, kept across starts. */
+    @Volatile var voice: Boolean = false,
+    /** The mix the show starts at: the page's faders, kept across starts. See [Layer]. */
+    val mix: MutableMap<Layer, Double> = java.util.concurrent.ConcurrentHashMap(Layer.entries.associateWith { 1.0 })
 ) {
     @Volatile
     private var process: Process? = null
@@ -53,7 +61,7 @@ class Presentation(
         val child = ProcessBuilder(command)
             .directory(workingDir)
             .redirectErrorStream(true)
-            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + extra) }
+            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + ("SLIDES_SUBTITLE_MODE" to "$subtitles") + ("SLIDES_SUBTITLE_TRACK" to subtitleTrack.key) + ("SLIDES_VOICE_ON" to "$voice") + mix.entries.associate { (l, g) -> "SLIDES_MIX_${l.name}" to "$g" } + extra) }
             .start()
         process = child
         println("presentation: starting" + if (projection) " on the projectors (${placed["SLIDES_WINDOW_X"]}, ${placed["SLIDES_WINDOW_Y"]})" else " in a window")

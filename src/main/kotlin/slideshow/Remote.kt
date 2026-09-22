@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -46,6 +47,14 @@ import java.util.concurrent.Executors
  *     PUT  /api/intents          an intents file's contents    save the intended update per slide
  *     PUT  /api/feedback         a feedback file's contents    save the notes written against slides
  *     PUT  /api/midi             a midi file's contents        save which slides are wanted as MIDI
+ *     PUT  /api/subtitles        a subtitles file's contents   save what is said over each state
+ *                                ?track=extended               … of the extended track
+ *     POST /api/subtitle-mode    { "on": true }?               subtitles on the wall on or off
+ *     POST /api/subtitle-track   { "track": "extended" }       which track is read; extended presents
+ *     POST /api/voice-mode       { "on": true }?               the rendered voice spoken or not
+ *     POST /api/mix              { "layer": "voice", "gain": 0.3 }  one track of the sound's level
+ *     GET  /api/voice                                          the states rendered as speech, per track
+ *     POST /api/subtitle-cards   { "text": "..." }             the cards a line comes out as, timed
  *     POST /api/export                                         write every ticked slide's clip and score
  *     GET  /previews/<id>-<k>.png
  *     GET  /references/<frame>-wall.jpg | <frame>-pane.png
@@ -79,6 +88,11 @@ class Remote(
     private val feedbackFile: File = File("show-feedback.json"),
     private val midiFile: File = File("show-midi.json"),
     private val midiDir: File = File("midi"),
+    private val subtitlesFile: File = File("show-subtitles.json"),
+    /** The extended track's file — see [SubtitleTrack]. */
+    private val subtitlesExtendedFile: File = File("show-subtitles-extended.json"),
+    /** Where the tracks' voices are rendered, `<track>/<id>-<LETTER>.wav` — see [VoiceTrack]. Null has none. */
+    private val voiceDir: File? = null,
     /** Open the page in a browser once it is up (on a Mac). */
     private val open: Boolean = true,
     /**
@@ -104,6 +118,16 @@ class Remote(
     data class Grid(val on: Boolean?) : Command
     /** The show's sound muted or not; null flips it. See [Speakers.muted]. */
     data class Mute(val on: Boolean?) : Command
+    /** Subtitle mode on or off; null flips it. See [Subtitles]. */
+    data class Subtitle(val on: Boolean?) : Command
+    /** Say these lines from now on — a save from the page, played at once — on [track]. */
+    data class ApplySubtitles(val subtitles: Subtitles, val track: SubtitleTrack = SubtitleTrack.DEFAULT) : Command
+    /** Read this track from now on. See [SubtitleTrack]: the extended one runs the deck. */
+    data class Track(val track: SubtitleTrack) : Command
+    /** The voice spoken or not; null flips it. See [VoiceTrack]. */
+    data class Voice(val on: Boolean?) : Command
+    /** One track of the sound at this gain. See [Layer]. */
+    data class Mix(val layer: Layer, val gain: Double) : Command
     /**
      * Write these slides' builds out as MIDI files.
      *
@@ -127,7 +151,11 @@ class Remote(
         val previewsLeft: Int, val previewStamp: Long,
         val concrete: Boolean = false, val hasConcrete: Boolean = false,
         val grid: Boolean = false,
-        val muted: Boolean = false, val hasSound: Boolean = false
+        val muted: Boolean = false, val hasSound: Boolean = false,
+        val subtitles: Boolean = false,
+        val subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
+        val voice: Boolean = false,
+        val mix: Map<Layer, Double> = emptyMap()
     )
 
     val commands = ConcurrentLinkedQueue<Command>()
@@ -173,6 +201,22 @@ class Remote(
     @Volatile
     var midi: MidiWanted = (if (midiFile.isFile) runCatching { MidiWanted.read(midiFile) }.getOrDefault(MidiWanted.EMPTY) else MidiWanted.EMPTY)
         private set
+
+    /**
+     * What is said over each state, as last read or saved. Unlike the intents it reaches the wall
+     * in subtitle mode, so a save queues an [ApplySubtitles].
+     */
+    @Volatile
+    var subtitles: Subtitles = Subtitles.readOrEmpty(subtitlesFile.path)
+        private set
+
+    /** The extended track, as last read or saved. */
+    @Volatile
+    var subtitlesExtended: Subtitles = Subtitles.readOrEmpty(subtitlesExtendedFile.path)
+        private set
+
+    /** The pace the show cuts and times its cards at; the page asks for cards at the same one. */
+    private val pace = Pace(show.settings.subtitleCps)
 
     /** Where a slide's MIDI is written, and what it is called. */
     fun midiFileOf(id: String): File = File(midiDir, "$id.mid")
@@ -258,12 +302,35 @@ class Remote(
             if (p != null && path.startsWith("/api/")) {
                 if (path == "/api/presentation") return presentationRoute(exchange, p)
                 val port = p.port
-                val body = exchange.requestBody.readBytes()
+                val body = exchange.bytes()
                 // The launcher keeps the mute, so the next show starts as this one was left — and
                 // with no show up, the button still sets how the next one starts.
                 if (path == "/api/mute" && method == "POST") {
                     val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
                     p.muted = on ?: !p.muted
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
+                if (path == "/api/subtitle-mode" && method == "POST") {
+                    val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
+                    p.subtitles = on ?: !p.subtitles
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
+                if (path == "/api/mix" && method == "POST") {
+                    runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject }.getOrNull()?.let { o ->
+                        val layer = Layer.of(o["layer"]?.jsonPrimitive?.contentOrNull)
+                        val gain = o["gain"]?.jsonPrimitive?.doubleOrNull
+                        if (layer != null && gain != null) p.mix[layer] = gain.coerceIn(0.0, 4.0)
+                    }
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
+                if (path == "/api/voice-mode" && method == "POST") {
+                    val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
+                    p.voice = on ?: !p.voice
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
+                if (path == "/api/subtitle-track" && method == "POST") {
+                    val track = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["track"]?.jsonPrimitive?.contentOrNull }.getOrNull()
+                    p.subtitleTrack = SubtitleTrack.of(track)
                     if (!p.live) return exchange.json(200, presentationJson(p))
                 }
                 if (port != null && p.live && path != "/api/sketches") return forward(exchange, port, p, body)
@@ -296,6 +363,58 @@ class Remote(
                     commands += Mute(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
                 }
+                path == "/api/subtitle-mode" && method == "POST" -> {
+                    commands += Subtitle(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
+                    exchange.json(202, ok())
+                }
+                path == "/api/mix" && method == "POST" -> {
+                    val b = exchange.body()
+                    val layer = Layer.of(b["layer"]?.jsonPrimitive?.contentOrNull)
+                    val gain = b["gain"]?.jsonPrimitive?.doubleOrNull
+                    if (layer == null || gain == null) exchange.json(400, error("mix needs a layer (voice, design, music) and a gain"))
+                    else { commands += Mix(layer, gain); exchange.json(202, ok()) }
+                }
+                path == "/api/voice-mode" && method == "POST" -> {
+                    commands += Voice(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
+                    exchange.json(202, ok())
+                }
+                path == "/api/subtitle-track" && method == "POST" -> {
+                    commands += Track(SubtitleTrack.of(exchange.body()["track"]?.jsonPrimitive?.contentOrNull))
+                    exchange.json(202, ok())
+                }
+                path == "/api/subtitle-cards" && method == "POST" -> {
+                    // The wall's own cutting and timing, so the page never carries a second copy of it.
+                    val text = exchange.body()["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                    val cards = pace.cards(text)
+                    exchange.json(200, buildJsonObject {
+                        put("seconds", seconds(cards.lastOrNull()?.end ?: 0))
+                        put("cards", JsonArray(cards.map { card ->
+                            buildJsonObject {
+                                put("lines", JsonArray(card.lines.map { JsonPrimitive(it) }))
+                                put("at", seconds(card.at)); put("seconds", seconds(card.length))
+                            }
+                        }))
+                    })
+                }
+                path == "/api/subtitles" && method == "PUT" -> {
+                    // `?track=extended` saves the extended track; without it, the default one.
+                    val track = SubtitleTrack.of(exchange.requestURI.query?.split("&")
+                        ?.firstOrNull { it.startsWith("track=") }?.removePrefix("track="))
+                    val file = if (track == SubtitleTrack.EXTENDED) subtitlesExtendedFile else subtitlesFile
+                    val was = if (track == SubtitleTrack.EXTENDED) subtitlesExtended else subtitles
+                    val text = exchange.bytes().decodeToString()
+                    val next = runCatching { Subtitles.parse(text) }.getOrElse {
+                        exchange.json(400, error("not a subtitles file: ${it.message}"))
+                        return
+                    }
+                    // The header and the voice-over beside the lines are the file's, not the page's.
+                    val kept = Subtitles(next.lines, next.note ?: was.note, was.extra + next.extra)
+                    kept.write(file)
+                    if (track == SubtitleTrack.EXTENDED) subtitlesExtended = kept else subtitles = kept
+                    commands += ApplySubtitles(kept, track)
+                    println("organizer: saved ${file.path} (${kept.size} slides with a line)")
+                    exchange.json(200, buildJsonObject { put("saved", file.path); put("applied", true) })
+                }
                 path == "/api/grid" && method == "POST" -> {
                     commands += Grid(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
@@ -306,7 +425,7 @@ class Remote(
                     exchange.json(202, ok())
                 }
                 path == "/api/order" && method == "PUT" -> {
-                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val text = exchange.bytes().decodeToString()
                     val order = runCatching { Order.parse(text) }.getOrElse {
                         exchange.json(400, error("not an order: ${it.message}"))
                         return
@@ -318,7 +437,7 @@ class Remote(
                     exchange.json(200, buildJsonObject { put("saved", orderFile.path); put("applied", true) })
                 }
                 path == "/api/modules" && method == "PUT" -> {
-                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val text = exchange.bytes().decodeToString()
                     val next = runCatching { Modules.parse(text) }.getOrElse {
                         exchange.json(400, error("not a modules file: ${it.message}"))
                         return
@@ -332,7 +451,7 @@ class Remote(
                     exchange.json(200, buildJsonObject { put("saved", modulesFile.path); put("applied", true) })
                 }
                 path == "/api/intents" && method == "PUT" -> {
-                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val text = exchange.bytes().decodeToString()
                     val next = runCatching { Intents.parse(text) }.getOrElse {
                         exchange.json(400, error("not an intents file: ${it.message}"))
                         return
@@ -345,7 +464,7 @@ class Remote(
                     exchange.json(200, buildJsonObject { put("saved", intentsFile.path); put("applied", true) })
                 }
                 path == "/api/feedback" && method == "PUT" -> {
-                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val text = exchange.bytes().decodeToString()
                     val next = runCatching { Feedback.parse(text) }.getOrElse {
                         exchange.json(400, error("not a feedback file: ${it.message}"))
                         return
@@ -357,7 +476,7 @@ class Remote(
                     exchange.json(200, buildJsonObject { put("saved", feedbackFile.path); put("open", kept.open) })
                 }
                 path == "/api/midi" && method == "PUT" -> {
-                    val text = exchange.requestBody.readBytes().decodeToString()
+                    val text = exchange.bytes().decodeToString()
                     val next = runCatching { MidiWanted.parse(text) }.getOrElse {
                         exchange.json(400, error("not a midi file: ${it.message}"))
                         return
@@ -385,6 +504,15 @@ class Remote(
                     }
                 }
                 path == "/api/sketches" && method == "GET" -> exchange.json(200, Sketches.json())
+                // What has been rendered as speech, per track — polled by the page while the
+                // renderer runs, so a line appears with a play button the moment it is written.
+                path == "/api/voice" && method == "GET" -> exchange.json(200, voiceJson())
+                path.startsWith("/voice/") && method == "GET" -> {
+                    val name = path.removePrefix("/voice/")
+                    val file = voiceDir?.let { File(it, name) }
+                    if (!VOICE_NAME.matches(name) || file == null || !file.isFile) exchange.send(404, ByteArray(0), "text/plain")
+                    else exchange.send(200, file.readBytes(), "audio/wav", cache = false)
+                }
                 path.startsWith("/sketch-previews/") && method == "GET" -> {
                     val file = Sketches.preview(path.removePrefix("/sketch-previews/"))
                     if (file == null) exchange.send(404, ByteArray(0), "text/plain")
@@ -406,6 +534,8 @@ class Remote(
             }
         } catch (e: Exception) {
             runCatching { exchange.json(500, error(e.message ?: e.toString())) }
+        } finally {
+            body.remove()
         }
     }
 
@@ -437,6 +567,15 @@ class Remote(
             put("modules", modules.toJson())
             put("intentsFile", intentsFile.path)
             put("intents", intents.toJson())
+            put("subtitlesFile", subtitlesFile.path)
+            put("subtitles", subtitles.toJson())
+            put("subtitlesExtendedFile", subtitlesExtendedFile.path)
+            put("subtitlesExtended", subtitlesExtended.toJson())
+            // The voices rendered per track, seconds a state — read off the folder each time, since
+            // the renderer writes it from outside the show.
+            put("voiceDir", voiceDir?.path ?: "")
+            put("voice", voiceJson())
+            put("subtitleCps", pace.cps)
             put("feedbackFile", feedbackFile.path)
             put("feedback", feedback.toJson())
             put("midiFile", midiFile.path)
@@ -489,13 +628,29 @@ class Remote(
         frame.pane?.let { put("pane", "/references/${it.name}") }
     }
 
+    /**
+     * `{ track: { "<id>-<LETTER>": seconds } }` for every track with a rendered voice, and under
+     * `flagged` the states whose best render still failed the renderer's read-back check.
+     */
+    private fun voiceJson(): JsonObject = buildJsonObject {
+        val flagged = mutableListOf<String>()
+        SubtitleTrack.entries.forEach { track ->
+            val v = VoiceTrack.read(voiceDir?.path, track) ?: return@forEach
+            put(track.key, buildJsonObject { v.seconds().forEach { (k, s) -> put(k, s) } })
+            v.flagged.forEach { flagged += "${track.key}/$it" }
+        }
+        put("flagged", JsonArray(flagged.map { JsonPrimitive(it) }))
+    }
+
     private fun stateJson(): JsonObject {
         val s = snapshot
         return buildJsonObject {
             put("index", s.index); put("id", s.id); put("step", s.step); put("steps", s.steps)
             put("frame", s.frame); put("previewsLeft", s.previewsLeft); put("previewStamp", s.previewStamp)
             put("concrete", s.concrete); put("hasConcrete", s.hasConcrete); put("grid", s.grid)
-            put("muted", s.muted); put("hasSound", s.hasSound)
+            put("muted", s.muted); put("hasSound", s.hasSound); put("subtitles", s.subtitles)
+            put("subtitleTrack", s.subtitleTrack.key); put("voice", s.voice)
+            put("mix", buildJsonObject { s.mix.forEach { (l, g) -> put(l.key, g) } })
             put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
             put("exportFrame", exportFrame); put("exportFrames", exportFrames)
             presentation?.let { put("presentation", presentationJson(it)) }
@@ -507,7 +662,9 @@ class Remote(
 
     private fun presentationJson(p: Presentation) = buildJsonObject {
         put("running", p.running); put("starting", p.starting); put("live", p.live)
-        put("projection", p.projection); put("muted", p.muted)
+        put("projection", p.projection); put("muted", p.muted); put("subtitles", p.subtitles)
+        put("subtitleTrack", p.subtitleTrack.key); put("voice", p.voice)
+        put("mix", buildJsonObject { p.mix.forEach { (l, g) -> put(l.key, g) } })
     }
 
     /**
@@ -567,6 +724,8 @@ class Remote(
         modules = if (modulesFile.isFile) runCatching { Modules.read(modulesFile) }.getOrDefault(Modules.EMPTY) else Modules.EMPTY
         intents = if (intentsFile.isFile) runCatching { Intents.read(intentsFile) }.getOrDefault(Intents.EMPTY) else Intents.EMPTY
         feedback = if (feedbackFile.isFile) runCatching { Feedback.read(feedbackFile) }.getOrDefault(Feedback.EMPTY) else Feedback.EMPTY
+        subtitles = Subtitles.readOrEmpty(subtitlesFile.path)
+        subtitlesExtended = Subtitles.readOrEmpty(subtitlesExtendedFile.path)
         midi = if (midiFile.isFile) runCatching { MidiWanted.read(midiFile) }.getOrDefault(MidiWanted.EMPTY) else MidiWanted.EMPTY
         catalogue = runCatching { catalogue.withModules(modules, references) }.getOrDefault(catalogue)
         show = runCatching { catalogue.arranged(currentOrder()) }.getOrDefault(catalogue)
@@ -578,8 +737,23 @@ class Remote(
     private fun ok() = buildJsonObject { put("ok", true) }
     private fun error(message: String) = buildJsonObject { put("error", message) }
 
+    /**
+     * The request's body, read once per request. The launcher reads it to decide whether to
+     * forward before any route sees it, and a stream read twice is empty the second time — every
+     * save made with no show running came through as nothing. Kept on the handling thread rather
+     * than as an exchange attribute: the JDK's server stores those in the context's one shared
+     * map, so the first request's body was handed to every request after it.
+     */
+    private fun HttpExchange.bytes(): ByteArray {
+        val kept = body.get()
+        if (kept != null && kept.first === this) return kept.second
+        return requestBody.readBytes().also { body.set(this to it) }
+    }
+
+    private val body = ThreadLocal<Pair<HttpExchange, ByteArray>>()
+
     private fun HttpExchange.body(): JsonObject =
-        runCatching { Json.parseToJsonElement(requestBody.readBytes().decodeToString()).jsonObject }
+        runCatching { Json.parseToJsonElement(bytes().decodeToString()).jsonObject }
             .getOrDefault(JsonObject(emptyMap()))
 
     private fun HttpExchange.json(code: Int, body: JsonObject) =
@@ -599,6 +773,7 @@ class Remote(
         )
 
         private val PREVIEW_NAME = Regex("^[a-z0-9-]+-[0-2]\\.png$")
+        private val VOICE_NAME = Regex("^(default|extended)/[a-z0-9-]+-[A-Z]{1,2}\\.wav$")
         private val REFERENCE_NAME = Regex("^[0-9]+-[0-9]+-(wall\\.jpg|pane\\.png)$")
 
         /** One of the three frames a preview shows: the click it stands on, the frame, and its caption. */

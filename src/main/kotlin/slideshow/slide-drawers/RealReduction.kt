@@ -18,6 +18,7 @@ import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.frames
+import slideshow.linear
 import slideshow.smoothstep
 import java.io.File
 
@@ -33,8 +34,10 @@ class Measure(val kind: Kind, val caption: String, val column: Int) {
  *
  *     0   the certificate, standing in the middle of the pane
  *     1   the certificate shrinks to nothing and the pane is empty under the title
- *     2…  one measure a click, each growing from its own middle where it will stand, in the
- *         order they are listed — so every measure gets its own sentence
+ *     2…  the first [single] measures a click each, each growing from its own middle where it
+ *         will stand, in the order they are listed
+ *     last the rest on one click, one after another across it on the click's own linear time —
+ *         the first two are named, the others follow as a set (review of 22 September)
  *
  * It was three states once — the measures either side of the certificate, then closing up
  * into its place — and the feedback of 16 September asked for the steps to be revealed one by
@@ -60,6 +63,10 @@ class RealReduction(
     /** The line said where the certificate stood as it goes, until the first measure arrives. Null says nothing. */
     private val farewell: String? = null,
     private val measures: List<Measure>,
+    /** How many measures arrive on a click of their own; the rest share the click after. */
+    private val single: Int = Int.MAX_VALUE,
+    /** Seconds the shared click takes, so the measures on it arrive a beat apart. */
+    private val together: Double = 2.4,
     private val illustrations: File? = File("data/illustrations"),
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
@@ -74,12 +81,25 @@ class RealReduction(
 ) : Slide() {
 
     override val name = "Reduction, not compensation"
-    override val steps get() = 2 + measures.size
+    /** Measures on a click of their own, and the ones that share the last. */
+    private val alone get() = minOf(single, measures.size)
+    private val rest get() = measures.size - alone
+    /** The click the rest arrive on, or -1 when every measure has its own. */
+    private val shared get() = if (rest > 0) 2 + alone else -1
+
+    override val steps get() = 2 + alone + if (rest > 0) 1 else 0
     override fun stepName(step: Int): String? = when {
         step == 1 -> "no certificate"
+        step == shared -> "the other ${rest}"
         step >= 2 -> measures.getOrNull(step - 2)?.caption
         else -> null
     }
+    override fun stepLength(step: Int): Int = if (step == shared) frames(together) else stepFrames
+
+    /** How far measure [n] has arrived: on its own click, or at its turn across the shared one. */
+    private fun arrived(stage: Stage, n: Int): Double =
+        if (n < alone) stage.on(2 + n)
+        else staggered(linear(stage.on(shared)), n - alone, rest, LAG)
 
     private lateinit var bold: FontImageMap
     private lateinit var text: FontImageMap
@@ -169,7 +189,7 @@ class RealReduction(
         byColumn.forEach { (column, list) ->
             val x = columnX.getOrElse(column) { w / 2.0 }
             list.forEachIndexed { i, m ->
-                val grown = smoothstep(stage.on(2 + measures.indexOf(m)))
+                val grown = smoothstep(arrived(stage, measures.indexOf(m)))
                 if (grown <= 0.0) return@forEachIndexed
                 val y = h * (ROW_TOP + (ROW_BOTTOM - ROW_TOP) * (if (list.size == 1) 0.5 else i.toDouble() / (list.size - 1)))
                 drawer.isolated {
@@ -246,6 +266,8 @@ class RealReduction(
     }
 
     private companion object {
+        /** How far apart, in shares of the shared click, the measures on it set off. */
+        const val LAG = 0.22
         const val SIZE = 200.0
         const val TITLE = 0.036
         const val TITLE_Y = 0.06

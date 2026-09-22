@@ -535,9 +535,10 @@ class Crowd(
         // phase that is a part of it has to ease itself or it starts and stops with an
         // edge. Where nothing travels — the one standing still while the crowd forms — the
         // arrivals take the whole click.
-        // The globe's turn, from the frame the whole was first reached: the share lands where it
-        // was drawn and then sets off. Going back off the whole resets it.
-        if (stage.position < formations.size - 1.0) wholeSince = -1
+        // The globe's turn, from the frame the click toward the whole begins: the arrow's people
+        // travel onto a sphere already turning, rather than landing and then waiting for it to set
+        // off (review of 22 September). Going back off the whole resets it.
+        if (stage.position <= formations.size - 2.0) wholeSince = -1
         else if (wholeSince < 0) wholeSince = stage.frame
         val turn = if (spin <= 0.0 || wholeSince < 0) 0.0 else (stage.frame - wholeSince) / (spin * FPS) * 2.0 * PI
 

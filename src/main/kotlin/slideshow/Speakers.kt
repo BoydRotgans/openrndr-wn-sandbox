@@ -76,11 +76,12 @@ class Speakers(
     /**
      * Bring every cue to one loudness as it is decoded.
      *
-     * On, because this sheet needs it: the cues are stems at wildly different levels and one
-     * gain cannot serve them. Off plays each file exactly as delivered, which is what you want
-     * when the sheet has been mixed already.
+     * **Off: every file plays exactly as delivered**, at its own level times [Sound.gain]. The
+     * sound design is mixed by its designer, and levelling it pushed quiet stems up by as much
+     * as 34 dB, which is what made some cues far too loud in the room (22 September). On is
+     * the old behaviour, kept for a sheet of raw stems.
      */
-    private val levelled: Boolean = true
+    private val levelled: Boolean = false
 ) {
 
     private var device = 0L
@@ -92,6 +93,8 @@ class Speakers(
 
     /** One AL buffer per *file*, so four cards on one cue decode it once. */
     private val buffers = mutableMapOf<String, Int>()
+    /** When each buffered file was last written, so [load] can tell a re-rendered file from one it has. */
+    private val stamps = mutableMapOf<String, Long>()
 
     /** The one-shot voices, taken round-robin so two cues can overlap. */
     private var pool = IntArray(0)
@@ -107,6 +110,39 @@ class Speakers(
 
     /** Where each held source's gain stands, so a fade can start from wherever it got to. */
     private val level = mutableMapOf<String, Double>()
+
+    // --- the mix: a gain per layer, on top of each sound's own ----------------------------- //
+    //
+    // Levels live in the sounds' own units in `level` and in the fades; the layer's gain is laid
+    // over them each time a gain reaches OpenAL, so moving a fader re-levels everything already
+    // sounding on that layer at once, and a fade keeps its shape under it.
+
+    private val mix = Layer.entries.associateWith { 1.0 }.toMutableMap()
+    private val heldLayer = mutableMapOf<String, Layer>()
+    private var poolLayer = arrayOfNulls<Layer>(0)
+    private var poolGain = DoubleArray(0)
+
+    /** The gain a layer is played at, 0..1 (more than 1 boosts). */
+    fun mixOf(layer: Layer): Double = mix[layer] ?: 1.0
+
+    /** Sets a layer's gain and re-levels whatever is sounding on it now. */
+    fun setMix(layer: Layer, gain: Double) {
+        mix[layer] = gain.coerceIn(0.0, 4.0)
+        if (!ready) return
+        held.forEach { (key, source) ->
+            if (heldLayer[key] == layer) alSourcef(source, AL_GAIN, ((level[key] ?: 0.0) * mixOf(layer)).toFloat())
+        }
+        pool.indices.forEach { i ->
+            if (poolLayer.getOrNull(i) == layer) alSourcef(pool[i], AL_GAIN, (poolGain[i] * mixOf(layer)).toFloat())
+        }
+    }
+
+    /**
+     * Whether the sustained cue on [sound]'s file is sounding now — for the trace that checks a
+     * voice really started, not only that it was asked for.
+     */
+    fun isPlaying(sound: Sound): Boolean =
+        ready && held[sound.file.path]?.let { alGetSourcei(it, AL_SOURCE_STATE) == AL_PLAYING } == true
 
     /** The ramps running on held sources. */
     private val fading = mutableMapOf<String, Fade>()
@@ -151,8 +187,13 @@ class Speakers(
      * late.
      */
     fun load(sounds: List<Sound>) {
+        // Additive: a file already buffered and unchanged on disk is skipped, and one written
+        // since is decoded again — which is what lets the voice pick up lines as the renderer
+        // writes them, with the show up (see VoiceTrack).
         val wanted = sounds.distinctBy { it.file.path }
+            .filter { buffers[it.file.path] == null || stamps[it.file.path] != it.file.lastModified() }
         if (wanted.isEmpty()) return
+        val first = buffers.isEmpty()
 
         val present = wanted.filter { it.present }
         wanted.filterNot { it.present }.forEach { println("sound: no such file ${it.file.path} — silent") }
@@ -173,7 +214,13 @@ class Speakers(
                 println("sound: ${sound.file.name} would not buffer — silent")
                 continue
             }
-            buffers[sound.file.path] = buffer
+            // A file written again replaces its buffer. A held source still bound to the old one
+            // is stopped and dropped, so the next play binds the new — never deleted while bound.
+            buffers.put(sound.file.path, buffer)?.let { old ->
+                held.remove(sound.file.path)?.let { src -> alSourceStop(src); alDeleteSources(src) }
+                alDeleteBuffers(old)
+            }
+            stamps[sound.file.path] = sound.file.lastModified()
             // per file, because the sheet is 44.1k and the ambience bed is 48k
             length += pcm.frames.toDouble() / pcm.rate
             bytes += pcm.data.capacity().toLong()
@@ -185,7 +232,15 @@ class Speakers(
             )
         }
 
-        pool = IntArray(voices) { alGenSources() }
+        if (!first) {
+            println("sound: %d more loaded, %.1fs".format(present.size, length))
+            return
+        }
+        if (pool.isEmpty()) {
+            pool = IntArray(voices) { alGenSources() }
+            poolLayer = arrayOfNulls(voices)
+            poolGain = DoubleArray(voices)
+        }
         println(
             "sound: %d cues, %.1fs, %.0f MB, %d voices on %s".format(
                 buffers.size, length, bytes / 1e6, voices, alcGetString(device, ALC_DEVICE_SPECIFIER)
@@ -204,11 +259,15 @@ class Speakers(
      * gain had got to, which is what makes leaving a slide and coming straight back sound
      * like one continuous bed rather than two.
      */
-    fun play(sound: Sound?) {
+    fun play(sound: Sound?, restart: Boolean = false) {
         if (sound == null) return
-        log += Cue(frame, sound, release = false)
+        // Logged at the level the mix plays it at, so a filmed run's soundtrack is the mix heard.
+        log += Cue(frame, sound.copy(gain = sound.gain * mixOf(sound.layer)), release = false)
         if (!ready) return
-        val buffer = buffers[sound.file.path] ?: return
+        val buffer = buffers[sound.file.path] ?: run {
+            println("sound: ${sound.file.name} asked for but not loaded — silent")
+            return
+        }
 
         if (sound.sustained) {
             val key = sound.file.path
@@ -218,6 +277,10 @@ class Speakers(
                     alSourcei(it, AL_LOOPING, if (sound.loop) AL_TRUE else AL_FALSE)
                 }
             }
+            heldLayer[key] = sound.layer
+            // A voice said again — a click back, a replay — starts from its first word rather
+            // than carrying on from wherever it had got to, which is what a bed does.
+            if (restart) alSourceStop(source)
             val from = level[key] ?: 0.0
             if (sound.fadeIn > 0) {
                 fading[key] = Fade(from, sound.gain, frame, sound.fadeIn, stopAtEnd = false)
@@ -226,8 +289,9 @@ class Speakers(
                 level[key] = sound.gain
             }
             // Come up from where it stands, so the first frame of a fade is not a full-gain blip.
-            alSourcef(source, AL_GAIN, (level[key] ?: from).toFloat())
+            alSourcef(source, AL_GAIN, ((level[key] ?: from) * mixOf(sound.layer)).toFloat())
             if (alGetSourcei(source, AL_SOURCE_STATE) != AL_PLAYING) alSourcePlay(source)
+            alGetError().takeIf { it != AL_NO_ERROR }?.let { println("sound: ${sound.file.name} would not play (AL error $it)") }
             return
         }
 
@@ -237,7 +301,9 @@ class Speakers(
         // A source will not take a new buffer while it is playing, so stop it first.
         alSourceStop(source)
         alSourcei(source, AL_BUFFER, buffer)
-        alSourcef(source, AL_GAIN, sound.gain.toFloat())
+        alSourcef(source, AL_GAIN, (sound.gain * mixOf(sound.layer)).toFloat())
+        poolLayer[(next - 1 + pool.size) % pool.size] = sound.layer
+        poolGain[(next - 1 + pool.size) % pool.size] = sound.gain
         alSourcePlay(source)
     }
 
@@ -249,7 +315,7 @@ class Speakers(
      */
     fun release(sound: Sound?) {
         if (sound == null) return
-        log += Cue(frame, sound, release = true)
+        log += Cue(frame, sound.copy(gain = sound.gain * mixOf(sound.layer)), release = true)
         if (!ready) return
         val key = sound.file.path
         val source = held[key] ?: return
@@ -280,9 +346,17 @@ class Speakers(
             val source = held[key] ?: continue
             val now = fade.levelAt(frame)
             level[key] = now
-            alSourcef(source, AL_GAIN, now.toFloat())
+            alSourcef(source, AL_GAIN, (now * mixOf(heldLayer[key] ?: Layer.DESIGN)).toFloat())
             if (fade.doneAt(frame)) {
-                if (fade.stopAtEnd) alSourceStop(source)
+                if (fade.stopAtEnd) {
+                    // Let go of the source as well as stopping it: a held source per file, never
+                    // freed, is one per voice line over a whole talk — 142 of them, beside the
+                    // design's own — and OpenAL Soft stops handing out sources at 256, after which
+                    // a cue plays on nothing and says so to nobody. A later play makes a new one.
+                    alSourceStop(source)
+                    alDeleteSources(source)
+                    held.remove(key)
+                }
                 finished += key
             }
         }
@@ -351,7 +425,7 @@ class Speakers(
     )
 
     /**
-     * Reads a cue, **levels it**, and hands back 16-bit PCM.
+     * Reads a cue, levels it only if asked (see [levelled]), and hands back 16-bit PCM.
      *
      * The JDK is the decoder, which is why nothing here parses RIFF chunks and why the two
      * formats in this project — 24-bit and 32-bit float — both work without a converter

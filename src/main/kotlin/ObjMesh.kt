@@ -60,7 +60,13 @@ data class ObjMesh(
      */
     val points: List<Vector3>,
     /** Positions and normals, already normalised, centred and turned Y up. */
-    val vertexBuffer: VertexBuffer
+    val vertexBuffer: VertexBuffer,
+    /**
+     * The same triangles on the CPU, three positions each, normalised as [points] are. For
+     * asking where a line meets the solid — `HiddenStory` ends its leaders on the spin axis
+     * only where the axis is inside the piece.
+     */
+    val surface: List<Vector3> = emptyList()
 ) {
     /** The IFC class out of [objectName], so `IfcBeam` — or null when it is not named that way. */
     val ifcClass: String?
@@ -297,7 +303,8 @@ fun loadObjMesh(
         points = normalised,
         spinRadius = normalised.maxOf { hypot(it.x, it.z) },
         halfHeight = normalised.maxOf { abs(it.y) },
-        vertexBuffer = buffer
+        vertexBuffer = buffer,
+        surface = out.map { it.position }
     )
 }
 

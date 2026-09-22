@@ -35,14 +35,16 @@ class Lever(val heading: String, val text: String)
  * separating out of one cloud; production as the lime cycle, a ring the arrows keep travelling
  * round; measurement as a row of bars descending. One caption row under all three.
  *
- * - **The scatter separates on the slide's own clock.** Every dot starts in one cloud in the
- *   middle of its panel and travels to its population's place, drawn from a seed so the same
- *   frame always draws the same cloud — a mix being re-composed rather than three groups
- *   appearing. Only while the slide is on its first state, so stepping back into it finds the
- *   mix separated.
- * - **The cycle's arrowheads travel.** The ring is four arcs between four stations, each with an
- *   arrowhead that runs its arc over [travel] frames and comes round again, off `stage.frame`.
- *   The ring draws itself around on the click and the lettering fades up on the same number.
+ * - **The scatter mixes on the slide's own clock.** Every dot starts at its population's place —
+ *   three clusters, the ingredients apart — and over [mixing] seconds they drift into one cloud,
+ *   the colours through one another, and go on wandering a little there. It separated one cloud
+ *   into the clusters until 22 September; the review asked for the mix, which is the point. Drawn
+ *   from a seed, so the same frame always draws the same cloud.
+ * - **The cycle is one ring and one arrow.** The ring runs whole round the four stations, and a
+ *   single arrowhead with a fading tail goes round it clockwise, once every [travel] frames, off
+ *   `stage.frame`. It was four arcs broken at the stations with a small head running on each —
+ *   read as cut off rather than as one movement. The ring draws itself around on the click and
+ *   the lettering fades up on the same number.
  * - **The bars grow from their baseline**, staggered along the click, values as given.
  *
  * Everything is a function of `stage.position` and `stage.frame`; nothing is kept.
@@ -60,8 +62,10 @@ class ConcreteLevers(
     private val accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
     private val blue: ColorRGBa = ColorRGBa.fromHex("4674D6"),
     private val seed: Int = 1,
-    /** Frames an arrowhead takes to run its arc. */
-    private val travel: Int = frames(3.0),
+    /** Frames the arrow takes to go once round the ring. */
+    private val travel: Int = frames(9.0),
+    /** Seconds the three populations take to mix into one cloud, after [MIX_AT]. */
+    private val mixing: Double = 6.0,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val stepFrames: Int = frames(0.9),
     override val sound: Sound? = null,
@@ -70,7 +74,7 @@ class ConcreteLevers(
 
     override val name = "Levers"
     override val steps get() = 3
-    override val settle get() = frames(SEPARATE) + frames(SEPARATE_AT)
+    override val settle get() = frames(MIX_AT) + frames(mixing)
 
     override fun stepName(step: Int): String? = when (step) {
         1 -> "door productie"
@@ -117,12 +121,13 @@ class ConcreteLevers(
         val panel = w / 3.0
         fun panelBox(i: Int) = Rectangle(i * panel + w * MARGIN, h * PANEL_TOP, panel - 2 * w * MARGIN, h * (PANEL_BOTTOM - PANEL_TOP))
 
-        // 1. The mix: one cloud separating into its populations.
-        val opening = stage.step == 0 && stage.position < 1e-6
-        val separated = if (opening) smoothstep(stage.since(frames(SEPARATE_AT), frames(SEPARATE))) else 1.0
+        // 1. The mix: three populations drifting into one cloud, and wandering a little there.
+        val mixed = smoothstep(stage.since(frames(MIX_AT), frames(mixing)))
         val first = panelBox(0)
-        dots.forEach { d ->
-            val at = first.center + (d.from + (d.to - d.from) * separated) * h
+        val t = stage.frame / FPS_WANDER
+        dots.forEachIndexed { i, d ->
+            val wander = Vector2(sin(t * (0.7 + (i % 7) * 0.09) + i * 1.3), cos(t * (0.6 + (i % 5) * 0.11) + i * 2.1)) * WANDER * mixed
+            val at = first.center + (d.to + (d.from * (MIXED / CLOUD) - d.to) * mixed + wander) * h
             drawer.fill = d.colour
             drawer.circle(at, DOT)
         }
@@ -181,32 +186,39 @@ class ConcreteLevers(
         fun angle(k: Double) = -PI / 2.0 + (k + 0.5) * 2.0 * PI / n
         fun on(k: Double, radius: Double = r) = c + Vector2(cos(angle(k)), sin(angle(k))) * radius
 
-        // The arcs: from just after one station to just before the next, drawn around in order.
-        val gapK = GAP_DEG / 360.0 * n
-        drawer.stroke = ink
+        // The ring, whole, drawn around from the first station on the click; quiet, so the arrow
+        // going round it is the movement.
+        val around = drawn * n                               // in station steps, 0 to n
+        val steps = 160
+        drawer.stroke = ink.opacify(RING_QUIET)
         drawer.strokeWeight = RING_LINE
-        for (k in 0 until n) {
-            val share = (drawn * n - k).coerceIn(0.0, 1.0)
-            if (share <= 0.0) break
-            val from = k + gapK
-            val to = k + 1 - gapK
-            val steps = 40
-            val pts = (0..steps).map { i -> on(from + (to - from) * share * i / steps) }
-            drawer.lineStrip(pts)
-            // The arrowhead, travelling the arc and coming round again — only once the arc is drawn.
-            if (share >= 1.0) {
-                val u = ((frame + k * travel / n) % travel).toDouble() / travel
-                val kk = from + (to - from) * u
-                val tip = on(kk)
-                val tangent = Vector2(-sin(angle(kk)), cos(angle(kk)))    // clockwise on screen
-                val normal = Vector2(cos(angle(kk)), sin(angle(kk)))
-                drawer.stroke = null
-                drawer.fill = ink
-                drawer.contour(ShapeContour.fromPoints(listOf(
-                    tip + tangent * HEAD, tip - normal * HEAD * 0.6, tip + normal * HEAD * 0.6
-                ), closed = true))
-                drawer.stroke = ink
-            }
+        drawer.fill = null
+        if (around > 0.0) drawer.lineStrip((0..steps).map { i -> on(around * i / steps) })
+
+        // One arrow going round, clockwise, with a tail that fades behind it — drawn only where
+        // the ring already is, so it rides the leading edge while the ring draws itself.
+        val head = (frame % travel).toDouble() / travel * n
+        val tailK = TAIL * n
+        val segments = 48
+        for (i in 0 until segments) {
+            val a0 = head - tailK * (1.0 - i.toDouble() / segments)
+            val a1 = head - tailK * (1.0 - (i + 1).toDouble() / segments)
+            fun wrap(k: Double) = ((k % n) + n) % n
+            if (wrap(a1) > around || wrap(a0) > around) continue
+            if (wrap(a0) > wrap(a1)) continue                // the seam at the first station
+            drawer.stroke = ink.opacify(RING_QUIET + (1.0 - RING_QUIET) * smoothstep((i + 1).toDouble() / segments))
+            drawer.lineSegment(on(wrap(a0)), on(wrap(a1)))
+        }
+        val tipK = ((head % n) + n) % n
+        if (tipK <= around) {
+            val tip = on(tipK)
+            val tangent = Vector2(-sin(angle(tipK)), cos(angle(tipK)))    // clockwise on screen
+            val normal = Vector2(cos(angle(tipK)), sin(angle(tipK)))
+            drawer.stroke = null
+            drawer.fill = ink
+            drawer.contour(ShapeContour.fromPoints(listOf(
+                tip + tangent * HEAD, tip - tangent * HEAD * 0.4 - normal * HEAD * 0.7, tip - tangent * HEAD * 0.4 + normal * HEAD * 0.7
+            ), closed = true))
         }
         drawer.stroke = null
 
@@ -270,13 +282,19 @@ class ConcreteLevers(
         /** The cloud every dot starts in and the dot itself, in pane heights and pixels. */
         const val CLOUD = 0.05
         const val DOT = 5.0
-        const val SEPARATE_AT = 0.4
-        const val SEPARATE = 1.6
+        /** Seconds before the populations start to mix, the cloud they mix into and how far a dot wanders there, in pane heights. */
+        const val MIX_AT = 1.0
+        const val MIXED = 0.07
+        const val WANDER = 0.006
+        /** Frames to a radian of a dot's wander. */
+        const val FPS_WANDER = 60.0
 
         const val RING = 0.38
         const val RING_LINE = 4.0
-        const val GAP_DEG = 9.0
-        const val HEAD = 11.0
+        /** The ring's own strength under the arrow, and how much of the ring the arrow's tail covers. */
+        const val RING_QUIET = 0.35
+        const val TAIL = 0.28
+        const val HEAD = 18.0
         const val STATION = 0.022
         const val STATION_OUT = 0.022
         const val PROCESS = 0.018
