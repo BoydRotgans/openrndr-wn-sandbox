@@ -6,4 +6,6 @@ dist
 # a release's web video is hundreds of megabytes; manifest and thumbs are committed,
 # the film is uploaded to storage by scripts/publish-release.mjs
 public/releases/*/video.mp4
+# the other soundtracks beside it — same reason: they are built, not written
+public/releases/*/audio-*.m4a
 .env*

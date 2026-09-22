@@ -61,6 +61,10 @@ export default function App() {
   const [pin, setPin] = useState<{ at: number; x: number | null; y: number | null } | null>(null)
   // the comment tool is armed for one note and disarms once it is placed or cancelled
   const [commenting, setCommenting] = useState(false)
+  /** Which soundtrack is playing: the film's own, or another mix beside it (see Manifest.audio). */
+  const [track, setTrack] = useState(prefs.getTrack())
+  /** Which subtitle track is being read and edited: the default line, or the extended one. */
+  const [voiceTrack, setVoiceTrack] = useState(prefs.getVoiceTrack())
   const [waveform, setWaveform] = useState<Waveform | null>(null)
   const [focus, setFocus] = useState<{ id: string; n: number } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -269,7 +273,12 @@ export default function App() {
 
   const reply = (parentId: string, body: string) => {
     const parent = comments.find((c) => c.id === parentId)
-    post(body, 'comment', parent?.topic ?? 'visual', [], parent?.stateKey === GENERAL, parentId)
+    // A reply belongs where its parent stands: under a voice-over line it takes that track's own
+    // kind, so it is shown with the line rather than loose in the thread.
+    const kind: CommentKind = parent?.kind.startsWith('voiceover')
+      ? ((parent.kind.endsWith('_note') ? parent.kind : `${parent.kind}_note`) as CommentKind)
+      : 'comment'
+    post(body, kind, parent?.topic ?? 'visual', [], parent?.stateKey === GENERAL, parentId)
   }
 
   const editComment = async (id: string, body: string) => {
@@ -305,6 +314,9 @@ export default function App() {
     const title = parent
       ? parent.author === name && !you ? `${who} replied to your note` : `${who} replied`
       : c.kind === 'voiceover' ? `${who} changed the voice-over`
+      : c.kind === 'voiceover_extended' ? `${who} changed the extended voice-over`
+      : c.kind === 'voiceover_note' ? `${who} wrote about the voice-over`
+      : c.kind === 'voiceover_extended_note' ? `${who} wrote about the extended voice-over`
       : !you && c.assignees?.includes(name) ? `${who} assigned you a note`
       : `${who} added ${general ? 'a general comment' : `a ${c.topic} note`}`
     const where = general ? 'General comments' : `${c.stateKey}${r && r.id !== release?.id ? ` · ${r.name}` : ''}`
@@ -391,6 +403,24 @@ export default function App() {
 
   const onTime = useCallback((t: number) => setTime(t), [])
   const onPlaying = useCallback((p: boolean) => setPlaying(p), [])
+
+  /**
+   * The soundtracks to choose between: the film's own mix first, then any the release carries
+   * beside it — the same picture with the voice-over left out, say. Undefined where there is
+   * only one, and the switch is then not drawn.
+   */
+  const tracks = useMemo(() => {
+    const extra = release?.manifest.audio ?? []
+    if (!extra.length) return undefined
+    const base = release?.thumbBase ?? ''
+    return [
+      { key: 'film', name: 'with voice' },
+      ...extra.map((a) => ({ key: a.key, name: a.name, audio: /^(https?:|blob:|data:)/.test(a.file) ? a.file : `${base}${a.file}` })),
+    ]
+  }, [release])
+
+  useEffect(() => { prefs.setTrack(track) }, [track])
+  useEffect(() => { prefs.setVoiceTrack(voiceTrack) }, [voiceTrack])
 
   const thumbUrl = useCallback(
     (s: StateInfo) => (/^(https?:|blob:|data:)/.test(s.thumb) ? s.thumb : `${release?.thumbBase ?? ''}${s.thumb}`),
@@ -490,6 +520,9 @@ export default function App() {
               key={release.id}
               ref={player}
               src={release.videoUrl}
+              tracks={tracks}
+              track={track}
+              onTrack={setTrack}
               loopRange={loop && state ? { start: state.start, end: state.end } : null}
               onTime={onTime}
               onPlaying={onPlaying}
@@ -589,9 +622,27 @@ export default function App() {
           <VoiceOver
             key={state.key}
             state={state}
-            updates={comments.filter((c) => c.releaseId === release.id && c.stateKey === state.key && c.kind === 'voiceover')}
+            tracks={[
+              ...([
+                { key: 'voiceover', label: 'subtitle', text: state.voiceover ?? '' },
+                { key: 'voiceover_extended', label: 'extended', text: state.voiceoverExtended ?? '' },
+              ] as const).map((t) => {
+                const here = comments.filter((c) => c.releaseId === release.id && c.stateKey === state.key)
+                const notes = here.filter((c) => c.kind === `${t.key}_note` && !c.parentId)
+                return {
+                  ...t,
+                  updates: here.filter((c) => c.kind === t.key),
+                  notes,
+                  replies: here.filter((c) => c.kind === `${t.key}_note` && c.parentId),
+                }
+              }),
+            ]}
+            track={voiceTrack}
+            onTrack={setVoiceTrack}
             name={name}
-            onSave={(text) => post(text, 'voiceover')}
+            onSave={(track, text) => post(text, track as CommentKind)}
+            onNote={(track, body) => post(body, `${track}_note` as CommentKind, 'audio')}
+            onReply={reply}
             onDone={setDone}
             onEdit={editComment}
             onDelete={deleteComment}

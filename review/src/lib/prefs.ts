@@ -3,6 +3,8 @@ const NAME = 'wn-review.name'
 const SEEN = 'wn-review.seen.v1'
 const LOOP = 'wn-review.loop'
 const MUTED = 'wn-review.muted'
+const TRACK = 'wn-review.track'
+const VOICE_TRACK = 'wn-review.voiceTrack'
 const KEY = 'wn-review.key'
 
 function read<T>(key: string, fallback: T): T {
@@ -33,6 +35,12 @@ export const prefs = {
   setKey: (k: string) => write(KEY, k),
   getMuted: () => read<boolean>(MUTED, false),
   setMuted: (on: boolean) => write(MUTED, on),
+  /** Which soundtrack was last chosen: `film` is the one in the video. */
+  getTrack: () => read<string>(TRACK, 'film'),
+  setTrack: (key: string) => write(TRACK, key),
+  /** Which subtitle track the voice-over panel was last left on. */
+  getVoiceTrack: () => read<string>(VOICE_TRACK, 'voiceover'),
+  setVoiceTrack: (key: string) => write(VOICE_TRACK, key),
 }
 
 export const seenKey = (releaseId: string, stateKey: string) => `${releaseId}/${stateKey}`

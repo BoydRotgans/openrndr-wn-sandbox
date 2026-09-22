@@ -108,10 +108,13 @@ class Ear:
         return re.sub(r"[^a-zàáâäéèêëïîóòôöúùûüç]", "", text)
 
     def hear(self, wav: Path):
+        """(what was heard, when the last word ends, every word with its times) — the times are
+        what puts a subtitle card on the speech rather than on a character count; see Subtitles.kt."""
         segs, _ = self.model.transcribe(str(wav), language="nl", beam_size=3, word_timestamps=True,
                                         condition_on_previous_text=False)
         words = [w for s in segs for w in (s.words or [])]
-        return " ".join(w.word.strip() for w in words), (words[-1].end if words else None)
+        spoken = [[round(w.start, 3), round(w.end, 3), w.word.strip()] for w in words if w.word.strip()]
+        return " ".join(w.word.strip() for w in words), (words[-1].end if words else None), spoken
 
     def score(self, asked: str, heard: str) -> float:
         import difflib
@@ -152,6 +155,43 @@ class SayEngine:
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(aiff), "-ac", "1", "-ar", str(self.sr), str(tmp)], check=True)
         audio, _ = sf.read(tmp, dtype="float32")
         aiff.unlink(missing_ok=True)
+        return audio
+
+
+class PiperEngine:
+    """
+    Piper (rhasspy), the voice the samples were approved from — a small onnx model run on the CPU.
+
+    **It is here for its evenness rather than its realism.** Chatterbox generates each line on its
+    own and its pace wanders, 12.7 to 21.6 characters a second of speech across one track, which
+    reads as hurried on the quick lines however slow the average is. Piper paces every line the
+    same and pauses the same at every comma, and `length_scale` sets that pace outright: 1.0 is the
+    voice as trained, 1.35 the talk's.
+
+    It is also deterministic, so a line comes out the same every time. The read-back check still
+    runs — a mispronounced name is a mispronounced name — but rendering again with another seed
+    cannot help it, so a line that fails is rendered once and flagged.
+    """
+    name = "piper"
+    deterministic = True
+
+    def __init__(self, model: str, length_scale=1.35, noise_scale=0.667, noise_w=0.8):
+        from piper import PiperVoice
+        self.model = str(model)
+        self.voice = PiperVoice.load(self.model)
+        self.sr = self.voice.config.sample_rate
+        self.length_scale, self.noise_scale, self.noise_w = length_scale, noise_scale, noise_w
+        self.settings = {"model": Path(self.model).name, "length_scale": length_scale,
+                         "noise_scale": noise_scale, "noise_w": noise_w}
+        print(f"render: Piper {Path(self.model).name} at length scale {length_scale}")
+
+    def render(self, text: str, tmp: Path):
+        import soundfile as sf, wave
+        from piper import SynthesisConfig
+        with wave.open(str(tmp), "wb") as w:
+            self.voice.synthesize_wav(text, w, syn_config=SynthesisConfig(
+                length_scale=self.length_scale, noise_scale=self.noise_scale, noise_w_scale=self.noise_w))
+        audio, _ = sf.read(tmp, dtype="float32")
         return audio
 
 
@@ -240,10 +280,11 @@ def voiced_share(audio, sr):
 
 
 def verdict(audio, sr, asked, ear, tmp: Path, cut=False):
-    """(passes, score, note, audio): the render read back and judged — cut at the last word heard."""
+    """(passes, score, note, audio, words): the render read back and judged — cut at the last word
+    heard, and the word times kept, since they are what the subtitles are laid on."""
     import soundfile as sf
     sf.write(tmp, audio, sr, subtype="PCM_16")
-    heard, last = ear.hear(tmp)
+    heard, last, words = ear.hear(tmp)
     tmp.unlink(missing_ok=True)
     score = ear.score(asked, heard)
     # speech running on past the last word heard is the model inventing: cut it off there
@@ -255,7 +296,7 @@ def verdict(audio, sr, asked, ear, tmp: Path, cut=False):
     if score < PASS_SCORE: notes.append(f"heard \"{heard[:80]}\"")
     if not (MIN_CPS <= cps <= MAX_CPS) and len(asked) > 20: notes.append(f"{cps:.0f} chars/s")
     if voiced_share(audio, sr) < MIN_VOICED: notes.append("mostly silence")
-    return (not notes, score, "; ".join(notes), audio)
+    return (not notes, score, "; ".join(notes), audio, words)
 
 
 PASS_SCORE = 0.8
@@ -266,10 +307,11 @@ PASS_SCORE = 0.8
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--track", default="extended", choices=["default", "extended"])
-    ap.add_argument("--engine", default="chatterbox", choices=["chatterbox", "say"])
+    ap.add_argument("--engine", default="chatterbox", choices=["chatterbox", "say", "piper"])
     ap.add_argument("--device", default="mps")
     ap.add_argument("--voice", default=None, help="a reference clip to clone (Chatterbox), or a say voice name")
     ap.add_argument("--exaggeration", type=float, default=0.4)
+    ap.add_argument("--length-scale", type=float, default=1.35, help="Piper's pace; 1.0 is the voice as trained")
     ap.add_argument("--cfg", type=float, default=0.5)
     ap.add_argument("--only", default="", help="comma-separated slide ids")
     ap.add_argument("--limit", type=int, default=0, help="render at most this many states")
@@ -303,6 +345,7 @@ def main():
         nonlocal engine
         if engine is None:
             engine = (SayEngine(voice=a.voice or "Xander") if a.engine == "say"
+                      else PiperEngine(a.voice, a.length_scale) if a.engine == "piper"
                       else ChatterboxEngine(a.device, a.voice, a.exaggeration, a.cfg))
         return engine
 
@@ -311,7 +354,9 @@ def main():
     for sid, step, text in rows:
         key = f"{sid}-{letter(step)}"
         say = spoken(text)
-        settings = {"voice": a.voice, "exaggeration": a.exaggeration, "cfg": a.cfg} if a.engine == "chatterbox" else {"voice": a.voice or "Xander"}
+        settings = ({"voice": a.voice, "exaggeration": a.exaggeration, "cfg": a.cfg} if a.engine == "chatterbox"
+                    else {"model": Path(a.voice).name if a.voice else None, "length_scale": a.length_scale} if a.engine == "piper"
+                    else {"voice": a.voice or "Xander"})
         digest = hashlib.sha1(json.dumps([a.engine, say, settings], sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
         target = out / f"{key}.wav"
         entry = manifest.get(key)
@@ -332,7 +377,9 @@ def main():
                 print(f"render: {key:40s} kept, checked {best[1]:.2f}")
                 continue
         eng = get_engine()
-        tries = 1 if a.no_check else a.tries
+        # A deterministic engine renders the same line the same way however often it is asked, so a
+        # failure there is the model's reading of the words rather than a bad draw: render it once.
+        tries = 1 if (a.no_check or getattr(get_engine(), "deterministic", False)) else a.tries
         for attempt in range(1, tries + 1):
             seed_everything(attempt * 7919 + len(say))
             parts = []
@@ -341,19 +388,23 @@ def main():
                 parts.append(trim(audio, eng.sr))
             audio = normalise(join(parts, eng.sr))
             if a.no_check:
-                best = (True, 1.0, "", audio, eng.sr, attempt); break
-            ok, score, note, audio = verdict(audio, eng.sr, say, ear(), out / f".{key}.check.wav", cut=True)
+                best = (True, 1.0, "", audio, eng.sr, attempt, []); break
+            ok, score, note, audio, words = verdict(audio, eng.sr, say, ear(), out / f".{key}.check.wav", cut=True)
             print(f"render: {key:40s} try {attempt}: {score:.2f} {note}")
             if best is None or (ok, score) > (best[0], best[1]):
-                best = (ok, score, note, audio, eng.sr, attempt)
+                best = (ok, score, note, audio, eng.sr, attempt, words)
             if ok: break
-        ok, score, note, audio, sr, attempt = best
+        ok, score, note, audio, sr, attempt, words = best
         sf.write(target, audio, sr, subtype="PCM_16")
         for tmp in (f".{key}.tmp.wav", f".{key}.check.wav"): (out / tmp).unlink(missing_ok=True)
         seconds = len(audio) / sr
         manifest[key] = {"file": target.name, "seconds": round(seconds, 3), "engine": a.engine, "hash": digest,
                          "text": text, "spoken": say, "settings": settings,
                          "score": round(score, 3), "tries": attempt, "check": not ok,
+                         # Every word as it was really said. The wall lays its subtitle cards on
+                         # these rather than on a pace in characters a second, so a card comes up
+                         # with the words it carries — see Pace.cards and VoiceTrack.
+                         "words": [w for w in words if w[1] <= seconds + 0.05],
                          "checked": None if a.no_check else CHECK_VERSION}
         manifest_file.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
         rendered += 1; total_audio += seconds

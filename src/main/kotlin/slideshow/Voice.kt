@@ -31,6 +31,8 @@ class VoiceTrack private constructor(
     val dir: File,
     private val sounds: Map<Pair<String, Int>, Sound>,
     private val lengths: Map<Pair<String, Int>, Int>,
+    /** Every word of a state's line as it was really said — see [Speech] and [Pace.cards]. */
+    private val speeches: Map<Pair<String, Int>, Speech> = emptyMap(),
     /** States (`id-LETTER`) whose best render still failed the renderer's read-back check. */
     val flagged: Set<String> = emptySet()
 ) {
@@ -39,6 +41,12 @@ class VoiceTrack private constructor(
 
     /** Frames the voice for [step] of [id] runs, or null where none was rendered. */
     fun frames(id: String, step: Int): Int? = lengths[id to step]
+
+    /**
+     * The words of [step] of [id] with the frames each was said on, or null where the render
+     * predates the word times (the manifest's `words`) — then the text rule stands for it.
+     */
+    fun speech(id: String, step: Int): Speech? = speeches[id to step]
 
     val all: List<Sound> get() = sounds.values.toList()
     val size: Int get() = sounds.size
@@ -62,9 +70,11 @@ class VoiceTrack private constructor(
                 Json.parseToJsonElement(File(dir, "manifest.json").readText()).jsonObject
             }.getOrNull()
             val manifest = entries?.mapValues { (_, v) -> v.jsonObject["seconds"]?.jsonPrimitive?.doubleOrNull ?: 0.0 }.orEmpty()
+            val spoken = entries?.mapValues { (_, v) -> Speech.of(v.jsonObject["words"]) }.orEmpty()
             val flagged = entries?.filterValues { v -> v.jsonObject["check"]?.jsonPrimitive?.booleanOrNull == true }?.keys.orEmpty()
             val sounds = mutableMapOf<Pair<String, Int>, Sound>()
             val lengths = mutableMapOf<Pair<String, Int>, Int>()
+            val speeches = mutableMapOf<Pair<String, Int>, Speech>()
             for (file in files) {
                 val key = file.nameWithoutExtension
                 val cut = key.lastIndexOf('-').takeIf { it > 0 } ?: continue
@@ -73,8 +83,9 @@ class VoiceTrack private constructor(
                 val seconds = manifest[key] ?: wavSeconds(file) ?: continue
                 sounds[id to step] = Sound(file, gain = gain, fadeOut = CUT, layer = Layer.VOICE)
                 lengths[id to step] = frames(seconds)
+                spoken[key]?.let { speeches[id to step] = it }
             }
-            return VoiceTrack(dir, sounds, lengths, flagged)
+            return VoiceTrack(dir, sounds, lengths, speeches, flagged)
         }
 
         private fun wavSeconds(file: File): Double? = runCatching {

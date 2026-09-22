@@ -78,6 +78,16 @@ data class Settings(
     val cuesAuto: Boolean = false,
     val hold: Double = 3.5,
     val holdWide: Double = 12.0,
+    /**
+     * The least a **backdrop** state may stand on a hands-off run, whatever the rule above works
+     * out — the walls around the talk are one picture each and read as a glimpse if they are given
+     * only a click's length plus a reading time. It is a floor rather than a hold, so a backdrop
+     * with a long line spoken over it still stands for as long as the voice takes.
+     *
+     * It is not [holdWide], which serves a wall of a single state; a backdrop that builds (the
+     * programme, at six states) would otherwise take the ordinary [hold] on every one of them.
+     */
+    val holdBackdrop: Double = 15.0,
     val record: Boolean = false,
     val fps: Int = FPS,
     val duration: Double? = null,

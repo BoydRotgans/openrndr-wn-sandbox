@@ -1547,6 +1547,35 @@ black), 1445 elements arriving one at a time through `MOSAIC_ARRIVAL` in one dra
 takes its own `stepLength`: at the deck's own pace the whole arrival would run in a third of a
 second, which is a cut with a blur on it.
 
+
+**The voice is Piper, and the timing follows it** (22 September). `voiceover_render.py` gained a
+third engine: Piper's `nl_BE-rdh-medium` at `--length-scale 1.35`, the voice approved off
+`data/sounds/voice/samples-2026-09-22`. It is here for its **evenness** rather than its realism —
+Chatterbox generates each line on its own and its pace wandered 10.8 to 21.6 characters a second
+across one track, which reads as hurried on the quick lines however slow the average is; Piper
+paces every line alike and `length_scale` states that pace outright. It is deterministic, so a
+line that fails the read-back check is rendered once rather than four times, and the whole track
+renders in 4½ minutes rather than an hour. The five lines it flags are all one to three words —
+Whisper mishears a short line in isolation, and the same words inside a sentence read back
+perfectly.
+
+**A subtitle card is stretched onto the voice, never squeezed.** Fitting both ways reads as
+hurried: a voice quicker than someone reads would squeeze the cards under the reading rule and
+past the `MIN_SECONDS` floor with it, so a short card flashed by. The slower of the two governs
+now, and `standFrames` holds a state until the **last card has gone** plus a beat rather than
+until the voice stops — so the sentence always finishes. Across the deck that is 1717s against
+1619s, the difference being the lines that needed longer.
+
+**A backdrop stands at least `SLIDES_HOLD_BACKDROP` seconds** (15). `holdWide` serves a wall of a
+single state, so a backdrop that builds — the programme, at six states — took the ordinary `hold`
+on every one of them and read as a glimpse. It is a floor rather than a hold: a backdrop with a
+long line spoken over it still stands for as long as the voice takes.
+
+**The film is scored at the mix it was played at.** `Soundtrack` read each cue's own gain and
+ignored the layer mix, so a film had the voice at full gain while the room heard it at
+`SLIDES_MIX_VOICE`. The log now carries the mix in its header and the render applies it, which is
+also what lets `MixSoundtrackKt` reproduce a film's balance from the log alone.
+
 ### Naming the frames
 
 `SLIDES_NAMEPLATE=true` puts the slide's id and its click in a box in the top left —

@@ -39,7 +39,9 @@ export default function Thread({ release, state, comments, earlier, name, thumbU
     setDraftFor([])
   }
   const list = useRef<HTMLDivElement>(null)
-  const allRemarks = comments.filter((c) => c.kind !== 'voiceover')
+  // Everything about a voice-over line — a change to it or a remark on it — belongs in that
+  // panel, under the line it is about, rather than loose in the thread.
+  const allRemarks = comments.filter((c) => !c.kind.startsWith('voiceover'))
   const remarks = allRemarks.filter((c) => !c.parentId && c.topic === topic)
   const repliesOf = (id: string) => allRemarks.filter((c) => c.parentId === id)
   const openOn = (t: CommentTopic) => allRemarks.filter((c) => !c.parentId && c.topic === t && !c.done).length
@@ -153,21 +155,36 @@ export default function Thread({ release, state, comments, earlier, name, thumbU
 }
 
 /**
- * The voice-over for the state: the line as it stands — the latest mutation, else the script as
- * released — solid, with a button to edit it. Saving records the new text as a mutation, and the
- * mutations stand under it as comments of their own kind: edited, deleted or ticked done like any
- * other. The script itself is only ever changed by hand from there.
+ * The voice-over for the state, on either **track**: the default line and the extended one the
+ * voice is really rendered from. A tab a track, because the two are different texts and a change
+ * to one is not a change to the other — the mutations are kept apart by their own comment kind,
+ * so the history under each tab is that track's alone.
+ *
+ * The line as it stands — the latest mutation, else the script as released — is shown solid, with
+ * a button to edit it. Saving records the new text as a mutation, and the mutations stand under it
+ * as comments: edited, deleted or ticked done like any other. The script itself is only ever
+ * changed by hand from there.
  */
-export function VoiceOver({ state, updates, name, onSave, onDone, onEdit, onDelete }: {
+export function VoiceOver({ state, tracks, track, onTrack, name, onSave, onNote, onReply, onDone, onEdit, onDelete }: {
   state: StateInfo
-  updates: Comment[]
+  /**
+   * A tab a track: what it is called, the released line, the changes proposed to it, and the
+   * notes written about it — a note is a remark rather than a new line, and takes replies.
+   */
+  tracks: { key: string; label: string; text: string; updates: Comment[]; notes: Comment[]; replies: Comment[] }[]
+  track: string
+  onTrack(key: string): void
   name: string
-  onSave(text: string): void
+  onSave(track: string, text: string): void
+  onNote(track: string, body: string): void
+  onReply(parentId: string, body: string): void
   onDone(id: string, done: boolean): void
   onEdit(id: string, body: string): void
   onDelete(id: string): void
 }) {
-  const original = state.voiceover?.trim() ?? ''
+  const chosen = tracks.find((t) => t.key === track) ?? tracks[0]
+  const updates = chosen.updates
+  const original = chosen.text.trim()
   // the latest mutation stands whether or not it is ticked: the tick says it has been carried
   // into the script, and a deleted one is gone from the list altogether
   const latest = updates.length ? updates[updates.length - 1] : null
@@ -179,14 +196,44 @@ export function VoiceOver({ state, updates, name, onSave, onDone, onEdit, onDele
 
   const save = () => {
     const t = text.trim()
-    if (t && t !== effective.trim()) onSave(t)
+    if (t && t !== effective.trim()) onSave(chosen.key, t)
     setEditing(false)
+  }
+
+  // A tab is a different line, so an edit or a half-written note belongs to the tab it was
+  // started on.
+  const [note, setNote] = useState('')
+  useEffect(() => { setEditing(false); setNote('') }, [track, state.key])
+
+  const sendNote = () => {
+    const body = note.trim()
+    if (!body) return
+    onNote(chosen.key, body)
+    setNote('')
   }
 
   return (
     <div className="voiceover">
       <div className="voiceover-head">
-        <span>Voice-over</span>
+        {tracks.length > 1 ? (
+          <div className="voiceover-tabs" role="tablist">
+            {tracks.map((t) => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={t.key === chosen.key}
+                className={`voiceover-tab${t.key === chosen.key ? ' on' : ''}`}
+                onClick={() => onTrack(t.key)}
+                title={`The ${t.label} voice-over for this state`}
+              >
+                {t.label}
+                {t.updates.length > 0 && <span className="voiceover-tab-count">{t.updates.length}</span>}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span>Voice-over</span>
+        )}
         {!effective && <span className="voiceover-missing">missing</span>}
         {latest && <span className="voiceover-by">changed by {latest.author}</span>}
         {!editing && (
@@ -222,6 +269,37 @@ export function VoiceOver({ state, updates, name, onSave, onDone, onEdit, onDele
           <p>{original}</p>
         </details>
       )}
+      <div className="voiceover-notes">
+        {chosen.notes.map((n) => (
+          <Bubble
+            key={n.id}
+            c={n}
+            mine={n.author === name}
+            replies={chosen.replies.filter((r) => r.parentId === n.id)}
+            onDone={(d) => onDone(n.id, d)}
+            onEdit={(b) => onEdit(n.id, b)}
+            onDelete={() => onDelete(n.id)}
+            onReply={(b) => onReply(n.id, b)}
+            onEditReply={(id, b) => onEdit(id, b)}
+            onDeleteReply={(id) => onDelete(id)}
+          />
+        ))}
+        <div className="voiceover-note-new">
+          <textarea
+            value={note}
+            rows={2}
+            placeholder={`Write about this ${chosen.label} line…`}
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendNote() }
+              if (e.key === 'Escape') setNote('')
+            }}
+          />
+          <div className="composer-row">
+            <button className="primary" disabled={!note.trim()} onClick={sendNote}>Post note</button>
+          </div>
+        </div>
+      </div>
       {updates.length > 0 && (
         <div className="voiceover-history">
           <div className="assign-label">Mutations</div>

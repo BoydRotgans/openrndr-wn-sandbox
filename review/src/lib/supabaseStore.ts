@@ -40,6 +40,9 @@ interface CommentRow {
   parent_id?: string | null
 }
 
+/** The kinds that belong to the voice-over panel rather than to the thread. */
+const VOICE_KINDS = ['voiceover', 'voiceover_extended', 'voiceover_note', 'voiceover_extended_note'] as const
+
 const toRelease = (r: ReleaseRow): Release => ({
   id: r.id,
   slug: r.slug,
@@ -53,7 +56,7 @@ const toRelease = (r: ReleaseRow): Release => ({
 
 const toComment = (c: CommentRow): Comment => ({
   id: c.id,
-  kind: c.kind === 'voiceover' ? 'voiceover' : 'comment',
+  kind: (VOICE_KINDS as readonly string[]).includes(c.kind ?? '') ? (c.kind as Comment['kind']) : 'comment',
   topic: c.topic === 'audio' ? 'audio' : 'visual',
   releaseId: c.release_id,
   slideId: c.slide_id,

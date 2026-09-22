@@ -93,6 +93,13 @@ def main():
     ap.add_argument("--no-video", action="store_true")
     ap.add_argument("--no-thumbs", action="store_true")
     ap.add_argument("--subtitles", default="show-subtitles.json", help="the voice-over per state, carried into the manifest")
+    ap.add_argument("--subtitles-extended", default="show-subtitles-extended.json",
+                    help="the extended track — the longer line the voice actually speaks — carried beside it")
+    ap.add_argument("--audio", action="append", default=[],
+                    help="another soundtrack for the same film, as key=name=path — e.g. "
+                         "novoice=\"without voice\"=video/wn-walkthrough-v2-novoice.mp4. It is "
+                         "encoded to aac beside the video and the page plays it in lockstep.")
+    ap.add_argument("--audio-bitrate", default="128k")
     ap.add_argument("--no-waveform", action="store_true")
     ap.add_argument("--waveform-rate", type=int, default=100, help="peaks a second in waveform.json")
     a = ap.parse_args()
@@ -117,14 +124,21 @@ def main():
     out = os.path.join(a.out, slug)
     os.makedirs(os.path.join(out, "thumbs"), exist_ok=True)
 
-    voice = {}
-    if a.subtitles and os.path.exists(a.subtitles):
-        with open(a.subtitles) as f:
-            voice = json.load(f).get("subtitles", {})
+    def track(path):
+        if path and os.path.exists(path):
+            with open(path) as f:
+                return json.load(f).get("subtitles", {})
+        return {}
+
+    voice = track(a.subtitles)
+    # The extended track is what the voice-over is rendered from, so it is the one to read along
+    # with the film — carried beside the default so the page can show and edit either.
+    voice_extended = track(a.subtitles_extended)
 
     for i, s in enumerate(states):
         s["index"] = i
         s["voiceover"] = voice.get(s["slide"], {}).get(s["letter"], "")
+        s["voiceoverExtended"] = voice_extended.get(s["slide"], {}).get(s["letter"], "")
         s["key"] = f"{s['slide']}-{s['letter']}"
         s["start"] = round(s["frame"] / fps, 3)
         end = states[i + 1]["frame"] / fps if i + 1 < len(states) else duration
@@ -160,13 +174,28 @@ def main():
         source = os.path.join(out, video_name) if not a.no_video else a.video
         write_waveform(source, os.path.join(out, waveform_name), a.waveform_rate)
 
+    # Another mix of the same film: audio alone, since the picture is the picture. The page mutes
+    # the video and plays this with it, so a note made against a state holds whichever is playing.
+    tracks = []
+    for term in a.audio:
+        key, name, path = (term.split("=", 2) + ["", ""])[:3]
+        if not path or not os.path.isfile(path):
+            print(f"audio: no file for \"{term}\" — left out")
+            continue
+        file = f"audio-{slugify(key)}.m4a"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", path, "-vn",
+                        "-c:a", "aac", "-b:a", a.audio_bitrate, os.path.join(out, file)], check=True)
+        size = os.path.getsize(os.path.join(out, file)) / 1e6
+        print(f"audio: {name or key} — {file}, {size:.0f} MB")
+        tracks.append(dict(key=slugify(key), name=name or key, file=file))
+
     manifest = dict(
         name=a.name, slug=slug, notes=a.notes,
         created=a.created or datetime.date.today().isoformat(),
         source=os.path.basename(a.video), fps=fps, frames=frames, duration=round(duration, 3),
-        width=w, height=h, video=video_name, waveform=waveform_name, states=[
+        width=w, height=h, video=video_name, waveform=waveform_name, audio=tracks, states=[
             {k: s[k] for k in ("key", "index", "slide", "step", "letter", "title", "chapter",
-                                "chapterKind", "slideKind", "start", "end", "thumb", "voiceover")}
+                                "chapterKind", "slideKind", "start", "end", "thumb", "voiceover", "voiceoverExtended")}
             for s in states
         ],
     )

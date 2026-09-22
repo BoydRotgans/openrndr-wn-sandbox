@@ -50,14 +50,25 @@ interface Props {
   onReplyDelete?(id: string): void
   /** The note just jumped to: held open and pulsed. `n` changes on every jump, so the same note can be jumped to twice. */
   focus?: { id: string; n: number } | null
+  /**
+   * The soundtracks to choose between. The first is the film's own; any other is an audio file
+   * played in lockstep with the picture while the film itself is muted — a second mix rather than
+   * a second film, so the frames are the same wherever it is cut.
+   */
+  tracks?: { key: string; name: string; audio?: string }[]
+  track?: string
+  onTrack?(key: string): void
 }
 
 /**
  * The film. Time is reported every animation frame while playing rather than on `timeupdate`,
  * which fires four times a second — too coarse for a loop to turn on the state's own end.
  */
-const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange, onTime, onPlaying, paused, fps, commenting, onCommenting, pending, pendingBox, onPlace, onMove, dots, onDotDone, onDotEdit, onDotDelete, onDotReply, onReplyEdit, onReplyDelete, focus }, ref) {
+const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange, onTime, onPlaying, paused, fps, commenting, onCommenting, pending, pendingBox, onPlace, onMove, dots, onDotDone, onDotEdit, onDotDelete, onDotReply, onReplyEdit, onReplyDelete, focus, tracks, track, onTrack }, ref) {
   const video = useRef<HTMLVideoElement>(null)
+  const dub = useRef<HTMLAudioElement>(null)
+  /** The chosen track's own audio file, or null for the film's own sound. */
+  const dubbed = tracks?.find((t) => t.key === track)?.audio ?? null
   const frame = useRef<HTMLDivElement>(null)
   const [fullscreen, setFullscreen] = useState(false)
   useEffect(() => {
@@ -84,9 +95,44 @@ const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange,
   }, [focus])
   const dragging = useRef(false)
   useEffect(() => {
-    if (video.current) video.current.muted = muted
+    if (video.current) video.current.muted = muted || !!dubbed
     prefs.setMuted(muted)
-  }, [muted, src])
+  }, [muted, src, dubbed])
+
+  // The other mix rides on the picture: it follows every play, pause, seek and rate, and any
+  // drift past a fifth of a second is pulled back. The film is muted while it plays, so the two
+  // can never be heard at once.
+  useEffect(() => {
+    const v = video.current
+    const a = dub.current
+    if (!v) return
+    if (!a || !dubbed) return
+    const sync = () => { if (Math.abs(a.currentTime - v.currentTime) > 0.2) a.currentTime = v.currentTime }
+    const play = () => { sync(); a.play().catch(() => {}) }
+    const stop = () => a.pause()
+    const rate = () => { a.playbackRate = v.playbackRate }
+    v.addEventListener('play', play)
+    v.addEventListener('playing', play)
+    v.addEventListener('pause', stop)
+    v.addEventListener('seeked', sync)
+    v.addEventListener('ratechange', rate)
+    const drift = setInterval(() => { if (!v.paused) sync() }, 1000)
+    rate(); sync()
+    if (!v.paused) play()
+    return () => {
+      v.removeEventListener('play', play)
+      v.removeEventListener('playing', play)
+      v.removeEventListener('pause', stop)
+      v.removeEventListener('seeked', sync)
+      v.removeEventListener('ratechange', rate)
+      clearInterval(drift)
+      a.pause()
+    }
+  }, [dubbed, src])
+
+  useEffect(() => {
+    if (dub.current) dub.current.muted = muted
+  }, [muted, dubbed])
 
   useImperativeHandle(ref, () => ({
     seek(t, play = true) {
@@ -162,7 +208,8 @@ const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange,
         <svg className="glyph-pause" width="26" height="26" viewBox="0 0 26 26" fill="currentColor"><rect x="5" y="4" width="6" height="18" rx="1" /><rect x="15" y="4" width="6" height="18" rx="1" /></svg>
         <svg className="glyph-play" width="26" height="26" viewBox="0 0 26 26" fill="currentColor"><path d="M8 4.5v17l14-8.5z" /></svg>
       </div>
-      <video ref={video} src={src} preload="auto" playsInline controls={false} muted={muted} onClick={(e) => {
+      {dubbed && <audio ref={dub} src={dubbed} preload="auto" />}
+      <video ref={video} src={src} preload="auto" playsInline controls={false} muted={muted || !!dubbed} onClick={(e) => {
         const v = video.current
         if (!v) return
         if (commenting && onPlace) {
@@ -228,6 +275,20 @@ const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange,
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V3h4M15 7V3h-4M3 11v4h4M15 11v4h-4" /></svg>
           )}
         </button>
+        {tracks && tracks.length > 1 && (
+          <div className="track-pick" role="group" aria-label="Soundtrack">
+            {tracks.map((t) => (
+              <button
+                key={t.key}
+                className={`player-btn track${t.key === track ? ' on' : ''}`}
+                onClick={() => onTrack?.(t.key)}
+                title={`Soundtrack: ${t.name}`}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
         <button className="player-btn" onClick={() => setMuted((m) => !m)} title={muted ? 'Unmute' : 'Mute'}>
           {muted ? (
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6.5h3l4-3v11l-4-3h-3z" /><path d="M12 6.5l4 5M16 6.5l-4 5" /></svg>

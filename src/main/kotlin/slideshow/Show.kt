@@ -561,7 +561,8 @@ private fun org.openrndr.ApplicationBuilder.present(
             // after the program ends — so it is handed out rather than done here. The
             // frame count is the clock's last, which is the film's length in deck frames.
             leave {
-                Soundtrack.export(speakers.log.toList(), clock.frame, File(settings.video), settings.mix)
+                Soundtrack.export(speakers.log.toList(), clock.frame, File(settings.video), settings.mix,
+                    Layer.entries.associateWith { speakers.mixOf(it) })
                 // What was on screen when, for cutting the film into its states — see StatesLog.
                 StatesLog.write(stateMarks, clock.frame, show, StatesLog.file(File(settings.video)))
             }
@@ -726,7 +727,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // for what a hands-off run would hold it — its line said, and a beat after — and
                 // then clicked on. The arrows still work: a click lands on a new state, whose
                 // clock starts again from there. It stands where the deck runs out. See SubtitleTrack.
-                val stand = standFrames(deck.slide, deck.step, subtitles()[ids.getOrElse(deck.index) { "" }, deck.step], settings, pace, voiceFrames(deck.index, deck.step))
+                val stand = standFrames(deck.slide, deck.step, subtitles()[ids.getOrElse(deck.index) { "" }, deck.step], settings, pace,
+                    voiceFrames(deck.index, deck.step), voice()?.speech(ids.getOrElse(deck.index) { "" }, deck.step))
                 val more = deck.step < deck.slide.steps - 1 || deck.index < slides.lastIndex
                 if (more && frame - subtitleSince >= stand) forward()
             } else if (autoStepFrames > 0 && frame - lastAutoStep >= autoStepFrames) {
@@ -1006,7 +1008,8 @@ private fun org.openrndr.ApplicationBuilder.present(
             if (subtitleMode) {
                 val said = subtitles()[ids.getOrElse(deck.index) { "" }, deck.step]
                 val fit = voiceFrames(deck.index, deck.step)?.let { pace.spoken(it) }
-                pace.at(said, frame - subtitleSince, fit)?.let { card ->
+                val heard = voice()?.speech(ids.getOrElse(deck.index) { "" }, deck.step)
+                pace.at(said, frame - subtitleSince, fit, heard)?.let { card ->
                     drawer.isolatedWithTarget(canvas) {
                         drawer.ortho(canvas)
                         val pane = if (hasPanels) Rectangle(slideOffsetX, 0.0, slideWidth.toDouble(), settings.height.toDouble())
@@ -1248,7 +1251,8 @@ internal fun autoCues(
             // In subtitle mode a state stands until its line has been said and a beat after it,
             // where that is longer than the rule would hold it anyway.
             val said = subtitles?.get(ids.getOrElse(s) { "" }, step).orEmpty()
-            val stand = standFrames(slide, step, said, settings, pace, voice?.frames(ids.getOrElse(s) { "" }, step))
+            val stand = standFrames(slide, step, said, settings, pace, voice?.frames(ids.getOrElse(s) { "" }, step),
+                voice?.speech(ids.getOrElse(s) { "" }, step))
             if (stand > standFrames(slide, step, "", settings, pace)) lengthened++
             holds += stand
         }
@@ -1287,15 +1291,21 @@ private const val VOICE_RESCAN = 4.0
  * frames a rendered voice for the state runs, the speech is timed by the voice rather than
  * estimated from the text — see [VoiceTrack].
  */
-internal fun standFrames(slide: Slide, step: Int, said: String, settings: Settings, pace: Pace, voiced: Int? = null): Int {
+internal fun standFrames(slide: Slide, step: Int, said: String, settings: Settings, pace: Pace, voiced: Int? = null,
+                         heard: Speech? = null): Int {
     val settle = if (step == 0) slide.settle else slide.stepLength(step)
     val read = if (slide.wide && slide.steps == 1) settings.holdWide else settings.hold
     val spoken = when {
-        voiced != null -> pace.spoken(voiced) + frames(SUBTITLE_TAIL)
+        // The voice and the cards, whichever runs longer. With the voice's own word times the
+        // cards end with the speech and this is the voice; without them the cards are fitted to
+        // the voice and never squeezed under reading pace, so a quick line leaves them standing.
+        voiced != null -> maxOf(pace.spoken(voiced), pace.length(said, pace.spoken(voiced), heard)) + frames(SUBTITLE_TAIL)
         said.isBlank() -> 0
         else -> pace.length(said) + frames(SUBTITLE_TAIL)
     }
-    return maxOf(settle + frames(read), spoken)
+    val stand = maxOf(settle + frames(read), spoken)
+    // A backdrop is one picture and is never hurried: see Settings.holdBackdrop.
+    return if (slide.kind == "backdrop") maxOf(stand, frames(settings.holdBackdrop)) else stand
 }
 
 /**

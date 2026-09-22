@@ -33,6 +33,11 @@ import kotlin.math.min
  * — the driver's rules, replayed frame by frame over the log so the soundtrack is what the
  * room would have heard had the machine kept up.
  *
+ * **Each layer is scored at its own level.** The voice, the sound design and the music each have
+ * a gain in the show's mix, and the film is scored at the mix it was played at — the log carries
+ * it, so a remix from the log alone sounds the same. Without it a film had the voice at its raw
+ * gain while the room heard it at a third of that.
+ *
  * **The mix is never turned down.** Cues play at their files' own levels and are summed as
  * they are; where two landing together pass 0 dBFS the samples clip, and the report says how
  * many. No normalising and no trim, so the film sounds as the files do.
@@ -54,7 +59,7 @@ object Soundtrack {
      * Everything after a filmed run: the log written beside the film, the wav rendered from
      * it, and — with ffmpeg on the path and [mix] on — the two muxed into one file.
      */
-    fun export(log: List<Speakers.Cue>, frames: Int, video: File, mix: Boolean) {
+    fun export(log: List<Speakers.Cue>, frames: Int, video: File, mix: Boolean, levels: Map<Layer, Double> = emptyMap()) {
         if (frames <= 0) return
         if (!video.isFile) {
             println("export: no film at ${video.path} — nothing to score")
@@ -64,19 +69,33 @@ object Soundtrack {
             println("export: ${video.path} is silent — no cue was fired (is SLIDES_SOUND off?)")
             return
         }
-        writeLog(log, frames, logFile(video))
-        if (!render(log, frames, wavFile(video))) return
+        writeLog(log, frames, logFile(video), levels)
+        if (!render(log, frames, wavFile(video), levels = levels)) return
         if (mix) mux(video, wavFile(video), mixFile(video))
         else println("export: soundtrack at ${wavFile(video).path}; SLIDES_MIX is off, so the film stands unmixed")
     }
 
-    /** [export] again from the log beside a film, for a re-render without filming again. */
-    fun remix(video: File, mix: Boolean) {
+    /**
+     * [export] again from the log beside a film, for a re-render without filming again.
+     *
+     * [over] replaces a layer's level for this render — `Layer.VOICE to 0.0` is the same film
+     * with the voice-over left out, which is a second mix rather than a second shoot, and comes
+     * out as `<film>-<name>.mp4` beside it where [name] is given. Everything else is the run's
+     * own: the same cues on the same frames at the mix it was played at.
+     */
+    fun remix(video: File, mix: Boolean, over: Map<Layer, Double> = emptyMap(), name: String? = null) {
         val read = readLog(logFile(video)) ?: run {
             println("export: no log at ${logFile(video).path} — film the run with SLIDES_RECORD first")
             return
         }
-        export(read.first, read.second, video, mix)
+        val levels = read.levels + over
+        if (name == null) return export(read.cues, read.frames, video, mix, levels)
+
+        val wav = File(video.parentFile, video.nameWithoutExtension + "-" + name + ".wav")
+        val out = File(video.parentFile, video.nameWithoutExtension + "-" + name + "." + video.extension)
+        println("export: $name — " + levels.entries.sortedBy { it.key.key }.joinToString(", ") { "${it.key.key} ${it.value}" })
+        if (!render(read.cues, read.frames, wav, levels = levels)) return
+        if (mix) mux(video, wav, out) else println("export: soundtrack at ${wav.path}, SLIDES_MIX is off")
     }
 
     // ------------------------------------------------------------------------------ //
@@ -84,10 +103,10 @@ object Soundtrack {
     // ------------------------------------------------------------------------------ //
 
     /** The run as text: its length in frames, then a line a cue, in the order they were fired. */
-    fun writeLog(log: List<Speakers.Cue>, frames: Int, file: File) {
+    fun writeLog(log: List<Speakers.Cue>, frames: Int, file: File, levels: Map<Layer, Double> = emptyMap()) {
         file.parentFile?.mkdirs()
         file.printWriter().use { out ->
-            out.println("frames $frames fps $FPS")
+            out.println("frames $frames fps $FPS" + levels.entries.joinToString("") { " mix:${it.key.key}=${it.value}" })
             for (cue in log) {
                 val s = cue.sound
                 out.println(
@@ -98,11 +117,18 @@ object Soundtrack {
         println("export: ${log.size} cues logged to ${file.path}")
     }
 
-    fun readLog(file: File): Pair<List<Speakers.Cue>, Int>? {
+    /** A filmed run as its log records it: what was fired, how long the film is, and the mix. */
+    class Run(val cues: List<Speakers.Cue>, val frames: Int, val levels: Map<Layer, Double>)
+
+    fun readLog(file: File): Run? {
         if (!file.isFile) return null
         val lines = file.readLines().filter { it.isNotBlank() }
         val head = lines.firstOrNull()?.split(" ") ?: return null
         val frames = head.getOrNull(1)?.toIntOrNull() ?: return null
+        val levels = head.filter { it.startsWith("mix:") }.mapNotNull { term ->
+            val (key, gain) = term.removePrefix("mix:").split("=").let { it.getOrNull(0) to it.getOrNull(1)?.toDoubleOrNull() }
+            Layer.of(key)?.let { layer -> gain?.let { layer to it } }
+        }.toMap()
         val cues = lines.drop(1).mapNotNull { line ->
             val t = line.split("\t")
             if (t.size < 7) return@mapNotNull null
@@ -114,7 +140,7 @@ object Soundtrack {
                 release = t[1] == "release"
             )
         }
-        return cues to frames
+        return Run(cues, frames, levels)
     }
 
     // ------------------------------------------------------------------------------ //
@@ -136,18 +162,21 @@ object Soundtrack {
 
     /**
      * One stretch of one track sounding: from deck frame [start] to [end], looping or not, at
-     * a gain per frame ([gains], indexed by absolute frame) or one gain throughout ([flat]).
+     * a gain per frame ([gains], indexed by absolute frame) or one gain throughout ([flat]),
+     * times [mix] — its layer's share of the mix, so a film is scored at the balance the room
+     * was played at rather than at every cue's raw gain.
      */
     private class Segment(
         val track: Track, val start: Int, val end: Int, val loop: Boolean,
-        val gains: DoubleArray?, val flat: Double
+        val gains: DoubleArray?, val flat: Double, val mix: Double = 1.0
     )
 
     /**
      * Renders [log] into a stereo wav of [frames] deck frames. False, and says why, if
      * nothing could be rendered.
      */
-    fun render(log: List<Speakers.Cue>, frames: Int, out: File, levelled: Boolean = false): Boolean {
+    fun render(log: List<Speakers.Cue>, frames: Int, out: File, levelled: Boolean = false,
+               levels: Map<Layer, Double> = emptyMap()): Boolean {
         if (log.isEmpty() || frames <= 0) return false
 
         val tracks = HashMap<String, Track?>()
@@ -186,7 +215,7 @@ object Soundtrack {
 
             fun stop(frame: Int) {
                 if (!playing) return
-                segments += Segment(track, since, frame, sound.loop, gains, 0.0)
+                segments += Segment(track, since, frame, sound.loop, gains, 0.0, levels[sound.layer] ?: 1.0)
                 since = -1
                 gains = null
             }
@@ -216,7 +245,8 @@ object Soundtrack {
 
                 if (!sound.sustained) {
                     // a one-shot rings out; releasing one means nothing
-                    if (!cue.release) segments += Segment(track, frame, min(frames, frame + track.frames), false, null, sound.gain)
+                    if (!cue.release) segments += Segment(track, frame, min(frames, frame + track.frames), false, null,
+                        sound.gain, levels[sound.layer] ?: 1.0)
                     continue
                 }
 
@@ -284,8 +314,8 @@ object Soundtrack {
 
                 val l = samples[i0 * channels] * (1f - t) + samples[i1 * channels] * t
                 val r = if (channels > 1) samples[i0 * channels + 1] * (1f - t) + samples[i1 * channels + 1] * t else l
-                mix[2 * n] += (l * gain).toFloat()
-                mix[2 * n + 1] += (r * gain).toFloat()
+                mix[2 * n] += (l * gain * s.mix).toFloat()
+                mix[2 * n + 1] += (r * gain * s.mix).toFloat()
             }
         }
 

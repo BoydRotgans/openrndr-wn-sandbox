@@ -14,6 +14,12 @@ export interface StateInfo {
   thumb: string
   /** What is said over this state, off show-subtitles.json when the release was built. */
   voiceover?: string
+  /**
+   * The same state on the **extended** track (show-subtitles-extended.json) — the longer line the
+   * voice-over is actually rendered from, and so the one to read along with the film. The two are
+   * edited apart, since a change to one is not a change to the other.
+   */
+  voiceoverExtended?: string
 }
 
 /** What tools/release_build.py writes beside a release's thumbnails and video. */
@@ -32,6 +38,12 @@ export interface Manifest {
   video: string
   /** Peaks of the mixed track, `{ rate, peaks: 0..255[] }`, relative to the release folder. */
   waveform?: string | null
+  /**
+   * The soundtracks the film can be watched with, beyond its own. Each is an audio file beside
+   * the video, played in lockstep with it — the same frames, a different mix, so a note made
+   * against a state holds whichever is playing.
+   */
+  audio?: { key: string; name: string; file: string }[]
   states: StateInfo[]
 }
 
@@ -47,8 +59,18 @@ export interface Release {
   manifest: Manifest
 }
 
-/** A remark, or a proposed voice-over text for the state (`body` is the whole new text). */
-export type CommentKind = 'comment' | 'voiceover'
+/**
+ * A remark, or a proposed voice-over text for the state (`body` is the whole new text) — on the
+ * default track or on the extended one, which are two lines and are changed apart.
+ */
+export type CommentKind =
+  | 'comment'
+  /** A proposed line: `body` is the whole new text, on the default or the extended track. */
+  | 'voiceover'
+  | 'voiceover_extended'
+  /** A remark about a line rather than a change to it — it stands under the line, and takes replies. */
+  | 'voiceover_note'
+  | 'voiceover_extended_note'
 /** What a comment is about: the picture, or the sound and voice under it. */
 export type CommentTopic = 'visual' | 'audio'
 

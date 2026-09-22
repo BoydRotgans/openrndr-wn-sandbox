@@ -2188,6 +2188,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         cuesAuto = Env["${prefix}_CUES"]?.trim().equals("auto", ignoreCase = true),
         hold = Env["${prefix}_HOLD"]?.toDoubleOrNull() ?: settings.hold,
         holdWide = Env["${prefix}_HOLD_WIDE"]?.toDoubleOrNull() ?: settings.holdWide,
+        holdBackdrop = Env["${prefix}_HOLD_BACKDROP"]?.toDoubleOrNull() ?: settings.holdBackdrop,
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,
