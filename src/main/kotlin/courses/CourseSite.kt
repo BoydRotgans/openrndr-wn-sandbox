@@ -187,19 +187,30 @@ class Site(
  * - interactive: `space` holds, `←` `→` jump ten seconds, `0` back to the start.
  * - `COURSE_AT=5,40` writes a still at each of those seconds to `screenshots/courses/` and quits.
  * - `COURSE_RECORD=true` writes `video/courses/<name>.mp4`, `COURSE_DURATION` seconds from
- *   `COURSE_FROM`, at `COURSE_FPS`, at half size. It is rendered rather than filmed, so a clip of a
+ *   `COURSE_FROM`, at `COURSE_FPS`, at `COURSE_RECORD_SCALE` of the canvas (half), under the concrete
+ *   wall when `COURSE_WALL` is on, and `-view<n>` in the name when `COURSE_VIEW` holds a saved angle. It is rendered rather than filmed, so a clip of a
  *   slow wall comes out as fast as the GPU can draw it and every frame is exact.
  */
-fun runCourse(name: String, course: Program.() -> (Drawer, Double) -> Unit) = application {
+fun runCourse(
+    name: String, preview: Double = 30.0,
+    /** The canvas, 3840 x 1080 for a wall; a course that composes for one projector says 1920. */
+    canvasWidth: Int = 3840, canvasHeight: Int = 1080,
+    course: Program.() -> (Drawer, Double) -> Unit
+) = application {
+    // The window shows the canvas at COURSE_WINDOW of its size; left empty, as large as fits 1920 wide — a
+    // one-projector course at its own 1920x1080, a wall at half.
+    val windowScale = Env["COURSE_WINDOW"]?.toDoubleOrNull() ?: minOf(1.0, 1920.0 / canvasWidth)
     configure {
-        width = 1920
-        height = 540
+        width = (canvasWidth * windowScale).toInt()
+        height = (canvasHeight * windowScale).toInt()
         title = name
     }
     program {
+        CourseControl.fixed = CourseViews.asked(name)
+        CourseCanvas.width = canvasWidth; CourseCanvas.height = canvasHeight
         val frame = course()
-        val w = 3840
-        val h = 1080
+        val w = canvasWidth
+        val h = canvasHeight
         val canvas = renderTarget(w, h, multisample = BufferMultisample.SampleCount(8)) {
             colorBuffer(); depthBuffer()
         }
@@ -212,6 +223,26 @@ fun runCourse(name: String, course: Program.() -> (Drawer, Double) -> Unit) = ap
             }
             canvas.colorBuffer(0).copyTo(resolved)
             return resolved
+        }
+
+        // The organizer's Sketches tab: with SKETCH_PREVIEW the wall at [preview] seconds (or
+        // SKETCH_PREVIEW_AT), at half the canvas, to sketch-previews/ under SKETCH_PREVIEW_NAME — the
+        // sketch's, or one of its variants' — and quit. Clean, without the concrete wall, so the
+        // thumbnail is the drawing.
+        if (Env.boolean("SKETCH_PREVIEW")) {
+            val at = Env["SKETCH_PREVIEW_AT"]?.toDoubleOrNull() ?: preview
+            val file = File("$PREVIEW_DIR/${Env["SKETCH_PREVIEW_NAME"] ?: name}.png")
+            file.parentFile.mkdirs()
+            val half = renderTarget(w / 2, h / 2) { colorBuffer() }
+            val image = render(at)
+            drawer.isolatedWithTarget(half) {
+                ortho(half)
+                image(image, 0.0, 0.0, w / 2.0, h / 2.0)
+            }
+            half.colorBuffer(0).saveToFile(file, async = false)
+            println("saved ${file.path}")
+            application.exit()
+            return@program
         }
 
         val stills = Env["COURSE_AT"]?.split(",")?.mapNotNull { it.trim().toDoubleOrNull() }.orEmpty()
@@ -230,21 +261,37 @@ fun runCourse(name: String, course: Program.() -> (Drawer, Double) -> Unit) = ap
             val fps = Env["COURSE_FPS"]?.toIntOrNull() ?: 30
             val from = Env["COURSE_FROM"]?.toDoubleOrNull() ?: 0.0
             val duration = Env["COURSE_DURATION"]?.toDoubleOrNull() ?: 20.0
-            val half: RenderTarget = renderTarget(w / 2, h / 2) { colorBuffer() }
-            val pixels = ByteBuffer.allocateDirect(w / 2 * h / 2 * 4)
-            val clip = Clip(File("video/courses/$name.mp4"), w / 2, h / 2, fps)
+            // At COURSE_RECORD_SCALE of the canvas (half unless asked), under the show's concrete wall
+            // when COURSE_WALL is on — the picture the studio shows, without its plate. A clip held on
+            // a saved view is named after it.
+            val scale = (Env["COURSE_RECORD_SCALE"]?.toDoubleOrNull() ?: 0.5).coerceIn(0.1, 1.0)
+            val cw = (w * scale).toInt() / 2 * 2
+            val ch = (h * scale).toInt() / 2 * 2
+            val wall = if (Env["COURSE_WALL"]?.let { it == "true" } ?: true) slideshow.ConcreteWall.load(
+                Env["SLIDES_CONCRETE"],
+                Env["SLIDES_CONCRETE_MIX"]?.toDoubleOrNull() ?: 1.0,
+                Env["SLIDES_CONCRETE_SCALE"]?.toDoubleOrNull() ?: 1.0,
+                Env["SLIDES_CONCRETE_FLOOR"]?.toDoubleOrNull() ?: 0.0
+            ) else null
+            val wallStyle = wall?.style(Vector2(w.toDouble(), h.toDouble()))
+            val out: RenderTarget = renderTarget(cw, ch) { colorBuffer() }
+            val pixels = ByteBuffer.allocateDirect(cw * ch * 4)
+            val suffix = if (CourseControl.fixed != null) "-view${Env["COURSE_VIEW"]}" else ""
+            val file = File("video/courses/$name$suffix.mp4")
+            val clip = Clip(file, cw, ch, fps)
             val frames = (duration * fps).toInt()
             for (f in 0 until frames) {
                 val image = render(from + f.toDouble() / fps)
-                drawer.isolatedWithTarget(half) {
-                    ortho(half)
-                    image(image, 0.0, 0.0, w / 2.0, h / 2.0)
+                drawer.isolatedWithTarget(out) {
+                    ortho(out)
+                    if (wallStyle != null) shadeStyle = wallStyle
+                    image(image, 0.0, 0.0, cw.toDouble(), ch.toDouble())
                 }
-                half.colorBuffer(0).read(pixels, ColorFormat.RGBa, ColorType.UINT8)
+                out.colorBuffer(0).read(pixels, ColorFormat.RGBa, ColorType.UINT8)
                 clip.frame(pixels)
                 if (f % (fps * 10) == 0) println("$name: ${f / fps}s of ${duration.toInt()}s")
             }
-            println("wrote video/courses/$name.mp4, ${clip.close()} frames")
+            println("wrote ${file.path}, ${clip.close()} frames")
             application.exit()
             return@program
         }
@@ -264,4 +311,74 @@ fun runCourse(name: String, course: Program.() -> (Drawer, Double) -> Unit) = ap
             drawer.image(render(time), 0.0, 0.0, width.toDouble(), height.toDouble())
         }
     }
+}
+
+/** The canvas the course is composed at, for a course that has to know the frame before it draws. */
+object CourseCanvas {
+    @Volatile var width: Int = 3840
+    @Volatile var height: Int = 1080
+}
+
+/**
+ * What the course studio hands the walls from outside: the cursor, as a share of the window across
+ * and down, while it is over the window. Null everywhere else — a still, a recording, a standalone
+ * run — so a wall that reads it falls back to its own settled view.
+ */
+object CourseControl {
+    @Volatile var pointer: org.openrndr.math.Vector2? = null
+    /** A stored view to hold the camera on, as degrees round (x) and up (y); it wins over the cursor. */
+    @Volatile var fixed: org.openrndr.math.Vector2? = null
+    /** The angle the camera stood at on the last frame drawn, in the same degrees, for the studio to store. */
+    @Volatile var current: org.openrndr.math.Vector2? = null
+}
+
+/**
+ * Camera angles picked in the studio, kept per course in `COURSE_VIEWS` (`course-views.json`), so a
+ * view found with the cursor can be held again after a restart, and used for a still or a clip:
+ * `COURSE_VIEW=2` holds the camera on the second stored view of whichever course is run.
+ */
+object CourseViews {
+    private val file get() = File(Env["COURSE_VIEWS"] ?: "course-views.json")
+    private val views = LinkedHashMap<String, MutableList<Vector2>>()
+
+    init {
+        runCatching {
+            if (file.isFile) {
+                val root = kotlinx.serialization.json.Json.parseToJsonElement(file.readText()) as kotlinx.serialization.json.JsonObject
+                root.forEach { (course, list) ->
+                    views[course] = (list as kotlinx.serialization.json.JsonArray).map { v ->
+                        val o = v as kotlinx.serialization.json.JsonObject
+                        fun n(k: String) = (o[k] as kotlinx.serialization.json.JsonPrimitive).content.toDouble()
+                        Vector2(n("yaw"), n("pitch"))
+                    }.toMutableList()
+                }
+            }
+        }.onFailure { println("course views: could not read ${file.path} (${it.message})") }
+    }
+
+    fun of(course: String): List<Vector2> = views[course].orEmpty()
+
+    fun add(course: String, view: Vector2): Int {
+        val list = views.getOrPut(course) { mutableListOf() }
+        list += view
+        save()
+        return list.size - 1
+    }
+
+    fun remove(course: String, index: Int) {
+        views[course]?.let { if (index in it.indices) { it.removeAt(index); save() } }
+    }
+
+    private fun save() {
+        val text = views.entries.joinToString(",\n", "{\n", "\n}\n") { (course, list) ->
+            "  \"$course\": [" + list.joinToString(", ") {
+                "{ \"yaw\": ${"%.1f".format(java.util.Locale.ROOT, it.x)}, \"pitch\": ${"%.1f".format(java.util.Locale.ROOT, it.y)} }"
+            } + "]"
+        }
+        file.writeText(text)
+    }
+
+    /** The view `COURSE_VIEW` asks for on [course], counting from 1, if there is one. */
+    fun asked(course: String): Vector2? =
+        Env["COURSE_VIEW"]?.toIntOrNull()?.let { of(course).getOrNull(it - 1) }
 }

@@ -16,7 +16,7 @@
     {
       "moment": "Aperitif",
       "slides": [
-        "welcome"
+        "sketch-flow-v2-on-the-mosaic-grid"
       ]
     },
     {
@@ -56,7 +56,7 @@
     {
       "moment": "First course",
       "slides": [
-        "shadow-mosaic-close"
+        "sketch-climb"
       ]
     },
     {
@@ -75,9 +75,7 @@
     },
     {
       "moment": "Second course",
-      "slides": [
-        "stad-in-opbouw"
-      ]
+      "slides": []
     },
     {
       "chapter": "The Circle: een nieuwe manier van denken",
@@ -101,21 +99,28 @@
     },
     {
       "moment": "Dessert",
-      "slides": [
-        "plain"
-      ]
+      "slides": []
     },
     {
       "moment": "Exit",
       "slides": [
-        "ending",
-        "closing-scene"
+        "ending"
       ]
-    }
+    },
+    "sketch-climb-view-2-from-below"
   ],
   "archive": [
     "block-city-plain",
+    "block-city-outline",
+    "block-city-cubes",
+    "block-cluster",
+    "assemble",
+    "assemble-grid",
+    "assemble-solid",
+    "assemble-row",
+    "assemble-row-glass",
     "demontabel-in-de-stad-blokken",
+    "demontabel-in-de-stad-stad",
     "block-city",
     "skew-3d",
     "skew-3d-simple",
@@ -125,6 +130,28 @@
     "panels-turning",
     "de-sectoren",
     "gallery",
-    "shadows"
+    "shadows",
+    "plain",
+    "sketch-aperitif",
+    "sketch-opening-course",
+    "sketch-first-course",
+    "sketch-second-course",
+    "sketch-dessert",
+    "sketch-stack",
+    "sketch-climb-view-1-from-above",
+    "sketch-grid",
+    "sketch-grid-door-panel",
+    "sketch-grid-window-panel",
+    "sketch-grid-column",
+    "sketch-grid-clicking",
+    "sketch-flow",
+    "sketch-flow-in-colour-slanted",
+    "closing-scene",
+    "shadow-mosaic-close",
+    "stad-in-opbouw",
+    "welcome",
+    "sketch-flow-v2-built-from-the-right",
+    "sketch-climb-view-3-level",
+    "sketch-stack-panels-in-a-row"
   ]
 }

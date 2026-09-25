@@ -1049,7 +1049,24 @@ top level — only walls may go in one, for the same reason only walls stand out
 and the running order and the debug view head it with `—  Aperitif`. The organizer adds one with
 `+ moment` (or `m`; a loose wall selected goes into it), renames it by double-clicking its head,
 and dissolves it with `×`, leaving its walls where they stood; a module made inside one is a wall.
-`reset` goes back to the declared order, which has no moments.
+There is no reset to the declared order: one click would throw away the whole arrangement, moments and all, so it was taken out. Restoring the order is `git checkout show-order.json`.
+
+**A moment's `+ sketch` puts a wall in it from a picker** that offers only what takes the whole wall:
+the course walls of the sandbox first — every sketch on the Sketches tab and every variant of it, which
+the show declares as `Sketch: Grid, door panel` (`sketch-grid-door-panel`) and keeps on the shelf (one
+the order file does not mention is shelved by the show and the page alike, not appended after the
+ending, so a new variant line in a sketch's file lands there) — then
+the show's other backdrops and scenes. Picking one moves it into the moment from wherever it stands;
+picking one already there puts it back on the shelf; the save plays it. A course wall in the show is
+`CourseBackdrop` (`courses/CourseWalls.kt`): the sketch's own code, built in `load` and drawn as a
+function of the slide's second, a variant's `.env` values laid over the file with `Env.with` for the
+build and every frame, and drawn into one shared multisampled target. `CourseWalls.all` is the one list
+of walls the studio and the show read.
+
+**Chapters, subchapters and moments fold** to their heads with the arrow before their title (alt-click
+folds or opens them all), and which are folded is kept in the browser, so the navigator comes back as it
+was left. A folded group lights up while it holds the selected slide and carries a dot while it holds
+the one on the wall.
 
 `"archive"` is the shelf: a slide there is out of the order altogether — not played, and not
 appended at the end as an unmentioned slide would be — and kept, so it can be dragged back in
@@ -1100,6 +1117,29 @@ its declared place when it is off or shelved.
 to the draw loop, so a command from the page goes into a queue the draw loop drains at the
 foot of each frame, and the page is told where the show stands from a snapshot the draw loop
 writes there. The same rule as a slide never reading a clock, for the same reason.
+
+**A save never writes over a file the page did not read.** Every launch of the organizer opens a tab
+and the old ones keep working against the same files, so two tabs holding two copies of the order is
+the ordinary case: whichever saved second wrote its older copy over the first, and walls placed in a
+moment in one tab were gone after a relaunch. Each file the page writes now has a revision — a
+checksum of what it holds, not its date, since the save button rewrites all five of its files whether
+or not they changed — handed to the page with the show and on every poll. A save carries the revision
+it read (`?rev=`) and a stale one is refused with a 409, nothing written. A page with nothing unsaved
+reads a moved file again at once; one with unsaved edits says so at the top and offers to read the
+files again or to save over them. Tabs also tell each other over a `BroadcastChannel` when they hold
+unsaved edits, since a fresh tab cannot see those. `Remote.revOf` and `putFile` in the page are the
+whole of it. A save with no `rev` is refused too and asks for a reload: that is a page loaded before
+the rule, which is to say one of the old tabs it is for. The page's "save over them" sends `force=1`.
+
+**The shortcuts are single keys and nothing more, and the Show tab's alone.** Only the letter used to be
+read, so ⌘A — select all — archived the selected slide, ⌘X skipped it and ⌘F turned following off; and
+they stayed live on the Sketches tab, acting on a slide nobody could see. A field being typed in is
+also left alone by a re-render for the same slide (a poll, previews landing, files read again) and by
+*follow*, which waits until the field is left: rebuilt, the field lost the focus and the next letters
+landed on the shortcuts. Follow never selects a slide the page holds on the shelf, which scrolled the
+navigator down to the archive whenever the show reached a wall taken out but not yet saved. And the foot
+of the order is a drop zone of its own — the end of the top level — where the archive's head used to
+be the first thing under the last moment.
 
 The page is light by default, with a switch in the top bar that is remembered, and
 `?theme=dark` or `?theme=light` on the address for one load — which is how it is
@@ -1384,6 +1424,25 @@ checkbox mutes one and keeps its fader where it stood, and the launcher hands th
 cue is written to the log at the gain the mix played it at, so a filmed run's soundtrack is the mix heard;
 the log carries the layer as a ninth column.
 
+**The faders are in dB and reach +40.** A mix is talked about in dB, so the organizer's `mix` panel
+runs each track from −40 dB to **+40 dB** against the file's own level, 0 dB being as delivered; the
+page converts and the show is still told a gain. The ceiling went 4 (+12) to +15 to +40 because
+lifting the *design* is the move this mix is asked for — its cues render 15 to 30 dB under the voice
+— and the travel has to cover that in one fader. `Speakers.MAX_MIX` is that ceiling and the engine
+and the server both clamp to it, so a hand-sent gain cannot pass it either.
+
+**A source clamps at `AL_MAX_GAIN`, which is 1 unless it is set**, and it never was: every fader did
+nothing at all above 0 dB — silently, so the mix read as broken rather than as clamped. Every source
+is now opened with `MAX_MIX` as its ceiling, the pool and the held ones alike. It is the sort of
+fault that cannot be seen in the numbers, since the show reports back the gain it was told rather
+than the gain OpenAL applied.
+
+A gain over 1 boosts a file otherwise played exactly as delivered, so far enough up it clips: the
+room clamps and a filmed run's soundtrack counts the clipped samples in its report. At the top of
+this travel that is a certainty — the range is there to bring a quiet stem up, not to be sat on.
+`SLIDES_MIX_VOICE`, `_DESIGN` and `_MUSIC` stay **linear gains** rather than dB, since the engine
+reads them rather than a person — 100 is +40 dB, 5.62 is +15, 2 is +6.
+
 **When seeking, the voice was playing, and the trace is how that was shown.** `SLIDES_SOUND_TRACE=true`
 prints every line as it is asked for and, 0.2 s later, whether OpenAL reports the source playing. A show
 seeked through its API — rapid and slow clicks both ways, jumps across slides — confirmed every line asked
@@ -1644,6 +1703,11 @@ talk, and the debug overlay is the show's. A click here is the click the audienc
 **`SLIDE_AT` jumps the clock to each frame it is asked for rather than sitting through the
 seconds.** Every drawer is a pure function of its frame count, so the picture is the same either
 way, and a wall that loops in four minutes is checked in one start.
+
+**`SLIDE_STEP=n` opens on the click into state n**, not on the slide's opening: the state before
+it is cut to and the click played from the first frame, so `SLIDE_AT` counts from the click's start
+and `r` plays it again. It is how one state of a built slide is worked on without clicking to it —
+`SLIDE=Domino SLIDE_STEP=3 SLIDE_AT=0.6,1.4,2.2,6` is the domino's word across its click.
 
 **Only the slide you ask for loads, and the seconds are the smaller half of why that matters.**
 `present` loads all thirteen slides and the four mosaic cards before the first frame, because a
@@ -2359,6 +2423,301 @@ red block here and there. Three things make that picture, and only the first is 
 
 The grey plain wall is the class's own defaults, and the ruled wall is untouched by all of this:
 its opening frame is byte-identical before and after.
+
+**`block-city-outline` and `block-city-cubes` are two line drawings of it** (25 September, both on
+the shelf). The outline wall is `CityBlock02` with every face, the ground and the shadows the one
+white and black ink: BlockCity draws a line only where the visible face changes, and a shadow is
+not a face, so all that is left is the edges that can be seen. The cubes wall had to be its own
+drawer, [`BlockStacks`](src/main/kotlin/slideshow/backdrop-drawers/BlockStacks.kt), for the same
+reason: asked for every element as a cube, stacked, and seen through so every line shows, it
+draws each cube's twelve edges as geometry, hidden ones included, each shared edge once. Two
+things it needed. **The city has to be sparse** — at the block city's density the see-through
+districts overlapped into one mesh; `SLIDES_CUBES_*` sets cube size, density, streets and height.
+**And the view must stay off the isometric diagonal**: at a yaw of 45 a cube's back vertical edge
+stands exactly behind its front one whatever the pitch, and at 35.264 of pitch its back corner lands
+on the front one too, so the stacks collapsed into hexagons with a Y in them. It swings about 56
+degrees and never reaches 45, at a pitch of 30.
+
+**Each cube holds a red catalogue piece**, `SLIDES_CUBES_PIECES` by part name, dealt with a quarter
+turn each off a stream of their own, so naming other pieces lays out the same city. It began with two
+— `WAND_27`, the panel with the doorway, and `VLOER`, the floor slab with the serrated edge — and now
+holds `cubePieces` in `Slideshow.kt`, the fifteen the cluster below was given first. The cubes are glass
+and the pieces solid, which is why the whole wall is one 3D pass with a depth test rather than
+lines drawn flat: a cube's front edges cross in front of its piece and its back edges pass behind.
+The lines are quads in world space turned across the edge and the view in the vertex shader —
+under a parallel view a world length is a fixed number of pixels, so a quad of fixed world width is
+a line of fixed weight — and the pass is multisampled, quads having no antialiasing of their own.
+The pieces are toned by the way a face points, the Objects poster rule, so red still reads as solid.
+`VLOER` is 120 by 144 m and 1 mm thick, so it stands in a cube as a flat plate.
+
+**`block-cluster` is a row of buildings of those cubes, built up on the right and taken down on the
+left** ([`BlockCluster`](src/main/kotlin/slideshow/backdrop-drawers/BlockCluster.kt)): every
+`SLIDES_CLUSTER_BEAT` a cube goes on the left and one comes on the right, on the same frame and with
+no transition. It was one continuous cluster first, and was asked to be buildings instead: a building
+is finished before the next is begun, with a street of `SLIDES_CLUSTER_GAP` slices or more after it,
+so there is always space between. Every cube has a place in two orders — the build, building after
+building, each from the ground up a layer at a time; the take-down, in the same order of buildings,
+each from the top — so nothing floats, and after k beats what stands is the first k + COUNT of the
+build less the first k of the take-down: always COUNT, and a pure function of the clock. Buildings
+hold different numbers of cubes and streets none, so the camera holds the middle of the two working
+ends, a cube's place in the build read as a position along the row and averaged over a few beats so
+it does not lurch at a street. It turns the camera to 76 degrees at 26 of pitch where the city uses
+56 and 30: a lattice axis climbs across a parallel view by `sin(pitch) / tan(yaw)`, and at the city's
+angles a row across the wall climbed 16 degrees; at 72 and 28 it still put six-storey towers off the
+top and bottom of the wall. Its cubes hold `SLIDES_CLUSTER_PIECES`, empty taking the city's list:
+fifteen pieces that read at a cube's size — walls with a doorway, a window, an L, a U and a step, the
+serrated slab, an angle, a wedge, a block, a frame, a cone, a dome, a zigzag, a bent anchor and a pile
+— with the long thin ones left out, since a piece is fitted by its longest side and a beam in a cube
+is a stick. The drawing both cube walls share — edges as quads, pieces, the one pass — is
+[`WireCubes`](src/main/kotlin/slideshow/backdrop-drawers/WireCubes.kt); the cubes wall's stills were
+byte-identical across moving it there.
+
+**`assemble` is a DRAFT of assemble, disassemble, assemble** ([`AssembleScene`](src/main/kotlin/slideshow/backdrop-drawers/AssembleScene.kt)),
+after an exploded axonometric (`Brique-à-brac`) and a sheet of one set of blocks packed several ways:
+a solid building stands, is taken apart a beam at a time onto a grid, its beams move along the grid,
+and they are built up as a different building, one building a projector. It draws only
+`objects-iso.svg`, every element in the WN red on black with a black outline for the joints. Three
+things make it read, each found by looking:
+
+- **Every block is the same 3 x 1 x 1 beam**, so every building can be solid: layers of beams in
+  footprints of three cells, running across and along by turns like a Jenga tower, stepping back as
+  they rise. Bricks of different sizes, the first draft, could not close into a solid mass — and with
+  one size any arrangement of the blocks is any building.
+- **A beam's drawing is the structural drawing that best overlaps the hexagon a 3 x 1 x 1 box
+  projects to**, laid over it in the same rectangle as drawn and mirrored, stretched to fill its
+  beam's box and mirrored where the beam runs the other way. Ranked on proportion and fill instead,
+  cones and angles came through and dented the building.
+- **The motion is snaps, measured off `input/motion-snap.mov`**: an element there covers most of its
+  move in the first frame, 52 of 73 px and then 8, 4, 2, 2, 1 — an exponential ease-out,
+  `1 - 2^(-10 t)`, over about a third of a second — and elements go one after another. So each beam
+  moves on its own, `SLIDES_ASSEMBLE_SNAP` seconds, `SLIDES_ASSEMBLE_STAGGER` after the last: off
+  from the top down, across the grid and then along it, down from the ground up.
+
+The exploded view is the lattice widened (`SLIDES_ASSEMBLE_SPREAD` across, less up and down), so the
+beams fall on a regular grid. `SLIDES_ASSEMBLE_*` steer it.
+
+**`assemble-grid` is the same wall on the motion study's whole grammar** (`grammar = "grid"` on the same
+drawer, so the two share the buildings, the drawings and the projection): every beam moves one axis at a
+time, each leg a snap — lifted off, slid across, slid along, and set down the other way round, dropped
+into its column last; a phase starts sparse and thickens (`SLIDES_ASSEMBLE_GAP_START` 0.2 s closing to
+`_GAP_END` 0.06 s between beams); a beam that runs the other way in the next building turns in one frame
+as its first slide begins; and the camera pulls back linearly through the whole cycle
+(`SLIDES_ASSEMBLE_ZOOM`, a share of the view a second) and is cut when the next building begins, mid-move.
+About 16 s a building. `style-guide/motion.md`, "The snap", is where each rule comes from.
+
+**`assemble-solid` is a precast building out of the catalogue's own pieces** (`render = "solid"`):
+the grid wall's motion with the pieces WN is known for instead of beams — the wall with the door opening
+(`WAND_27`), the walls with windows (`WAND_17`, `_23`, `_33`), the notched and kartel-edged panels, and the
+floor plates (`VLOER` with its toothed edge, `VLOER_3`, `PREDAL`). It began as beams, the meshes that fit
+a 3 x 1 x 1 box with least stretching, and was asked to become the well-known pieces: a door wall squeezed
+into a beam is not a door wall, so the building grammar changed rather than the fit.
+
+- **A building is bays and storeys.** A bay is 5 x 5 cells and a storey 3 high; every bay of every storey
+  carries a floor plate over it, and every face of it open to the air a wall panel. A panel along x runs
+  the bay's whole length and one along z stops a wall's thickness short at a corner, so two never pass
+  through each other, and every piece stands a joint (0.12 cells) clear of the next so each reads as a
+  piece.
+- **Every building takes exactly the same kit, which is what makes the next building possible.** A
+  massing on a grid of two bays by three is a height a bay; its plates are the sum of the heights and its
+  panels the faces open to the air. The wall builds only the massings that take exactly
+  `SLIDES_ASSEMBLE_PLATES` and `_PANELS` (8 and 20: 148 of them, found at load and dealt from the seed),
+  so every piece has a place in every building and a wall panel only ever goes to a wall's place.
+- **The door and the windows face the room.** `SLIDES_ASSEMBLE_FRONT` names the panels dealt onto the
+  faces in view (+x and +z), from the ground up in the order named, so the door wall stands at the foot of
+  the building; the rest go anywhere. The ground is one height for every building.
+- **A mesh is laid into its box by its own axes**: a panel's thinnest axis is its thickness and it stands
+  as modelled; a plate's thinnest is its thickness and it is turned to lie flat, which `PREDAL` — modelled
+  standing — needs. The box is filled exactly, so the building is as closed as its boxes.
+- **The exploded view moves each piece out by its middle**, `SLIDES_ASSEMBLE_SOLID_SPREAD` across and
+  `_RISE` up, so a panel on the far face goes as far as one on the near face; a piece that turns turns
+  about its middle. The exploded view spreads toward the viewer, which in isometric is down the screen,
+  so the building's middle stands at 0.46 of the pane rather than half way.
+
+**Flat red with its own real edges in black**: the fill is one red and the outline is the mesh's creased
+edges, the ones the loader marks, measured in pixels off the barycentric derivative (the Objects line
+style), so an opening reads as an opening. Shaded by the way a face points it read as oddly lit.
+
+**The construction lines are drawn the moment a piece is placed outside.** When a piece lands in the
+exploded view its path is drawn from the building out to it over one snap, leg after leg — the four edges
+of its box that run along each leg — and then stands, fixed in space; the same when it lands in its new
+place across the grid. Nothing is drawn while a piece moves, and nothing when it is set down into the
+building. Grown with each move instead, they lagged behind the piece and read as motion rather than as a
+drawing; carried with it, as its own scaffolding. A phase's lines stay while the pieces stand apart and
+fade across the next phase; a 1.4 s end hold lets the building stand clean before the cut.
+`SLIDES_ASSEMBLE_GUIDES` switches them. The scale is the unit times sqrt(3/2), since the projection
+shortens a unit edge by sqrt(2/3).
+
+**`assemble-row` is the same buildings as a street under a slow pan** (`grammar = "row"`, asked for as
+a constant rebuild): the camera pans right across the whole wall, linear, so every building drifts from
+right to left; a building is **built at the right-centre as it comes in** (`SLIDES_ASSEMBLE_ROW_BUILD_AT`,
+a share of the wall's width) — its pieces arrive outside it from the ground up, each with its way in
+drawn at once, and are set in a moment later — and **taken down as it leaves on the left**
+(`_LEAVE_AT`), top down, each piece lifted out, its way out drawn as it lands, and gone a moment later.
+**One goes as one comes**: the building taken down is two on from the one being built, so the two run
+on one clock and a piece goes on the left on the very frame one arrives on the right — the wall always
+holds the same number of pieces. The pan's speed is not stated but follows: the distance between the
+two places over two periods (`_PERIOD`, 22 s a building, about 64 px a second on the 3840 wall).
+
+**It is calm rather than snappy, and that was asked for.** The snap is the reference's, and on a wall
+that stands for minutes it read as too fast; the row runs `cubic-bezier(0.4, 0, 0.2, 1)` (`_EASE`, the
+Material standard curve) over 0.8 s a leg (`_MOVE`) with pieces 0.45 s apart thickening to 0.25
+(`_GAP_START`, `_GAP_END`), and a piece grows in and shrinks away over half a second (`_GROW`) rather
+than popping. `curve` and `grow` are on the drawer, so the solid wall keeps its snap. A building takes
+about 14 s to go up. Checked across a period boundary: the frames either side change by the pan alone.
+
+**`assemble-row-glass` is the row seen through, with the concrete in it** (`glass`, `concrete` on the
+drawer; `assembleRow()` in `Slideshow.kt` is the one set of arguments both rows share). Every face is
+drawn `SLIDES_ASSEMBLE_GLASS` opaque (0.1) with no depth test, so the pieces behind and every edge, the
+hidden ones included, show through, the edges in the piece's red — the black ink vanished into the
+ground. At 0.22 the overlaps stacked into a solid red; 0.1 keeps them glass. **The concrete is laid on each
+piece's own faces** — the two world axes a face lies along, counted from the piece's corner — so a piece
+carries its stone as it moves; nailed to the wall, the pan would slide the stone across the pieces. It is
+blended against its own average, and it needed amplifying to show at all: `concrete-052v2_crop.jpg` varies
+only 5.5% about its mean (measured, standard deviation over mean), so `SLIDES_ASSEMBLE_GRAIN` is 5 and the
+grain thins and thickens the glass as well as the colour; one repeat spans `_CONCRETE_CELLS` (24) cells,
+since squeezed into 6 the mipmaps averaged the grain away.
+
+**`CourseAssemble` puts the row in the Second course's city** (`src/main/kotlin/courses/`, course
+`course-v5-assemble`, a card on the Sketches tab and a course in the studio): the same isometric view, sun,
+greys and occlusion as `CourseSecond`, a street cut through the blocks along the screen's horizontal, the
+camera panning along it, and the row's own schedule — `AssembleScene.row(t, place)` hands out the pieces
+and their paths, so the two cannot differ in anything but where they are drawn. Four things made it:
+
+- **`SiteCity` took a street and pieces.** A `Street` clears every mark whose middle lies within its width
+  (and the mark's own short side) of a line in *world* space, tested in the vertex shader off the copy's
+  model matrix — the site tiles every 3840 by 1080, and a diagonal street folded onto the tile would clear
+  stripes every 120 px across the whole city. `Piece`s go into the light's depth pass and the colour pass,
+  so they throw their shadows on the street and the blocks and take theirs; they share the city's lighting
+  code (`lighting`), in its greys, with their creased edges a shade darker. The occlusion map is the tile's
+  and knows no street, so the occlusion gives way over it.
+- **WN red marks what is changing**: a piece is red while it is outside and moving and goes grey over
+  0.6 s once set in, turning red again as it is lifted out — the motion study's one accent.
+- **The exploded view lifts off the ground** (`fromGround`) and spreads 1.35 across rather than 2, since
+  about the building's middle the ground floor's walls went into the ground, and wider they flew into the
+  blocks either side.
+- **The concrete runs through everything, mirrored.** The stone does not tile, and a plain repeat ruled
+  its seams across the city as long straight lines on the diagonals; `MIRRORED_REPEAT` has none. At a
+  strength of 2.5 its dark pits blotched the whole city; 1.2 reads as concrete.
+
+`ASSEMBLE_CITY_*` steer it. The city stands still (`cycle = false`) so the one thing building is the row.
+
+**`ASSEMBLE_CITY_STYLE=graphic` is the same street in four flat colours** (the variant "graphic" on its
+card), asked for as "more graphical, only 4 colours" off a sheet of graphic crops: white, red, navy and
+black (`_PALETTE`), no greys, no grain, no occlusion. It is `SiteCity`'s paint mode — a block takes a roof,
+a lit side and a shade colour — with the pieces given the same rule (`piecePaint`): the city white, navy
+and black on a white ground that takes navy shadows, the precast buildings red with black sides. **The sun
+stands low behind the buildings** (15 degrees round, 20 up): shadows fall long down to the right, as in the
+sheet, and at that angle both wall families the camera sees are turned from the sun, so a building reads
+as red roofs over black walls with its door and windows cut through in white — the sheet's own backlit
+rule, tops lit and sides dark. A sun that lit the left-hand walls would lay the shadows nearly flat across
+the frame. The construction lines are black.
+
+**The course is one projector now, and it is a catalogue and a building by turns** (`ASSEMBLE_CITY_MODE=
+catalogue`, the card's default; `runCourse` took a canvas size for it, `ASSEMBLE_CITY_WIDTH=1920`, and
+`_ZOOM` is canvas pixels a site pixel). Asked for as "a building, or the elements animated into this kind
+of catalogue, and each time it builds something else with it, like Lego", after a specimen sheet of
+silhouettes in ruled boxes. `AssembleScene`'s `catalogue` grammar:
+
+- **The catalogue is the kit laid flat** on the floor on the left, every piece in a ruled cell of its
+  own, packed like the sheet: rows `_CATALOGUE_WIDTH` cells wide, each row's cells stretched to fill it,
+  so the page is one ruled rectangle of cells of many sizes. A wall lies face up (`Now.lying`: its
+  thickness stands and its height lies across), so the door wall shows its doorway as a silhouette.
+  Every piece has one cell for the life of the wall — its place in the kit, as a Lego box has.
+- **The cycle**: the catalogue held; the pieces lifted out from the ground up of the building to come,
+  each stood up in one frame at the top of its lift, carried across and along above the tallest building
+  and set down; the building held; taken down from the top, each laid flat in the air and put back in its
+  cell; the next massing. Four one-axis legs a piece (`Path`, through its middle so it turns about it).
+- **The cells are ruled the whole time**, black on the white floor, and a piece's path is drawn as it
+  lands in the building or in its cell (`legLines`, the one path drawing both grammars use).
+- **The ground is a plaza**: the cleared band is `_PLAZA` wide (330 site pixels), because a rectangle
+  of cells lying square to the world always spans the street's line both ways; at 280 the city's blocks
+  covered its top and bottom rows. A cell is 13 site pixels so the page and the building fit the frame.
+
+**The gallery is the default: the catalogue as a flat sheet over the scene** (`ASSEMBLE_CITY_MODE=gallery`;
+the floor catalogue above is the variant "catalogue on the floor"). Asked for as the grid "gallery view" in
+two dimensions on top rather than isometric too: a white panel on the left (`_SHEET_WIDTH`), every piece
+seen straight down lying face up — a red silhouette, the door wall's doorway and the windows cut through —
+in a ruled cell of its own, the rows stretched to fill the panel, at the largest size that fits. The city
+and the building stay isometric on the right.
+
+**A piece crosses between the two views through a camera of its own** (`AssembleScene.gallery`, the course's
+`galleryFrame`). Over its `_FLIGHT` the camera turns from straight down, yaw 0, to the scene's isometric,
+yaw 45 — its orthographic window shifted and scaled so the piece's middle travels on screen from its cell
+to where the scene would show it — while the piece turns (a quaternion slerp) from lying face up with its
+length across to standing as its place stands. At the end its camera *is* the scene's, window and all, so
+it is handed to the scene — its shadow pass, its paint — with nothing to see, and set down in one leg.
+Painted in the air by the scene's own rule, by the way a face points in the world, so a silhouette on the
+sheet is red (face up is a roof) and a standing wall comes in black. Every piece keeps its cell; the depth
+is cleared for each piece in the air, since two cameras' depths mean nothing to each other.
+
+**`CourseKit` is the kit on its own: a cube, then a grid** (`src/main/kotlin/courses/CourseKit.kt`, course
+`course-v6-kit`, one projector). Asked for as the city course cleaned up — the surroundings taken out —
+going from an assembled set-up to a grid catalogue drawn as an isometric grid, and then "it does not have to
+be a building with walls and floors: just pieces puzzled together that make a cube", after a mason's cube of
+stone blocks of many sizes. It is small on purpose: `AssembleScene` keeps the kit and the schedule (its
+`catalogue` grammar on a `lattice` layout, `form = "cube"`) and the sketch only draws — a light ground, the
+grid's lines, a flat shadow and the pieces, one ortho camera, no shadow map and no city.
+
+- **The cube is cut into blocks and a piece fills each** (`partitionCube`): a guillotine cut at a time, the
+  biggest block across its longest side at a whole cell, until there are `KIT_BLOCKS` and none is longer than
+  `KIT_MAX_SIDE`. Each block takes the catalogue piece nearest its proportions, one of the nearest three,
+  fitted **longest side to longest side** — so the same piece reads the same whichever way its block stands,
+  and the door wall's and the windows' openings become holes and notches in the blocks.
+- **The pieces keep their size; the cube turns.** Every round builds the same blocks turned about the cube's
+  middle by another of its 24 turns, so the big blocks come round to other faces — the kit is fixed, as a
+  box of bricks is, and a block never changes size in the air.
+- **The grid is an isometric lattice**: nodes on the floor `KIT_STEP` apart in a hexagon standing on its
+  points (|i|, |j| and |i − j| within `KIT_RADIUS`), drawn as its three families of lines, the diagonal one
+  upright on screen; each piece lies on its biggest face at a node dealt from the seed. The radius grows if
+  the pieces outnumber the free nodes. At a step close to the blocks' size the grid was a crowd; 8 leaves air.
+- **One thing in the middle, not two side by side**: the grid is laid round the cube (`KIT_GRID_AT=0,0`) and
+  the camera looks at its middle. The nodes within `KIT_CLEAR` of the cube's middle (half the cube, half the
+  largest block, and one) take no piece (`latticeClear`), so the cube stands on the grid with the kit laid out
+  round it. The view is lifted (`KIT_LIFT`) so a piece flying to the far nodes stays in frame — checked on
+  the top 40 pixels across the take-down, which stay paper.
+- **Drawn flat, and the blocks legible on every face**: the tops red, the two sides in view black and navy,
+  and each block's own creased edges in a light line (`KIT_EDGE`), since on a red, black and navy cube
+  without them the joints vanish. The shadow is the piece flattened onto the ground along the sun, one
+  matrix, and only a piece at rest throws one — in the air its shadow lay far off on the ground as loose
+  navy litter.
+- It opens on the cube standing whole (`builtAt`), and `KIT_FORM=building` stands the precast building
+  instead (the variant "building").
+- **The grid is boxes, a piece standing in each** (`KIT_GRID=boxes`, the default; the flat lattice is the
+  variant "on a flat grid"): wire cubes the cube's own size on the floor, the middle one the cube's, drawn
+  as their edges each once (`WireCubes.Edges`) and depth-tested against the pieces after them, so a box's
+  near edges cross in front of its piece and the far ones pass behind. A piece stands in its box as it
+  stands in the cube.
+- **It comes apart as an exploded view** (`explode`): every piece in one quick straight move
+  (`cubic-bezier(0.65, 0, 0.25, 1)` over 1.1 s) to the box that lies outward from where it stands in the
+  cube — the outermost choosing first, each the free box nearest its own place carried outward — a soft
+  `KIT_STAGGER` (0.04 s) after the one before, outermost first out and innermost first back. It was a piece
+  at a time along four legs, and was asked to be a fast exploded move. The cube stands the same way every
+  round under this, since a piece standing another way in its box would have to flip in the air.
+- **While it stands exploded the camera goes a quarter round it** (`turnsAt`, eased over the hold), so each
+  round is seen from the next corner. That is why the boxes stand on a square rather than the flat grid's
+  hexagon: a hexagon seen from the next corner is a long flat strip, and the grid would change shape every
+  other round. Half way through the turn the camera looks straight along an axis and the boxes line up into
+  flat stripes for a moment — an orthographic grid seen square on — which passes at the turn's fastest.
+- **Every piece stays in shot while it stands exploded** (`latticeFits`): a piece may only be carried to a
+  box it can be seen whole in from every angle the camera turns through — a box's middle d from the axis and
+  y from the cube's middle stands at most d across and d·sin(elevation) + |y|·cos(elevation) up or down,
+  plus the piece's own reach. Up and down binds first, since the turn swings the depth into the height.
+  Carried out freely, some went to boxes off the frame, and the turn took others out of it.
+- **The boxes fill the frame, in layers**: 11 by 11 on the floor (`KIT_RADIUS` 5, which covers the frame at
+  a scale that leaves some forty boxes in shot round the cube) and three high (`KIT_LAYERS`
+  1 above and below the cube's), a piece floating at the middle of its box rather than on its floor, and the
+  exploded view carries each out in three dimensions (`KIT_SPREAD`, its place in the cube times 3.5) to the
+  nearest free box. The scale is worked out so the frame's corners fall inside the diamond the boxes make
+  from a corner, so the field runs off every edge (`KIT_FILL` over 1 pushes further). The pieces are grey
+  for now (`KIT_TOP`, `_SIDE`, `_SIDE_Z`) with no shadow (`KIT_SHADOWS`), the lines a light grey; the red,
+  navy and black are the variant "on a flat grid, in colour".
+
+**`row` on one projector floats and drops** (variant "street, floating and falling"): a piece taken out
+lands in the exploded view, floats there `_FLOAT` seconds rising and settling `_BOB` cells, and then falls
+— `_GRAVITY` cells a second squared, the same for every piece — through the floor, rather than shrinking
+away; its path fades as it falls. One building is taken down on the left as the next goes up on the right
+(`_LAG=1`), the street standing low in the frame (`_STREET_Y`) so the floating pieces have room. The wall
+versions of the street are the card's other two variants.
 
 - **`ShadowMosaic` is building and unbuilding, box by box**, in the look of
   `input/Binpack06-2026-09-18-23.44.34.mp4`. Each projector's 1920x1080 is cut into boxes of
@@ -3241,7 +3600,8 @@ click is the wall's own: the programme gives way under a sheet of the ground ove
 the guest from StudioBuik, who introduces the dinner, builds as a `NameTag` in the right projector
 over the second, level with Erik, on the click's linear time. `NameTag.tag(drawer, stage, seconds)` is
 that build as a function of seconds, so a tag can be handed a click's clock. The guest's name and
-title are PLACEHOLDER. `het-programma` keeps its id and its cues A to F; G, the guest, has none.
+title are PLACEHOLDER. `het-programma` keeps its id and its cues A to F; G, the guest, has its own
+since the release of 24 September.
 
 #### The project highlights
 
@@ -3491,6 +3851,36 @@ which a parallel drawing allows. **The grid is the field under the title, not th
 whole pane the top row's labels ran under the title. No photograph under the word: the client's
 was a placeholder.
 
+**DUURZAAM is built on the chapter build's grid**, since 25 September (`SLIDES_DOMINO_WORD=grid`;
+`packed` gives back the flat quadtree word of 18 September, which read as a thin band of grain on an
+empty pane). The pane is dealt as the chapter openings deal their field — six coarse cells across on
+the marks' 1.85, `MosaicCells.split`, a catalogue mark stretched to each leaf — and the word is the
+cells it covers: a cell the letters cover by half or more rises and goes white, and the whole plan is
+stood by `LongShadowV3.drawStanding`, the chapter build's own sun, passes, lay and concrete. So the
+word throws the long shadow the chapter titles do. The D click is two dominoes: the grid clicks up
+cell to cell from the first tree's element, a hop along the grid's own adjacency each, knocking out
+every tree as it reaches the cell under it; then the word rises out of it from its middle outward.
+Left to right (`SLIDES_DOMINO_ORDER=left`) spells DUUR, "expensive", on the way. The click's time is
+`linear(position - 2)` of its length while it plays, so clicking back sinks the word in reverse.
+
+Four things had to be found to get there, each by measuring:
+
+- **The grid's 22 px floor cannot draw Rockwell.** At 22 a cell can be no narrower than 40 px and a
+  stem is ~65: the letters came out as one or two blocks a stem. `MosaicCells.split` now takes a
+  `must` test and a `finest` floor, so a cell straddling a letter's edge keeps splitting to 10 px
+  while the rest stop where chance leaves them; the joint thins on those small cells, or the edge is
+  a dotted line. Without `must` the stream is drawn exactly as before — the chapter opening's stills
+  are byte-identical across the change.
+- **A forced split must take whatever split is left.** Drawn "stacked" on an 80 by 11 cell too thin
+  to stack, the old rule gave up, the cell stood at 49% coverage as ground, and the D lost its stem.
+- **The ground has to be dark in linear light.** At the chapter build's tones — or even 0.42 — the
+  roofs came out a light grey the white letters barely stood off; 0.03 to 0.14 lets the word lead.
+  Letter cells take only marks filling 90% of their box (`LongShadowV3.markSolidity`), since a doorway
+  panel in a letter is a hole in it.
+- **2 312 marks a mark at a time is 14–16 ms a frame.** `drawStanding` writes them all into one
+  vertex buffer with the plan colour on the vertex, one draw: 10 ms, the rest being the shadow passes,
+  and byte-identical to drawing them one by one.
+
 `Programme` (standing alone; the show now runs it inside `IntroWall`, above) is the evening on the two projectors as two panes: **the list on the left** —
 moments and chapters in the order the show plays them, the chapters numbered and large, the
 moments small and quiet — and **the chapter that is forward on the right**, its number and key
@@ -3544,9 +3934,13 @@ buffer written in chunks at a byte offset left a second, displaced copy of the h
 over the first**, coloured as if it were 200 m tall. Each file is now read into one direct
 buffer and written once. **A label a click, in one row above the building**: each is centred over
 the point it names, on a straight leader dropping to the roof, the three of a set reading left to
-right; the next set replaces the first on the fourth click. They stacked in the corner on slanting
-leaders that crossed until 22 September. Where two labels would touch, the row is pushed apart and
-the leader turns once, level, to reach its point. The subtitles follow the clicks, a sentence a label.
+right; the next set replaces the first on the fourth label's click. They stacked in the corner on
+slanting leaders that crossed until 22 September. Where two labels would touch, the row is pushed
+apart and the leader turns once, level, to reach its point. **The building opens alone** and the
+first label waits for the first click (review of 22 September), so the slide is seven states; its
+subtitles and rendered voice lines moved a letter along with it, the extended track's opening line
+split at its sentence into A (the building) and B (the 3D-model). The subtitles follow the clicks,
+a sentence a label.
 
 `EndingScene` is the ending wall: one sentence, one action, and the thing that triggers it, a
 QR code from `zxing` drawn as squares with its own quiet zone, growing from its middle once the
@@ -3658,6 +4052,72 @@ watched one stands where the list ran out, as before.
 **The mux runs after the window closes, and has to.** `ScreenRecorder` finishes its file as
 the program ends, so `present` hands the export out of the program as a closure and runs it
 once `application {}` has returned — the film is on disk by then and not before.
+
+#### Filming in pieces, and why a film took so long
+
+A full run was 1712s of film and took well over an hour and a half to make, and measuring said the
+time was going on **waiting, not work**: the GPU sat idle a third of the time while ffmpeg and the JVM
+each used under half a core. Four things, in the order they were fixed:
+
+- **30 fps.** `SLIDES_FPS=30` draws half the frames. The deck's clock comes from seconds, so a 30 fps
+  film is the 60 fps one taken every other frame — checked: each frame matches the 60 fps frame at
+  twice its index at 41.7 dB against 35.4 for the frames either side. The review film does not need
+  60; the room still runs at it. A hands-off run's clicks are now counted **from when they were due**
+  rather than from when they landed, since at a lower rate the clock moves two frames a draw and each
+  click could land a draw late, adding up over 148 states.
+- **[`WallRecorder`](src/main/kotlin/slideshow/WallRecorder.kt)** replaces `ScreenRecorder`: the same
+  frame clock, target and ffmpeg arguments read off its source, but the frame is read back into a
+  pixel buffer the GPU fills when it gets there and collected three draws later, and a thread of its
+  own feeds ffmpeg. Its files are **byte-identical** to `ScreenRecorder`'s — compared, all 480 frames
+  of a clip — and `SLIDES_RECORDER=screen` gives the old one back to check against. Vsync is off on a
+  filmed run and a bench, since waiting for the display after every frame is time spent idle. The GL
+  bindings are declared in `build.gradle.kts` for it, the same 3.3.6 jar openrndr-gl3 pulls in.
+- **The chapter card was 90% of the drawing, and it was stalls.** `SLIDES_BENCH=true` times every state
+  in two or three minutes (below), and it put every slide beside a card at 70–115 ms a draw against
+  3–16 for the walls — tracking the *chapter*, not the slide. A jstack of the card said why:
+  `drawer.shape` fills through OPENRNDR's `ExpansionDrawer`, which on a Mac **finishes the GPU after
+  every outline of a shape with more than one** (`DrawerConfiguration.waitForFinish`, a workaround for
+  an artifact under ANGLE), and the card drew the chapter quote's letters — 95 to 158 of them, most with
+  a counter — every frame. Two fixes: the card beside the slides no longer draws the quote at all (it
+  lies on the wall's second pane, is flat and casts nothing, so it cannot change a pixel of the first);
+  and a filmed run and a bench set `org.openrndr.draw.wait_for_finish=false` (`SLIDES_WAIT_FOR_FINISH`),
+  since the show runs native GL rather than ANGLE. Both were filmed before and after — the opening wall,
+  the card beside the city, the ESG pieces, the factory map, the ladder, the webtool building — and every
+  clip is byte-identical. The bench put the whole film at 3247s of drawing before and 1349s with the
+  quote left out; the finish off then took a slide beside its card from about 35 ms a draw to 24.
+  Merging the letters into one shape was tried and is *worse* with the finish on: it finishes once per
+  outline, so one shape of every letter finishes more often than the letters did one at a time.
+- **Pieces.** `FilmKt` ([`Film.kt`](src/main/kotlin/slideshow/Film.kt), [`Pieces`](src/main/kotlin/slideshow/Pieces.kt))
+  films the show as several processes at once — `FILM_PIECES` cut at the walls between the chapters,
+  `FILM_PARALLEL` at a time, longest first — and joins them into what one run would have made:
+
+  ```
+  SLIDES_SUBTITLE_MODE=true SLIDES_CUES=auto SLIDES_VOICE_ON=true SLIDES_MIX_VOICE=1.0 SLIDES_FPS=30 \
+      SLIDES_VIDEO=video/wn-experience.mp4 FILM_PIECES=4 FILM_PARALLEL=2 \
+      ./gradlew run -Popenrndr.application=FilmKt
+  ```
+
+  **A join cannot be seen, and it is exact by construction.** A piece is `SLIDES_START` to `SLIDES_UNTIL`
+  on the auto cues, and a filmed run ends one hold after its last click — the frame the next click would
+  have fallen on — so the next piece, opened on the wall that click would have brought up, starts where
+  the last left off. Cutting only at a wall that stands alone means nothing carries across: no card is
+  on the wall, and a wall's clock starts when it arrives either way. The films are concatenated without
+  encoding again; the cue and state logs are moved along by the length of the pieces before them as the
+  recorder wrote them; and a sustained sound still held at the end of a piece is **released on the next
+  piece's first frame**, unless that piece opens on the same file — the driver's own release rule, which
+  a piece ends too early to reach. The soundtrack is rendered once over the joined log. Each piece is the
+  show on the launcher's own java and classpath, muted, as the organizer starts one.
+
+  **Built and not yet run on a whole film.** The release of 24 September was filmed in one run at 30 fps
+  with the recorder and the card fixed. Before trusting a joined film, check it the way the reasoning
+  above says it should hold: film a short range once whole and once in two pieces, and the joined `.states`
+  and `.cues` should equal the whole run's line for line.
+
+`SLIDES_BENCH=true` (with `SLIDES_CUES=auto` and the film's other settings) draws every state
+`SLIDES_BENCH_SAMPLES` times across the hold a filmed run gives it, the GPU finished after each draw,
+and prints the slides by what they cost a film at `SLIDES_FPS`, with the states in `build/bench/bench.tsv`.
+A filmed run writes `<film>.timing` beside the film, the same per slide off the run itself. Read either
+before blaming the encoder.
 
 ### A wall's timing as MIDI
 
@@ -3808,6 +4268,79 @@ Measured off that clip rather than assumed: the picture changes at 5, 10, 15 and
 first figure starts growing at 5.68s against a note-on at 5.60 — the difference is the smoothstep,
 whose first frames are sub-pixel — and the group **settles at 6.47s against a last note-off at
 6.48s**, one frame apart.
+
+### A wall with no end as a score
+
+[`WallMidi.kt`](src/main/kotlin/WallMidi.kt) writes one wall that builds on its own clock as MIDI,
+with a clip of exactly the same length beside it — `midi/<slide-id>.mid` and `.mp4`:
+
+```
+WALL_MIDI_SLIDE=shadow-mosaic ./gradlew run -Popenrndr.application=WallMidiKt
+```
+
+**A wall that fills, holds and empties again for ever has no end to score to**, which is the one
+thing the organizer's export cannot work out for itself: it scores a slide over the pace a filmed
+run gives it, and that is the right length only for a build made of clicks. So the wall states how
+much of itself is written down — `ShadowMosaic(midiWindow = 60.0)`, read through
+[`MidiTimed.midiFrames`](src/main/kotlin/slideshow/MidiExport.kt) — and `clipFrames` hands that
+straight back, so **the film and the file end on the same frame**, here and under the organizer's
+button alike. A clip and a score that disagree about where they stop are worse than either alone.
+A note still rising as the window closes is cut off with it.
+
+**Every mark that moves is a note, and the timing is the shader's own rule read backwards.** Nothing
+on this wall is scheduled: a mark simply stands as far as its box's circle has reached it, the rim
+growing as `R(1 - (1 - u)^3)` over `grow`, so the second it arrives at a mark `d` away is
+`grow * (1 - cbrt(1 - d/R))` exactly, and the note lasts as long as the rim takes to cross that
+mark's own `band` — which is how long the mark takes to rise. **The two packings are one event seen
+twice**: where the light circle raises a light mark it takes the dark one that stood there down, so
+the four lanes are `light up`, `dark down`, `light down` and `dark up`. Pitch is height on the wall,
+top highest, so a circle opening inside a box reads as a spread rather than as a run.
+
+One minute of `shadow-mosaic` is **2549 notes on 4 tracks** — 1396 light up, 506 dark down, 490
+light down, 157 dark up, of 1971 light and 663 dark marks — and that it is the picture was measured
+rather than assumed: the count of light marks the score says are standing tracks the lit area of the
+film at a **correlation of 0.998** across the minute, the turn-around at 45–55s included, where the
+boxes begin to empty and both curves come down together.
+
+**Giving every block its own voice is one implementation now.** `voiced()` in `MidiExport.kt` is the
+chapter card's rule lifted out — a block takes its preferred pitch while that pitch is free on its
+lane, otherwise the nearest free one in its register — and both this wall and `LongShadowV3` call
+it. Checked rather than assumed: chapter 1's `.mid` is byte-identical across the move.
+
+The red units and the small red elements, on a wall that has them, are not in the file: they are
+carried rather than raised, and this scores what is built.
+
+**The belt (`welcome`) is the second wall scored this way**, `WALL_MIDI_SLIDE=welcome`, over its
+own `midiWindow` of 60s. One lane for the belts coming in, and one a belt carrying **every move a
+piece makes in shot**, on the frame it sets off and for as long as the move lasts. Pitch is where on
+the wall the piece moves, left lowest, so the belt running left is heard falling and the one running
+right rising. The draw loop and the score share one `Layout` and one `begin`, and the stills were
+byte-identical across that split. 117 notes; checked against the clip, every note has its piece
+visibly moving in its middle third, and no frame of either belt moves without a note sounding.
+Motion becomes visible 0–0.5s after the note-on, because the first fifth of a cubic ease is
+sub-pixel. A move made wholly off the frame is not a note: the strip is longer than the wall.
+
+**The catalogue city's opening is scored the same way**, as `midi/the-catalogue-city-A.mid` and
+`.mp4` (`WALL_MIDI_SLIDE=the-catalogue-city`). WallMidi scores a slide's opening state on its own
+clock, so on a slide with clicks that is state A and the files carry the letter; with no window of
+its own the clip runs as long as a filmed run holds that state — `clipFrames` with no clicks, 9.5s
+here, the town whole at 6.
+
+- **A note is a plan**, because the reveal fades a building's elements together. Its timing is the
+  reveal read backwards: the front is a smoothstep over the part index, inverted in closed form. A
+  plan that comes up outside the frame the camera holds at that moment is not a note. 2,364 of the
+  7,839 plans are in shot, and the 71 elements held out for the grid have a lane of their own.
+- **A lane is a column of the pane, eight of them, and pitch is height**, top highest. Lanes by how
+  many elements a plan carries came first and are wrong at `CITY_OBJECT_SIZE=18`: 96% of plans carry
+  one, so that lane sat on all 48 of its pitches and `voiced` cut its notes to half their fade, 69 of
+  them under 50 ms. Across eight columns every note keeps its fade. 54% sound at their own height
+  and 92% within four semitones. The rest are in the old town, where more plans fade in one band of
+  height than a lane has voices.
+- **Checked against the clip.** The plans the score has standing correlate with the lit area at
+  0.996, and both are done at 6.0s.
+
+It is not ticked in `show-midi.json`. Ticked, the organizer's export would score the whole slide:
+this cloud, then a note on the `states` lane for each click.
 
 ### Ticking a wall for MIDI in the organizer
 
@@ -4096,39 +4629,121 @@ not have is dropped the same way: nothing is wrong on the wall and nothing is wr
 folder, and the cue is simply never reached. The report is what to read after a sheet lands:
 
 ```
-cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sounds/P4 — 28 slides, 96 cues
+cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sounds/P4 — 33 slides, 126 cues
   who-is-speaking                    A
-  het-programma                      A B C D E F
+  het-programma                      A B C D E F G
   hoe-bouw-je-een-wereld             A
   the-catalogue-city                 A B C
-  everything-a-build-answers-to      B C F
+  everything-a-build-answers-to      B C D E F
   the-globe                          A
   verticale-integratie               A B C D E F G H I J
-  de-cijfers                         A B C D E F G H
-  de-fabrieken                       B C D E
+  de-cijfers                         A B C D E F G H I
+  de-fabrieken                       A B C D E F G H
+  kernboodschap-1                    A
   esg-is-geen-checklist              A
   esg-beoordelingskader              A B C D
   co2-prestatieladder                A B C D E F
   co2-behaald                        A B C D
+  geen-compensatie                   A B C D E
   domino-effect                      A B C D
-  esg-social-governance              B C D E
+  esg-social-governance              A B C D E
+  kernboodschap-2                    A
   we-gieten-kennis                   A
   co2-impact-van-beton               A B C
-  levenscyclus-van-betonproducten    B C D E F
+  levenscyclus-van-betonproducten    A B C D E F G H I
   levenscyclusanalyse                A B C D E
   verduurzamen-van-beton             A B C
   verborgen-verhaal                  A B C D
-  recyclage                          A B
+  recyclage                          A B C D E
+  kernboodschap-3                    A
   we-bouwen-vandaag                  A
   the-circle-in-elementen            A
   100-elementen                      A B
+  gebouw-uit-de-webtool              A B C D E F
   reductie-carbon-footprint          A B C D
-  demontabel-in-de-stad              A
   the-circle-en-esg                  A B C E
+  kernboodschap-4                    A
 ```
 
 Read against the running order's click counts, every letter falls inside its slide's states and
 nothing over-runs.
+
+**The second release of 24 September** (`UI samples-20260924T125913Z-1-001.zip`, in
+`archive/releases/`) replaced the sheets whole again: 138 files against 132, nothing withdrawn, and
+the morning's set is in `archive/2026-09-24/`. **Six cues are new, all for `gebouw-uit-de-webtool`**,
+The Circle out of the IFC, which had no sound of its own before: a 14.1 s A under the building alone
+(over the hold, so it fades with the slide) and B to F under the labels. The slide is seven states,
+so A to F land and G, the last label, is silent. **12 were re-cut**: the four chapter openings, the
+four takeaways, `levenscyclusanalyse` D and E, and `100-elementen` A and B. The General stems and the
+eight alternates are unchanged, and the alternates went back where they were. The sheets now place
+**126 cues on 33 slides**, every letter inside its slide's states.
+
+- **`gebouw-uit-de-webtool-F` is silent end to end**: 3.94 s peaking at −90 dB, so the fifth
+  label's click plays nothing, the same fault as the old `co2-behaald-D`. It is placed as delivered,
+  so a fixed file drops in with nothing to change here.
+- **The chapter openings were cut to the wall.** They were 17 to 24.5 s and are now 11.98 s each,
+  four different files, and each opens on exactly 1.00 s of silence, so it is heard a second after
+  the cut into the opening.
+- **The takeaways are four sounds now.** They were one byte-identical 13.4 s file; now each chapter
+  has its own, 7.23 s long. That is still over the 6 s hold, so they fade with their slide; 1.3 s
+  shorter and they would ring out.
+- `levenscyclusanalyse` D and E went from 2.5 s to 4.4 s and `100-elementen-A` from 3.3 s to 4.3 s,
+  and all three ring out. `100-elementen-B` went from 4.5 s to 5.98 s, 0.02 s under the hold: it
+  rings out, but a hair longer and it would fade with its slide.
+- Apart from the chapter openings' 1.00 s, everything new or re-cut starts within 0.24 s.
+
+**The release of 24 September, 11:00** (`UI samples-20260924T110039Z-1-001.zip`, in `archive/releases/`)
+replaced the sheets whole again: 132 files against 130, nothing withdrawn, and the 23 September set
+is in `archive/2026-09-23/`. **Two cues are new**, each for a state the show gained after the
+last delivery: `het-programma-G`, the StudioBuik guest building on the intro wall, and
+`de-cijfers-I`, the ninth state of the figures. **18 were re-cut**: `the-globe-A`,
+`verticale-integratie-A`, `co2-behaald` B and D, `geen-compensatie-A`, `esg-social-governance-E`,
+`levenscyclus-van-betonproducten` G, H and I, `verduurzamen-van-beton` A and B, all four of
+`verborgen-verhaal`, and `recyclage` A, B and C. The eight unplaced files are unchanged and went
+back into `P2/alternates/` and `P4/alternates/` exactly as before. The sheets now place **120 cues
+on 32 slides**, every letter inside its slide's states (checked against `RunningOrderKt`'s counts).
+
+Three things the re-cuts change beyond the sound:
+
+- **The old `co2-behaald-D` was silent end to end** — 4.15 s of silence in a 4.15 s file, so that
+  state has played nothing since 23 September. The new one starts at 0.1 s.
+- **Three cues crossed `SLIDES_CUE_HOLD`** (6 s), so they change how they end:
+  `geen-compensatie-A` went from 8.7 s to 4.3 s and now rings out, while `esg-social-governance-E`
+  (5.3 to 9.3 s) and `recyclage-B` (4.1 to 6.8 s) now fade with their slide. The sheets no longer
+  split cleanly on the rule: `verborgen-verhaal-A` (6.45 s), `recyclage` A and B (6.8 s) and
+  `verticale-integratie` G and H (6.1 s) sit just over it and fade, so any of them cut a little
+  shorter would ring out instead.
+- **Silent heads**: `verduurzamen-van-beton-A` keeps its 1.27 s, and `verborgen-verhaal` C and D
+  still open on 0.85 s and 0.82 s (B came down from 0.58 s to 0.24 s). `co2-behaald-B` has 0.69 s.
+  Everything else new or re-cut starts within 0.17 s.
+
+**The releases of 23 September** replaced the sheets whole again — two zips six minutes apart, the
+second the same set plus `kernboodschap-3-A` and `kernboodschap-4-A`, so 130 files against 112.
+The 22 September set is in `archive/2026-09-22/` and both zips are beside the others in
+`archive/releases/`. Nothing was withdrawn: **18 cues are new** — `de-fabrieken` A, F, G and H
+(so that slide is covered end to end), a sting on each of the four `kernboodschap-n` takeaways —
+**all four are one byte-identical file**, so the four chapters close on the same 13.4 s sound —
+`geen-compensatie` A and B,
+`esg-social-governance-A`, `levenscyclus-van-betonproducten` A, G, H and I, and `recyclage` C, D
+and E — and **11 were re-cut**: `de-cijfers` C to H, `de-fabrieken-E`, `co2-behaald-C`,
+`verduurzamen-van-beton-A` and `recyclage` A and B. The sheets now place **119 cues on 33 slides**,
+where the delivery before them placed 96 on 28.
+
+**`geen-compensatie` F, G and H are the one thing not placed**, and they are the old cut rather
+than a gap: that slide became five states on 22 September (two measures a click, then the rest
+together), and the sheet still carries the eight-state version's F, G and H under the *old* slide
+number, `P2-11-`, while the new A and B arrive under `P2-09-`. A to E place exactly; the three
+over the end are in `P2/alternates/`, so the load no longer reports them. Putting them back is
+moving three files up one folder, if the slide ever regains those states.
+
+**`demontabel-in-de-stad-A` is in `P4/alternates/` too** (23 September): the review asked for no
+sound on the slide's arrival, and the slide declares none of its own, so it now opens silent. Its B,
+under the carry, is still to come from the sound design.
+
+Measured on the new files, only `de-fabrieken-F` has a silent head worth knowing about (0.78 s);
+every other one starts within 0.3 s. None is silent — the several that read as silent end to end
+under a blunt measurement are short marks with a long quiet tail, which is the trailing silence
+rather than a head.
 
 **The release of 22 September** (`UI samples-…zip`, kept in `data/sounds/archive/releases/`) replaced
 the sheets whole; the sheets before it are in `archive/2026-09-21/`. It re-cut `het-programma`,
@@ -4155,8 +4770,9 @@ opening plus a 3.5 s hold), with `chapterTransitionReveal` 6.30–7.88 s under t
 handover and `chapterTransitionBuild` 8.36–9.73 s under the next dissolve. Each fits
 `PhotoMosaic`'s own timings to a frame or two. `stemCue` in `Music.kt` sums a state's two stems
 and cuts from the frame the state starts on, into `build/sounds/`. `ProjectHighlight` takes the
-two sums as `arrival` and `click`, and every photo after the first gets the click. **24 of the 32 slides in the four chapters are covered**, plus the two
-opening walls (`who-is-speaking`, `het-programma`); the rest keep the
+two sums as `arrival` and `click`, and every photo after the first gets the click. **31 of the 36 slides in the four chapters are covered** (all but the four
+highlights, which have these stems, and `demontabel-in-de-stad`), plus the two opening walls
+(`who-is-speaking`, `het-programma`); the rest keep the
 `markCue` and the stings `Slideshow.kt` declares for them, which is why those declarations stay.
 `P3` was revised on 21 September — the life cycle's last two columns, the whole of the analysis,
 the three levers and the hidden story's arrival — so the life cycle's `stepCues = List(5) { markCue }`
@@ -5083,6 +5699,16 @@ one gradle run at a time, stopping any that runs past `MAX` seconds; name sketch
 The show's own picture is its first slide preview from `build/previews`. A new sketch gets a picture by
 adding the one line and running the script with its name.
 
+**A sketch can carry variants, and the course walls do.** A file declares them one a line above its
+KDoc — `// sketch-default: frame` names its own run, and `// sketch-variant: door panel | | GRID_PIECE=WAND_27 |
+the grid of the panel with a doorway` adds one: a name, the main class when it is another file's (empty
+for this one's), the `.env` values that make it, and a line on what it is. A file that is only another
+sketch's variant says `// sketch-variant-of: CourseFlow` and gets no card of its own. The card shows a chip
+a variant, each with its own picture (`sketch-previews/<Sketch>--<variant-slug>.png`) and a run command
+with its values in front. The course walls in `courses/` draw through `runCourse`, which writes the same
+preview under `SKETCH_PREVIEW` (half the canvas, without the concrete wall) and is picked up as drawing
+without a `sketchPreview` call; a wall-shaped picture takes two columns and is shown whole.
+
 ### Long shadow type v2
 
 [`LongShadowType_v2.kt`](src/main/kotlin/LongShadowType_v2.kt) is a copy of long shadow type to take
@@ -5327,6 +5953,69 @@ sketch's `LONGSHADOW_V3_CONCRETE`. Laid over the finished frame, as the show's `
 the stone only darkens a picture; worked into the effect it goes into the roofs against its own
 average and into the ground under the shadows, so the type stays white and the light and shadows
 blend as they do in the sketch. `longShadowV3Card` builds the card for both the show and the export.
+
+### The chapter opening: one wall
+
+Each chapter opens on one picture across both projectors, [`ChapterOpening`](src/main/kotlin/slideshow/scene-drawers/ChapterOpening.kt),
+where it was the card on the left and a `QuoteSlide` on the right. The feedback of 24 September:
+"extending the blocks also on the right side, and the sentence would come in a bit later, after the
+chapter title has appeared. then blocks disappear, sentence shows". `SLIDES_CHAPTER_WALL=false`
+gives back the card beside a quote slide, and with it `SLIDES_CARD_STYLE` and
+`SLIDES_CARD_V3_CHAPTERS`, which the wall does not read.
+
+**One effect, two panes.** `LongShadowV3` given a `WallQuote` composes 3840 wide: one plan, one
+set of shadow passes, so a shadow thrown across the seam is simply a shadow. The mosaic is dealt
+pane by pane off the one random stream, so the title's pane is cell for cell the card it always was
+and the joints run straight over the seam.
+
+**The sequence.** The title comes up on the left as before. After the hold the field sinks in one
+wave outward from the title, over the seam and across the right, and the quote appears behind the
+wave a letter at a time in reading order. **Each letter waits until nothing is left standing that
+could throw a shadow on it** — any element whose shadow, at its own height and the longest the sun
+throws before the field is gone, crosses the letter at any heading the sun turns through meanwhile
+(`quoteStarts`). Type is never in shadow, the title's rule, kept by timing. The first version let the
+letters up while the elements around them stood, and they came up navy on the navy ground, in scraps.
+
+**The quote is flat**, asked for on 24 September: no height, laid into the plan only after the
+shadows are worked out (`layQuote`), so it throws none, and there is no one-pixel fringe at its edges
+as a letter of height 0 inside the passes would leave. It still takes the roofs' white and their
+concrete marks. It is set exactly where and how `QuoteSlide` set it — its measure, leading and breaks,
+found by the same `breakLines` measured off the face's outlines rather than an atlas. **`loadFont`
+sizes a face by its ascender-to-descender height (`fontHeightScaler`), not its em**, so the atlas at
+160 is glyph scale `160 × fontHeightScaler(face)`. Taken as pixels per em, the quote came out at size 0.
+
+**The card carries on from the wall.** The opening is a wide slide that `carriesCard`: it keeps its
+chapter's card in `panelOf` (in `ShowBuilder`, `Order` and the driver alike), and the driver
+restarts the card on the frame the opening came up (`Deck.restart(since = deck.startedAt)`, since a
+key can move the slide deck between two draws). So the click into the chapter's first slide leaves the
+left pane going on as the half of the wall it was. Measured, not judged: on a film clicked mid-wave the
+left pane changed 0.69 levels across the cut against 0.61 to 1.84 between neighbouring frames, and
+rendered on the same frames in one process the card equals the wall's left half byte for byte.
+Stepping back into the opening lands it built (the deck's rule); `r` replays both.
+
+**The card only works out the whole wall while it has to.** Until the field has gone, something on
+the right can throw a shadow into the left; after that nothing can, the quote being flat, so the card
+works out its own pane alone (`quiet`) and costs what it did before for the rest of the chapter. The
+two paths were compared at 20 s and 25 s: byte-identical.
+
+**The wiring is `ChapterStart` in `Slideshow.kt`**: a chapter's quote declared once above it, whose
+`card` is the chapter's `panel` and whose `opening(...)` is its first slide. The opening keeps the
+old quote slide's title, so its id — the order file, the cue sheet, the subtitles — is unchanged. The
+chapter's words reach the wall through the section its card is built for, which is why `card` has to
+be the chapter's panel.
+
+Three traps:
+
+- **No window, no type.** Setting outlines needs OPENRNDR's font driver, which only a running
+  application sets up. The organizer's launcher serves the show with no window and asks every slide
+  its `settle` and `lanes`, so `/api/show` answered 500 until `LongShadowV3.canSetType` let it fall
+  back to an estimate and the plain states, without caching the fallback.
+- **`CardStudio`'s `CARD_AT` is not frame exact**: it saves the first frame at or past the time by the
+  wall clock, so two runs differ by a frame or so. Its stills against the studio's showed differences
+  along every shadow edge that were only the sun a frame apart. Compare in one process instead.
+- **`SLIDES_START` matches a slide's name or number, not its id**, and all four openings are named
+  "Chapter opening": `SLIDES_START="Chapter opening"` opens chapter 1. The studio also takes the
+  title, `SLIDE="We gieten kennis"`.
 
 ## The review site
 

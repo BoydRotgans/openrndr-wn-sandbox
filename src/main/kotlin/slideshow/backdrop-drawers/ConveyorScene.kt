@@ -14,19 +14,24 @@ import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import org.openrndr.shape.triangulate
+import slideshow.Arrival
 import slideshow.Backdrop
 import slideshow.Cut
 import slideshow.Fade
 import slideshow.ramp
 import slideshow.Stage
 import slideshow.Transition
+import slideshow.Want
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
 import slideshow.easeInOutCubic
 import slideshow.frames
+import slideshow.voiced
 import java.io.File
 import kotlin.math.ceil
+import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * The catalogue on a conveyor: precast pieces laid along a belt in flat colour, named, going
@@ -263,7 +268,15 @@ class ConveyorScene(
     // A cut: the belt is a new subject after the programme, and a fade is for two states of one thing.
     override val transition: Transition = Cut,
     /** What plays while the belt is up — a course's bed, when the belt stands in one. */
-    override val sound: slideshow.Sound? = null
+    override val sound: slideshow.Sound? = null,
+    /**
+     * Seconds of itself the belt writes down as MIDI, and so the length of the clip beside it.
+     *
+     * The belt indexes for ever and never ends, so it states how much of itself is written — see
+     * [slideshow.MidiTimed.midiFrames]. Counted from the frame the wall comes up, so the rows
+     * coming in are the head of the file.
+     */
+    private val midiWindow: Double = 60.0
 ) : Backdrop() {
 
     override val background: ColorRGBa get() = paper
@@ -329,14 +342,13 @@ class ConveyorScene(
             move + rest, if (register != null) "to scale" else "one size, no register"))
     }
 
-    override fun draw(drawer: Drawer, stage: Stage) {
-        if (items.isEmpty() || rows < 1) return
-
-        val field = Rectangle(
-            stage.bounds.corner.x,
-            stage.bounds.corner.y + (stage.height - stage.height * height) / 2.0,
-            stage.width, stage.height * height
-        )
+    /**
+     * The belt laid out on [field]: how big every piece is drawn and where it sits along the strip.
+     *
+     * **One layout, read by the picture and by the score alike**, so the file cannot drift from
+     * what is on the wall — `MidiTimed`'s rule. It is a function of the field and nothing else.
+     */
+    private inner class Layout(val field: Rectangle) {
         val rowHeight = field.height / rows
         val tall = rowHeight * piece
         // **No margin at the top or the foot: the rows are spread across the whole height.** The
@@ -344,8 +356,6 @@ class ConveyorScene(
         // shared between them — so with [piece] above 1 they overlap and the wall is stock all
         // the way up rather than a set of belts with the frame showing past them.
         val down = if (rows > 1) (field.height - tall) / (rows - 1) else 0.0
-        val pitch = rowHeight * gap
-        val cap = stage.width * widest
 
         // Where every piece sits along the strip, and how big it is drawn. A piece keeps the
         // row's height unless that would make it longer than `widest` of the frame, in which
@@ -355,31 +365,217 @@ class ConveyorScene(
         // row and every other piece takes the share of it its real height deserves, so a column
         // shoe stands beside a wall at the size it really is. Without a register there is nothing
         // to scale by and they all take the row.
-        val tallest = items.maxOfOrNull { it.detail?.heightMm ?: 0.0 } ?: 0.0
-        val size = items.map { item ->
-            val real = item.detail?.heightMm ?: 0.0
-            val h0 = if (tallest > 0.0 && real > 0.0) tall * (real / tallest) else tall
-            val w = item.aspect * h0
-            if (w <= cap) w to h0 else cap to cap / item.aspect
-        }
-        // Where every piece begins along the strip. Runs of them stack a sliver apart, then the
-        // run ends and the next begins a normal pitch along — so the row is groups of stock
-        // rather than a line of separate things.
+        val size: List<Pair<Double, Double>>
         val starts = DoubleArray(items.size)
-        var along = 0.0
-        var at = 0
-        while (at < items.size) {
-            val run = 1 + noise(at * 977) % stack.coerceAtLeast(1)
-            val end = min(items.size, at + run)
-            for (k in at until end) {
-                starts[k] = along
-                along += if (k < end - 1) tall * stackStep else size[k].first + pitch
+        val strip: Double
+
+        init {
+            val pitch = rowHeight * gap
+            val cap = field.width * widest
+            val tallest = items.maxOfOrNull { it.detail?.heightMm ?: 0.0 } ?: 0.0
+            size = items.map { item ->
+                val real = item.detail?.heightMm ?: 0.0
+                val h0 = if (tallest > 0.0 && real > 0.0) tall * (real / tallest) else tall
+                val w = item.aspect * h0
+                if (w <= cap) w to h0 else cap to cap / item.aspect
             }
-            at = end
+            // Where every piece begins along the strip. Runs of them stack a sliver apart, then
+            // the run ends and the next begins a normal pitch along — so the row is groups of
+            // stock rather than a line of separate things.
+            var along = 0.0
+            var at = 0
+            while (at < items.size) {
+                val run = 1 + noise(at * 977) % stack.coerceAtLeast(1)
+                val end = min(items.size, at + run)
+                for (k in at until end) {
+                    starts[k] = along
+                    along += if (k < end - 1) tall * stackStep else size[k].first + pitch
+                }
+                at = end
+            }
+            strip = along
         }
-        val strip = along
+
+        val repeats = if (strip > 0.0) ceil(field.width / strip).toInt().coerceAtLeast(0) else 0
+
+        // One stride is the average pitch, so a wave of moves advances the row by exactly the
+        // spacing it already has and it comes round to itself.
+        val stride = strip / items.size
+
+        fun bottom(row: Int) = field.corner.y + row * down + tall
+
+        /**
+         * How far [row] stands off the frame at [frame], in pixels: all of the frame before it
+         * comes in, none once it is up.
+         *
+         * Coming in, and going out again. A row enters from the side it travels *from* and leaves
+         * towards the side it travels *to*, so both are the belt running rather than a picture
+         * being moved. The rows are staggered, or they land as one block.
+         */
+        fun slide(row: Int, frame: Int, exit: Double): Double {
+            val came = easeInOutCubic(ramp(frame - row * frames(entryStep), frames(entry)))
+            val going = easeInOutCubic(exit)
+            val from = if (way(row) > 0.0) 1.0 else -1.0
+            return from * (1.0 - came - going) * field.width
+        }
+
+        /** Where piece [i] of [row] begins along the strip at [frame], before the copies. */
+        fun home(row: Int, i: Int, frame: Int): Double {
+            // Alternate rows run against each other, and each starts a share of the strip
+            // further along, so no two rows carry the same piece at the same moment.
+            val lead = row * strip / rows
+            return wrap(starts[i] - way(row) * (travel(row, i, frame) * stride) + lead, strip)
+        }
+    }
+
+    /** Frames one piece takes to move up a place. */
+    private val moveFrames get() = frames(move).coerceAtLeast(1)
+    /** A piece's move and the rest after it. */
+    private val slot get() = moveFrames + frames(rest)
+    // Pieces `period` apart step together, so every piece still moves exactly once a wave and the
+    // row comes round to itself.
+    private val period get() = ceil(items.size.toDouble() / gaps.coerceAtLeast(1)).toInt().coerceAtLeast(1)
+    private val wave get() = slot * period
+
+    /** Which way [row] runs: 1 is to the left, and rows alternate. */
+    private fun way(row: Int) = if ((row % 2 == 0) != reversed) 1.0 else -1.0
+
+    /** [frame] as [row] counts it: each row runs the same wave on a phase of its own. */
+    private fun local(row: Int, frame: Int) = frame + noise(row * 7919) % wave
+
+    /**
+     * The frame within its row's wave on which piece [i] starts to move.
+     *
+     * **The wave runs with the motion, not against it**, and that is what makes a row's direction
+     * readable. Stepping the leading piece first is what a real queue must do — it is the only one
+     * with room ahead — but then the disturbance sweeps backwards while the pieces go forwards, and
+     * the eye follows the disturbance: a row travelling left reads as moving right. These pieces
+     * lap over one another, so there is no queue to respect, and the trailing piece can go first.
+     */
+    private fun begin(row: Int, i: Int): Int {
+        val place = (if (way(row) > 0.0) items.size - 1 - i else i) % period
+        // Its own slot, plus a delay of its own inside that slot's rest.
+        val slack = ((slot - moveFrames) * scatter).coerceAtLeast(0.0)
+        return place * slot + (noise(row * 131 + i * 17) % 1000 / 1000.0 * slack).toInt()
+    }
+
+    /** How many strides piece [i] of [row] has travelled by [frame]. */
+    private fun travel(row: Int, i: Int, frame: Int): Double {
+        val local = local(row, frame)
+        val waves = local / wave
+        val within = local % wave
+        val begin = begin(row, i)
+        val advance = when {
+            within >= begin + moveFrames -> 1.0
+            within >= begin -> easeInOutCubic((within - begin).toDouble() / moveFrames)
+            else -> 0.0
+        }
+        return waves + advance
+    }
+
+    /** The wall the score is laid out on, as [layOut] tells it; null until then. */
+    private var pane: Rectangle? = null
+
+    /** The field the belt stands in on [bounds] — the whole of it, at the default [height]. */
+    private fun fieldOf(bounds: Rectangle) = Rectangle(
+        bounds.corner.x,
+        bounds.corner.y + (bounds.height - bounds.height * height) / 2.0,
+        bounds.width, bounds.height * height
+    )
+
+    override fun layOut(width: Int, height: Int) {
+        pane = Rectangle(0.0, 0.0, width.toDouble(), height.toDouble())
+    }
+
+    /** A belt that never ends says how much of itself is written down. */
+    override val midiFrames: Int get() = frames(midiWindow)
+
+    override val lanes: List<String> get() = listOf("belts in") + (0 until rows).map { row ->
+        "belt ${row + 1}, running ${if (way(row) > 0.0) "left" else "right"}"
+    }
+
+    /**
+     * The build as notes: each belt coming in, and then **every move a piece makes on the wall**.
+     *
+     * The moves are read off [begin] — the frame in its row's wave a piece sets off on, the very
+     * number the draw loop steps it by — so a note sounds exactly as its piece starts to move and
+     * lasts as long as the move does. A move made entirely off the frame is not a note: the row is
+     * far longer than the wall, and a cascade out of shot is nothing anyone sees.
+     *
+     * **Pitch is where on the wall a piece moves, left lowest.** A cascade runs with its row, so a
+     * belt running left is heard falling and one running right rising: the direction of each belt
+     * is in the file as it is on the wall. The belts coming in are pitched by height, top highest.
+     */
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val wall = pane
+        if (wall == null || items.isEmpty() || rows < 1) return super.arrivals(clicks)
+        val layout = Layout(fieldOf(wall))
+        if (layout.strip <= 0.0) return super.arrivals(clicks)
+        val field = layout.field
+        val window = frames(midiWindow)
+        val top = SCORE_NOTES - 1
+        val wants = mutableListOf<Want>()
+
+        for (row in 0 until rows) {
+            val at = row * frames(entryStep)
+            val middle = (layout.bottom(row) - layout.tall / 2.0 - field.corner.y) / field.height
+            if (at <= window) wants += Want(
+                0, ((1.0 - middle) * top).roundToInt().coerceIn(0, top), at,
+                min(frames(entry), window - at).coerceAtLeast(1), 0, top
+            )
+        }
+
+        for (row in 0 until rows) for (i in items.indices) {
+            // The frames on which `local(row, f) % wave` is this piece's begin: once a wave.
+            var start = Math.floorMod(begin(row, i) - noise(row * 7919) % wave, wave)
+            while (start <= window) {
+                seenAt(layout, row, i, start)?.let { across ->
+                    wants += Want(
+                        1 + row, (across * top).roundToInt().coerceIn(0, top), start,
+                        // A move still under way as the window closes is cut off with it.
+                        min(moveFrames, window - start).coerceAtLeast(1), 0, top
+                    )
+                }
+                start += wave
+            }
+        }
+        return voiced(wants)
+    }
+
+    /**
+     * How far across the wall piece [i] of [row] is seen moving from [start], 0 at the left and 1
+     * at the right, or null where the whole move is out of shot — off the frame, or outside the
+     * row's own window while the row is still coming in.
+     */
+    private fun seenAt(layout: Layout, row: Int, i: Int, start: Int): Double? {
+        val field = layout.field
+        val w = layout.size[i].first
+        for (k in (0 until moveFrames step SAMPLE) + moveFrames) {
+            val frame = start + k
+            val slide = layout.slide(row, frame, 0.0)
+            val left = max(field.corner.x, field.corner.x + slide)
+            val right = min(field.corner.x + field.width, field.corner.x + slide + field.width)
+            val home = layout.home(row, i, frame)
+            for (copy in -1..layout.repeats) {
+                val x = field.corner.x + home + copy * layout.strip + slide
+                val a = max(x, left)
+                val b = min(x + w, right)
+                if (b - a > 1.0) return ((a + b) / 2.0 - field.corner.x) / field.width
+            }
+        }
+        return null
+    }
+
+    override fun draw(drawer: Drawer, stage: Stage) {
+        if (items.isEmpty() || rows < 1) return
+
+        val field = fieldOf(stage.bounds)
+        val layout = Layout(field)
+        val tall = layout.tall
+        val size = layout.size
+        val strip = layout.strip
         if (strip <= 0.0) return
-        val repeats = ceil(field.width / strip).toInt().coerceAtLeast(0)
+        val repeats = layout.repeats
 
         // The wall, and everything drawn from here is projected onto it: the pieces, their
         // shadows and the lettering alike. Set once for the whole frame rather than per piece.
@@ -391,36 +587,9 @@ class ConveyorScene(
             rectangle(field)
         }
 
-        // One stride is the average pitch, so a wave of moves advances the row by exactly the
-        // spacing it already has and it comes round to itself.
-        val stride = strip / items.size
-        val moveFrames = frames(move).coerceAtLeast(1)
-        val slot = moveFrames + frames(rest)
-        // Pieces `period` apart step together, so every piece still moves exactly once a wave
-        // and the row comes round to itself.
-        val period = ceil(items.size.toDouble() / gaps.coerceAtLeast(1)).toInt().coerceAtLeast(1)
-        val wave = slot * period
-
         for (row in 0 until rows) {
-            // Alternate rows run against each other, and each starts a share of the strip
-            // further along, so no two rows carry the same piece at the same moment.
-            val way = if ((row % 2 == 0) != reversed) 1.0 else -1.0
-            val lead = row * strip / rows
-
-            // Coming in, and going out again. A row enters from the side it travels *from* and
-            // leaves towards the side it travels *to*, so both are the belt running rather than
-            // a picture being moved. The rows are staggered, or they land as one block.
-            val came = easeInOutCubic(ramp(stage.frame - row * frames(entryStep), frames(entry)))
-            val going = easeInOutCubic(stage.exit)
-            val from = if (way > 0.0) 1.0 else -1.0
-            val slide = from * (1.0 - came - going) * field.width
-
-            // Each row runs the same wave on a phase of its own, so the five never step together.
-            val local = stage.frame + noise(row * 7919) % wave
-            val waves = local / wave
-            val within = local % wave
-
-            val bottom = field.corner.y + row * down + tall
+            val slide = layout.slide(row, stage.frame, stage.exit)
+            val bottom = layout.bottom(row)
 
             // **The row is clipped to a window that travels with it**, and it has to be: the strip
             // wraps, so it tiles the plane, and simply translating it can never empty the frame —
@@ -432,25 +601,8 @@ class ConveyorScene(
             )
 
             items.forEachIndexed { i, item ->
-                // **The wave runs with the motion, not against it**, and that is what makes a
-                // row's direction readable. Stepping the leading piece first is what a real queue
-                // must do — it is the only one with room ahead — but then the disturbance sweeps
-                // backwards while the pieces go forwards, and the eye follows the disturbance: a
-                // row travelling left reads as moving right. These pieces lap over one another,
-                // so there is no queue to respect, and the trailing piece can go first.
-                val place = (if (way > 0.0) items.size - 1 - i else i) % period
-                // Its own slot, plus a delay of its own inside that slot's rest.
-                val slack = ((slot - moveFrames) * scatter).coerceAtLeast(0.0)
-                val begin = place * slot + (noise(row * 131 + i * 17) % 1000 / 1000.0 * slack).toInt()
-                val advance = when {
-                    within >= begin + moveFrames -> 1.0
-                    within >= begin -> easeInOutCubic((within - begin).toDouble() / moveFrames)
-                    else -> 0.0
-                }
-                val travel = (waves + advance) * stride
-
                 val (w, h) = size[i]
-                val home = wrap(starts[i] - way * travel + lead, strip)
+                val home = layout.home(row, i, stage.frame)
                 // Enough copies of the strip to cover the frame whatever it is: with rows this
                 // many and the pieces lapping, a strip can be shorter than the frame and a piece
                 // then has to appear more than once across it.
@@ -540,5 +692,11 @@ class ConveyorScene(
     private companion object {
         /** How far a cap sits below the line's top, as a fraction of the size asked for. */
         const val CAP = 0.72
+
+        /** The notes a lane spreads over: four octaves, the shadow mosaic's register. */
+        const val SCORE_NOTES = 48
+
+        /** Frames between the looks taken along a move to see whether it is in shot. */
+        const val SAMPLE = 6
     }
 }

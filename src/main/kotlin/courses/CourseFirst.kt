@@ -16,7 +16,10 @@ import kotlin.math.sin
  *
  * `FIRST_TOWER` is the tallest block in pixels, `FIRST_SUN` the sun's height in degrees.
  */
-fun main() = runCourse("course-3-first") {
+fun main() = runCourse("course-3-first", preview = 40.0) { firstCourse() }
+
+/** The wall itself, a function of the drawer and the second, for [runCourse] and the course studio alike. */
+fun org.openrndr.Program.firstCourse(): (Drawer, Double) -> Unit {
     val city = SiteCity(Site.load())
     val tower = Env["FIRST_TOWER"]?.toDoubleOrNull() ?: 120.0
     val sun = Env["FIRST_SUN"]?.toDoubleOrNull() ?: 18.0
@@ -29,7 +32,7 @@ fun main() = runCourse("course-3-first") {
         groundShade = ColorRGBa.fromHex("7E7E7C")
     )
 
-    return@runCourse { drawer: Drawer, time: Double ->
+    return { drawer: Drawer, time: Double ->
         city.draw(
             drawer, time,
             SiteCity.View(

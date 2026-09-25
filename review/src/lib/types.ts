@@ -43,7 +43,7 @@ export interface Manifest {
    * the video, played in lockstep with it — the same frames, a different mix, so a note made
    * against a state holds whichever is playing.
    */
-  audio?: { key: string; name: string; file: string }[]
+  audio?: { key: string; name: string; file: string; waveform?: string | null }[]
   states: StateInfo[]
 }
 

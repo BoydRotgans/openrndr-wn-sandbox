@@ -10,12 +10,13 @@
  "width": 3840,
  "height": 1080,
  "video": "video.mp4",
- "waveform": null,
+ "waveform": "waveform.json",
  "audio": [
   {
    "key": "novoice",
    "name": "without voice",
-   "file": "audio-novoice.m4a"
+   "file": "audio-novoice.m4a",
+   "waveform": "waveform-novoice.json"
   }
  ],
  "states": [

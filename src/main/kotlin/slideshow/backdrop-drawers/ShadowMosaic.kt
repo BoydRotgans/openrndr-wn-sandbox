@@ -27,13 +27,17 @@ import org.openrndr.math.Vector4
 import org.openrndr.shape.Rectangle
 import org.openrndr.shape.ShapeContour
 import org.openrndr.shape.contour
+import slideshow.Arrival
 import slideshow.Backdrop
 import slideshow.Cut
 import slideshow.MosaicCells
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.Transition
+import slideshow.FPS
+import slideshow.Want
 import slideshow.seconds
+import slideshow.voiced
 import slideshow.linear
 import slideshow.frames
 import java.io.File
@@ -220,7 +224,15 @@ class ShadowMosaic(
      * the second — so what it shows is a building taken apart and put together again elsewhere,
      * and clicking back undoes it. The blue goes on on the wall's own time either way.
      */
-    private val unitsOnClick: Int? = null
+    private val unitsOnClick: Int? = null,
+    /**
+     * Seconds of itself the wall writes down as MIDI, and so the length of the clip beside it.
+     *
+     * A wall that fills, holds and empties again for ever has no end to score to, so it states how
+     * much of itself is written — see [slideshow.MidiTimed.midiFrames]. It is counted from the frame
+     * the wall comes up, [lead] included, so the score and a clip of it are the same run.
+     */
+    private val midiWindow: Double = 60.0
 ) : Backdrop() {
 
     override val wide get() = wall
@@ -228,6 +240,9 @@ class ShadowMosaic(
     override val steps get() = clicks
 
     private val period = 2.0 * grow + hold + (emptyHold ?: hold)
+
+    /** How many semitones the score spreads the wall's height over: four octaves. */
+    private val SCORE_NOTES = 48
     private val reach = tower / tan(Math.toRadians(elevation.coerceIn(2.0, 89.0)))
 
     private lateinit var plan: RenderTarget
@@ -410,6 +425,70 @@ class ShadowMosaic(
     /** Which box a point stands in. */
     private fun boxOf(at: Vector2): Int = boxes.indexOfFirst { it.rect.contains(at) }.coerceAtLeast(0)
 
+
+    // ---- the wall's build as MIDI ----------------------------------------------------------- //
+    //
+    //  **Every mark that moves is a note**, on the very timing the shader stands it by: a mark is
+    //  not scheduled at all, it simply stands as far as its box's circle has reached it, so the
+    //  score is that rule read backwards. The rim grows as `R(1 - (1 - u)^3)` over [grow], so the
+    //  second it arrives at a mark [d] away is `grow * (1 - cbrt(1 - d/R))` exactly — and the note
+    //  lasts as long as the rim takes to cross the mark's own [band], which is how long the mark
+    //  takes to rise or go down.
+    //
+    //  The red units and the small red elements, where a wall has them, are not in the file: they
+    //  are carried rather than raised, and this scores what is built.
+
+    /** A mark as the score reads it: where it stands, and whose circle reaches it. */
+    private class Placed(val centre: Vector2, val box: Int)
+    private var darkMarks: List<Placed> = emptyList()
+    private var lightMarks: List<Placed> = emptyList()
+
+    /** A wall with no end of its own says how much of itself is written down. */
+    override val midiFrames: Int get() = frames(midiWindow)
+
+    override val lanes: List<String> get() = listOf("light up", "dark down", "light down", "dark up")
+
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        if (lightMarks.isEmpty() && darkMarks.isEmpty()) return super.arrivals(clicks)
+        val window = frames(midiWindow)
+        val wants = mutableListOf<Want>()
+
+        /** The second within a fill at which the rim reaches [d], on a box of radius [radius]. */
+        fun rimAt(d: Double, radius: Double): Double =
+            grow * (1.0 - Math.cbrt(1.0 - (d / radius).coerceIn(0.0, 1.0)))
+
+        /** Wall seconds as a frame of the clip, or null where it falls outside the window. */
+        fun frameAt(at: Double): Int? = ((at - lead) * FPS).toInt().takeIf { it in 0..window }
+
+        fun score(marks: List<Placed>, rising: Int, falling: Int) = marks.forEach { m ->
+            val b = boxes.getOrNull(m.box) ?: return@forEach
+            val radius = b.rect.center.distanceTo(b.rect.corner) + band
+            val d = m.centre.distanceTo(b.rect.center)
+            val crossing = rimAt(d + band / 2.0, radius) - rimAt(d - band / 2.0, radius)
+            val length = frames(crossing).coerceAtLeast(1)
+            // Top of the wall highest, so a circle opening in a box reads as a spread rather than
+            // as a run: every mark it reaches at once is a different pitch.
+            val pitch = ((1.0 - m.centre.y / wallHeight) * (SCORE_NOTES - 1)).toInt().coerceIn(0, SCORE_NOTES - 1)
+            val first = dark0 + b.delay * period + rimAt(d - band / 2.0, radius)
+            var cycle = 0
+            while (first + cycle * period - lead <= midiWindow + period) {
+                val fill = first + cycle * period
+                // A mark still rising as the window closes is cut off with it: the file ends where
+                // the clip does, rather than sounding over a picture that has stopped.
+                fun want(lane: Int, at: Int) =
+                    Want(lane, pitch, at, minOf(length, window - at).coerceAtLeast(1), 0, SCORE_NOTES - 1)
+                frameAt(fill)?.let { wants += want(rising, it) }
+                frameAt(fill + grow + hold)?.let { wants += want(falling, it) }
+                cycle++
+            }
+        }
+        // The two packings are one event seen twice: where the light circle raises a light mark it
+        // takes the dark one that stood there down, and the dark circle does the reverse.
+        score(lightMarks, 0, 2)
+        score(darkMarks, 1, 3)
+        return voiced(wants)
+    }
+
     override fun load(program: Program) {
         fun buffer() = renderTarget(wallWidth.toInt(), wallHeight.toInt()) { colorBuffer(type = ColorType.FLOAT32) }
         plan = renderTarget(wallWidth.toInt(), wallHeight.toInt()) {
@@ -429,8 +508,10 @@ class ShadowMosaic(
         if (templates.isEmpty()) println("shadow mosaic: no marks, plain slabs instead")
         val wall = Rectangle(0.0, 0.0, wallWidth, wallHeight)
         println("shadow mosaic: ${boxes.size} boxes, a cycle of ${period}s")
-        field = pack(wall, columns, Random(seed), templates).also { println("shadow mosaic: ${it.second} dark marks") }.first
-        inner = pack(wall, innerColumns, Random(seed + 1), templates, accents, blues).also { println("shadow mosaic: ${it.second} light marks") }.first
+        field = pack(wall, columns, Random(seed), templates)
+            .also { darkMarks = it.second; println("shadow mosaic: ${it.second.size} dark marks") }.first
+        inner = pack(wall, innerColumns, Random(seed + 1), templates, accents, blues)
+            .also { lightMarks = it.second; println("shadow mosaic: ${it.second.size} light marks") }.first
         if (units > 0) unitMarks = unitBuffers(templates)
         if (smallUnits > 0) smallMarks = smallBuffers(templates)
         if (city) {
@@ -631,7 +712,7 @@ class ShadowMosaic(
     private fun pack(
         area: Rectangle, columns: Int, random: Random, templates: List<Pair<List<Vector2>, Double>>,
         accentShare: Double = 0.0, blueShare: Double = 0.0
-    ): Pair<VertexBuffer, Int> {
+    ): Pair<VertexBuffer, List<Placed>> {
         val square = listOf(
             Vector2(-0.5, -0.5), Vector2(0.5, -0.5), Vector2(0.5, 0.5),
             Vector2(-0.5, -0.5), Vector2(0.5, 0.5), Vector2(-0.5, 0.5)
@@ -682,7 +763,7 @@ class ShadowMosaic(
                 repeat((3 - count).coerceAtLeast(0)) { write(Vector3.ZERO); write(Vector4.ZERO); write(Vector2.ZERO) }
             }
         }
-        return buffer to leaves.size
+        return buffer to leaves.map { Placed(it.box.center, it.leaf.z.toInt()) }
     }
 
     /**

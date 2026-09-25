@@ -59,7 +59,7 @@
       },
       "geen-compensatie": {
         "heading": "Certificaat · niet compenseren, reduceren",
-        "note": "A het certificaat alleen; B de kranen; C de vrachtwagens; D de andere vier samen; E het certificaat weg, de maatregelen sluiten op."
+        "note": "A het certificaat alleen; B het certificaat weg; C de kranen; D de vrachtwagens; E de andere vier samen."
       },
       "domino-effect": {
         "heading": "Domino-effect · één boom, negen, vijfentwintig, één woord"
@@ -118,7 +118,7 @@
       },
       "gebouw-uit-de-webtool": {
         "heading": "Het gebouw uit de webtool · een label per click",
-        "note": "A het 3D-model; B de plannen; C de CO2; D demontabel; E hergebruikt; F op voorraad."
+        "note": "A het gebouw alleen; B het 3D-model; C de plannen; D de CO2; E demontabel; F hergebruikt; G op voorraad."
       },
       "reductie-carbon-footprint": {
         "heading": "Reductie carbon footprint · twee kolommen van stappen",
@@ -243,10 +243,10 @@
     },
     "geen-compensatie": {
       "A": "Wat we bewust niet doen, is compenseren. In plaats van ons te richten op CO₂-neutrale certificeringen op basis van compensatie van emissies, leggen we de nadruk op daadwerkelijke emissiereducties.",
-      "B": "Elektrische kranen.",
-      "C": "Elektrische vrachtwagens.",
-      "D": "Elektrische bussen, elektrisch woon-werkverkeer, het opwekken van eigen groene stroom en het opslaan ervan in batterijen. Elektrificatie van transport en apparatuur, stap voor stap.",
-      "E": "Het certificaat mag weg. Wat blijft, is de maatregel zelf. Niet compenseren. Reduceren."
+      "B": "Het certificaat mag weg. Wat blijft, is de maatregel zelf. Niet compenseren. Reduceren.",
+      "C": "Elektrische kranen.",
+      "D": "Elektrische vrachtwagens.",
+      "E": "Elektrische bussen, elektrisch woon-werkverkeer, het opwekken van eigen groene stroom en het opslaan ervan in batterijen. Elektrificatie van transport en apparatuur, stap voor stap."
     },
     "domino-effect": {
       "A": "Duurzaamheid heeft bovendien een domino-effect. Herinnert u zich de boom van daarnet, alles waaraan een gebouw beantwoordt? Zet in het midden een duurzaam element.",
@@ -331,12 +331,13 @@
       "B": "Dezelfde honderd, anders gerangschikt. Dat is het idee: uit één vaste set ontstaat elke keer een ander gebouw."
     },
     "gebouw-uit-de-webtool": {
-      "A": "Zo ziet zo'n gebouw eruit, rechtstreeks uit onze webtool: The Circle, als 3D-model, in rode lijnen. Het ontwerp past zich automatisch aan aan de noden van het project.",
-      "B": "De plannen worden automatisch gegenereerd.",
-      "C": "En de CO₂ van het hele gebouw wordt meteen meeberekend. Materiaalgebruik en impact, in één beweging.",
-      "D": "Het gebouw is demontabel.",
-      "E": "De bouwstenen kunnen hergebruikt worden.",
-      "F": "En ze kunnen op voorraad gemaakt worden, nog voor er een opdrachtgever is."
+      "A": "Zo ziet zo'n gebouw eruit, rechtstreeks uit onze webtool: The Circle, als 3D-model, in rode lijnen.",
+      "B": "Het ontwerp past zich automatisch aan aan de noden van het project.",
+      "C": "De plannen worden automatisch gegenereerd.",
+      "D": "En de CO₂ van het hele gebouw wordt meteen meeberekend. Materiaalgebruik en impact, in één beweging.",
+      "E": "Het gebouw is demontabel.",
+      "F": "De bouwstenen kunnen hergebruikt worden.",
+      "G": "En ze kunnen op voorraad gemaakt worden, nog voor er een opdrachtgever is."
     },
     "reductie-carbon-footprint": {
       "A": "Wat betekent dat voor de voetafdruk? Links het gewone proces: grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats, montage. In plaats van lineair bouwen, ontwerpen, produceren, bouwen, afbreken, schetsen we een circulaire gedachte.",

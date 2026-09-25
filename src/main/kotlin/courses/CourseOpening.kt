@@ -22,7 +22,10 @@ import org.openrndr.math.transforms.buildTransform
  *
  * `OPENING_GHOST` is how strongly the drawing stays under the fill, 0 for none.
  */
-fun main() = runCourse("course-2-opening") {
+fun main() = runCourse("course-2-opening", preview = 40.0) { openingCourse() }
+
+/** The wall itself, a function of the drawer and the second, for [runCourse] and the course studio alike. */
+fun org.openrndr.Program.openingCourse(): (Drawer, Double) -> Unit {
     val site = Site.load()
     val ghost = Env["OPENING_GHOST"]?.toDoubleOrNull() ?: 0.18
 
@@ -85,7 +88,7 @@ fun main() = runCourse("course-2-opening") {
         """
     }
 
-    return@runCourse { drawer: Drawer, time: Double ->
+    return { drawer: Drawer, time: Double ->
         if (ghost > 0.0) {
             drawer.stroke = ColorRGBa.WHITE.opacify(ghost)
             drawer.strokeWeight = 1.2

@@ -70,6 +70,10 @@ fun present(show: Show) {
     // What has to be shut however the window closes — the organizer's server, whose thread
     // would otherwise keep the JVM up after the red button.
     var cleanup: (() -> Unit)? = null
+    // Read once, lazily, the first time a shape is filled — so it has to be set before the program is.
+    val settings = show.settings
+    if (!(settings.waitForFinish ?: !(settings.record || settings.bench)))
+        System.setProperty("org.openrndr.draw.wait_for_finish", "false")
     application {
         present(show, { afterwards = it }, { cleanup = it })
     }
@@ -102,6 +106,9 @@ private fun org.openrndr.ApplicationBuilder.present(
         hideWindowDecorations = settings.undecorated
         settings.windowX?.let { position = IntVector2(it, settings.windowY ?: 0) }
         //if (settings.fullscreen) fullscreen = Fullscreen.CURRENT_DISPLAY_MODE
+        // A filmed run is on the frame clock and a bench times the draws: neither is watched at
+        // the display's rate, and waiting for its refresh after every frame is time spent idle.
+        if (settings.record || settings.bench) vsync = false
     }
 
     program {
@@ -219,6 +226,9 @@ private fun org.openrndr.ApplicationBuilder.present(
         val panelDeck = if (hasPanels) Deck(show.panels, startPanel.coerceAtLeast(0)) else null
         var shownPanel = startPanel
         var shownSlide = startSlide
+        // The frame the slide on screen came up on, as last seen: a replay changes it without
+        // changing the slide, and a slide that carries its card has to take the card with it.
+        var shownStart = 0
 
         /** The card's resting step: on the left, out of the slide's way. */
         fun closed(panel: Int) = show.panels.getOrNull(panel)?.let { it.steps - 1 } ?: 0
@@ -332,56 +342,12 @@ private fun org.openrndr.ApplicationBuilder.present(
         canvas.colorBuffer(0).filterMin = MinifyingFilter.LINEAR_MIPMAP_LINEAR
         canvas.colorBuffer(0).filterMag = MagnifyingFilter.LINEAR
 
-        // The concrete over the whole frame: the show as if projected onto a concrete wall.
-        // Laid on only where the canvas meets the window, so no slide, still or preview carries
-        // it.
-        //
-        // **It only ever darkens, but for the floor.** Light on a wall is the picture times the stone, and stone is
-        // never brighter than white — dividing the texture by its *average* instead pushed every
-        // lighter-than-average pixel past white, so a white piece clipped to flat white with a
-        // few specks and read as overexposed. So the grain is measured against the texture's
-        // bright end (its 98th percentile of brightness, read off the file once), and `mix`
-        // exaggerates it: this photograph is mid grey within ±9%, far too flat to show at 1.
-        // Brightness only, so the stone's own faint hue does not tint the house colours.
-        val concreteFile = settings.concrete?.let { File(it) }
-        val concrete = concreteFile?.let { file ->
-            if (!file.isFile) { println("concrete: no texture at ${file.path}"); null }
-            else runCatching { loadImage(file) }.getOrElse { println("concrete: could not read ${file.path}"); null }
-        }?.apply {
-            wrapU = WrapMode.REPEAT; wrapV = WrapMode.REPEAT
-            filterMin = MinifyingFilter.LINEAR_MIPMAP_LINEAR
-            generateMipmaps()
-        }
-        // Measured off the loaded texture's own bytes, which are the file's sRGB values.
-        val concreteBright = concrete?.let { brightEnd(it) } ?: 1.0
-        if (concrete != null) println("concrete: ${concreteFile?.path}, bright end %.3f, grain x%.1f".format(concreteBright, settings.concreteMix))
-        val concreteStyle = concrete?.let { stone ->
-            shadeStyle {
-                fragmentTransform = """
-                    vec2 uv = c_boundsPosition.xy * p_canvas / p_tile;
-                    // The photograph is an sRGB texture, so the sampler hands it back decoded to
-                    // linear light — far darker than its file, which is what the bright end was
-                    // measured on. Taken back to the file's values first, or the grain goes below
-                    // zero everywhere and the whole frame comes out black.
-                    float stone = pow(dot(texture(p_stone, uv).rgb, vec3(0.299, 0.587, 0.114)), 1.0 / 2.2);
-                    float grain = min(stone / p_bright, 1.0);
-                    // Black is lifted to the floor first, so a black slide is dark stone rather
-                    // than a hole in the wall. Only what is near black: the lift fades out as the
-                    // brightest channel rises, so a navy or a blue keeps its colour — lifting every
-                    // dark channel alike added grey to them and washed the chapter card's blues out.
-                    float nearBlack = 1.0 - smoothstep(0.0, p_floorReach, max(x_fill.r, max(x_fill.g, x_fill.b)));
-                    x_fill.rgb = (x_fill.rgb + p_floor * nearBlack) * clamp(1.0 - p_mix * (1.0 - grain), 0.0, 1.0);
-                """.trimIndent()
-                parameter("stone", stone)
-                parameter("canvas", Vector2(canvasBounds.width, canvasBounds.height))
-                parameter("tile", Vector2(stone.width * settings.concreteScale, stone.height * settings.concreteScale))
-                parameter("mix", settings.concreteMix)
-                parameter("bright", concreteBright)
-                parameter("floor", settings.concreteFloor)
-                // Linear light: 0.06 is about 70 of 255, under the navy's blue channel.
-                parameter("floorReach", 0.06)
-            }
-        }
+        // The concrete over the whole frame: the show as if projected onto a concrete wall, laid
+        // on only where the canvas meets the window, so no slide, still or preview carries it. The
+        // wall itself is [ConcreteWall], shared with the sandbox's course studio.
+        val concreteWall = ConcreteWall.load(settings.concrete, settings.concreteMix, settings.concreteScale, settings.concreteFloor)
+        val concrete = concreteWall?.texture
+        val concreteStyle = concreteWall?.style(Vector2(canvasBounds.width, canvasBounds.height))
         var concreteOn = settings.concreteOn && concrete != null
 
         var debug = settings.debug
@@ -487,8 +453,11 @@ private fun org.openrndr.ApplicationBuilder.present(
         fun cardHoldsTheFrame(): Boolean = !deck.slide.wide &&
                 panelDeck != null && panelDeck.slide.steps > 1 && panelDeck.step == 0
 
-        /** True when the slide deck is on the very first click of its section. A backdrop has none. */
-        fun atSectionStart(): Boolean = !deck.slide.wide && deck.step == 0 && (deck.index == 0 ||
+        /**
+         * True when the slide deck is on the very first click of its section. A backdrop has none;
+         * a wide slide that carries its card is the card, and opens its section like any slide.
+         */
+        fun atSectionStart(): Boolean = (!deck.slide.wide || deck.slide.carriesCard) && deck.step == 0 && (deck.index == 0 ||
                 show.panelOf.getOrElse(deck.index) { -1 } != show.panelOf.getOrElse(deck.index - 1) { -2 })
 
         fun forward() = if (cardHoldsTheFrame()) panelDeck!!.next() else deck.next()
@@ -549,14 +518,20 @@ private fun org.openrndr.ApplicationBuilder.present(
         var markedSlide = -1
         var markedStep = -1
 
+        // Where the draws went, slide by slide, on a filmed run — see DrawTimes.
+        val drawTimes = DrawTimes()
+
         if (settings.record) {
-            extend(ScreenRecorder().apply {
+            // so the clip comes out at the canvas size, not the window's
+            if (settings.recorder == "screen") extend(ScreenRecorder().apply {
                 outputFile = settings.video
                 frameRate = settings.fps
-                // so the clip comes out at the canvas size, not the window's
                 contentScale = 1.0 / settings.windowScale
                 settings.duration?.let { maximumDuration = it }
-            })
+            }) else extend(
+                WallRecorder(File(settings.video), settings.fps, 1.0 / settings.windowScale,
+                    settings.duration ?: Double.POSITIVE_INFINITY)
+            )
             // The soundtrack is rendered from the log once the film is on disk, which is
             // after the program ends — so it is handed out rather than done here. The
             // frame count is the clock's last, which is the film's length in deck frames.
@@ -565,6 +540,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                     Layer.entries.associateWith { speakers.mixOf(it) })
                 // What was on screen when, for cutting the film into its states — see StatesLog.
                 StatesLog.write(stateMarks, clock.frame, show, StatesLog.file(File(settings.video)))
+                drawTimes.report(DrawTimes.file(File(settings.video)))
             }
         }
 
@@ -597,7 +573,28 @@ private fun org.openrndr.ApplicationBuilder.present(
         var fps = 0.0
         var lastSeconds = 0.0
 
+        // A bench: every state of the running order from the start to the until, timed. The clock
+        // is held and stepped by hand, a sample at a time across each state's hold, so the draws
+        // it times are the frames a filmed run would draw there. See Settings.bench.
+        val benchPlan = if (settings.bench) (startSlide..untilSlide).flatMap { s -> (0 until slides[s].steps).map { s to it } } else emptyList()
+        val benchHolds = if (settings.bench) (if (settings.cuesAuto) holds else
+            autoCues(slides, ids, startSlide, untilSlide, settings, subtitles().takeIf { subtitleMode || voiceOn }, pace, voice())) else emptyList()
+        val benchMillis = DoubleArray(benchPlan.size)
+        var benchAt = 0
+        var benchDrawn = 0
+        if (settings.bench) {
+            clock.paused = true
+            speakers.muted = true
+            println("bench: ${benchPlan.size} states, ${settings.benchSamples} draws each across its hold")
+        }
+
         extend {
+            val drawStarted = System.nanoTime()
+            drawTimes.lap(ids.getOrElse(deck.index) { deck.slide.name })
+            if (settings.bench && benchDrawn > 0) {
+                val hold = benchHolds.getOrElse(benchAt) { frames(settings.hold) }
+                clock.step((hold / settings.benchSamples).coerceAtLeast(1))
+            }
             // The one place a clock is read, and it is read inside the draw loop, so it is
             // video time while recording and wall time otherwise. Everything downstream
             // sees frame numbers.
@@ -640,6 +637,19 @@ private fun org.openrndr.ApplicationBuilder.present(
                     // so stepping back into the section finds the card as it was left.
                     wanted < 0 -> {}
 
+                    // A wide slide that carries its card: the card is on the wall, drawn by the
+                    // slide, so it starts with the slide — on the very frame the slide came up,
+                    // which may have been between two draws, so the two are one picture and the
+                    // slide after it finds the card exactly where the wall left it. Forward it is
+                    // the chapter opening, announced like any. Stepped back into, it lands built,
+                    // the deck's rule for going back: its clock set to where its reveal has come
+                    // to rest, and the card's with it. A replay runs both again from the start.
+                    deck.slide.carriesCard && (deck.index != shownSlide || deck.startedAt != shownStart) -> {
+                        if (deck.index < shownSlide) deck.restart(deck.index, deck.step, since = deck.frame - deck.slide.settle)
+                        panelDeck.restart(wanted, closed(wanted), since = deck.startedAt)
+                        if (deck.index > shownSlide) announce(wanted)
+                    }
+
                     fromWide && opening -> {
                         if (wanted != panelDeck.index) panelDeck.goTo(wanted, 0, cut = true)
                         else panelDeck.replay()
@@ -659,6 +669,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 }
                 if (wanted >= 0) shownPanel = wanted
                 shownSlide = deck.index
+                shownStart = deck.startedAt
             }
 
             // A slide's own cue, where it declares one, as it comes up. Also the card the
@@ -688,9 +699,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // or a scene is up. Asking for it again on the next slide does not restart it —
                 // a held loop only picks its fade up from where it stands — so it runs on
                 // unbroken from one slide to the next.
-                settings.slideBed?.let { if (deck.slide.wide) speakers.release(it) else speakers.play(it) }
+                val walled = deck.slide.wide && !deck.slide.carriesCard
+                settings.slideBed?.let { if (walled) speakers.release(it) else speakers.play(it) }
                 soundedStep = deck.step
-                if (first && startPanel >= 0 && !deck.slide.wide) announce(startPanel)
+                if (first && startPanel >= 0 && !walled) announce(startPanel)
 
             } else if (deck.step != soundedStep) {
                 // A built slide marks its clicks: a band landing on the stack, and so on.
@@ -709,10 +721,22 @@ private fun org.openrndr.ApplicationBuilder.present(
                     deck.goTo(slide, step, cut = true)
                     heldSince = frame
                 }
+            } else if (settings.bench) {
+                if (benchAt < benchPlan.size) {
+                    val (slide, step) = benchPlan[benchAt]
+                    if (deck.index != slide || deck.step != step) {
+                        deck.goTo(slide, step, cut = true)
+                        benchDrawn = 0
+                    }
+                }
             } else if (holds.isNotEmpty()) {
                 if (cue < cueFrames.size) {
                     if (frame - cueAt >= cueFrames[cue]) {
-                        cueAt = frame
+                        // Counted from when the click was due rather than when it landed: at a
+                        // recording rate under the deck's the clock moves several frames a draw,
+                        // and taken from the landing each click would start up to a draw late and
+                        // the lateness would add up across the run.
+                        cueAt += cueFrames[cue]
                         cue++
                         forward()
                     }
@@ -824,7 +848,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                     val panel = of.panelOf.getOrElse(index) { -1 }
                     if (panelCanvas != null && panel >= 0) {
                         val card = of.panels[panel]
-                        paint(panelCanvas, Deck.Shot(card, stageAt(card, panelBounds, closed(panel), 600)))
+                        // Ten seconds in, or later where the card's own reveal takes longer to rest.
+                        paint(panelCanvas, Deck.Shot(card, stageAt(card, panelBounds, closed(panel), maxOf(600, card.settle))))
                     }
                     paint(slideCanvas, Deck.Shot(slide, stage))
                     composePanes(target, 1.0)
@@ -1062,7 +1087,9 @@ private fun org.openrndr.ApplicationBuilder.present(
                     deck.rearrange(slides, next.outline, at)
                     val wanted = show.panelOf.getOrElse(deck.index) { -1 }
                     if (panelDeck != null && wanted >= 0 && panelDeck.index != wanted) {
-                        panelDeck.goTo(wanted, closed(wanted), cut = true)
+                        // Under a slide that carries it, the card keeps the slide's time.
+                        if (deck.slide.carriesCard) panelDeck.restart(wanted, closed(wanted), since = deck.startedAt)
+                        else panelDeck.goTo(wanted, closed(wanted), cut = true)
                     }
                     if (wanted >= 0) shownPanel = wanted
                     shownSlide = deck.index
@@ -1228,6 +1255,22 @@ private fun org.openrndr.ApplicationBuilder.present(
                 planned++
                 if (planned >= plan.size) application.exit()
             }
+
+            // The bench's timing: the GPU finished, so a draw costs what it really costs rather than
+            // what it took to queue. The first draw of a state is left out — it jumped there, and a
+            // slide's first draw can compile a shader the film would have compiled long before.
+            if (settings.bench && benchAt < benchPlan.size) {
+                org.lwjgl.opengl.GL11C.glFinish()
+                if (benchDrawn > 0) benchMillis[benchAt] += (System.nanoTime() - drawStarted) / 1e6
+                benchDrawn++
+                if (benchDrawn > settings.benchSamples) {
+                    benchAt++
+                    if (benchAt >= benchPlan.size) {
+                        benchReport(benchPlan, benchHolds, benchMillis.map { it / settings.benchSamples }, ids, slides, settings.fps)
+                        application.exit()
+                    }
+                }
+            }
         }
     }
 }
@@ -1246,7 +1289,7 @@ internal fun autoCues(
     var lengthened = 0
     for (s in start..until) {
         val slide = slides[s]
-        val read = if (slide.wide && slide.steps == 1) settings.holdWide else settings.hold
+        val read = if (slide.wide && !slide.carriesCard && slide.steps == 1) settings.holdWide else settings.hold
         for (step in 0 until slide.steps) {
             // In subtitle mode a state stands until its line has been said and a beat after it,
             // where that is longer than the rule would hold it anyway.
@@ -1294,7 +1337,7 @@ private const val VOICE_RESCAN = 4.0
 internal fun standFrames(slide: Slide, step: Int, said: String, settings: Settings, pace: Pace, voiced: Int? = null,
                          heard: Speech? = null): Int {
     val settle = if (step == 0) slide.settle else slide.stepLength(step)
-    val read = if (slide.wide && slide.steps == 1) settings.holdWide else settings.hold
+    val read = if (slide.wide && !slide.carriesCard && slide.steps == 1) settings.holdWide else settings.hold
     val spoken = when {
         // The voice and the cards, whichever runs longer. With the voice's own word times the
         // cards end with the speech and this is the voice; without them the cards are fitted to
@@ -1392,20 +1435,3 @@ private fun slideAt(slides: List<Slide>, wanted: String): Int? {
     return prefix.takeIf { it >= 0 }
 }
 
-/**
- * The bright end of a texture: the 98th percentile of its brightness, sampled on a coarse grid
- * off the texture itself. What the concrete over the frame measures its grain against, so the
- * stone's lightest patches leave the picture as it is and everything else darkens it.
- */
-private fun brightEnd(texture: org.openrndr.draw.ColorBuffer): Double = runCatching {
-    texture.shadow.download()
-    val step = maxOf(1, minOf(texture.width, texture.height) / 256)
-    val values = ArrayList<Double>()
-    for (y in 0 until texture.height step step) for (x in 0 until texture.width step step) {
-        val c = texture.shadow[x, y]
-        values += 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
-    }
-    texture.shadow.destroy()
-    values.sort()
-    values[(values.size * 0.98).toInt().coerceAtMost(values.size - 1)].coerceIn(0.05, 1.0)
-}.getOrElse { println("concrete: could not measure the texture (${it.message})"); 1.0 }

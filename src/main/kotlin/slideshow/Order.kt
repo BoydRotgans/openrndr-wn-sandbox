@@ -37,7 +37,9 @@ import java.io.File
  * ([Show.ids]), so a slide the Kotlin does not declare cannot be conjured here and a slide it
  * does declare needs nothing here to exist: one the file does not mention is appended at the
  * end in its declared place, with a note, and one the file names that the show no longer has
- * is skipped, with a note. `"on": false` leaves a slide out of the show without deleting it
+ * is skipped, with a note. A sandbox sketch standing as a wall ([SketchWall]) is the exception:
+ * one the file does not mention is kept on the shelf rather than appended, since the walls are
+ * there to be picked into a moment. `"on": false` leaves a slide out of the show without deleting it
  * from the file, the way a presentation editor skips a slide. The `archive` is the shelf: a
  * slide there is out of the order altogether — not played, not appended at the end either —
  * and kept so it can be put back later. An id in both plays; the order wins.
@@ -249,12 +251,14 @@ fun Show.arranged(order: Order): Show {
         outSlides += slide
         outPlaces += placement
         outIds += ref.id
+        // A wide slide has no card beside it, unless it is the card taking the wall.
+        val carded = !slide.wide || slide.carriesCard
         outPanel += when {
-            slide.wide -> -1
+            !carded -> -1
             panel >= 0 -> panel
             else -> lastPanel
         }
-        if (!slide.wide && panel >= 0) lastPanel = panel
+        if (carded && panel >= 0) lastPanel = panel
     }
 
     fun walk(entries: List<Order.Entry>, chapter: String, subchapter: String, moment: String) {
@@ -274,9 +278,15 @@ fun Show.arranged(order: Order): Show {
     // The archive is out of the show and out of the appending below; listed as well, it plays.
     order.archive.forEach { id -> if (seen.add(id)) println("order: \"$id\" is archived") }
 
-    // Anything the file does not mention still plays, at the end, where it was declared.
+    // Anything the file does not mention still plays, at the end, where it was declared — but for
+    // a sandbox sketch standing as a wall, which is kept on the shelf until it is placed. There are
+    // a score of them and a new variant is one line in a sketch's file; appended, each would play
+    // after the ending.
     ids.forEachIndexed { i, id ->
-        if (id !in seen) {
+        if (id !in seen && slides[i] is SketchWall) {
+            seen += id
+            println("order: \"$id\" is a sketch the order file does not place; kept on the shelf")
+        } else if (id !in seen) {
             val p = outline[i]
             println("order: \"$id\" is not in the order file; appended")
             place(Order.Ref(id), p?.chapterTitle.orEmpty(), p?.subchapterTitle.orEmpty())

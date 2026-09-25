@@ -15,6 +15,7 @@ import org.lwjgl.openal.AL10.alBufferData
 import org.lwjgl.openal.AL10.alDeleteBuffers
 import org.lwjgl.openal.AL10.alDeleteSources
 import org.lwjgl.openal.AL10.alGenBuffers
+import org.lwjgl.openal.AL10.AL_MAX_GAIN
 import org.lwjgl.openal.AL10.alGenSources
 import org.lwjgl.openal.AL10.alGetError
 import org.lwjgl.openal.AL10.alGetSourcei
@@ -122,12 +123,12 @@ class Speakers(
     private var poolLayer = arrayOfNulls<Layer>(0)
     private var poolGain = DoubleArray(0)
 
-    /** The gain a layer is played at, 0..1 (more than 1 boosts). */
+    /** The gain a layer is played at, 0..1 (more than 1 boosts), never past [MAX_MIX]. */
     fun mixOf(layer: Layer): Double = mix[layer] ?: 1.0
 
     /** Sets a layer's gain and re-levels whatever is sounding on it now. */
     fun setMix(layer: Layer, gain: Double) {
-        mix[layer] = gain.coerceIn(0.0, 4.0)
+        mix[layer] = gain.coerceIn(0.0, MAX_MIX)
         if (!ready) return
         held.forEach { (key, source) ->
             if (heldLayer[key] == layer) alSourcef(source, AL_GAIN, ((level[key] ?: 0.0) * mixOf(layer)).toFloat())
@@ -237,7 +238,9 @@ class Speakers(
             return
         }
         if (pool.isEmpty()) {
-            pool = IntArray(voices) { alGenSources() }
+            // AL_MAX_GAIN defaults to 1, so a source silently clamps there however high the mix
+            // is set: without this the faders do nothing above 0 dB. See MAX_MIX.
+            pool = IntArray(voices) { alGenSources().also { s -> alSourcef(s, AL_MAX_GAIN, MAX_MIX.toFloat()) } }
             poolLayer = arrayOfNulls(voices)
             poolGain = DoubleArray(voices)
         }
@@ -275,6 +278,7 @@ class Speakers(
                 alGenSources().also {
                     alSourcei(it, AL_BUFFER, buffer)
                     alSourcei(it, AL_LOOPING, if (sound.loop) AL_TRUE else AL_FALSE)
+                    alSourcef(it, AL_MAX_GAIN, MAX_MIX.toFloat())   // or it clamps at 1; see MAX_MIX
                 }
             }
             heldLayer[key] = sound.layer
@@ -472,6 +476,23 @@ class Speakers(
 // ------------------------------------------------------------------------------ //
 //  The decoder, shared with the soundtrack
 // ------------------------------------------------------------------------------ //
+
+/**
+ * The most a layer of the mix may be lifted: **+40 dB**, a gain of a hundred, which is what the
+ * organizer's faders reach. The design's cues render 15 to 30 dB under the voice, so lifting the
+ * design is the move this mix is asked for and the travel has to cover it in one fader; +12 (a
+ * gain of 4, the first cap) and then +15 both stopped short.
+ *
+ * **A source clamps at `AL_MAX_GAIN`, which is 1 unless it is set**, so every source is opened
+ * with this as its ceiling — without that the faders did nothing at all above 0 dB, quietly, and
+ * the mix looked broken rather than clamped.
+ *
+ * A gain over 1 boosts a file that is otherwise played exactly as delivered, so far enough up it
+ * will clip: the room clamps, and a filmed run's soundtrack counts the clipped samples in its
+ * report. At the top of this travel that is a certainty rather than a risk — it is there to bring
+ * a quiet stem up, not to be used at the end stop.
+ */
+internal val MAX_MIX = 10.0.pow(40.0 / 20.0)
 
 /** The loudness every cue is brought to, and the peak it may not pass, in dBFS. */
 internal const val LEVEL_DB = -23.0

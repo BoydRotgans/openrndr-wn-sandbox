@@ -15,6 +15,7 @@ import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.shape.Rectangle
 import slideshow.FPS
 import slideshow.drawers.LongShadowV3
+import slideshow.drawers.WallQuote
 import slideshow.frames
 import slideshow.seconds
 import java.io.File
@@ -171,7 +172,12 @@ fun longShadowV3FromEnv(
     /** The show's own timing for the reveal, over the `LONGSHADOW_V3_REVEAL_*` keys when given. */
     revealFill: Double? = null, revealAt: Double? = null,
     /** The show's ground instead of `LONGSHADOW_*_PAPER`, and whether the stone goes into it. */
-    paper: ColorRGBa? = null, groundGrain: Boolean = true
+    paper: ColorRGBa? = null, groundGrain: Boolean = true,
+    /**
+     * A quote beside the title, making the effect a wall of two panes — a chapter opening — and
+     * the show's timing for it; see `ChapterOpening`. The sketch has none.
+     */
+    quote: WallQuote? = null, quoteAfter: Double = 0.8, quoteSpread: Double = 3.0
 ): LongShadowV3 {
     // Keys are written as v1's and read through v3's fallback, so each can be overridden alone.
     fun read(key: String) = v3Env(key.removePrefix("LONGSHADOW_"))
@@ -277,6 +283,9 @@ fun longShadowV3FromEnv(
                 .also { if (it.isEmpty()) println("long shadow v3: no marks for the mosaic field, plain slabs instead") }
                 .map { it.triangles to it.aspect },
         mosaicColumns = read("LONGSHADOW_MOSAIC_COLUMNS")?.toIntOrNull()?.coerceAtLeast(1) ?: 6,
+        quote = quote,
+        quoteAfter = quoteAfter,
+        quoteSpread = quoteSpread,
     )
 }
 

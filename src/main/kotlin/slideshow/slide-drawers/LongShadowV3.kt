@@ -21,6 +21,7 @@ import org.openrndr.draw.colorBuffer
 import org.openrndr.draw.isolated
 import org.openrndr.draw.isolatedWithTarget
 import org.openrndr.draw.loadFont
+import org.openrndr.draw.font.fontHeightScaler
 import org.openrndr.draw.font.loadFace
 import org.openrndr.draw.loadImage
 import org.openrndr.draw.renderTarget
@@ -31,6 +32,8 @@ import org.openrndr.shape.Rectangle
 import org.openrndr.shape.Shape
 import org.openrndr.shape.contains
 import slideshow.Arrival
+import slideshow.Want
+import slideshow.voiced
 import slideshow.frames
 import slideshow.pitchStep
 import slideshow.seconds
@@ -264,7 +267,23 @@ class LongShadowV3(
      */
     private val marks: List<Pair<List<Vector2>, Double>> = emptyList(),
     private val mosaicColumns: Int = 6,
+    /**
+     * A quote on a second pane beside the title's, which makes the composition a wall two panes
+     * wide: the field runs across both, the title comes up on the first exactly as it does alone,
+     * and once it is whole the field sinks away in one wave and the quote comes up behind it, no
+     * sooner than [quoteAfter] seconds after the title and a letter at a time across [quoteSpread].
+     * Set as [QuoteSlide] sets a quote, and flat — see [layQuote]. See [ChapterOpening].
+     */
+    private val quote: WallQuote? = null,
+    private val quoteAfter: Double = 0.8,
+    private val quoteSpread: Double = 3.0,
 ) {
+    /** How many panes the composition is: the title's, and the quote's beside it when there is one. */
+    private val panes = if (quote != null) 2 else 1
+
+    /** The composition's width. Everything that is drawn across the whole of it is this wide. */
+    private val wallWide = WIDE * panes
+
     private lateinit var font: FontImageMap
     private lateinit var mask: RenderTarget
     private lateinit var ping: RenderTarget
@@ -294,19 +313,21 @@ class LongShadowV3(
 
     /** Everything that takes a GL context: the face, the buffers, the stone. */
     fun load(program: Program) {
+        // Once: a chapter's opening wall and its card share one effect, and both are loaded.
+        if (::mask.isInitialized) return
         font = program.loadFont(fontPath, EM, characterSet = TYPE_CHARACTERS, contentScale = detail)
-        fun field() = renderTarget(WIDE.toInt(), HIGH.toInt(), contentScale = detail) {
+        fun field() = renderTarget(wallWide.toInt(), HIGH.toInt(), contentScale = detail) {
             colorBuffer(type = ColorType.FLOAT32)
         }
         // The plan carries a stencil so an svg title's concave pieces can be drawn as shapes.
-        mask = renderTarget(WIDE.toInt(), HIGH.toInt(), contentScale = detail) {
+        mask = renderTarget(wallWide.toInt(), HIGH.toInt(), contentScale = detail) {
             colorBuffer(type = ColorType.FLOAT32)
             depthBuffer(DepthFormat.DEPTH24_STENCIL8)
         }
         ping = field(); pong = field()
         // Where the title stands, at a quarter of the pane: all the packing has to ask it.
         probe = renderTarget((WIDE / PROBE).toInt(), (HIGH / PROBE).toInt()) { colorBuffer(type = ColorType.FLOAT32) }
-        card = renderTarget(WIDE.toInt(), HIGH.toInt(), contentScale = detail) { colorBuffer() }
+        card = renderTarget(wallWide.toInt(), HIGH.toInt(), contentScale = detail) { colorBuffer() }
         markBuffers = marks.map { (triangles, _) ->
             vertexBuffer(vertexFormat { position(3) }, triangles.size.coerceAtLeast(3)).also { vb ->
                 vb.put {
@@ -419,19 +440,25 @@ class LongShadowV3(
     /**
      * The card at [frame] frames since it came up, drawn into [bounds] of whatever the drawer is
      * drawing into. The title is [plate]'s blocks when one is given, [text] set in the face otherwise.
+     *
+     * [pane] null draws the whole composition; a number draws that pane of it alone — the chapter
+     * card is pane 0 of its opening wall, so beside the slides it goes on showing exactly the half
+     * of the wall it stood in, shadows crossing the seam and all.
      */
-    fun draw(drawer: Drawer, bounds: Rectangle, text: String, frame: Int, plate0: Plate? = null, svg: File? = null) {
+    fun draw(drawer: Drawer, bounds: Rectangle, text: String, frame: Int, plate0: Plate? = null, svg: File? = null,
+             pane: Int? = null) {
         // With reveal, a drawn title in an svg is the final type when one is given and readable.
         // With no svg the title is the chapter's own words, set in the face as outlines.
         val drawn = if (fieldOrder == "reveal") svg?.let { svgTitle(it) } ?: typeTitle(text) else null
+        val quoted = if (drawn != null) quote?.let { quoteTitle(it) } else null
         val plate = plate0 ?: if (drawn == null && (fieldOrder == "build" || fieldOrder == "reveal")) textPlate(drawer, text) else null
-        // The sun: turning at a steady rate, sinking on an ease that slows toward the horizon,
-        // then holding low while it goes on turning.
-        val theta = Math.toRadians(angle + turn * seconds(frame))
-        val direction = Vector2(cos(theta), sin(theta))
-        val dusk = (seconds(frame) / sunset).coerceIn(0.0, 1.0)
-        val elevation = high + (low2 - high) * (1.0 - (1.0 - dusk) * (1.0 - dusk))
-        val reach = tower / tan(Math.toRadians(elevation))
+        // What is shown, and what has to be worked out to show it. The whole wall, unless one pane
+        // is asked for and nothing on the other can reach into it any more — then that pane alone,
+        // which is the card's cost for the rest of its chapter.
+        val shown = if (pane == null || panes == 1) Rectangle(0.0, 0.0, wallWide, HIGH)
+                    else Rectangle(pane * WIDE, 0.0, WIDE, HIGH)
+        val span = if (pane == 0 && drawn != null && quiet(drawn, quoted, seconds(frame))) WIDE else wallWide
+        val (direction, reach) = sun(frame)
 
         drawer.isolated {
             // The plan: red height times coverage, green coverage, blue the roof's tone times
@@ -443,9 +470,9 @@ class LongShadowV3(
                 // title rise on the same curve and no tower is as tall as the title, so from then on
                 // every tower is lower than every letter at every frame: the type is always highest.
                 if (drawn != null) {
-                    reveal(drawer, drawn, seconds(frame))
+                    reveal(drawer, drawn, quoted, seconds(frame))
                 } else if (fieldOrder == "reveal" && plate != null && plate.pieceKinds.isNotEmpty()) {
-                    reveal(drawer, blockTitle(plate), seconds(frame))
+                    reveal(drawer, blockTitle(plate), null, seconds(frame))
                 } else if (fieldOrder == "build" && plate != null && plate.pieceBoxes.isNotEmpty()) {
                     build(drawer, plate, seconds(frame))
                 } else {
@@ -454,51 +481,159 @@ class LongShadowV3(
                 else plan(drawer, text, titleFrame(frame)) { h -> ColorRGBa(h, 1.0, 1.0, 1.0) }
                 }
             }
-            val field = shadow(drawer, direction, reach)
+            val field = shadow(drawer, direction, reach, span)
+            // The quote goes into the plan only now, after the shadows are worked out: it is flat,
+            // printed on the floor, so it throws none — no height to cast from, and none of the
+            // fringe a letter of height 0 in the passes would leave at its own edge. In the plan it
+            // still takes the roofs' white and, below, their concrete marks. Asked 24 September.
+            if (quoted != null) layQuote(drawer, drawn!!, quoted, seconds(frame), shown)
 
-            // Roofs and ground in one pass, off the plan and the shadow together, so a shadow can
-            // land on a lower roof as well as on the ground.
-            drawer.isolatedWithTarget(card) {
-                drawer.ortho(card)
-                drawer.clear(paper)
-                lay.parameter("field", field)
-                lay.parameter("plan", mask.colorBuffer(0))
-                lay.parameter("reach", reach)
-                lay.parameter("paper", paper)
-                lay.parameter("ink", ink)
-                lay.parameter("shade", shade)
-                val (cw, ch) = if (fieldOrder == "reveal" && fieldLayout == "mosaic")
-                    (WIDE / mosaicColumns) to (HIGH / MosaicCells.rows(Rectangle(0.0, 0.0, WIDE, HIGH), mosaicColumns))
-                else if (fieldOrder == "reveal")
-                    (WIDE / (WIDE / fieldUnit).toInt().coerceAtLeast(1)) to (HIGH / (HIGH / fieldUnit).toInt().coerceAtLeast(1))
-                else gridCell()
-                lay.parameter("cell", Vector2(cw, ch))
-                lay.parameter("pane", Vector2(WIDE, HIGH))
-                // The fade *ends* as the last block seats (plus [gridFadeAfter], 0 by default), so the
-                // grid is gone the moment the type is done rather than lingering after it.
-                val done = (if (fieldOrder == "reveal") revealAt + revealSpread + revealSink + clickIn
-                            else buildAt + buildSpread + clickOut + clickIn) + gridFadeAfter
-                val fade = ((seconds(frame) - (done - gridFadeTime)) / gridFadeTime.coerceAtLeast(0.01)).coerceIn(0.0, 1.0)
-                val left = 1.0 - fade * fade * (3.0 - 2.0 * fade)
-                lay.parameter("gridInShadow", gridInShadow)
-                val ruled = (fieldOrder == "build" && buildOfBlocks) || fieldOrder == "reveal"
-                lay.parameter("gridLine", if (ruled) gridLine * left else 0.0)
-                drawer.shadeStyle = lay
-                drawer.image(field, 0.0, 0.0, WIDE, HIGH)
-                drawer.shadeStyle = null
-            }
+            val (cw, ch) = if (fieldOrder == "reveal" && fieldLayout == "mosaic")
+                (WIDE / mosaicColumns) to (HIGH / MosaicCells.rows(Rectangle(0.0, 0.0, WIDE, HIGH), mosaicColumns))
+            else if (fieldOrder == "reveal")
+                (WIDE / (WIDE / fieldUnit).toInt().coerceAtLeast(1)) to (HIGH / (HIGH / fieldUnit).toInt().coerceAtLeast(1))
+            else gridCell()
+            // The fade *ends* as the last block seats (plus [gridFadeAfter], 0 by default), so the
+            // grid is gone the moment the type is done rather than lingering after it.
+            val done = (if (fieldOrder == "reveal") revealAt + revealSpread + revealSink + clickIn
+                        else buildAt + buildSpread + clickOut + clickIn) + gridFadeAfter
+            val fade = ((seconds(frame) - (done - gridFadeTime)) / gridFadeTime.coerceAtLeast(0.01)).coerceIn(0.0, 1.0)
+            val left = 1.0 - fade * fade * (3.0 - 2.0 * fade)
+            val ruled = (fieldOrder == "build" && buildOfBlocks) || fieldOrder == "reveal"
+            compose(drawer, bounds, field, reach, span, shown, Vector2(cw, ch), if (ruled) gridLine * left else 0.0)
+        }
+    }
 
-            val s = stone
-            if (s != null) {
-                grain.parameter("source", card.colorBuffer(0))
-                grain.parameter("roofs", mask.colorBuffer(0))
-                grain.parameter("stone", s)
-                grain.parameter("tile", Vector2(s.width * concreteScale, s.height * concreteScale))
-                drawer.shadeStyle = grain
+    /**
+     * Towers handed in from outside, stood under the same sun and laid by the same passes as the
+     * card — the chapter build's look for anything that can say where its marks stand. [frame] is
+     * the sun's clock, frames since the sun rose; [ruled] draws the grid of [cell] on the ground.
+     *
+     * `DominoEffect`'s DUURZAAM is built this way: the word is its own plan of the highlight's grid,
+     * and what makes it the chapter build is that it is shadowed, laid and grained here.
+     */
+    fun drawStanding(drawer: Drawer, bounds: Rectangle, frame: Int, standing: List<Standing>,
+                     cell: Vector2 = Vector2(WIDE / 6.0, HIGH / 6.0), ruled: Double = 0.0) {
+        val (direction, reach) = sun(frame)
+        val count = batch(standing)
+        drawer.isolated {
+            drawer.isolatedWithTarget(mask) {
+                drawer.ortho(mask)
+                drawer.clear(ColorRGBa.TRANSPARENT)
+                if (count > 0) {
+                    drawer.shadeStyle = byVertex
+                    drawer.vertexBuffer(standingBuffer!!, DrawPrimitive.TRIANGLES, 0, count)
+                    drawer.shadeStyle = null
+                }
             }
-            drawer.image(card.colorBuffer(0), bounds.x, bounds.y, bounds.width, bounds.height)
+            val field = shadow(drawer, direction, reach, wallWide)
+            compose(drawer, bounds, field, reach, wallWide, Rectangle(0.0, 0.0, wallWide, HIGH), cell, ruled)
+        }
+    }
+
+    /**
+     * [standing] written into one vertex buffer, each mark already stretched to its box and carrying
+     * its plan colour — height, coverage, tone — as a vertex colour, so the whole plan is one draw.
+     * Drawn a mark at a time it was 2 312 draw calls for the domino's word and 14 to 16 ms a frame;
+     * lowest first, so where two ever lapped the taller would be the roof. Returns the vertex count.
+     */
+    private fun batch(standing: List<Standing>): Int {
+        val slab = listOf(Vector2(-0.5, -0.5), Vector2(0.5, -0.5), Vector2(0.5, 0.5), Vector2(-0.5, -0.5), Vector2(0.5, 0.5), Vector2(-0.5, 0.5))
+        val up = standing.filter { it.height > 0.0 }.sortedBy { it.height }
+        val needed = up.sumOf { marks.getOrNull(it.mark)?.first?.size ?: slab.size }
+        if (needed == 0) return 0
+        if ((standingBuffer?.vertexCount ?: 0) < needed) {
+            standingBuffer?.destroy()
+            standingBuffer = vertexBuffer(vertexFormat { position(3); color(4) }, (needed * 1.25).toInt())
+        }
+        standingBuffer!!.put {
+            for (s in up) {
+                val mark = marks.getOrNull(s.mark)
+                // A mark is height 1 and its proportion wide about its centre, y up; a slab is a unit square.
+                val (points, sx) = if (mark != null) mark.first to s.box.width / mark.second else slab to s.box.width
+                val colour = ColorRGBa(s.height, 1.0, s.tone, 1.0)
+                for (p in points) {
+                    write(Vector3(s.box.center.x + p.x * sx, s.box.center.y - p.y * s.box.height, 0.0))
+                    write(colour)
+                }
+            }
+        }
+        return needed
+    }
+
+    private var standingBuffer: VertexBuffer? = null
+
+    /** The plan's colour off the vertex, for [batch]. */
+    private val byVertex = shadeStyle { fragmentTransform = "x_fill = va_color;" }
+
+    /** A mark standing on the plan: its box on the pane, which of the marks (-1 a plain slab), its height as a share of a full tower, and its roof's tone. */
+    class Standing(val box: Rectangle, val mark: Int, val height: Double, val tone: Double)
+
+    /** The marks' proportions, wide to high, in the order [Standing.mark] counts them. Empty with no marks. */
+    val markAspects: List<Double> get() = marks.map { it.second }
+
+    /**
+     * How much of its own box each mark fills, 0 to 1: its triangles' area against its proportion,
+     * since a mark stands at height 1. A doorway panel is well under 1; a plain slab is 1.
+     */
+    val markSolidity: List<Double> by lazy {
+        marks.map { (triangles, aspect) ->
+            triangles.chunked(3).filter { it.size == 3 }.sumOf { (a, b, c) ->
+                kotlin.math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / 2.0
+            } / aspect
+        }
+    }
+
+    /** The sun at [frame]: which way the shadows run, and how far a full tower's reaches. */
+    private fun sun(frame: Int): Pair<Vector2, Double> {
+        // Turning at a steady rate, sinking on an ease that slows toward the horizon, then holding
+        // low while it goes on turning.
+        val theta = Math.toRadians(angle + turn * seconds(frame))
+        val direction = Vector2(cos(theta), sin(theta))
+        val dusk = (seconds(frame) / sunset).coerceIn(0.0, 1.0)
+        val elevation = high + (low2 - high) * (1.0 - (1.0 - dusk) * (1.0 - dusk))
+        return direction to tower / tan(Math.toRadians(elevation))
+    }
+
+    /**
+     * Roofs and ground in one pass off the plan in [mask] and the reach [field] together, so a
+     * shadow can land on a lower roof as well as on the ground; then the stone, and the [shown] part
+     * of the finished card into [bounds].
+     */
+    private fun compose(drawer: Drawer, bounds: Rectangle, field: ColorBuffer, reach: Double, span: Double,
+                        shown: Rectangle, cell: Vector2, gridLine: Double) {
+        drawer.isolatedWithTarget(card) {
+            drawer.ortho(card)
+            drawer.clear(paper)
+            lay.parameter("field", field)
+            lay.parameter("plan", mask.colorBuffer(0))
+            lay.parameter("reach", reach)
+            lay.parameter("paper", paper)
+            lay.parameter("ink", ink)
+            lay.parameter("shade", shade)
+            lay.parameter("cell", cell)
+            lay.parameter("pane", Vector2(wallWide, HIGH))
+            lay.parameter("gridInShadow", gridInShadow)
+            lay.parameter("gridLine", gridLine)
+            drawer.shadeStyle = lay
+            spanned(drawer, field, span)
             drawer.shadeStyle = null
         }
+
+        val s = stone
+        if (s != null) {
+            grain.parameter("source", card.colorBuffer(0))
+            grain.parameter("roofs", mask.colorBuffer(0))
+            grain.parameter("stone", s)
+            grain.parameter("tile", Vector2(s.width * concreteScale, s.height * concreteScale))
+            grain.parameter("pane", Vector2(wallWide, HIGH))
+            drawer.shadeStyle = grain
+        }
+        // The stone is laid off the wall's own pixels, so the two halves of it match at the seam
+        // and a pane shown alone carries the grain it had as part of the wall.
+        if (shown.width >= wallWide) drawer.image(card.colorBuffer(0), bounds.x, bounds.y, bounds.width, bounds.height)
+        else drawer.image(card.colorBuffer(0), shown, bounds)
+        drawer.shadeStyle = null
     }
 
     /**
@@ -936,10 +1071,94 @@ class LongShadowV3(
         shapeTitle("type:$text", placed, best.size)
     }
 
+    /** How wide [s] sets in the face at glyph scale [k]: advances and kerning, as `text()` lays them. */
+    private fun faceAdvance(s: String, k: Double): Double = s.indices.sumOf { i ->
+        face.glyphForCharacter(s[i]).advanceWidth(k) + if (i > 0) face.kernAdvance(k, s[i - 1], s[i]) else 0.0
+    }
+
+    /**
+     * [q] set on the second pane as outlines, a glyph a piece, **exactly where [QuoteSlide] sets
+     * it**: its measure ([QuoteSlide.INSET] in from the pane's sides, [QuoteSlide.HEAD] from top and
+     * foot), its leading, its breaks — found by the same [breakLines] measured off the face rather
+     * than an atlas, at the atlas's own size so the searches run over the same numbers — ranged left
+     * off the measure's edge and centred down it, the baseline 0.78 of a line down as [TypeBlock]
+     * draws it. So the words stand where the quote slide stood them, and a quote reworded in the show
+     * is set again with nothing changed here. Needs no GL context, like [typeTitle].
+     */
+    private fun quoteTitle(q: WallQuote): Title? = titles.getOrPut("quote:${q.text}|${q.lines}|${q.breaks}") {
+        val box = Rectangle(WIDE + QuoteSlide.INSET, QuoteSlide.HEAD, WIDE - 2 * QuoteSlide.INSET, HIGH - 2 * QuoteSlide.HEAD)
+        val leading = QuoteSlide.LEADING
+        // The atlas's own glyph scale at [EM]: `loadFont` sizes a face by its ascender-to-descender
+        // height, not its em, so this is what "a face loaded at 160" means in the face's units.
+        val atlas = EM * fontHeightScaler(face)
+        val lines = breakLines(q.broken, box, EM, leading, q.lines) { faceAdvance(it, atlas) }
+        if (lines.isEmpty()) return@getOrPut null
+        val scale = min(box.width / lines.maxOf { faceAdvance(it, atlas) }.coerceAtLeast(1.0), box.height / (lines.size * leading * EM))
+        val k = atlas * scale                     // the glyphs' scale as drawn
+        val pitch = leading * EM * scale
+        val top = box.center.y - lines.size * pitch / 2.0
+        val shapes = mutableListOf<Shape>()
+        lines.forEachIndexed { row, line ->
+            var x = box.x
+            val baseline = top + (row + 0.78) * pitch
+            line.forEachIndexed { i, c ->
+                if (i > 0) x += face.kernAdvance(k, line[i - 1], c)
+                val glyph = face.glyphForCharacter(c)
+                val shape = glyph.shape(k)
+                if (!shape.empty) shapes += shape.transform(org.openrndr.math.transforms.buildTransform { translate(x, baseline) })
+                x += glyph.advanceWidth(k)
+            }
+        }
+        if (shapes.isEmpty()) return@getOrPut null
+        println("long shadow v3: the quote set over ${lines.size} lines, ${pitch.roundToInt()} px a line, ${shapes.size} pieces")
+        // Built in reading order, so a piece's index is its place in the sentence.
+        shapeTitle("quote:${q.text}|${q.lines}|${q.breaks}", shapes, lines.size)
+    }
+
+    /**
+     * Whether nothing on the second pane can reach into the first any more at [time], so the first
+     * may be worked out on its own and come out the same: every element has sunk, and what is left
+     * there — the quote — is flat and throws no shadow at all. False for a composition of one pane,
+     * which has nothing to leave out.
+     */
+    private fun quiet(title: Title, quoted: Title?, time: Double): Boolean {
+        if (panes == 1) return false
+        val plan = planFor(null, title, quoted)
+        return time >= plan.settleFrom + (if (revealFinal < 1.0) revealSettle else 0.0)
+    }
+
+    /**
+     * Seconds from the card coming up until the reveal has come to rest — the title and any quote
+     * whole, every element in the floor — for a slide to say how long its opening takes. Off the
+     * same [Plan] the picture is drawn from; needs no GL context.
+     */
+    fun settled(svg: File?, text: String): Double {
+        // With no font driver, what the arguments alone say: the title's reveal, the hold, the field
+        // going, and any quote after it.
+        if (!canSetType) return revealAt + revealSink + revealSpread + revealRise + revealHold + revealLeaveSpread +
+                revealLeaveTime + (if (quote != null) quoteSpread else 0.0) + (if (revealFinal < 1.0) revealSettle else 0.0)
+        val title = (if (fieldOrder == "reveal") svg?.let { svgTitle(it) } ?: typeTitle(text) else null) ?: return spread + rise
+        val plan = planFor(null, title, quote?.let { quoteTitle(it) })
+        val words = plan.quoteStart.maxOrNull() ?: Double.NEGATIVE_INFINITY
+        return maxOf(plan.settleFrom + if (revealFinal < 1.0) revealSettle else 0.0, words)
+    }
+
+    /**
+     * Whether the face can be read here. Setting the title and the quote as outlines needs
+     * OPENRNDR's font driver, and only a running application sets one up — the organizer's launcher
+     * serves the show with no window, and asks every slide how long it settles and what it scores.
+     * Off one, [settled] estimates from the arguments and [midi] is left to the caller not to ask.
+     */
+    val canSetType: Boolean get() = runCatching { face }.isSuccess
+
     /**
      * An element to every cell of the window's grid, once and kept. A cell any piece of the title
      * reaches into is one that goes; the order they go in is their distance from the title's middle,
      * 0 to 1, blended with [revealScatter] of a seeded shuffle, so the type opens from its centre.
+     *
+     * On a wall the field runs across both panes and nothing else changes: those beside the title
+     * leave in one wave outward from it, over the seam and across the quote's pane, and that wave is
+     * what clears the ground the quote comes up on.
      */
     private fun coversFor(drawer: Drawer?, title: Title): List<Cover> = covers.getOrPut(title.key) {
         val random = Random(yardSeed)
@@ -980,15 +1199,18 @@ class LongShadowV3(
 
     /**
      * The reveal's whole schedule, worked out once: the elements, when each piece of the title rises,
-     * and when the side elements leave and the title settles. [reveal] draws off it and [midi] writes
-     * it down, so the file and the picture cannot disagree.
+     * when the quote's elements go and its pieces rise, and when the side elements leave and the
+     * title settles. [reveal] draws off it and [midi] writes it down, so the file and the picture
+     * cannot disagree.
      */
     private class Plan(val cells: List<Cover>, val start: DoubleArray, val whole: Double,
-                       val leaveFrom: Double, val settleFrom: Double)
+                       val leaveFrom: Double, val settleFrom: Double,
+                       /** When each piece of the quote rises; empty with no quote. */
+                       val quoteStart: DoubleArray = DoubleArray(0))
 
     private val plans = mutableMapOf<String, Plan>()
 
-    private fun planFor(drawer: Drawer?, title: Title): Plan = plans.getOrPut(title.key) {
+    private fun planFor(drawer: Drawer?, title: Title, quoted: Title? = null): Plan = plans.getOrPut(title.key + "|" + quoted?.key) {
         val cells = coversFor(drawer, title)
         val clear = clears.getOrPut(title.key) {
             DoubleArray(title.boxes.size) { i ->
@@ -1009,7 +1231,72 @@ class LongShadowV3(
         // and when they are all in the floor the title comes down to a sliver of its height.
         val whole = (start.maxOrNull() ?: revealAt) + revealRise
         val leaveFrom = whole + revealHold
-        Plan(cells, start, whole, leaveFrom, leaveFrom + revealLeaveSpread + revealLeaveTime)
+        val settleFrom = leaveFrom + revealLeaveSpread + revealLeaveTime
+        Plan(cells, start, whole, leaveFrom, settleFrom,
+            quoted?.let { quoteStarts(it, cells, whole, leaveFrom, settleFrom) } ?: DoubleArray(0))
+    }
+
+    /**
+     * When each piece of the quote appears. **The quote is type, and type is never in shadow** — the
+     * title's rule, kept by timing rather than by a cap: flat on the floor, a letter that appeared
+     * with the elements round it still standing would lie in their shadows, navy on the navy ground,
+     * and the sentence would read in scraps — which the first version, its letters a tenth of the
+     * title's height, did. So a piece appears only once every element that could throw a shadow on it has sunk into the floor: any
+     * element whose shadow, at its own height and the longest the sun throws before the field is
+     * gone, runs across the piece at any heading the sun turns through meanwhile. Nothing downwind
+     * holds it up. The field leaves in one wave outward from the title, so the sentence comes up
+     * behind the wave as it crosses the pane — the blocks go, the sentence shows.
+     *
+     * No piece appears before [quoteAfter] after the title is whole, and none before the one ahead of
+     * it in the sentence, a [quoteSpread]'s worth of beats apart: where the ground is already clear
+     * the words still read in, in order, rather than landing at once.
+     */
+    private fun quoteStarts(quoted: Title, cells: List<Cover>, whole: Double, leaveFrom: Double, settleFrom: Double): DoubleArray {
+        val from = whole + quoteAfter
+        val until = maxOf(from, settleFrom)
+        fun heading(t: Double) = Math.toRadians(angle + turn * t)
+        fun elevation(t: Double): Double {
+            val dusk = (t / sunset).coerceIn(0.0, 1.0)
+            return high + (low2 - high) * (1.0 - (1.0 - dusk) * (1.0 - dusk))
+        }
+        // The sun over the window in which anything could still shade the quote, headings in pane
+        // pixels, y down — the way [draw] lays shadows — and the longest reach it has in that time.
+        val headings = (0..SHADE_ANGLES).map { heading(from + (until - from) * it / SHADE_ANGLES) }.map { Vector2(cos(it), sin(it)) }
+        val reach = tower / tan(Math.toRadians(elevation(until)))
+        // When each element is in the floor.
+        val gone = cells.map { c -> if (c.sink != null) c.sink + revealSink else leaveFrom + c.leave * revealLeaveSpread + revealLeaveTime }
+        val step = quoteSpread / maxOf(1, quoted.boxes.size - 1)
+        var previous = from - step
+        return DoubleArray(quoted.boxes.size) { i ->
+            val piece = quoted.boxes[i]
+            val shade = cells.indices.filter { k ->
+                val c = cells[k]
+                // The piece less the element: a shadow from the element lands on the piece where a
+                // step of up to its reach along the sun leads from the one into the other.
+                val gap = Rectangle(piece.x - (c.box.x + c.box.width), piece.y - (c.box.y + c.box.height),
+                    piece.width + c.box.width, piece.height + c.box.height)
+                c.height > 0.0 && headings.any { crosses(gap, it, c.height * reach) }
+            }.maxOfOrNull { gone[it] } ?: from
+            maxOf(shade, previous + step).also { previous = it }
+        }
+    }
+
+    /** Whether the segment from the origin along [u] for [length] passes through [box]: the slab test. */
+    private fun crosses(box: Rectangle, u: Vector2, length: Double): Boolean {
+        var t0 = 0.0
+        var t1 = length
+        for ((lo, span, d) in listOf(Triple(box.x, box.width, u.x), Triple(box.y, box.height, u.y))) {
+            if (kotlin.math.abs(d) < 1e-9) {
+                if (0.0 < lo || 0.0 > lo + span) return false
+            } else {
+                val a = lo / d
+                val b = (lo + span) / d
+                t0 = maxOf(t0, minOf(a, b))
+                t1 = minOf(t1, maxOf(a, b))
+                if (t0 > t1) return false
+            }
+        }
+        return true
     }
 
     /**
@@ -1020,20 +1307,23 @@ class LongShadowV3(
      * the reading order, two octaves up. Times are frames from the card coming up.
      *
      * Off the drawn title in [svg] when there is one, and otherwise [text] set in the face — both
-     * outlines, so neither needs a GL context.
+     * outlines, so neither needs a GL context. A wall with a quote scores its letters rising on a lane
+     * of their own; with none the file is what it always was.
      */
     fun midi(svg: File?, text: String): Pair<List<String>, List<Arrival>> {
         val title = svg?.let { svgTitle(it) } ?: typeTitle(text) ?: run {
             println("long shadow v3: midi has no title to score, neither an svg at ${svg?.path} nor words")
             return emptyList<String>() to emptyList()
         }
-        val plan = planFor(null, title)
+        val quoted = quote?.let { quoteTitle(it) }
+        val plan = planFor(null, title, quoted)
         val lanes = mutableListOf<String>()
         fun lane(name: String) = lanes.size.also { lanes += name }
         val arriving = if (revealFill > 0.0) lane("elements in") else -1
         val overTitle = lane("elements out, over the title")
         val beside = lane("elements out, beside the title")
         val letters = lane("letters in")
+        val quoteLetters = if (quoted != null) lane("quote letters in") else -1
         // Only a title that really comes down gets a note for it: at `revealFinal` 1 it stands
         // full height and nothing moves, so a note there would mark a block that never moved.
         val settle = if (revealFinal < 1.0) lane("title settles") else -1
@@ -1051,8 +1341,8 @@ class LongShadowV3(
             reading.forEachIndexed { k, i -> p[i] = ELEMENT_NOTES + k * (LETTER_NOTES - 1) / maxOf(1, reading.size - 1) }
         }
 
-        // What each block wants: a lane, a pitch, a start and a length.
-        class Want(val lane: Int, val pitch: Int, val start: Int, val length: Int, val lo: Int, val hi: Int)
+        // What each block wants: a lane, a pitch, a start and a length. `voiced` then gives every
+        // one of them a voice of its own — see the note there.
         val wants = mutableListOf<Want>()
         val elements = 0 to ELEMENT_NOTES - 1
         val letterRange = ELEMENT_NOTES to ELEMENT_NOTES + LETTER_NOTES - 1
@@ -1065,35 +1355,24 @@ class LongShadowV3(
         }
         for (i in title.boxes.indices)
             wants += Want(letters, letterPitch[i], frames(plan.start[i]), frames(revealRise).coerceAtLeast(1), letterRange.first, letterRange.second)
+        // The quote's letters prefer their place in the sentence, across the letters' register.
+        if (quoted != null) for (i in quoted.boxes.indices)
+            wants += Want(quoteLetters, ELEMENT_NOTES + i * (LETTER_NOTES - 1) / maxOf(1, quoted.boxes.size - 1),
+                frames(plan.quoteStart[i]), frames(revealRise).coerceAtLeast(1), letterRange.first, letterRange.second)
         if (settle >= 0) wants += Want(settle, ELEMENT_NOTES - 12, frames(plan.settleFrom), frames(revealSettle).coerceAtLeast(1), 0, ELEMENT_NOTES + LETTER_NOTES - 1)
 
-        // **Every block its own voice.** A MIDI channel has one note per pitch at a time, so two
-        // blocks on one pitch overlapping cut the first short, and two starting on the same frame
-        // become one note — 12 letters vanished that way and 37 elements came out under 50 ms. So a
-        // block takes its preferred pitch when that pitch is free on its lane, and otherwise the
-        // nearest free one in its own register, going outward. Only when every pitch in the register
-        // is sounding does it take the one that frees soonest.
-        val freeAt = HashMap<Pair<Int, Int>, Int>()
-        val out = mutableListOf<Arrival>()
-        for (w in wants.sortedWith(compareBy({ it.start }, { it.lane }, { it.pitch }))) {
-            val span = w.hi - w.lo
-            val candidates = (0..2 * span).map { k -> w.pitch + if (k % 2 == 0) k / 2 else -(k + 1) / 2 }.filter { it in w.lo..w.hi }
-            val pitch = candidates.firstOrNull { (freeAt[w.lane to it] ?: Int.MIN_VALUE) <= w.start }
-                ?: candidates.minBy { freeAt[w.lane to it] ?: Int.MIN_VALUE }
-            freeAt[w.lane to pitch] = w.start + w.length
-            out += Arrival(w.lane, pitch, w.start, w.length)
-        }
-        return lanes to out.sortedBy { it.start }
+        return lanes to voiced(wants)
     }
 
     /**
      * The reveal at [time] seconds: the elements click up into every cell within [revealFill], the
      * frame stands full, and from [revealAt] those over the title sink one by one. A piece of the
      * title clicks up once every element over it has gone, so the type is never covered while it
-     * stands and the frame is never open under an element that has not moved.
+     * stands and the frame is never open under an element that has not moved. A [quoted] quote is
+     * not a tower and is not drawn here; [layQuote] puts it down once the shadows are worked out.
      */
-    private fun reveal(drawer: Drawer, title: Title, time: Double) {
-        val plan = planFor(drawer, title)
+    private fun reveal(drawer: Drawer, title: Title, quoted: Title?, time: Double) {
+        val plan = planFor(drawer, title, quoted)
         val cells = plan.cells
         val start = plan.start
         val leaveFrom = plan.leaveFrom
@@ -1130,21 +1409,52 @@ class LongShadowV3(
             val h = (1.0 - (1.0 - r) * (1.0 - r) * (1.0 - r)) * titleHeight
             if (h > HIDE_BELOW) draws += Draw(title.boxes[i], title.shapes[i], title.round[i], h, 1.0)
         }
-        for (d in draws.sortedBy { it.height }) {
-            drawer.fill = ColorRGBa(d.height, 1.0, d.tone, 1.0)
-            val buffer = markBuffers.getOrNull(d.mark)
-            when {
-                d.shape != null -> drawer.shape(d.shape)
-                buffer != null -> drawer.isolated {
-                    // A mark is height 1 and its proportion wide about its centre, y up: stretched
-                    // to fill its cell, as the highlight stands them.
-                    drawer.translate(d.box.center)
-                    drawer.scale(d.box.width / marks[d.mark].second, -d.box.height)
-                    drawer.vertexBuffer(buffer, DrawPrimitive.TRIANGLES)
-                }
-                d.round -> drawer.circle(d.box.center, min(d.box.width, d.box.height) / 2.0)
-                else -> drawer.rectangle(d.box)
+        for (d in draws.sortedBy { it.height }) standTower(drawer, d.box, d.shape, d.round, d.height, d.tone, d.mark)
+    }
+
+    /**
+     * One tower into the plan: red its height, green full coverage, blue its roof's tone. A [shape]
+     * is drawn as itself, a [mark] stretched to fill [box], otherwise a circle or a slab.
+     */
+    private fun standTower(drawer: Drawer, box: Rectangle, shape: Shape?, round: Boolean, height: Double, tone: Double, mark: Int) {
+        drawer.fill = ColorRGBa(height, 1.0, tone, 1.0)
+        val buffer = markBuffers.getOrNull(mark)
+        when {
+            shape != null -> drawer.shape(shape)
+            buffer != null -> drawer.isolated {
+                // A mark is height 1 and its proportion wide about its centre, y up: stretched
+                // to fill its cell, as the highlight stands them.
+                drawer.translate(box.center)
+                drawer.scale(box.width / marks[mark].second, -box.height)
+                drawer.vertexBuffer(buffer, DrawPrimitive.TRIANGLES)
             }
+            round -> drawer.circle(box.center, min(box.width, box.height) / 2.0)
+            else -> drawer.rectangle(box)
+        }
+    }
+
+    /**
+     * The quote's letters that have appeared by [time], into the plan as flat type: no height, full
+     * coverage, the roofs' tone. Drawn over the plan the shadows were worked out from, so they cast
+     * nothing, and they appear whole on their beat — nothing here fades, and with no height there is
+     * no rise to show.
+     */
+    private fun layQuote(drawer: Drawer, title: Title, quoted: Title, time: Double, shown: Rectangle) {
+        val plan = planFor(drawer, title, quoted)
+        // Only what can be seen. The quote is flat and casts nothing, and every pass after this one
+        // reads the plan at its own pixel, so a letter outside the pane shown changes nothing on it:
+        // beside the slides, where the card is the wall's first pane, that is the whole quote — and
+        // on a Mac a letter with a counter in it finishes the GPU as it is filled (see
+        // `DrawerConfiguration.waitForFinish`), which at 158 letters was most of the cost of a frame.
+        val up = quoted.boxes.indices.filter {
+            time >= plan.quoteStart[it] && quoted.shapes[it] != null && quoted.boxes[it].intersects(shown)
+        }
+        if (up.isEmpty()) return
+        drawer.isolatedWithTarget(mask) {
+            drawer.ortho(mask)
+            drawer.stroke = null
+            drawer.fill = ColorRGBa(0.0, 1.0, 1.0, 1.0)
+            for (i in up) drawer.shape(quoted.shapes[i]!!)
         }
     }
 
@@ -1176,12 +1486,14 @@ class LongShadowV3(
         else fields.getOrPut(if (whole) "whole" else if (plate != null) "plate:${plate.labels}" else "text:$text") {
             // [whole]: the frame packed edge to edge with nothing kept clear — the reveal's field,
             // which stands over the title until the title's elements go.
-            val title = if (whole) Occupancy(0, 0, IntArray(1), Vector2(WIDE / 2.0, HIGH / 2.0)) else occupancy(drawer!!, text, plate)
+            // On a wall the reveal's field runs across every pane; anything else stands round one title.
+            val fw = if (whole) wallWide else WIDE
+            val title = if (whole) Occupancy(0, 0, IntArray(1), Vector2(fw / 2.0, HIGH / 2.0)) else occupancy(drawer!!, text, plate)
             val random = Random(fieldSeed)
-            val across = (WIDE / fieldUnit).toInt().coerceAtLeast(1)
+            val across = (fw / fieldUnit).toInt().coerceAtLeast(1)
             val down = (HIGH / fieldUnit).toInt().coerceAtLeast(1)
             // The module stretched a hair so the grid meets both edges of the frame exactly.
-            val uw = WIDE / across
+            val uw = fw / across
             val uh = HIGH / down
             val taken = BooleanArray(across * down) { i ->
                 val cell = Rectangle((i % across) * uw, (i / across) * uh, uw, uh)
@@ -1192,7 +1504,7 @@ class LongShadowV3(
             val blocked = taken.copyOf()
             val placed = mutableListOf<Tower>()
             val centre = title.centre
-            val farthest = listOf(Vector2(0.0, 0.0), Vector2(WIDE, 0.0), Vector2(0.0, HIGH), Vector2(WIDE, HIGH))
+            val farthest = listOf(Vector2(0.0, 0.0), Vector2(fw, 0.0), Vector2(0.0, HIGH), Vector2(fw, HIGH))
                 .maxOf { (it - centre).length }
 
             // ---- the plan before the buildings: streets and gardens ------------------------ //
@@ -1417,6 +1729,10 @@ class LongShadowV3(
      * it. Heights and tones are the module field's — [fieldLow] to [fieldHigh] with [fieldJitter],
      * roofs [fieldDark] to [fieldLight] — so the shadows work as they always did, and fall into the
      * marks' notches as well as across the joints.
+     *
+     * On a wall every pane is the same grid, so the joints run straight across the seam, and the
+     * panes are dealt one after the other off the one stream: the title's pane comes out cell for
+     * cell as it does alone, and the quote's carries on from there.
      */
     private fun mosaicField(): List<Tower> {
         val random = Random(fieldSeed)
@@ -1425,8 +1741,8 @@ class LongShadowV3(
         val cw = WIDE / mosaicColumns
         val ch = HIGH / rows
         val placed = mutableListOf<Tower>()
-        for (row in 0 until rows) for (column in 0 until mosaicColumns) {
-            MosaicCells.split(Rectangle(column * cw, row * ch, cw, ch), random) { leaf ->
+        for (pane in 0 until panes) for (row in 0 until rows) for (column in 0 until mosaicColumns) {
+            MosaicCells.split(Rectangle(pane * WIDE + column * cw, row * ch, cw, ch), random) { leaf ->
                 val box = leaf.offsetEdges(-MosaicCells.GAP / 2.0)
                 val aspect = box.width / box.height
                 val nearest = marks.indices.sortedBy { kotlin.math.abs(kotlin.math.ln(marks[it].second / aspect)) }.take(3)
@@ -1438,7 +1754,7 @@ class LongShadowV3(
                     start = 0.0)
             }
         }
-        println("long shadow v3: ${placed.size} marks on the highlight's grid, $mosaicColumns x $rows coarse cells, ${marks.size} marks to pick from")
+        println("long shadow v3: ${placed.size} marks on the highlight's grid, ${mosaicColumns * panes} x $rows coarse cells, ${marks.size} marks to pick from")
         return placed
     }
 
@@ -1629,20 +1945,33 @@ class LongShadowV3(
         parameter("pane", Vector2(WIDE, HIGH))
     }
 
-    private fun pass(drawer: Drawer, into: RenderTarget, from: ColorBuffer) {
+    private fun pass(drawer: Drawer, into: RenderTarget, from: ColorBuffer, span: Double) {
         drawer.isolatedWithTarget(into) {
             drawer.ortho(into)
             drawer.clear(ColorRGBa.TRANSPARENT)
-            drawer.image(from, 0.0, 0.0, WIDE, HIGH)
+            spanned(drawer, from, span)
         }
     }
 
+    /**
+     * [from] drawn over the first [span] pixels of the composition, one to one. The whole of it is
+     * the one call it always was; less draws a sub-rectangle, whose texture coordinates run over
+     * just that part, so a shader reading its own sampler at `va_texCoord0` still reads the pixel
+     * under it. What is left of the target keeps its clear: zero coverage, which no pass reads as
+     * a tower.
+     */
+    private fun spanned(drawer: Drawer, from: ColorBuffer, span: Double) {
+        if (span >= wallWide) drawer.image(from, 0.0, 0.0, wallWide, HIGH)
+        else Rectangle(0.0, 0.0, span, HIGH).let { drawer.image(from, it, it) }
+    }
+
     /** The reach field under a sun whose shadows run along [direction], [reach] per full tower. */
-    private fun shadow(drawer: Drawer, direction: Vector2, reach: Double): ColorBuffer {
+    private fun shadow(drawer: Drawer, direction: Vector2, reach: Double, span: Double): ColorBuffer {
         raise.parameter("source", mask.colorBuffer(0))
         raise.parameter("reach", reach)
+        cast.parameter("pane", Vector2(wallWide, HIGH))
         drawer.shadeStyle = raise
-        pass(drawer, ping, mask.colorBuffer(0))
+        pass(drawer, ping, mask.colorBuffer(0), span)
 
         val steps = mutableListOf<Double>()
         var covered = 0.0
@@ -1660,7 +1989,7 @@ class LongShadowV3(
             cast.parameter("offset", Vector2(direction.x * a, -direction.y * a))
             cast.parameter("step", a)
             cast.parameter("source", from)
-            pass(drawer, to, from)
+            pass(drawer, to, from, span)
             from = to.colorBuffer(0)
         }
         drawer.shadeStyle = null
@@ -1750,7 +2079,19 @@ class LongShadowV3(
         const val PROBE = 4.0
         /** The size the face is baked at; the fit scales it to the pane. */
         const val EM = 160.0
+        /** How many steps the sun's turn is sampled in, when asking what could shade the quote. */
+        const val SHADE_ANGLES = 24
     }
+}
+
+/**
+ * A quote for the second pane of a [LongShadowV3] wall: its words and how its lines break, taken
+ * the way [QuoteSlide] takes them — [breaks] ends a line after each of those words, in order, and
+ * wins over [lines]; with neither the quote takes whatever sets it biggest.
+ */
+class WallQuote(val text: String, val lines: Int? = null, val breaks: List<String> = emptyList()) {
+    /** The words with their stated breaks put in, as [QuoteSlide] puts them. */
+    val broken: String = brokenAt(text, breaks)
 }
 
 /**

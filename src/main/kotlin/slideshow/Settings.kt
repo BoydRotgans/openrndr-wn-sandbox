@@ -98,8 +98,28 @@ data class Settings(
      */
     val video: String = "video/presentation.mp4",
     val mix: Boolean = true,
+    /**
+     * What films a run: `pipelined`, [WallRecorder], which reads each frame back while the next is
+     * drawn, or `screen`, OPENRNDR's own `ScreenRecorder`, which waits for every frame. The two
+     * write the same frames; the second is kept to check that against.
+     */
+    val recorder: String = "pipelined",
     /** Write one png per click of every slide to screenshots/ and quit. */
     val stills: Boolean = false,
+    /**
+     * Time every state of the running order instead of showing it, and quit: each state is drawn
+     * [benchSamples] times across its hold, the GPU finished after every draw, and the cost is
+     * printed per slide against how long a filmed run spends on it. See `bench` in Show.
+     */
+    val bench: Boolean = false,
+    val benchSamples: Int = 12,
+    /**
+     * Whether OPENRNDR finishes the GPU after every outline of a shape it fills — its workaround for
+     * an artifact under ANGLE on a Mac (`DrawerConfiguration.waitForFinish`), on by default there. The
+     * show runs native GL, not ANGLE, and a filled letter with a counter in it then stalls the frame
+     * for nothing. Null is off on a filmed run and a bench, and OPENRNDR's own default otherwise.
+     */
+    val waitForFinish: Boolean? = null,
 
     /**
      * Whether the deck makes any sound at all — the cues a slide or a chapter card declares.

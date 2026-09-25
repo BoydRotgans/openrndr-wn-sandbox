@@ -266,12 +266,12 @@
       "B": "100 elementen met vaste afmetingen (geen maat-ontwerp). Modulair bouwen in stramien van 12 op 24 m."
     },
     "gebouw-uit-de-webtool": {
-      "A": "Generatie van 3D model via webtool.",
-      "B": "Automatische generatie van plannen.",
-      "C": "Automatische generatie van CO₂ in het gebouw ook voorzien.",
-      "D": "Demontabel bouwen.",
-      "E": "Hergebruik van de bouwstenen is mogelijk.",
-      "F": "Bouwstenen kunnen op voorraad gemaakt worden."
+      "B": "Generatie van 3D model via webtool.",
+      "C": "Automatische generatie van plannen.",
+      "D": "Automatische generatie van CO₂ in het gebouw ook voorzien.",
+      "E": "Demontabel bouwen.",
+      "F": "Hergebruik van de bouwstenen is mogelijk.",
+      "G": "Bouwstenen kunnen op voorraad gemaakt worden."
     },
     "reductie-carbon-footprint": {
       "A": "In plaats van lineair bouwen (ontwerpen – produceren – bouwen – afbreken), wordt een circulaire gedachte geschetst:"

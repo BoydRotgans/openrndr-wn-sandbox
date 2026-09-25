@@ -41,7 +41,7 @@ def read_states(path):
                            chapter=chapter, chapterKind=kind, slideKind=slide_kind))
     return frames, fps, states
 
-def write_waveform(video, path, rate):
+def write_waveform(video, path, rate, top=None):
     """One peak per 1/rate s of the mixed track, 0..255, so the site can draw any state's stretch
     of it: the film decoded to mono 8 kHz 16-bit through ffmpeg, the loudest sample of each window."""
     import array
@@ -65,11 +65,13 @@ def write_waveform(video, path, rate):
     for i in range(0, len(samples), window):
         chunk = samples[i:i + window]
         peaks.append(max((abs(x) for x in chunk), default=0))
-    top = max(peaks) or 1
+    # Each track to its own loudest moment. Drawn on the film's scale, the mix without the voice sat
+    # some 25 dB under it and came out a flat line, which reads as no waveform at all.
+    top = top or max(peaks) or 1
     with open(path, "w") as f:
-        json.dump(dict(rate=rate, peaks=[round(p * 255 / top) for p in peaks]), f, separators=(",", ":"))
+        json.dump(dict(rate=rate, peaks=[min(255, round(p * 255 / top)) for p in peaks]), f, separators=(",", ":"))
     print(f"waveform: {len(peaks)} peaks at {rate:g}/s in {path}")
-    return
+    return top
 
 def probe(video):
     out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
@@ -173,6 +175,10 @@ def main():
         # off the web video where there is one — the track the browser actually plays
         source = os.path.join(out, video_name) if not a.no_video else a.video
         write_waveform(source, os.path.join(out, waveform_name), a.waveform_rate)
+    elif os.path.isfile(os.path.join(out, "waveform.json")):
+        # A pass that leaves the waveform alone keeps the one already there. Re-cut with
+        # --no-waveform to add a soundtrack, the 22 September v2 release came out with none.
+        waveform_name = "waveform.json"
 
     # Another mix of the same film: audio alone, since the picture is the picture. The page mutes
     # the video and plays this with it, so a note made against a state holds whichever is playing.
@@ -187,7 +193,14 @@ def main():
                         "-c:a", "aac", "-b:a", a.audio_bitrate, os.path.join(out, file)], check=True)
         size = os.path.getsize(os.path.join(out, file)) / 1e6
         print(f"audio: {name or key} — {file}, {size:.0f} MB")
-        tracks.append(dict(key=slugify(key), name=name or key, file=file))
+        entry = dict(key=slugify(key), name=name or key, file=file)
+        # Its own peaks, so the page draws the track that is playing.
+        wf = f"waveform-{slugify(key)}.json"
+        if not a.no_waveform:
+            write_waveform(os.path.join(out, file), os.path.join(out, wf), a.waveform_rate)
+        if os.path.isfile(os.path.join(out, wf)):
+            entry["waveform"] = wf
+        tracks.append(entry)
 
     manifest = dict(
         name=a.name, slug=slug, notes=a.notes,

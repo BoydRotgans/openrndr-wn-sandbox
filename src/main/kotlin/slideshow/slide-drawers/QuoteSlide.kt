@@ -38,7 +38,13 @@ class QuoteSlide(
     private val quote: String,
     private val fontPath: String = "data/fonts/default.otf",
     /** Break the quote over exactly this many lines; left off, it takes whatever fits. */
-    private val lines: Int? = null
+    private val lines: Int? = null,
+    /**
+     * Where the lines end, each the words a line ends on, in order; they win over [lines]. For
+     * a quote no search sets well — the shortest measure that takes four lines can still leave a
+     * short line with a gap after it — while the wording stays wherever it is said once.
+     */
+    private val breaks: List<String> = emptyList()
 ) : Slide() {
     override val name = "Quote"
     // Black like every slide: the grey concrete it stands on is the show's overlay, laid over the
@@ -46,6 +52,8 @@ class QuoteSlide(
     override val background = Palette.onBlack.paper
 
     private val ink = Palette.onBlack.ink
+
+    private val broken = brokenAt(quote, breaks)
     private lateinit var face: FontImageMap
 
     override fun load(program: Program) {
@@ -65,11 +73,16 @@ class QuoteSlide(
         // to. Centred, a quote of four ragged lines has no edge at all.
         drawer.stroke = null
         drawer.fill = ink.opacify(opening)
-        face.setToFit(quote, box, SIZE, LEADING, lines)
+        face.setToFit(broken, box, SIZE, LEADING, lines)
             .draw(drawer, Vector2(box.x, box.center.y), align = 0.0)
     }
 
-    private companion object {
+    /**
+     * The quote's measure, public because the chapter wall sets its quote by the same numbers
+     * ([LongShadowV3]'s second pane): where a quote stands and how open its lines are is this
+     * slide's decision, and a second copy of it would drift.
+     */
+    companion object {
         const val SIZE = 190.0
 
         /** Open, because this is a sentence being read rather than a heading being seen. */
@@ -81,4 +94,14 @@ class QuoteSlide(
         /** And top and bottom, so the quote sits in air rather than filling the frame. */
         const val HEAD = 200.0
     }
+}
+
+/**
+ * [text] with a line ended after each of [breaks], in order — how [QuoteSlide] and the chapter
+ * wall state a rag no search sets well. Each must be in the text, or the show would quietly set
+ * the quote some other way.
+ */
+fun brokenAt(text: String, breaks: List<String>): String = breaks.fold(text) { t, end ->
+    require(end in t) { "QuoteSlide: \"$end\" is not in the quote" }
+    t.replaceFirst("$end ", "$end\n")
 }

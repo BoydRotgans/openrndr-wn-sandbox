@@ -71,9 +71,9 @@ fun nodes(labels: List<String>): List<TreeNode> = labels.map { TreeNode(it) }
  *
  * **[highlights] picks a few things out before the fan.** Forty labels arriving at once is a
  * picture; one arriving is a point. So the first clicks draw one named factor each — its curve
- * and its label, in [accent], with nothing else on the pane but the root — and only the click
- * after those opens the whole fan around them. The picked ones keep the accent once the rest
- * are up, so the two the speaker named stay the two the room can find. The root shrinks to
+ * and its label, with nothing else on the pane but the root — and only the click after those
+ * opens the whole fan around them. They are the ink like every other label: they were the
+ * accent until the review of 22 September, which read the blue as too hard to see. The root shrinks to
  * node size on the very first click either way, since a curve has to have an edge to leave.
  *
  * **A highlight stands beside the root while it is the only thing there, and travels to its own
@@ -92,12 +92,12 @@ class TreeSlide(
     /** The shape the previous slide left standing. See the note above on load order. */
     private val opening: () -> Mark? = { null },
     private val fontPath: String = "data/fonts/default.otf",
-    /** What the root becomes as the tree opens, and what a highlighted factor is drawn in. Null leaves the ink. */
+    /** What the root becomes as the tree opens. Null leaves the ink. */
     private val accent: ColorRGBa? = Palette.onBlack.structure,
     /** Pane pixels the root settles at, once it is a node rather than the whole subject. */
     private val rootHeight: Double = 94.0,
     private val pace: Double = 1.2,
-    /** Labels drawn one a click, in [accent], before the fan opens. In the order they are named. */
+    /** Labels drawn one a click, before the fan opens. In the order they are named. */
     private val highlights: List<String> = emptyList(),
     /**
      * The cue as the fan opens — **not** on arrival.
@@ -177,7 +177,9 @@ class TreeSlide(
                 val grown = if (picked >= 0) stage.on(picked + 1)
                             else smoothstep((stage.on(fanStep + one.depth - 1) - one.row * STAGGER) / (1.0 - STAGGER))
                 if (grown <= 0.0) return@forEach
-                val tone = if (picked >= 0) accent ?: ink else ink
+                // Every label and its curve are the ink, the named factors included: they were the
+                // accent, and the review of 22 September asked for white (the blue was hard to read).
+                val tone = ink
 
                 // While a highlight is on its own it stands beside the root, half a row off the
                 // middle, and the fan's own click carries it out to its row.

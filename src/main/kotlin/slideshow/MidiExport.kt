@@ -54,6 +54,45 @@ interface MidiTimed {
      * is handed in rather than guessed at, and [midiClicks] is the pace a filmed run really uses.
      */
     fun arrivals(clicks: List<Int> = emptyList()): List<Arrival>
+
+    /**
+     * How many frames a score of this slide covers, where its build has no end of its own.
+     *
+     * A wall that goes on for ever — a box filling, holding and emptying again, and again — cannot
+     * say when it has finished, so it says instead how much of itself is written down, and the clip
+     * beside the file is exactly that long. Null everywhere else, where the build ends by itself.
+     */
+    val midiFrames: Int? get() = null
+}
+
+/**
+ * What one block wants of the file: a lane, the pitch it would rather have, when it moves and for
+ * how long, and the register it may be moved within.
+ */
+data class Want(val lane: Int, val pitch: Int, val start: Int, val length: Int, val lo: Int, val hi: Int)
+
+/**
+ * [wants] with a voice of its own each, as [Arrival]s.
+ *
+ * **A channel sounds one note per pitch at a time**, so two blocks that share a pitch and overlap
+ * are not two notes: the first is cut short, and two starting on the same frame become one — which
+ * on the chapter card lost 12 letters outright and left 37 elements under 50 ms, a file that reads
+ * as nearly empty in a DAW. So a block takes its preferred pitch while that pitch is free on its
+ * lane, and otherwise the nearest free one in its own register, going outward; only when every
+ * pitch in the register is sounding does it take the one that frees soonest.
+ */
+fun voiced(wants: List<Want>): List<Arrival> {
+    val freeAt = HashMap<Pair<Int, Int>, Int>()
+    val out = mutableListOf<Arrival>()
+    for (w in wants.sortedWith(compareBy({ it.start }, { it.lane }, { it.pitch }))) {
+        val span = w.hi - w.lo
+        val candidates = (0..2 * span).map { k -> w.pitch + if (k % 2 == 0) k / 2 else -(k + 1) / 2 }.filter { it in w.lo..w.hi }
+        val pitch = candidates.firstOrNull { (freeAt[w.lane to it] ?: Int.MIN_VALUE) <= w.start }
+            ?: candidates.minBy { freeAt[w.lane to it] ?: Int.MIN_VALUE }
+        freeAt[w.lane to pitch] = w.start + w.length
+        out += Arrival(w.lane, pitch, w.start, w.length)
+    }
+    return out.sortedBy { it.start }
 }
 
 /**
@@ -101,6 +140,8 @@ fun pitchStep(i: Int, n: Int, span: Int = PITCH_SPAN): Int = if (n <= span) i el
  * score ends; the crowd's clicks are the build, so there the filmed pace is the longer.
  */
 fun clipFrames(slide: Slide, hold: Double, clicks: List<Int>, lastNote: Int): Int {
+    // A wall with no end of its own is filmed for exactly as much of itself as it wrote down.
+    slide.midiFrames?.let { return it }
     val tail = if (clicks.isEmpty()) slide.settle else slide.stepLength(slide.steps - 1)
     val filmed = (clicks.lastOrNull() ?: 0) + tail + frames(hold)
     return maxOf(filmed, lastNote + frames(hold))

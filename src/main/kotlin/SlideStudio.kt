@@ -216,6 +216,18 @@ fun main() = application {
         fun deckFor(i: Int) = Deck(listOf(slides[i]), 0, Outline(listOfNotNull(catalogue.outline[i])))
         var deck = deckFor(index)
 
+        // SLIDE_STEP opens on the click *into* that state rather than on the slide's opening: the
+        // state before it, cut to, and the click played from there on the slide's first frame — so
+        // what is worked on is the click the audience sees, and SLIDE_AT counts from its start.
+        // `r` plays it again. A slide with fewer states opens as usual.
+        val intoStep = Env["SLIDE_STEP"]?.toIntOrNull() ?: 0
+        fun playIntoStep() {
+            if (intoStep <= 0 || intoStep >= slides[index].steps) return
+            deck.goTo(0, intoStep - 1, cut = true)
+            deck.next()
+        }
+        playIntoStep()
+
         val clock = Clock()
         var saveNext = false
         var taken = 0
@@ -251,6 +263,7 @@ fun main() = application {
         fun goToSlide(i: Int) {
             index = open(i)
             deck = deckFor(index)
+            playIntoStep()
             taken = 0
             println("slide %d/%d — %s — %d click%s".format(
                 index + 1, slides.size, label(index),
@@ -267,7 +280,7 @@ fun main() = application {
                 event.key == KEY_ARROW_UP -> goToSlide(index - 1)
                 event.key == KEY_ESCAPE -> application.exit()
 
-                event.name == "r" || event.name == "0" -> deck.replay()
+                event.name == "r" || event.name == "0" -> { deck.replay(); playIntoStep() }
                 event.name == "s" -> saveNext = true
                 event.name == "d" -> debug = !debug
 

@@ -17,7 +17,10 @@ import kotlin.math.cbrt
  * `APERITIF_TRACE` is the seconds one pen takes round one mark, `APERITIF_LINE` the weight, and
  * `APERITIF_PEN=true` puts a point at the head of every line still being drawn.
  */
-fun main() = runCourse("course-1-aperitif") {
+fun main() = runCourse("course-1-aperitif", preview = 40.0) { aperitifCourse() }
+
+/** The wall itself, a function of the drawer and the second, for [runCourse] and the course studio alike. */
+fun org.openrndr.Program.aperitifCourse(): (Drawer, Double) -> Unit {
     val site = Site.load()
     val trace = Env["APERITIF_TRACE"]?.toDoubleOrNull() ?: 4.0
     val line = Env["APERITIF_LINE"]?.toDoubleOrNull() ?: 1.6
@@ -46,7 +49,7 @@ fun main() = runCourse("course-1-aperitif") {
 
     fun smooth(x: Double) = x.coerceIn(0.0, 1.0).let { it * it * (3.0 - 2.0 * it) }
 
-    return@runCourse { drawer: Drawer, time: Double ->
+    return { drawer: Drawer, time: Double ->
         drawer.stroke = rule
         drawer.strokeWeight = 1.0
         drawer.fill = null

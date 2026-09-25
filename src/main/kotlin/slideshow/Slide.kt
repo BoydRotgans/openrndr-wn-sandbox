@@ -45,6 +45,19 @@ abstract class Slide : MidiTimed {
      */
     open val wide: Boolean get() = false
 
+    /**
+     * Whether this wide slide is its chapter's card taking the whole wall, rather than a picture
+     * the card steps aside for. A chapter opening that draws the card's own field across both
+     * projectors is one: while it is up the card is not drawn, but it stays the chapter's card and
+     * keeps its clock — the show starts it on the very frame this slide came up — so the slide after
+     * finds the card exactly where the wall left it instead of starting it again.
+     *
+     * So such a slide keeps its chapter's card in `panelOf` like any narrow slide, is a section
+     * start like one (the card's sting announces it), and holds for the ordinary reading time
+     * rather than a wall's. Only meaningful with [wide]; see `ChapterOpening`.
+     */
+    open val carriesCard: Boolean get() = false
+
     /** What kind of thing this is, for the running order to report: `backdrop`, `scene`. */
     open val kind: String get() = "slide"
 

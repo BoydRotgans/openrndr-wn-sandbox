@@ -132,6 +132,22 @@ class Deck(
         current = Playhead(current.index, 0)
     }
 
+    /** The frame the slide up now came up on: its frame count runs from here. */
+    val startedAt: Int get() = current.startedAt
+
+    /**
+     * Slide [index] afresh at [step], on a cut, its frame count running from [since] rather than
+     * from now — for a deck that has to keep time with another. The chapter card starts this way
+     * under a chapter opening that carries it, on the frame the opening came up, so the two are
+     * the same picture to the frame: the opening may have come up between two draws, on a key,
+     * while the card's deck is only moved inside one.
+     */
+    fun restart(index: Int, step: Int = 0, since: Int = frame) {
+        leaving = null
+        transition = Cut
+        current = Playhead(index.coerceIn(slides.indices), step, since)
+    }
+
     /**
      * The same deck over a rearranged list of slides, for an order applied while the show
      * runs. The slide on screen keeps its click and its frame count where it survives at
@@ -188,7 +204,7 @@ class Deck(
      * wherever it *currently* is towards the new step, so clicking again mid-move picks up
      * from the frame on screen instead of snapping back.
      */
-    private inner class Playhead(val index: Int, step: Int, private val startedAt: Int = frame) {
+    private inner class Playhead(val index: Int, step: Int, val startedAt: Int = frame) {
         val slide = slides[index]
 
         /** This playhead at another index over the same slide: click, ramp and frame count carried over. */

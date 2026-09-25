@@ -30,26 +30,41 @@ object MosaicCells {
     fun rows(area: Rectangle, columns: Int): Int =
         Math.round(area.height / (area.width / columns / SHAPE)).toInt().coerceAtLeast(2)
 
-    fun split(r: Rectangle, random: Random, depth: Int = 0, leaf: (Rectangle) -> Unit) {
+    /**
+     * [must] forces a split wherever it answers true, down to [THINNEST] — how a picture's edges are
+     * traced on the grid, the cells that straddle one going on dividing while the rest stop where
+     * chance leaves them; a forced split may go on down to [finest] rather than [THINNEST]. Left
+     * out, the stream is drawn exactly as it always was.
+     */
+    fun split(r: Rectangle, random: Random, depth: Int = 0, must: (Rectangle) -> Boolean = { false },
+              finest: Double = THINNEST, leaf: (Rectangle) -> Unit) {
         val chance = SPLIT[depth.coerceAtMost(SPLIT.size - 1)]
-        if (random.nextDouble() < chance) {
+        val forced = must(r)
+        if (forced || random.nextDouble() < chance) {
+            val floor = if (forced) finest else THINNEST
             val halfW = r.width / 2.0
             val halfH = r.height / 2.0
             val kind = random.nextDouble()
+            val quarters = minOf(halfW, halfH) >= floor
+            val beside = minOf(halfW, r.height) >= floor
+            val stacked = minOf(r.width, halfH) >= floor
+            fun quartered() = listOf(
+                Rectangle(r.x, r.y, halfW, halfH), Rectangle(r.x + halfW, r.y, halfW, halfH),
+                Rectangle(r.x, r.y + halfH, halfW, halfH), Rectangle(r.x + halfW, r.y + halfH, halfW, halfH)
+            )
+            fun besides() = listOf(Rectangle(r.x, r.y, halfW, r.height), Rectangle(r.x + halfW, r.y, halfW, r.height))
             val parts = when {
-                kind < QUARTERS && minOf(halfW, halfH) >= THINNEST -> listOf(
-                    Rectangle(r.x, r.y, halfW, halfH), Rectangle(r.x + halfW, r.y, halfW, halfH),
-                    Rectangle(r.x, r.y + halfH, halfW, halfH), Rectangle(r.x + halfW, r.y + halfH, halfW, halfH)
-                )
-                kind < QUARTERS + (1.0 - QUARTERS) / 2.0 && minOf(halfW, r.height) >= THINNEST -> listOf(
-                    Rectangle(r.x, r.y, halfW, r.height), Rectangle(r.x + halfW, r.y, halfW, r.height)
-                )
-                minOf(r.width, halfH) >= THINNEST -> listOf(
-                    Rectangle(r.x, r.y, r.width, halfH), Rectangle(r.x, r.y + halfH, r.width, halfH)
-                )
+                kind < QUARTERS && quarters -> quartered()
+                kind < QUARTERS + (1.0 - QUARTERS) / 2.0 && beside -> besides()
+                stacked -> listOf(Rectangle(r.x, r.y, r.width, halfH), Rectangle(r.x, r.y + halfH, r.width, halfH))
+                // A forced split takes whatever split is left, where a chance one gives up: drawn
+                // "stacked" on a cell too thin for it, an 80 by 11 cell straddling a stem stopped
+                // there and the stem went missing from the D.
+                forced && beside -> besides()
+                forced && quarters -> quartered()
                 else -> emptyList()
             }
-            if (parts.isNotEmpty()) { parts.forEach { split(it, random, depth + 1, leaf) }; return }
+            if (parts.isNotEmpty()) { parts.forEach { split(it, random, depth + 1, must, finest, leaf) }; return }
         }
         leaf(r)
     }

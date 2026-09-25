@@ -122,13 +122,13 @@ export default function App() {
 
   useEffect(() => { setPin(null) }, [state?.key])
 
-  // the track's peaks, once per release
+  // the peaks of the soundtrack playing, once per release and track
   useEffect(() => {
     let live = true
     setWaveform(null)
-    if (release) loadWaveform(release).then((w) => { if (live) setWaveform(w) })
+    if (release) loadWaveform(release, track).then((w) => { if (live) setWaveform(w) })
     return () => { live = false }
-  }, [release])
+  }, [release, track])
 
   useEffect(() => {
     const h = hashFor(release, state)

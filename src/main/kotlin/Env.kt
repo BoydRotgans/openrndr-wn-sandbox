@@ -27,10 +27,26 @@ object Env {
             }
     }
 
-    /** The value for [key], or null when it is unset or blank in both sources. */
+    /**
+     * Values laid over both sources for the length of a [with] block, on this thread only: how a
+     * sketch built for one set of keys stands in the show as a variant with another — a course wall
+     * holding a saved view, a grid of another element — without the file or the process changing.
+     */
+    private val scoped = ThreadLocal<Map<String, String>>()
+
+    /** The value for [key], or null when it is unset or blank in every source. */
     operator fun get(key: String): String? =
-        System.getenv(key)?.takeIf { it.isNotBlank() }
+        scoped.get()?.get(key)?.takeIf { it.isNotBlank() }
+            ?: System.getenv(key)?.takeIf { it.isNotBlank() }
             ?: fromFile[key]?.takeIf { it.isNotBlank() }
+
+    /** Runs [block] with [values] winning over the environment and the file, and puts things back after. */
+    fun <T> with(values: Map<String, String>, block: () -> T): T {
+        if (values.isEmpty()) return block()
+        val before = scoped.get()
+        scoped.set((before ?: emptyMap()) + values)
+        try { return block() } finally { if (before == null) scoped.remove() else scoped.set(before) }
+    }
 
     /** The value for [key], or a message explaining exactly what to fill in. */
     fun require(key: String): String = get(key) ?: error(

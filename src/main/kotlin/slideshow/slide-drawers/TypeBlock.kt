@@ -65,12 +65,18 @@ fun FontImageMap.advanceOf(text: String): Double {
  * one that way. A piece taken after a hyphen carries no space in front of it, so the word
  * closes up again whenever it does fit on one line.
  */
-fun FontImageMap.wrapped(text: String, measure: Double): List<String> {
+fun FontImageMap.wrapped(text: String, measure: Double): List<String> = wrap(text, measure) { advanceOf(it) }
+
+/**
+ * [wrapped], measured by [advance] rather than by an atlas — so a caller that measures a face's
+ * outlines, which need no GL context, breaks a line exactly where the atlas would.
+ */
+fun wrap(text: String, measure: Double, advance: (String) -> Double): List<String> {
     val lines = mutableListOf<String>()
     var line = ""
     for (piece in pieces(text)) {
         val candidate = if (line.isEmpty()) piece.text else line + piece.glue + piece.text
-        if (line.isNotEmpty() && advanceOf(candidate) > measure) {
+        if (line.isNotEmpty() && advance(candidate) > measure) {
             lines += line
             line = piece.text
         } else {
@@ -103,6 +109,9 @@ private fun pieces(text: String): List<Piece> {
  * wereld van bouwen" maximised comes out over *two* lines, because a third costs more
  * height than the shorter measure wins back in width. Asking for three is asking for
  * smaller type and a better rag, which is a design decision and belongs in the show.
+ *
+ * A text with line breaks in it is set exactly as broken, and only the scale is fitted: where
+ * no search gives the rag wanted, the show states it.
  */
 fun FontImageMap.setToFit(
     text: String,
@@ -111,10 +120,23 @@ fun FontImageMap.setToFit(
     leading: Double,
     lines: Int? = null
 ): TypeBlock {
-    val broken = if (lines != null) over(text, lines) else biggest(text, box, size, leading)
+    val broken = breakLines(text, box, size, leading, lines) { advanceOf(it) }
     val widest = broken.maxOf { advanceOf(it) }.coerceAtLeast(1.0)
     val scale = minOf(box.width / widest, box.height / (broken.size * leading * size))
     return TypeBlock(broken, scale, size, leading, this)
+}
+
+/**
+ * The lines [setToFit] breaks [text] into, measured by [advance] at [size] — the one breaking,
+ * for a caller measuring something other than an atlas. The long shadow wall sets its quote
+ * from the face's outlines this way and so breaks it exactly where [QuoteSlide] would.
+ */
+fun breakLines(
+    text: String, box: Rectangle, size: Double, leading: Double, lines: Int?, advance: (String) -> Double
+): List<String> = when {
+    '\n' in text -> text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+    lines != null -> over(text, lines, advance)
+    else -> biggest(text, box, size, leading, advance)
 }
 
 /**
@@ -126,19 +148,19 @@ fun FontImageMap.setToFit(
  * largest that does. A single word too long for the measure fails the width test and
  * shrinks the whole block rather than running off the edge of it.
  */
-private fun FontImageMap.biggest(
-    text: String, box: Rectangle, size: Double, leading: Double
+private fun biggest(
+    text: String, box: Rectangle, size: Double, leading: Double, advance: (String) -> Double
 ): List<String> {
     var low = 0.02
     var high = 4.0
     repeat(30) {
         val mid = (low + high) / 2.0
-        val at = wrapped(text, box.width / mid)
+        val at = wrap(text, box.width / mid, advance)
         val fits = at.size * leading * size * mid <= box.height &&
-                at.all { advanceOf(it) * mid <= box.width }
+                at.all { advance(it) * mid <= box.width }
         if (fits) low = mid else high = mid
     }
-    return wrapped(text, box.width / low)
+    return wrap(text, box.width / low, advance)
 }
 
 /**
@@ -148,15 +170,15 @@ private fun FontImageMap.biggest(
  * The measure is searched rather than the scale, because the count is what was asked for —
  * the scale is then whatever those lines need, back in [setToFit].
  */
-private fun FontImageMap.over(text: String, count: Int): List<String> {
+private fun over(text: String, count: Int, advance: (String) -> Double): List<String> {
     if (count <= 1) return listOf(text)
     var low = 0.0
-    var high = advanceOf(text)
+    var high = advance(text)
     repeat(30) {
         val mid = (low + high) / 2.0
-        if (wrapped(text, mid).size >= count) low = mid else high = mid
+        if (wrap(text, mid, advance).size >= count) low = mid else high = mid
     }
-    return wrapped(text, low)
+    return wrap(text, low, advance)
 }
 
 /**

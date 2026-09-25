@@ -43,6 +43,8 @@ import java.util.concurrent.Executors
  *     POST /api/replay
  *     POST /api/previews         { "ids": [...] }?            render previews again
  *     PUT  /api/order            an order file's contents      save the running order
+ *                                ?rev=                         … refused (409) if the file moved since,
+ *                                                              or if no rev is sent; ?force=1 writes anyway
  *     PUT  /api/modules          a modules file's contents     save the slides to build
  *     PUT  /api/intents          an intents file's contents    save the intended update per slide
  *     PUT  /api/feedback         a feedback file's contents    save the notes written against slides
@@ -65,6 +67,14 @@ import java.util.concurrent.Executors
  * and nothing waits for a launch. That is only possible because, with the organizer on, every
  * declared slide is loaded whether or not the order plays it: an archived slide dragged back
  * in has to be there to be shown.
+ *
+ * **A save never writes over a file the page did not read.** Every launch of the organizer opens
+ * a tab of its own and the old ones keep working, so two pages holding two copies of the order
+ * are the ordinary case, not a corner: the one saved second wrote its older copy over the first,
+ * and placements made in one tab were gone. So each file the page writes has a revision ([revs]),
+ * handed to the page with the show and on every poll; a PUT carries the revision it was read at
+ * as `?rev=`, and one that no longer matches is refused with a 409 rather than written. A page
+ * with nothing unsaved reads the files again when a revision moves under it.
  *
  * **Saving the modules file rebuilds the catalogue the same way.** [ApplyModules] stands the
  * new set of placeholders in the declared show — loading only the ones whose frames changed —
@@ -250,6 +260,64 @@ class Remote(
         catalogue = next
     }
 
+    /** The files the page writes, by the name it gives them. */
+    private val pageFiles
+        get() = mapOf(
+            "order" to orderFile, "modules" to modulesFile, "intents" to intentsFile,
+            "subtitles" to subtitlesFile, "subtitlesExtended" to subtitlesExtendedFile,
+            "feedback" to feedbackFile, "midi" to midiFile
+        )
+
+    /**
+     * A file's revision: a checksum of what it holds, or `none` while there is no file. What it
+     * holds rather than when it was written, because the save button writes all five of its files
+     * whether or not they changed — by date, one tab's save flagged every file in every other tab.
+     * Read again only when the file's date or length moves, since the page polls several times a
+     * second.
+     */
+    private fun revOf(file: File): String {
+        if (!file.isFile) return "none"
+        val stat = "${file.lastModified()}-${file.length()}"
+        revCache[file.path]?.let { (at, rev) -> if (at == stat) return rev }
+        val bytes = file.readBytes()
+        val rev = "${java.util.zip.CRC32().apply { update(bytes) }.value.toString(36)}-${bytes.size.toString(36)}"
+        revCache[file.path] = stat to rev
+        return rev
+    }
+
+    private val revCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String, String>>()
+
+    /** Every file the page writes, at its current revision. */
+    private fun revs(): JsonObject = buildJsonObject { pageFiles.forEach { (key, file) -> put(key, revOf(file)) } }
+
+    /**
+     * Answers 409 and returns true when the page is saving over a copy of [key] it did not read:
+     * another tab saved it since, or it was changed on disk. `force=1` is the page's "save over
+     * them", asked for by name. A request with neither is a page loaded before this rule — which is
+     * to say one of the old tabs the rule is for — and it is refused too, asking for a reload.
+     */
+    private fun refused(exchange: HttpExchange, key: String): Boolean {
+        if (exchange.query("force") == "1") return false
+        val file = pageFiles.getValue(key)
+        val asked = exchange.query("rev")?.takeIf { it.isNotBlank() } ?: run {
+            println("organizer: refused to save ${file.path} from a page older than the organizer")
+            exchange.json(409, buildJsonObject {
+                put("error", "this organizer page is older than the organizer serving it, so it cannot tell whether ${file.path} changed since — reload the page. Nothing was written.")
+                put("file", key)
+            })
+            return true
+        }
+        val now = revOf(file)
+        if (asked == now) return false
+        println("organizer: refused to save ${file.path} over a newer copy (another organizer tab, or an edit on disk)")
+        exchange.json(409, buildJsonObject {
+            put("error", "${file.path} changed since this page read it — another organizer tab saved it, or it was edited on disk. Nothing was written.")
+            put("file", key)
+            put("rev", now)
+        })
+        return true
+    }
+
     /** The order to play: the file's where there is one, else the catalogue as declared. */
     fun currentOrder(): Order =
         if (orderFile.isFile) runCatching { Order.read(orderFile) }.getOrElse { Order.of(catalogue) }
@@ -319,7 +387,7 @@ class Remote(
                     runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject }.getOrNull()?.let { o ->
                         val layer = Layer.of(o["layer"]?.jsonPrimitive?.contentOrNull)
                         val gain = o["gain"]?.jsonPrimitive?.doubleOrNull
-                        if (layer != null && gain != null) p.mix[layer] = gain.coerceIn(0.0, 4.0)
+                        if (layer != null && gain != null) p.mix[layer] = gain.coerceIn(0.0, MAX_MIX)
                     }
                     if (!p.live) return exchange.json(200, presentationJson(p))
                 }
@@ -398,8 +466,8 @@ class Remote(
                 }
                 path == "/api/subtitles" && method == "PUT" -> {
                     // `?track=extended` saves the extended track; without it, the default one.
-                    val track = SubtitleTrack.of(exchange.requestURI.query?.split("&")
-                        ?.firstOrNull { it.startsWith("track=") }?.removePrefix("track="))
+                    val track = SubtitleTrack.of(exchange.query("track"))
+                    if (refused(exchange, if (track == SubtitleTrack.EXTENDED) "subtitlesExtended" else "subtitles")) return
                     val file = if (track == SubtitleTrack.EXTENDED) subtitlesExtendedFile else subtitlesFile
                     val was = if (track == SubtitleTrack.EXTENDED) subtitlesExtended else subtitles
                     val text = exchange.bytes().decodeToString()
@@ -413,7 +481,7 @@ class Remote(
                     if (track == SubtitleTrack.EXTENDED) subtitlesExtended = kept else subtitles = kept
                     commands += ApplySubtitles(kept, track)
                     println("organizer: saved ${file.path} (${kept.size} slides with a line)")
-                    exchange.json(200, buildJsonObject { put("saved", file.path); put("applied", true) })
+                    exchange.json(200, buildJsonObject { put("saved", file.path); put("applied", true); put("rev", revOf(file)) })
                 }
                 path == "/api/grid" && method == "POST" -> {
                     commands += Grid(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
@@ -425,6 +493,7 @@ class Remote(
                     exchange.json(202, ok())
                 }
                 path == "/api/order" && method == "PUT" -> {
+                    if (refused(exchange, "order")) return
                     val text = exchange.bytes().decodeToString()
                     val order = runCatching { Order.parse(text) }.getOrElse {
                         exchange.json(400, error("not an order: ${it.message}"))
@@ -434,9 +503,10 @@ class Remote(
                     commands += Apply(order)
                     if (presentation != null) show = runCatching { catalogue.arranged(order) }.getOrDefault(catalogue)
                     println("organizer: saved ${orderFile.path} (${order.refs().count { it.on }} slides on)")
-                    exchange.json(200, buildJsonObject { put("saved", orderFile.path); put("applied", true) })
+                    exchange.json(200, buildJsonObject { put("saved", orderFile.path); put("applied", true); put("rev", revOf(orderFile)) })
                 }
                 path == "/api/modules" && method == "PUT" -> {
+                    if (refused(exchange, "modules")) return
                     val text = exchange.bytes().decodeToString()
                     val next = runCatching { Modules.parse(text) }.getOrElse {
                         exchange.json(400, error("not a modules file: ${it.message}"))
@@ -448,9 +518,10 @@ class Remote(
                     commands += ApplyModules(kept)
                     if (presentation != null) reload()
                     println("organizer: saved ${modulesFile.path} (${kept.modules.size} modules to build)")
-                    exchange.json(200, buildJsonObject { put("saved", modulesFile.path); put("applied", true) })
+                    exchange.json(200, buildJsonObject { put("saved", modulesFile.path); put("applied", true); put("rev", revOf(modulesFile)) })
                 }
                 path == "/api/intents" && method == "PUT" -> {
+                    if (refused(exchange, "intents")) return
                     val text = exchange.bytes().decodeToString()
                     val next = runCatching { Intents.parse(text) }.getOrElse {
                         exchange.json(400, error("not an intents file: ${it.message}"))
@@ -461,9 +532,10 @@ class Remote(
                     kept.write(intentsFile)
                     intents = kept
                     println("organizer: saved ${intentsFile.path} (${kept.size} slides with an intent)")
-                    exchange.json(200, buildJsonObject { put("saved", intentsFile.path); put("applied", true) })
+                    exchange.json(200, buildJsonObject { put("saved", intentsFile.path); put("applied", true); put("rev", revOf(intentsFile)) })
                 }
                 path == "/api/feedback" && method == "PUT" -> {
+                    if (refused(exchange, "feedback")) return
                     val text = exchange.bytes().decodeToString()
                     val next = runCatching { Feedback.parse(text) }.getOrElse {
                         exchange.json(400, error("not a feedback file: ${it.message}"))
@@ -473,9 +545,10 @@ class Remote(
                     kept.write(feedbackFile)
                     feedback = kept
                     println("organizer: saved ${feedbackFile.path} (${kept.open} open of ${kept.total} notes)")
-                    exchange.json(200, buildJsonObject { put("saved", feedbackFile.path); put("open", kept.open) })
+                    exchange.json(200, buildJsonObject { put("saved", feedbackFile.path); put("open", kept.open); put("rev", revOf(feedbackFile)) })
                 }
                 path == "/api/midi" && method == "PUT" -> {
+                    if (refused(exchange, "midi")) return
                     val text = exchange.bytes().decodeToString()
                     val next = runCatching { MidiWanted.parse(text) }.getOrElse {
                         exchange.json(400, error("not a midi file: ${it.message}"))
@@ -492,6 +565,7 @@ class Remote(
                     println("organizer: saved ${midiFile.path} (${kept.size} slides wanted as MIDI)")
                     exchange.json(200, buildJsonObject {
                         put("saved", midiFile.path)
+                        put("rev", revOf(midiFile))
                         put("wanted", kept.size)
                         put("files", JsonArray(kept.ids.sorted().map { JsonPrimitive(midiFileOf(it).path) }))
                     })
@@ -551,6 +625,9 @@ class Remote(
     }
 
     private fun showJson(): JsonObject {
+        // Taken before anything is read, so a write landing in between leaves the page a revision
+        // behind what it holds — read again on the next poll — rather than ahead of it.
+        val revs = revs()
         val declared = Order.of(catalogue)
         val order = if (orderFile.isFile) runCatching { Order.read(orderFile) }.getOrDefault(declared) else declared
         val catalogueIds = catalogue.slideIds
@@ -560,6 +637,7 @@ class Remote(
             put("hasOrderFile", orderFile.isFile)
             put("modulesFile", modulesFile.path)
             put("hasModulesFile", modulesFile.isFile)
+            put("revs", revs)
             put("running", JsonArray(ids.map { JsonPrimitive(it) }))
             put("catalogue", JsonArray(catalogueIds.mapIndexed { i, id -> slideJson(catalogue, i, id) }))
             put("order", order.toJson())
@@ -598,6 +676,12 @@ class Remote(
             put("kind", slide.kind)
             put("wide", slide.wide)
             put("module", module != null)
+            (slide as? SketchWall)?.let { wall ->
+                put("sketch", wall.sketch)
+                wall.variantName?.let { put("sketchVariant", it) }
+                File("sketch-previews/${wall.sketch}.png").takeIf { it.isFile }
+                    ?.let { put("sketchPreview", "/sketch-previews/${wall.sketch}.png?t=${it.lastModified()}") }
+            }
             // What this slide's score is written on: a lane a column for the Plain wall, a lane
             // a click for the crowd, and for everything else one lane of its own states. Every
             // slide has some, which is why the organizer's midi button is never refused.
@@ -653,6 +737,7 @@ class Remote(
             put("mix", buildJsonObject { s.mix.forEach { (l, g) -> put(l.key, g) } })
             put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
             put("exportFrame", exportFrame); put("exportFrames", exportFrames)
+            put("revs", revs())
             presentation?.let { put("presentation", presentationJson(it)) }
         }
     }
@@ -751,6 +836,11 @@ class Remote(
     }
 
     private val body = ThreadLocal<Pair<HttpExchange, ByteArray>>()
+
+    /** A parameter off the request's query string, decoded. */
+    private fun HttpExchange.query(name: String): String? =
+        requestURI.rawQuery?.split("&")?.firstOrNull { it.substringBefore('=') == name }
+            ?.substringAfter('=', "")?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
 
     private fun HttpExchange.body(): JsonObject =
         runCatching { Json.parseToJsonElement(bytes().decodeToString()).jsonObject }

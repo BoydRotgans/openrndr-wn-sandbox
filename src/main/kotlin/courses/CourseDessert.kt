@@ -23,7 +23,10 @@ import kotlin.math.sqrt
  * `DESSERT_SUN` is the sun's height in degrees (lower is longer shadows), `DESSERT_AO` the occlusion,
  * and `DESSERT_INSET` how much of its cell a building takes — below 1 the blue floor shows between them.
  */
-fun main() = runCourse("course-5-dessert") {
+fun main() = runCourse("course-5-dessert", preview = 40.0) { dessertCourse() }
+
+/** The wall itself, a function of the drawer and the second, for [runCourse] and the course studio alike. */
+fun org.openrndr.Program.dessertCourse(): (Drawer, Double) -> Unit {
     val city = SiteCity(Site.load())
     val sun = Env["DESSERT_SUN"]?.toDoubleOrNull() ?: 30.0
     val turn = Env["DESSERT_TURN"]?.toDoubleOrNull() ?: 180.0
@@ -39,7 +42,7 @@ fun main() = runCourse("course-5-dessert") {
         ao = ao, aoReach = 70.0, inset = inset, heightPower = 2.0, proportional = true
     )
 
-    return@runCourse { drawer: Drawer, time: Double ->
+    return { drawer: Drawer, time: Double ->
         city.draw(
             drawer, time,
             SiteCity.View(

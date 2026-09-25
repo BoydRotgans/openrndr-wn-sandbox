@@ -13,19 +13,26 @@ import org.openrndr.draw.Drawer
 import org.openrndr.draw.isolated
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import org.openrndr.shape.bounds
+import slideshow.Arrival
 import slideshow.Cut
 import slideshow.Mark
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
+import slideshow.Want
 import slideshow.easeInOutCubic
 import slideshow.frames
 import slideshow.linear
 import slideshow.smoothstep
+import slideshow.voiced
 import java.io.File
+import kotlin.math.asin
+import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.sin
 
 /**
  * `CityMap.kt` in the deck: the catalogue city pushed into on one click, and closed down
@@ -233,14 +240,20 @@ class CityMapSlide(
             }
 
             val taken = moves.mapTo(HashSet()) { it.placement }
-            fabric = meshOfTriangles(
-                placements.map { building ->
-                    building.filter { it !in taken }.flatMap { it.triangles(templates) }
-                },
-                area.origin
-            )
+            val kept = placements.map { building -> building.filter { it !in taken } }
+            fabric = meshOfTriangles(kept.map { building -> building.flatMap { it.triangles(templates) } }, area.origin)
+            plans = kept.map { building ->
+                Plan(
+                    if (building.isEmpty()) Vector2.ZERO
+                    else building.map { it.centre }.reduce(Vector2::plus) / building.size.toDouble(),
+                    building.size
+                )
+            }
         } else {
-            fabric = meshOf(buildings.map { it.shapes() }, area.origin)
+            val shapes = buildings.map { it.shapes() }
+            fabric = meshOf(shapes, area.origin)
+            // A footprint is one thing, however big: there are no elements to count on it.
+            plans = shapes.map { Plan(it.map { shape -> shape.bounds }.bounds.center, if (it.isEmpty()) 0 else 1) }
         }
 
         // The ground the figure stands in, at full strength — the sketch fades it up on a
@@ -394,7 +407,95 @@ class CityMapSlide(
         }
     }
 
+    // ---- the opening as MIDI ---------------------------------------------------------- //
+    //
+    //  **Every plan that comes up in shot is a note**, on the timing the reveal stands it by. A plan
+    //  is not scheduled: it shows as far as the front has passed it, and the front is a smoothstep
+    //  of the opening's clock over the part index — so the score is that rule read backwards. Plan
+    //  `i` starts to show once the front passes `i + 1` and is whole once it is a [TAIL] behind, and
+    //  the frame the front reaches a share `y` of the town is `OPEN * (1/2 - sin(asin(1 - 2y) / 3))`,
+    //  smoothstep inverted in closed form.
+    //
+    //  A plan is the unit because it is what the reveal fades, all its elements together: a note an
+    //  element would be a chord of identical notes. A plan that comes up outside the frame is not a
+    //  note, the belt's rule for a move made off the wall; the frame is the one the camera holds at
+    //  that moment, since it closes in as the town comes up.
+    //
+    //  **A lane is a column of the pane and pitch is height in it**, top highest — the Plain wall's
+    //  mapping, so a note says where on the pane its plan came up and a host can pan the tracks. The
+    //  reveal runs in the register's order, which is scattered across the town, so what the ear gets
+    //  is a cloud thickening and thinning where the eye gets the town coming up through it.
+    //
+    //  **The columns are what keep the notes whole.** At the height of the reveal a hundred-odd plans
+    //  are fading in at once, and a lane has one voice a pitch: split by how many elements a plan
+    //  carries instead — which is 1 for 96% of them at 18 m — one lane took nearly all of it, sat on
+    //  all 48 of its pitches, and `voiced` cut its notes to half their length and 69 of them under
+    //  50 ms. Across the columns every plan keeps its whole fade.
+    //
+    //  The elements held out for the grid have a lane of their own: they are the ones the next click
+    //  gathers. A last lane marks the states, the floor every slide has.
+
+    /** A plan as the score reads it: where it stands in the world, and how many elements are on it. */
+    private class Plan(val centre: Vector2, val elements: Int)
+
+    /** One a fabric part, in part order — so the part index the reveal sweeps is the index here. */
+    private var plans: List<Plan> = emptyList()
+
+    override val lanes: List<String> get() =
+        (1..COLUMNS).map { "plans, column $it of $COLUMNS" } + listOf("grid elements", "states")
+
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val states = super.arrivals(clicks).map { it.copy(lane = STATES_LANE) }
+        if (plans.isEmpty() || !::camera.isInitialized) return states
+        val open = frames(OPEN)
+        val began = pushFrom * OPEN_FROM
+        val rest = pushFrom * OPEN_REST
+
+        /** The frame the opening's front reaches [share] of the way through the town on. */
+        fun frameAt(share: Double): Int {
+            val y = share.coerceIn(0.0, 1.0)
+            return ceil((0.5 - sin(asin(1.0 - 2.0 * y) / 3.0)) * open).toInt()
+        }
+
+        /**
+         * A note for something at [centre] showing from [from] to [to] of the front, or null off
+         * frame. [lane] is handed the share of the way across the pane it stands at.
+         */
+        fun want(centre: Vector2, from: Double, to: Double, lane: (Double) -> Int): Want? {
+            // The frame the camera holds as it starts to show: the zoom runs on the same smoothstep.
+            val frame = camera.worldFrame(began * (rest / began).pow(from.coerceIn(0.0, 1.0)))
+            if (!frame.contains(centre)) return null
+            val across = (centre.x - frame.x) / frame.width
+            val up = (centre.y - frame.y) / frame.height
+            val pitch = (up * (SCORE_NOTES - 1)).toInt().coerceIn(0, SCORE_NOTES - 1)
+            val start = frameAt(from)
+            return Want(lane(across), pitch, start, (frameAt(to) - start).coerceAtLeast(1), 0, SCORE_NOTES - 1)
+        }
+
+        val parts = plans.size.toDouble()
+        val tail = (parts * TAIL).coerceAtLeast(1.0)
+        val column = { across: Double -> (across * COLUMNS).toInt().coerceIn(0, COLUMNS - 1) }
+        val town = plans.withIndex().mapNotNull { (i, plan) ->
+            if (plan.elements == 0) return@mapNotNull null
+            want(plan.centre, (i + 1) / parts, (i + 1 + tail) / parts, column)
+        }
+        // The grid's elements arrive on the same front, each on its own share of it — the draw's rule.
+        val n = moves.size.toDouble()
+        val gridTail = (n * TAIL).coerceAtLeast(1.0)
+        val grid = moves.withIndex().mapNotNull { (i, move) ->
+            want(move.home, i / n, (i + gridTail) / n) { GRID_LANE }
+        }
+        return voiced(town + grid) + states
+    }
+
     private companion object {
+        /** The note range the pane's height is spread over: four octaves, as on the walls. */
+        const val SCORE_NOTES = 48
+        /** How many columns the pane's plans are scored in, a lane each. */
+        const val COLUMNS = 8
+        const val GRID_LANE = COLUMNS
+        const val STATES_LANE = COLUMNS + 1
+
         /** Seconds the opening takes to zoom to rest and the town to come up behind it. */
         const val OPEN = 6.0
         /** Where the opening starts and rests, against the floor zoom. */

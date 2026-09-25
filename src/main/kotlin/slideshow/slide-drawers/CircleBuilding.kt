@@ -83,12 +83,17 @@ class CircleBuilding(
 ) : Slide() {
 
     override val name = "The Circle"
-    /** A click a label: each set builds up a label at a time, then gives way to the next set. */
-    override val steps get() = callouts.sumOf { it.size }.coerceAtLeast(1)
+    /**
+     * The building alone, then a click a label: each set builds up a label at a time, then gives
+     * way to the next set. The opening state carries no label — the first arrives on the first
+     * click (review of 22 September), so the building is seen before anything is said about it.
+     */
+    override val steps get() = 1 + callouts.sumOf { it.size }
 
-    /** Which set state [s] shows, and how many of its labels are up. */
+    /** Which set state [s] shows, and how many of its labels are up. State 0 is the building alone. */
     private fun stateOf(s: Int): Pair<Int, Int> {
-        var left = s
+        if (s <= 0) return 0 to 0
+        var left = s - 1
         callouts.forEachIndexed { k, set ->
             if (left < set.size) return k to left + 1
             left -= set.size

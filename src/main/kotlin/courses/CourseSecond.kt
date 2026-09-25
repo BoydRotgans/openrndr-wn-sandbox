@@ -17,13 +17,16 @@ import kotlin.math.sqrt
  *
  * `SECOND_TOWER` is the tallest block in pixels, `SECOND_AO` how strong the occlusion is.
  */
-fun main() = runCourse("course-4-second") {
+fun main() = runCourse("course-4-second", preview = 40.0) { secondCourse() }
+
+/** The wall itself, a function of the drawer and the second, for [runCourse] and the course studio alike. */
+fun org.openrndr.Program.secondCourse(): (Drawer, Double) -> Unit {
     val city = SiteCity(Site.load())
     val tower = Env["SECOND_TOWER"]?.toDoubleOrNull() ?: 240.0
     val ao = Env["SECOND_AO"]?.toDoubleOrNull() ?: 0.5
     val iso = Math.toDegrees(atan(1.0 / sqrt(2.0)))
 
-    return@runCourse { drawer: Drawer, time: Double ->
+    return { drawer: Drawer, time: Double ->
         city.draw(
             drawer, time,
             SiteCity.View(

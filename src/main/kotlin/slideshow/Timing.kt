@@ -95,4 +95,46 @@ fun linear(eased: Double): Double {
 
 fun smoothstep(t: Double): Double = t.coerceIn(0.0, 1.0).let { it * it * (3.0 - 2.0 * it) }
 
+/**
+ * A CSS-style `cubic-bezier(x1, y1, x2, y2)` easing: time in, progress out, both 0 to 1. The curve's
+ * x is solved for the time asked for — Newton's method from a good first guess, bisection where the
+ * slope is too flat to trust — and its y is the progress.
+ */
+class CubicBezier(private val x1: Double, private val y1: Double, private val x2: Double, private val y2: Double) {
+    private fun bx(s: Double) = 3.0 * (1 - s) * (1 - s) * s * x1 + 3.0 * (1 - s) * s * s * x2 + s * s * s
+    private fun by(s: Double) = 3.0 * (1 - s) * (1 - s) * s * y1 + 3.0 * (1 - s) * s * s * y2 + s * s * s
+    private fun dx(s: Double) = 3.0 * (1 - s) * (1 - s) * x1 + 6.0 * (1 - s) * s * (x2 - x1) + 3.0 * s * s * (1 - x2)
+
+    operator fun invoke(t: Double): Double {
+        val x = t.coerceIn(0.0, 1.0)
+        if (x <= 0.0) return 0.0
+        if (x >= 1.0) return 1.0
+        var s = x
+        repeat(8) {
+            val d = dx(s)
+            if (kotlin.math.abs(d) < 1e-6) return@repeat
+            s = (s - (bx(s) - x) / d).coerceIn(0.0, 1.0)
+        }
+        if (kotlin.math.abs(bx(s) - x) > 1e-5) {
+            var lo = 0.0; var hi = 1.0
+            repeat(40) { s = (lo + hi) / 2.0; if (bx(s) < x) lo = s else hi = s }
+        }
+        return by(s)
+    }
+}
+
+/**
+ * **The snap**: the curve measured off `input/motion-snap.mov`, `cubic-bezier(0.7, 0, 0, 1)`, over
+ * [SNAP_SECONDS]. Tracked frame by frame, every move there winds up to about 15% over its first
+ * three frames, covers about 60% in the next single frame, and settles over the last five or six —
+ * 0 · 2 · 8 · 14 · 76 · 90 · 96 · 98 · 100% — in the same third of a second whether the element
+ * travels 50 px or 146 px. That curve fits all four moves measured to a residual of 0.09, against
+ * about 0.53 for the standard in-out quint and expo and 4.6 for a pure exponential ease-out, which
+ * misses the wind-up.
+ */
+val snap = CubicBezier(0.7, 0.0, 0.0, 1.0)
+
+/** How long a snap takes, whatever the distance: the reference's nine or ten frames at 30 fps. */
+const val SNAP_SECONDS = 0.3
+
 fun mix(a: Double, b: Double, t: Double): Double = a + (b - a) * t

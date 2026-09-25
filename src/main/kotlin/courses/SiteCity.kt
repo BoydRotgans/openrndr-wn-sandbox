@@ -80,6 +80,18 @@ class SiteCity(
         val back: ColorRGBa = shade
     )
 
+    /**
+     * A street cut through the city: no mark stands within [half] of the line through [point] along
+     * [direction], in world units, so the ground there is clear for something else to stand on.
+     */
+    class Street(val point: Vector2, val direction: Vector2, val half: Double)
+
+    /**
+     * Something else standing in the city — a catalogue mesh, [model] placing it in world units — lit
+     * by the same sun, throwing and taking the same shadows. [accent] 0 is the city's grey, 1 the accent.
+     */
+    class Piece(val mesh: VertexBuffer, val model: Matrix44, val accent: Double)
+
     /** How the marks stand and what they are drawn in. */
     class Look(
         /** Tallest mark, in site pixels. The mosaic's shadows read as a tower of 100. */
@@ -176,6 +188,7 @@ class SiteCity(
             drawer.depthWrite = true
             drawer.depthTestPass = DepthTestPass.LESS_OR_EQUAL
             uniforms(heightStyle)
+            heightStyle.parameter("street", 0)
             drawer.shadeStyle = heightStyle
             for (i in -1..1) for (j in -1..1) {
                 drawer.model = buildTransform { translate(i * site.width, 0.0, j * site.height) }
@@ -223,6 +236,12 @@ class SiteCity(
         $rise
         // Only a share of the blocks stand at all, picked by where they stand: a sparse town.
         if (va_leaf.w < 0.5 && p_keep < 1.0 && fract(sin(dot(va_origin * 0.021, vec2(12.9898, 78.233))) * 43758.5453) > p_keep) h = 0.0;
+        // Nothing stands on the street: a mark whose middle, wherever this copy of the site puts it, is
+        // within the street and its own short side of the street's line.
+        if (va_leaf.w < 0.5 && p_street == 1) {
+            vec2 world = (u_modelMatrix * vec4(va_origin.x, 0.0, va_origin.y, 1.0)).xz;
+            if (abs(dot(world - p_streetPoint, p_streetNormal)) < p_streetHalf + floor(va_leaf.y)) h = 0.0;
+        }
         if (va_leaf.w < 0.5) {
             // leaf.y carries the footprint's short side in its whole part and the height share in its fraction.
             float share = fract(va_leaf.y);
@@ -236,19 +255,8 @@ class SiteCity(
         else if (va_leaf.w > 1.5) x_position.y *= va_leaf.y;       // a tree's height is in pixels, not a share of the tower
     """
 
-    private val depthStyle = shadeStyle {
-        vertexTransform = raise
-        fragmentTransform = """
-            vec4 lp = p_lightVP * vec4(v_worldPosition, 1.0);
-            x_fill = vec4(lp.z, 0.0, 0.0, 1.0);
-        """
-    }
-
-    private val faceStyle = shadeStyle {
-        vertexPreamble = "out float vRise;"
-        vertexTransform = "$raise\nvRise = h;"
-        fragmentPreamble = """
-            in float vRise;
+    // What every face of the city asks of the light, shared by the marks and anything else standing in it.
+    private val lighting = """
             float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
             // Where on its face a point lies, in pixels: a roof or the ground by x and z, a wall along itself and up.
             vec2 faceUv(vec3 wp, vec3 n) {
@@ -270,7 +278,12 @@ class SiteCity(
                 float y = wp.y / p_tower;
                 float over = max(0.0, around(wp) - y) * 1.6;
                 float foot = wall ? (1.0 - smoothstep(0.0, p_aoReach, wp.y)) * 0.55 : 0.0;
-                return 1.0 - p_ao * clamp(over + foot, 0.0, 1.0);
+                // The height map is the tile's and knows nothing of a street cut through the world, so
+                // the occlusion gives way over the street rather than darken it for marks not there.
+                float clear = p_street == 1
+                    ? smoothstep(p_streetHalf, p_streetHalf + 2.0 * p_aoReach, abs(dot(wp.xz - p_streetPoint, p_streetNormal)))
+                    : 1.0;
+                return 1.0 - p_ao * clear * clamp(over + foot, 0.0, 1.0);
             }
             float stone(vec3 wp, vec3 n) {
                 if (p_stone <= 0.0) return 1.0;
@@ -288,7 +301,20 @@ class SiteCity(
                     sum += lp.z - p_bias > texture(p_depth, uv + vec2(i, j) * texel).r ? 0.0 : 1.0;
                 return sum / 9.0;
             }
+    """
+
+    private val depthStyle = shadeStyle {
+        vertexTransform = raise
+        fragmentTransform = """
+            vec4 lp = p_lightVP * vec4(v_worldPosition, 1.0);
+            x_fill = vec4(lp.z, 0.0, 0.0, 1.0);
         """
+    }
+
+    private val faceStyle = shadeStyle {
+        vertexPreamble = "out float vRise;"
+        vertexTransform = "$raise\nvRise = h;"
+        fragmentPreamble = "in float vRise;\n" + lighting
         fragmentTransform = """
             vec3 L = normalize(p_toSun);
             if (p_paints > 0) {
@@ -349,7 +375,67 @@ class SiteCity(
         """
     }
 
-    fun draw(drawer: Drawer, time: Double, view: View, look: Look) {
+    // A piece in the light's depth pass: no raising, just where it is.
+    private val pieceDepthStyle = shadeStyle {
+        fragmentTransform = """
+            vec4 lp = p_lightVP * vec4(v_worldPosition, 1.0);
+            x_fill = vec4(lp.z, 0.0, 0.0, 1.0);
+        """
+    }
+
+    // A piece in the city's own light: a mark's three tones by which way a face points, the cast shadow,
+    // the concrete, and its real creased edges a shade darker so a piece reads as a piece. Grey like the
+    // city, and the accent while it is not yet set in.
+    private val pieceFaceStyle = shadeStyle {
+        vertexPreamble = "out vec3 vBary; out vec3 vEdges;"
+        vertexTransform = "vBary = va_bary; vEdges = va_edges;"
+        fragmentPreamble = "in vec3 vBary; in vec3 vEdges;\n" + lighting
+        fragmentTransform = """
+            vec3 L = normalize(p_toSun);
+            vec3 n = normalize(v_worldNormal);
+            if (dot(n, normalize(p_eye)) < 0.0) n = -n;
+            float facing = dot(n, L);
+            float sun = facing > 0.0 ? lit(v_worldPosition + n * 1.5) : 0.0;
+            float face = n.y > 0.5 ? p_roof : (facing > 0.0 ? p_litSide : p_darkSide);
+            float shade = mix(p_shadow, 1.0, sun);
+            if (n.y < 0.5 && facing <= 0.0) shade = 1.0;
+            if (p_pieceFlat == 1) {
+                // Flat colour, the city's paint rule: a roof, the side the sun reaches, and whatever it
+                // does not. A piece on its way takes the active paint, in one frame.
+                bool on = p_active > 0.5;
+                vec3 roof = on ? p_activeRoof.rgb : p_pieceRoof.rgb;
+                vec3 bright = n.y > 0.5 ? roof : (on ? p_activeSide.rgb : p_pieceSide.rgb);
+                vec3 dark = on ? p_activeShade.rgb : p_pieceShade.rgb;
+                vec3 back = on ? p_activeBack.rgb : p_pieceBack.rgb;
+                x_fill = vec4((n.y < 0.5 && facing <= 0.0) ? back : mix(dark, bright, step(0.5, sun)), 1.0);
+            } else {
+                vec3 base = mix(vec3(p_pieceTone), p_accent.rgb, p_active);
+                vec3 w = max(fwidth(vBary), vec3(1e-6));
+                vec3 sel = mix(vec3(1e6), vBary / w, step(0.5, vEdges));
+                float d = min(min(sel.x, sel.y), sel.z);
+                float edge = 1.0 - smoothstep(p_edgeWidth * 0.5 - 0.6, p_edgeWidth * 0.5 + 0.6, d);
+                float value = face * shade * stone(v_worldPosition, n) * (1.0 - p_edgeDark * edge);
+                x_fill = vec4(p_tint.rgb * base * value, 1.0);
+            }
+        """
+    }
+
+    fun draw(
+        drawer: Drawer, time: Double, view: View, look: Look,
+        /** A street cleared through the marks, for [pieces] to stand on. */
+        street: Street? = null,
+        pieces: List<Piece> = emptyList(),
+        /** The pieces' grey, the colour a piece takes while it is not yet in place, and its edges. */
+        pieceTone: Double = 0.9,
+        accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+        edgeDark: Double = 0.35,
+        edgeWidth: Double = 1.5,
+        /** Flat colour for the pieces instead of the greys: set in, and on its way; null keeps the greys. */
+        piecePaint: Paint? = null,
+        activePaint: Paint? = piecePaint,
+        /** Drawn last, under the city's camera, with its depth: lines, say. */
+        overlay: ((Drawer) -> Unit)? = null
+    ) {
         val a = Math.toRadians(view.sunAngle)
         val e = Math.toRadians(view.sunElevation)
         val toSun = Vector3(-cos(a) * cos(e), sin(e), -sin(a) * cos(e)).normalized
@@ -416,6 +502,10 @@ class SiteCity(
             style.parameter("propHigh", look.propHigh)
             style.parameter("tower", look.tower)
             style.parameter("lightVP", lightVP)
+            style.parameter("street", if (street != null) 1 else 0)
+            style.parameter("streetPoint", street?.point ?: Vector2.ZERO)
+            style.parameter("streetNormal", street?.direction?.normalized?.let { Vector2(-it.y, it.x) } ?: Vector2.UNIT_Y)
+            style.parameter("streetHalf", street?.half ?: 0.0)
         }
         fun city(d: Drawer) = copies.forEach { c ->
             d.model = buildTransform { translate(c.x, 0.0, c.y) }
@@ -433,6 +523,11 @@ class SiteCity(
             uniforms(depthStyle)
             drawer.shadeStyle = depthStyle
             city(drawer)
+            if (pieces.isNotEmpty()) {
+                pieceDepthStyle.parameter("lightVP", lightVP)
+                drawer.shadeStyle = pieceDepthStyle
+                pieces.forEach { drawer.model = it.model; drawer.vertexBuffer(it.mesh, DrawPrimitive.TRIANGLES) }
+            }
         }
 
         drawer.isolated {
@@ -488,6 +583,38 @@ class SiteCity(
             drawer.model = Matrix44.IDENTITY
             if (look.tiled || look.paints.isNotEmpty()) drawer.vertexBuffer(ground, DrawPrimitive.TRIANGLES)
             city(drawer)
+            if (pieces.isNotEmpty()) {
+                // Everything the shared lighting reads, and the piece's own.
+                uniforms(pieceFaceStyle)
+                listOf("depth", "map", "bias", "eye", "toSun", "roof", "litSide", "darkSide", "shadow",
+                    "stone", "stoneScale", "stoneMap", "ao", "aoReach", "aoMargin", "aoMap", "tint", "site")
+                    .forEach { key ->
+                        val value = faceStyle.parameterValues[key] ?: return@forEach
+                        pieceFaceStyle.parameterValues[key] = value
+                        val type = faceStyle.parameterTypes[key]
+                        if (type != null && pieceFaceStyle.parameterTypes[key] != type) pieceFaceStyle.parameterTypes[key] = type
+                    }
+                pieceFaceStyle.parameter("pieceTone", pieceTone)
+                pieceFaceStyle.parameter("accent", accent)
+                pieceFaceStyle.parameter("edgeDark", edgeDark)
+                pieceFaceStyle.parameter("edgeWidth", edgeWidth)
+                pieceFaceStyle.parameter("pieceFlat", if (piecePaint != null) 1 else 0)
+                val set = piecePaint ?: Paint(ColorRGBa.WHITE, ColorRGBa.WHITE, ColorRGBa.BLACK)
+                val going = activePaint ?: set
+                pieceFaceStyle.parameter("pieceRoof", set.roof); pieceFaceStyle.parameter("pieceSide", set.side)
+                pieceFaceStyle.parameter("pieceShade", set.shade); pieceFaceStyle.parameter("pieceBack", set.back)
+                pieceFaceStyle.parameter("activeRoof", going.roof); pieceFaceStyle.parameter("activeSide", going.side)
+                pieceFaceStyle.parameter("activeShade", going.shade); pieceFaceStyle.parameter("activeBack", going.back)
+                drawer.shadeStyle = pieceFaceStyle
+                pieces.forEach {
+                    pieceFaceStyle.parameter("active", it.accent.coerceIn(0.0, 1.0))
+                    drawer.model = it.model
+                    drawer.vertexBuffer(it.mesh, DrawPrimitive.TRIANGLES)
+                }
+            }
+            drawer.model = Matrix44.IDENTITY
+            drawer.shadeStyle = null
+            overlay?.invoke(drawer)
         }
     }
 

@@ -69,6 +69,9 @@ import slideshow.drawers.LcaMark
 import slideshow.drawers.LcaSource
 import slideshow.drawers.LifeCycleAnalysis
 import slideshow.drawers.QuoteSlide
+import slideshow.drawers.ChapterOpening
+import slideshow.drawers.LongShadowV3
+import slideshow.drawers.WallQuote
 import slideshow.drawers.Swivel01Slide
 import slideshow.drawers.Swivel02Slide
 import slideshow.drawers.SwivelBlock
@@ -338,6 +341,67 @@ val wnSky = ColorRGBa.fromHex("4674D6")
  */
 val backdropSheet = File(Env["SLIDES_BACKDROP_SHEET"] ?: "data/svg/subset.svg")
 
+/** How the domino slide builds DUURZAAM: `grid` on the chapter build's grid, `packed` as on 18 September. */
+val dominoWord = Env["SLIDES_DOMINO_WORD"] ?: "grid"
+
+/**
+ * The catalogue pieces the cube walls stand in their cubes, by part name: fifteen that read at the
+ * size of a cube — walls with a doorway, a window, an L, a U and a step, the serrated slab, an angle,
+ * a wedge, a block, a frame, a cone, a dome, a zigzag, a bent anchor and a pile. The long thin ones
+ * are left out: a piece is fitted by its longest side, and a beam in a cube is a stick.
+ */
+val cubePieces = "WAND_27,WAND_33,WAND_12,WAND_28,WAND_9,VLOER,BEV_HOEK_SLEUF,FUND,KONZOLE_3,HALFEN_38_17_L_10,DOORSTORTSYMBOOL,KUNSTSTOFUITSPARING_2,STORTZIJDESYMBOOL,KONN_ANKER_M30_D25,PAAL"
+
+/** A list of part names from `.env` as files in the catalogue; `none` or empty stands nothing. */
+fun catalogueFiles(names: String): List<File> =
+    names.split(",").map { it.trim() }.filter { it.isNotEmpty() && it != "none" }.map { File(yardObjects, "$it.obj") }
+
+/** A comma-separated list of catalogue part names, as `.env` gives it. */
+fun pieceNames(names: String): List<String> = names.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+/**
+ * The row assemble wall ([AssembleScene] with `grammar = "row"`): the solid kit as a street under a slow
+ * pan, calm rather than snappy. [glass] above 0 draws it seen through; [concrete] works a stone into the
+ * pieces. One set of arguments for every version of it, so they cannot drift apart.
+ */
+fun assembleRow(name: String, glass: Double = 0.0, concrete: File? = null) =
+    AssembleScene(
+        name = name,
+        sheet = File(Env["SLIDES_ASSEMBLE_SHEET"] ?: "data/svg/objects-iso.svg"),
+        details = File(Env["SLIDES_ASSEMBLE_DETAILS"] ?: "data/csv/objects-115-details.csv"),
+        unit = Env["SLIDES_ASSEMBLE_SOLID_UNIT"]?.toDoubleOrNull() ?: 27.0,
+        spread = Env["SLIDES_ASSEMBLE_SOLID_SPREAD"]?.toDoubleOrNull()?.coerceAtLeast(1.0) ?: 2.0,
+        rise = Env["SLIDES_ASSEMBLE_SOLID_RISE"]?.toDoubleOrNull()?.coerceAtLeast(1.0) ?: 1.5,
+        walls = pieceNames(Env["SLIDES_ASSEMBLE_WALLS"] ?: "WAND_27,WAND_33,WAND_17,WAND_23,WAND_6,WAND_8,WAND_11,WAND_28,WAND_10,WAND_22,WAND_12,WAND"),
+        floors = pieceNames(Env["SLIDES_ASSEMBLE_FLOORS"] ?: "VLOER,VLOER_3,PREDAL,VLOER_2"),
+        front = pieceNames(Env["SLIDES_ASSEMBLE_FRONT"] ?: "WAND_27,WAND_17,WAND_33,WAND_23"),
+        plates = Env["SLIDES_ASSEMBLE_PLATES"]?.toIntOrNull()?.coerceIn(1, 18) ?: 8,
+        panels = Env["SLIDES_ASSEMBLE_PANELS"]?.toIntOrNull()?.coerceIn(4, 60) ?: 20,
+        storeys = Env["SLIDES_ASSEMBLE_STOREYS"]?.toIntOrNull()?.coerceIn(1, 5) ?: 3,
+        grammar = "row",
+        render = "solid",
+        objects = yardObjects,
+        guides = (Env["SLIDES_ASSEMBLE_GUIDES"] ?: "true").lowercase() !in setOf("false", "0", "no", "none"),
+        move = Env["SLIDES_ASSEMBLE_ROW_MOVE"]?.toDoubleOrNull()?.coerceAtLeast(0.05) ?: 0.8,
+        gapStart = Env["SLIDES_ASSEMBLE_ROW_GAP_START"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.45,
+        gapEnd = Env["SLIDES_ASSEMBLE_ROW_GAP_END"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.25,
+        rowPeriod = Env["SLIDES_ASSEMBLE_ROW_PERIOD"]?.toDoubleOrNull()?.coerceAtLeast(4.0) ?: 22.0,
+        buildAt = Env["SLIDES_ASSEMBLE_ROW_BUILD_AT"]?.toDoubleOrNull() ?: 0.82,
+        leaveAt = Env["SLIDES_ASSEMBLE_ROW_LEAVE_AT"]?.toDoubleOrNull() ?: 0.09,
+        curve = (Env["SLIDES_ASSEMBLE_ROW_EASE"] ?: "0.4,0,0.2,1").split(",").mapNotNull { it.trim().toDoubleOrNull() }
+            .takeIf { it.size == 4 }?.let { slideshow.CubicBezier(it[0], it[1], it[2], it[3]) } ?: slideshow.snap,
+        grow = Env["SLIDES_ASSEMBLE_ROW_GROW"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.5,
+        wait = 0.5,
+        dwell = 0.8,
+        fade = 1.2,
+        piece = wnRed,
+        glass = glass,
+        concrete = concrete,
+        grain = Env["SLIDES_ASSEMBLE_GRAIN"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 5.0,
+        concreteCells = Env["SLIDES_ASSEMBLE_CONCRETE_CELLS"]?.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 24.0,
+        seed = Env["SLIDES_ASSEMBLE_SEED"]?.toIntOrNull() ?: 5
+    )
+
 /** The subset as separate files, one svg to a piece, for the walls that stack them. */
 val patternFolder = File(Env["SLIDES_PATTERN_FOLDER"] ?: "data/svg/subset_svg")
 
@@ -500,26 +564,33 @@ val cardV3Chapters = (Env["SLIDES_CARD_V3_CHAPTERS"] ?: "1,2,3,4").split(",").ma
  * so it and the slide beside it are one ground. `ChapterMidi` films the card alone, with no overlay,
  * and passes false to keep the sketch's own grey and grain.
  */
-fun longShadowV3Card(section: slideshow.Section, detail: Double = 1.0, overlaid: Boolean = true): LongShadowV3ChapterPanel {
-    val chapterNumber = section.number.substringBefore('.')
+fun longShadowV3Card(section: slideshow.Section, detail: Double = 1.0, overlaid: Boolean = true): LongShadowV3ChapterPanel =
+    LongShadowV3ChapterPanel(section, longShadowV3Effect(detail, overlaid), svg = cardV3Svg(section), sound = chapterCue)
+
+/**
+ * The v3 card's effect with the show's timing, as [longShadowV3Card] and [ChapterStart] build it.
+ * Given a [quote] it is a wall two panes wide — the chapter opening's — timed by the
+ * `SLIDES_CHAPTER_WALL_*` keys.
+ */
+fun longShadowV3Effect(detail: Double = 1.0, overlaid: Boolean = true, quote: WallQuote? = null): LongShadowV3 {
     val concrete = (Env["SLIDES_CARD_V3_CONCRETE"] ?: Env["LONGSHADOW_V3_CONCRETE"] ?: Env["LONGSHADOW_V2_CONCRETE"]
         ?: Env["LONGSHADOW_CONCRETE"] ?: "data/concrete/concrete-052v2_crop.jpg").takeIf { it != "none" }?.let { File(it) }
-    return LongShadowV3ChapterPanel(
-        section,
-        longShadowV3FromEnv(
-            concrete = concrete,
-            detail = detail,
-            revealFill = Env["SLIDES_CARD_V3_FILL"]?.toDoubleOrNull() ?: 0.0,
-            revealAt = Env["SLIDES_CARD_V3_AT"]?.toDoubleOrNull() ?: 1.0,
-            paper = if (overlaid) slideshow.Palette.BLACK else null,
-            groundGrain = !overlaid
-        ),
-        // The chapter's own words in Rockwell unless a drawn title is named ({n} the chapter).
-        svg = (Env["SLIDES_CARD_V3_SVG"] ?: "none")
-            .takeIf { it != "none" }?.let { File(it.replace("{n}", chapterNumber)) },
-        sound = chapterCue
+    return longShadowV3FromEnv(
+        concrete = concrete,
+        detail = detail,
+        revealFill = Env["SLIDES_CARD_V3_FILL"]?.toDoubleOrNull() ?: 0.0,
+        revealAt = Env["SLIDES_CARD_V3_AT"]?.toDoubleOrNull() ?: 1.0,
+        paper = if (overlaid) slideshow.Palette.BLACK else null,
+        groundGrain = !overlaid,
+        quote = quote,
+        quoteAfter = Env["SLIDES_CHAPTER_WALL_QUOTE_AFTER"]?.toDoubleOrNull() ?: 0.8,
+        quoteSpread = Env["SLIDES_CHAPTER_WALL_QUOTE_SPREAD"]?.toDoubleOrNull() ?: 3.0
     )
 }
+
+/** The chapter's own words in Rockwell unless a drawn title is named in `SLIDES_CARD_V3_SVG` ({n} the chapter). */
+fun cardV3Svg(section: slideshow.Section): File? = (Env["SLIDES_CARD_V3_SVG"] ?: "none")
+    .takeIf { it != "none" }?.let { File(it.replace("{n}", section.number.substringBefore('.'))) }
 
 fun chapterCard(section: slideshow.Section): slideshow.Slide {
     // Set as type from the chapter's own title, so it needs no picture. No concrete of its own:
@@ -582,6 +653,42 @@ fun chapterCard(section: slideshow.Section): slideshow.Slide {
         ),
         sound = chapterCue
     )
+}
+
+/**
+ * Whether each chapter opens on one wall — its card's field across both projectors, the title up
+ * on the left and then the quote on the right ([ChapterOpening]) — rather than the card beside a
+ * [QuoteSlide]. `SLIDES_CHAPTER_WALL=false` gives back the two, and with them `SLIDES_CARD_STYLE`
+ * and `SLIDES_CARD_V3_CHAPTERS`, which the wall does not read: it is always the v3 card's field.
+ */
+val chapterWall = Env.boolean("SLIDES_CHAPTER_WALL", default = true)
+
+/**
+ * How a chapter opens, declared once above it: its quote, and from that both the chapter's card
+ * ([card], handed to `chapter(..., panel = ...)`) and its first slide ([opening]). With
+ * [chapterWall] on the two are one [ChapterOpening] and the card is the left pane of it; off, the
+ * card is [chapterCard]'s and the opening a [QuoteSlide]. Either way the opening keeps its title,
+ * so its id — and with it the order file, the cue sheet, the subtitles — does not change.
+ *
+ * **It has to be the chapter's `panel`.** The wall learns the chapter's words from the section its
+ * card is built for, which is how the one wording in `chapter(...)` reaches both halves.
+ */
+class ChapterStart(quote: String, lines: Int? = null, breaks: List<String> = emptyList()) {
+    val quote = WallQuote(quote, lines, breaks)
+
+    /** The whole-wall opening, or null where the chapter opens on a quote slide beside its card. */
+    val wall: ChapterOpening? = if (chapterWall)
+        ChapterOpening(longShadowV3Effect(quote = this.quote), { cardV3Svg(it) }, chapterCue) else null
+
+    /** The chapter's card: the first pane of its wall, or the show's ordinary card for the section. */
+    fun card(section: slideshow.Section): slideshow.Slide = wall?.card(section) ?: chapterCard(section)
+}
+
+/** A chapter's first slide: its opening wall, or its quote as a slide of its own — see [ChapterStart]. */
+fun slideshow.ChapterBuilder.opening(start: ChapterStart, title: String, notes: String? = null) {
+    val wall = start.wall
+    if (wall != null) scene(wall, title = title, notes = notes)
+    else slide(QuoteSlide(start.quote.text, boldFont, start.quote.lines, start.quote.breaks), title = title, notes = notes)
 }
 
 /**
@@ -982,18 +1089,16 @@ val show = slideshow {
                 "StudioBuik voor, als introductie op het diner. DRAFT: haar naam en functie."
     )
 
-    chapter("De wereld van bouwen") {
-        slide(
-            QuoteSlide(
-                "“Hoe bouw je een wereld die vandaag stevig overeind blijft, " +
-                        "maar licht genoeg is om de toekomst niet te belasten?”",
-                boldFont,
-                lines = 4
-            ),
+    // Each chapter opens on one wall: the card's field across both projectors, the title up on
+    // the left, then the quote on the right — see ChapterStart. Its card is the left pane of it.
+    val chapter1 = ChapterStart("\u201C" + chapterMessages[0] + "\u201D", lines = 4)
+    chapter("De wereld van bouwen", panel = chapter1::card) {
+        opening(
+            chapter1,
             title = "Hoe bouw je een wereld",
-            notes = "The opening question, set to a measure with air around it rather " +
-                    "than filling the frame the way a chapter card does. The lead line above it " +
-                    "is the evening's opening sentence; DRAFT."
+            notes = "The chapter opening: the title comes up through the field on the left, then the " +
+                    "opening question on the right, set to a measure with air around it; then the " +
+                    "field goes. The question is the evening's opening sentence; DRAFT."
         )
         // Two clicks, both long: the first pushes the camera in and gathers the
         // elements it lands on into a grid, the second empties that grid down to
@@ -1135,17 +1240,13 @@ val show = slideshow {
 
     // "verantwoor-delijkheid" is hyphenated so the card may break it there; written
     // whole it is one unbreakable word and the type shrinks to carry it on a line.
-    chapter("Waardekader en verantwoor-delijkheid") {
-        slide(
-            QuoteSlide(
-                // One wording, shared with the programme wall (see `chapterMessages`).
-                "\u201C" + chapterMessages[1] + "\u201D",
-                boldFont,
-                lines = 4
-            ),
+    // One wording, shared with the programme wall (see `chapterMessages`).
+    val chapter2 = ChapterStart("\u201C" + chapterMessages[1] + "\u201D", lines = 4)
+    chapter("Waardekader en verantwoor-delijkheid", panel = chapter2::card) {
+        opening(
+            chapter2,
             title = "ESG is geen checklist",
-            notes = "The chapter's own opening question, set the same way as the one " +
-                    "that opens the talk."
+            notes = "The chapter's own opening, set the same way as the one that opens the talk."
         )
         // The three pillars as three cut pieces: one a click, and a fourth click that
         // closes the joint so their teeth mesh. Where they sit when closed is read off the
@@ -1272,7 +1373,21 @@ val show = slideshow {
                     Centre(12, wnSky)
                 ),
                 boldPath = boldFont,
-                textPath = textFont
+                textPath = textFont,
+                // DUURZAAM on the chapter build's grid, stood by its own copy of the chapter effect;
+                // `packed` gives back the 18 September word. See DominoEffect.
+                wordStyle = dominoWord,
+                effect = if (dominoWord == "grid") longShadowV3Effect() else null,
+                grid = WordGrid(
+                    columns = Env["SLIDES_DOMINO_COLUMNS"]?.toIntOrNull()?.coerceAtLeast(1) ?: 6,
+                    letter = Env["SLIDES_DOMINO_LETTER"]?.toDoubleOrNull() ?: 0.55,
+                    finest = Env["SLIDES_DOMINO_FINEST"]?.toDoubleOrNull()?.coerceAtLeast(4.0) ?: 10.0,
+                    chain = Env["SLIDES_DOMINO_CHAIN"]?.toDoubleOrNull() ?: 1.4,
+                    spell = Env["SLIDES_DOMINO_SPELL"]?.toDoubleOrNull() ?: 1.2,
+                    order = Env["SLIDES_DOMINO_ORDER"]?.takeIf { it.isNotBlank() } ?: "middle",
+                    clear = Env["SLIDES_DOMINO_CLEAR"]?.toDoubleOrNull() ?: 0.0,
+                    seed = Env["SLIDES_DOMINO_SEED"]?.toIntOrNull() ?: 11
+                )
             ),
             title = "Domino-effect",
             notes = "Duurzaamheid heeft bovendien een domino-effect: het gebruik van duurzame " +
@@ -1372,15 +1487,17 @@ val show = slideshow {
                 "keuzes concreet worden: in het materiaal en de levenscyclus van beton.")
     }
 
-    chapter("Beton: ruggengraat en transitie") {
-        // The chapter's own opening line, set the way the first two chapters open. The
-        // draaiboek questions "ruggengraat" in the chapter title; the quote stands either way.
-        slide(
-            QuoteSlide(
-                "\u201C" + chapterMessages[2] + "\u201D",
-                boldFont,
-                lines = 4
-            ),
+    // The chapter's own opening line, set the way the first two chapters open. The draaiboek
+    // questions "ruggengraat" in the chapter title; the quote stands either way. Broken by
+    // sentence and clause: searched to four lines it left "en" at the end of a short line with a
+    // gap after it (review of 22 September).
+    val chapter3 = ChapterStart(
+        "\u201C" + chapterMessages[2] + "\u201D",
+        breaks = listOf("beton.", "onderzoek", "verantwoordelijkheid")
+    )
+    chapter("Beton: ruggengraat en transitie", panel = chapter3::card) {
+        opening(
+            chapter3,
             title = "We gieten kennis",
             notes = "Opens the third chapter. Frame 3-01 of the client's deck."
         )
@@ -1540,16 +1657,16 @@ val show = slideshow {
                 "onderdelen samen in het verhaal van The Circle.")
     }
 
-    chapter("The Circle: een nieuwe manier van denken") {
-        // Two sentences, so six lines rather than the four the shorter quotes take.
-        slide(
-            QuoteSlide(
-                "\u201CWe bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke " +
-                        "balk, elke plaat is niet alleen een drager van lasten, maar ook een " +
-                        "drager van verantwoordelijkheid, kansen en toekomst.\u201D",
-                boldFont,
-                lines = 6
-            ),
+    // Two sentences, so six lines rather than the four the shorter quotes take.
+    val chapter4 = ChapterStart(
+        "\u201CWe bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke " +
+                "balk, elke plaat is niet alleen een drager van lasten, maar ook een " +
+                "drager van verantwoordelijkheid, kansen en toekomst.\u201D",
+        lines = 6
+    )
+    chapter("The Circle: een nieuwe manier van denken", panel = chapter4::card) {
+        opening(
+            chapter4,
             title = "We bouwen vandaag",
             notes = "Opens the fourth chapter. Frame 4-01 of the client's deck."
         )
@@ -1654,8 +1771,8 @@ val show = slideshow {
             ),
             title = "Gebouw uit de webtool",
             notes = "In plaats van lineair bouwen wordt een circulaire gedachte geschetst: bouwen met " +
-                    "demontabele elementen, voor de volgende gebruiker. A label a click, left to right across " +
-                    "the roof; the fourth click swaps to the second set."
+                    "demontabele elementen, voor de volgende gebruiker. The building alone, then a label a click, " +
+                    "left to right across the roof; the fourth label's click swaps to the second set."
         )
         // The ordinary process against the process with reuse: two columns of steps, the copy
         // taking its steps across, the removed steps turning red, disassembly sliding in. See
@@ -1696,9 +1813,26 @@ val show = slideshow {
             notes = "The first version, kept for later: the block city with catalogue pieces on its " +
                     "roofs, lifted on the click and set down on other roofs. Click 1 lifts every piece."
         )
+        // How it went against how it can go now: one building twice on the grid, blue above and
+        // red below. Click 1 demolishes the blue into rubble; click 2 takes the red apart element
+        // by element and builds it again beside itself (draft of 25 September, after the carry
+        // below was found underwhelming). See DemolishOrDismantle.
+        slide(
+            DemolishOrDismantle(
+                marks = File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"),
+                boldPath = boldFont,
+                textPath = textFont
+            ),
+            title = "Demontabel in de stad",
+            notes = "Bouwen met demontabele elementen; bouwen met het idee dat onderdelen later " +
+                    "hergebruikt kunnen worden; bouwen voor de volgende gebruiker, niet alleen " +
+                    "voor de eerste. Click 1: how it went, the building demolished into rubble. " +
+                    "Click 2: how it can go now, the same building taken apart and built again."
+        )
         // The city builder beside the card, at one projector's density: two red buildings that the
         // click takes apart and puts together again elsewhere, a unit at a time, while the blue goes
-        // up and comes down around them (review of 22 September). See cityMosaic.
+        // up and comes down around them (review of 22 September). On the shelf since the draft
+        // above took its place. See cityMosaic.
         slide(
             cityMosaic(
                 seed = 35, name = "Demontabel", sound = null,
@@ -1708,7 +1842,7 @@ val show = slideshow {
                 smallUnits = 0,
                 unitsOnClick = 1
             ),
-            title = "Demontabel in de stad",
+            title = "Demontabel in de stad, stad",
             notes = "Bouwen met demontabele elementen; bouwen met het idee dat onderdelen later " +
                     "hergebruikt kunnen worden; bouwen voor de volgende gebruiker, niet alleen " +
                     "voor de eerste. Click 1 takes the red buildings apart and builds them again elsewhere."
@@ -1859,6 +1993,142 @@ val show = slideshow {
                 "white with a red block here and there. Loops every four minutes."
     )
 
+    // The plain block city as a line drawing: black outlines on white and nothing else. Every
+    // face, the ground and the shadows are the one white, so all that is drawn is where two faces
+    // meet — BlockCity finds its lines where the face under a pixel changes, and a shadow is not
+    // a face, so it draws none. The same city, block for block, panning and swaying as the plain one.
+    backdrop(
+        CityBlock02(
+            paper = ColorRGBa.WHITE, top = ColorRGBa.WHITE,
+            lit = ColorRGBa.WHITE, shade = ColorRGBa.WHITE,
+            unlit = ColorRGBa.WHITE, unlitAcross = ColorRGBa.WHITE,
+            ink = ColorRGBa.BLACK, line = 2.0
+        ),
+        title = "Block city, outline",
+        notes = "The block city as black outlines on white, every face and shadow the one white. " +
+                "Loops every four minutes."
+    )
+
+    // The block city as building blocks: every element one cube, stacked into columns, and the
+    // whole a see-through wire model — every edge of every cube, hidden ones included, black on
+    // white — with a red catalogue piece standing in each cube. Its own drawer, since BlockCity
+    // only ever draws the edges it can see. See BlockStacks.
+    backdrop(
+        BlockStacks(
+            unit = Env["SLIDES_CUBES_UNIT"]?.toDoubleOrNull() ?: 190.0,
+            density = Env["SLIDES_CUBES_DENSITY"]?.toDoubleOrNull() ?: 0.22,
+            street = Env["SLIDES_CUBES_STREET"]?.toIntOrNull() ?: 2,
+            tallest = Env["SLIDES_CUBES_TALLEST"]?.toIntOrNull() ?: 6,
+            line = Env["SLIDES_CUBES_LINE"]?.toDoubleOrNull() ?: 2.0,
+            // A red catalogue piece in every cube, dealt from these by part name.
+            pieces = catalogueFiles(Env["SLIDES_CUBES_PIECES"] ?: cubePieces),
+            piece = wnRed
+        ),
+        title = "Block city, cubes",
+        notes = "Stacked unit cubes as a see-through wire model, black on white, panning and " +
+                "swaying as the block city does. Loops every four minutes."
+    )
+
+    // A row of buildings made of the same glass cubes: every beat a cube goes on the left and one
+    // comes on the right, on the same frame and with no transition, a building finished before the
+    // next is begun and a street always between them; the count never changes. See BlockCluster.
+    backdrop(
+        BlockCluster(
+            unit = Env["SLIDES_CLUSTER_UNIT"]?.toDoubleOrNull() ?: 130.0,
+            // More than any one building holds, so a building is always whole somewhere in the row.
+            count = Env["SLIDES_CLUSTER_COUNT"]?.toIntOrNull()?.coerceAtLeast(80) ?: 130,
+            depth = Env["SLIDES_CLUSTER_DEPTH"]?.toIntOrNull()?.coerceIn(1, 4) ?: 3,
+            tallest = Env["SLIDES_CLUSTER_TALLEST"]?.toIntOrNull()?.coerceIn(1, 6) ?: 5,
+            gap = Env["SLIDES_CLUSTER_GAP"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+            beat = Env["SLIDES_CLUSTER_BEAT"]?.toDoubleOrNull()?.coerceAtLeast(0.02) ?: 0.4,
+            line = Env["SLIDES_CUBES_LINE"]?.toDoubleOrNull() ?: 2.0,
+            pieces = catalogueFiles(Env["SLIDES_CLUSTER_PIECES"] ?: Env["SLIDES_CUBES_PIECES"] ?: cubePieces),
+            piece = wnRed
+        ),
+        title = "Block cluster",
+        notes = "A row of buildings of glass cubes with a red piece in each, taken down a cube at a " +
+                "time on the left and built up on the right with a street between, the count constant."
+    )
+
+    // DRAFT. Assemble, disassemble, assemble: a solid building of the iso sheet's beam drawings, in
+    // the red on black, taken apart a beam at a time onto a grid, re-arranged along it and built up
+    // as another building, every move a snap measured off input/motion-snap.mov. See AssembleScene.
+    backdrop(
+        AssembleScene(
+            sheet = File(Env["SLIDES_ASSEMBLE_SHEET"] ?: "data/svg/objects-iso.svg"),
+            details = File(Env["SLIDES_ASSEMBLE_DETAILS"] ?: "data/csv/objects-115-details.csv"),
+            beams = Env["SLIDES_ASSEMBLE_BLOCKS"]?.toIntOrNull()?.coerceIn(3, 60) ?: 24,
+            unit = Env["SLIDES_ASSEMBLE_UNIT"]?.toDoubleOrNull() ?: 56.0,
+            spread = Env["SLIDES_ASSEMBLE_SPREAD"]?.toDoubleOrNull()?.coerceAtLeast(1.0) ?: 2.4,
+            move = Env["SLIDES_ASSEMBLE_SNAP"]?.toDoubleOrNull()?.coerceAtLeast(0.05) ?: 0.3,
+            stagger = Env["SLIDES_ASSEMBLE_STAGGER"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.05,
+            piece = wnRed,
+            seed = Env["SLIDES_ASSEMBLE_SEED"]?.toIntOrNull() ?: 5
+        ),
+        title = "Assemble",
+        notes = "DRAFT. A building of the iso sheet's drawings, exploded, re-arranged and closed as " +
+                "another building, one a projector, for ever."
+    )
+
+    // DRAFT. The same assemble with the motion study's whole grammar (style-guide/motion.md, "The
+    // snap"): every beam along the grid one axis at a time, a phase that thickens from sparse to
+    // dense, turns that pop, and a slow linear pull-back cut when the next building begins.
+    backdrop(
+        AssembleScene(
+            name = "Assemble, grid",
+            sheet = File(Env["SLIDES_ASSEMBLE_SHEET"] ?: "data/svg/objects-iso.svg"),
+            details = File(Env["SLIDES_ASSEMBLE_DETAILS"] ?: "data/csv/objects-115-details.csv"),
+            beams = Env["SLIDES_ASSEMBLE_BLOCKS"]?.toIntOrNull()?.coerceIn(3, 60) ?: 24,
+            unit = Env["SLIDES_ASSEMBLE_UNIT"]?.toDoubleOrNull() ?: 56.0,
+            spread = Env["SLIDES_ASSEMBLE_SPREAD"]?.toDoubleOrNull()?.coerceAtLeast(1.0) ?: 2.4,
+            move = Env["SLIDES_ASSEMBLE_SNAP"]?.toDoubleOrNull()?.coerceAtLeast(0.05) ?: 0.3,
+            grammar = "grid",
+            gapStart = Env["SLIDES_ASSEMBLE_GAP_START"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.2,
+            gapEnd = Env["SLIDES_ASSEMBLE_GAP_END"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.06,
+            zoom = Env["SLIDES_ASSEMBLE_ZOOM"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.006,
+            piece = wnRed,
+            seed = Env["SLIDES_ASSEMBLE_SEED"]?.toIntOrNull() ?: 5
+        ),
+        title = "Assemble, grid",
+        notes = "DRAFT. The assemble wall moving by the motion study: along the grid a leg at a time, " +
+                "sparse then dense, pops, a linear pull-back and a cut."
+    )
+
+    // DRAFT. Assemble, grid with the catalogue's own 3D pieces in place of the iso drawings, each
+    // stretched to fill its beam's box, flat red with its own edges in black; and the paths the beams
+    // travel drawn as fixed construction lines, after the exploded axonometric this is after. See
+    // AssembleScene.drawSolid and travelled.
+    backdrop(
+        AssembleScene(
+            name = "Assemble, solid",
+            sheet = File(Env["SLIDES_ASSEMBLE_SHEET"] ?: "data/svg/objects-iso.svg"),
+            details = File(Env["SLIDES_ASSEMBLE_DETAILS"] ?: "data/csv/objects-115-details.csv"),
+            unit = Env["SLIDES_ASSEMBLE_SOLID_UNIT"]?.toDoubleOrNull() ?: 27.0,
+            spread = Env["SLIDES_ASSEMBLE_SOLID_SPREAD"]?.toDoubleOrNull()?.coerceAtLeast(1.0) ?: 2.0,
+            rise = Env["SLIDES_ASSEMBLE_SOLID_RISE"]?.toDoubleOrNull()?.coerceAtLeast(1.0) ?: 1.5,
+            walls = pieceNames(Env["SLIDES_ASSEMBLE_WALLS"] ?: "WAND_27,WAND_33,WAND_17,WAND_23,WAND_6,WAND_8,WAND_11,WAND_28,WAND_10,WAND_22,WAND_12,WAND"),
+            floors = pieceNames(Env["SLIDES_ASSEMBLE_FLOORS"] ?: "VLOER,VLOER_3,PREDAL,VLOER_2"),
+            front = pieceNames(Env["SLIDES_ASSEMBLE_FRONT"] ?: "WAND_27,WAND_17,WAND_33,WAND_23"),
+            plates = Env["SLIDES_ASSEMBLE_PLATES"]?.toIntOrNull()?.coerceIn(1, 18) ?: 8,
+            panels = Env["SLIDES_ASSEMBLE_PANELS"]?.toIntOrNull()?.coerceIn(4, 60) ?: 20,
+            storeys = Env["SLIDES_ASSEMBLE_STOREYS"]?.toIntOrNull()?.coerceIn(1, 5) ?: 3,
+            move = Env["SLIDES_ASSEMBLE_SNAP"]?.toDoubleOrNull()?.coerceAtLeast(0.05) ?: 0.3,
+            grammar = "grid",
+            gapStart = Env["SLIDES_ASSEMBLE_GAP_START"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.2,
+            gapEnd = Env["SLIDES_ASSEMBLE_GAP_END"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.06,
+            zoom = Env["SLIDES_ASSEMBLE_ZOOM"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.006,
+            render = "solid",
+            objects = yardObjects,
+            guides = (Env["SLIDES_ASSEMBLE_GUIDES"] ?: "true").lowercase() !in setOf("false", "0", "no", "none"),
+            endHold = 1.4,
+            piece = wnRed,
+            seed = Env["SLIDES_ASSEMBLE_SEED"]?.toIntOrNull() ?: 5
+        ),
+        title = "Assemble, solid",
+        notes = "DRAFT. A precast building of the catalogue's own pieces - the door wall, the window walls, " +
+                "the floor plates - taken apart, re-dealt and built up as another building of the same kit; " +
+                "the paths drawn as construction lines the moment each piece lands outside.")
+
     // The city builder again, as the Second course's wall in the block city's place (review of
     // 22 September: build the course's city out of the catalogue, red and blue). The First
     // course's wall on another seed, so the town is laid out afresh. See cityMosaic.
@@ -1867,6 +2137,30 @@ val show = slideshow {
         title = "Stad in opbouw",
         notes = "The shadow mosaic close as the Second course's wall: blue building going up and " +
                 "coming down, red WN units moved as buildings. It replaced the plain block city."
+    )
+
+    // DRAFT. The solid wall's buildings as a street across the whole wall under a slow pan: each is
+    // built at the right as it comes in and taken down as it leaves on the left, a piece going on the
+    // left as one arrives on the right, on a calmer curve than the snap. See AssembleScene.drawRow.
+    backdrop(
+        assembleRow("Assemble, row"),
+        title = "Assemble, row",
+        notes = "DRAFT. The precast buildings as a street under a slow pan: built at the right, taken " +
+                "down as they leave on the left, one piece going as one arrives. Calm rather than snappy."
+    )
+
+    // DRAFT. The row seen through: every piece a faint red glass with all its edges, the hidden ones
+    // too, and the concrete worked into its faces. See AssembleScene's glass and concrete.
+    backdrop(
+        assembleRow(
+            "Assemble, row, glass",
+            glass = Env["SLIDES_ASSEMBLE_GLASS"]?.toDoubleOrNull()?.coerceIn(0.01, 1.0) ?: 0.1,
+            concrete = (Env["SLIDES_ASSEMBLE_CONCRETE"] ?: "data/concrete/concrete-052v2_crop.jpg")
+                .takeIf { it != "none" }?.let { File(it) }
+        ),
+        title = "Assemble, row, glass",
+        notes = "DRAFT. The row wall seen through: faint red faces with the concrete in them, every edge " +
+                "drawn, hidden ones included."
     )
 
     // DRAFT. A pictogram chart on a wall going from the house red to the navy and back: a
@@ -2134,6 +2428,13 @@ val show = slideshow {
         title = "Closing scene",
         notes = "Uitloop. The opening scene, colours swapped. The last -> lands here."
     )
+
+    // The course walls of the sandbox (src/main/kotlin/courses): every sketch on the organizer's
+    // Sketches tab and every variant of it, as a wall. They are kept on the shelf of the order file,
+    // and a moment's "+ sketch" in the organizer puts one in it — see CourseBackdrop.
+    courseWallBackdrops().forEach { (wall, title) ->
+        backdrop(wall, title = title, notes = "A course wall from the sandbox: ${wall.sketch} on the Sketches tab.")
+    }
 }
 
 /**
@@ -2194,7 +2495,11 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,
         video = Env["${prefix}_VIDEO"]?.takeIf { it.isNotBlank() } ?: settings.video,
         mix = Env["${prefix}_MIX"]?.let { Env.boolean("${prefix}_MIX") } ?: settings.mix,
+        recorder = Env["${prefix}_RECORDER"]?.takeIf { it.isNotBlank() } ?: settings.recorder,
         stills = Env.boolean("${prefix}_STILLS"),
+        bench = Env.boolean("${prefix}_BENCH"),
+        benchSamples = Env["${prefix}_BENCH_SAMPLES"]?.toIntOrNull() ?: settings.benchSamples,
+        waitForFinish = Env["${prefix}_WAIT_FOR_FINISH"]?.let { Env.boolean("${prefix}_WAIT_FOR_FINISH") } ?: settings.waitForFinish,
         sound = Env["${prefix}_SOUND"]?.let { Env.boolean("${prefix}_SOUND") } ?: settings.sound,
         muted = Env["${prefix}_MUTED"]?.let { Env.boolean("${prefix}_MUTED") } ?: settings.muted,
         organizer = Env["${prefix}_ORGANIZER"]?.let { Env.boolean("${prefix}_ORGANIZER") } ?: settings.organizer,

@@ -243,8 +243,9 @@ class ShowBuilder internal constructor() {
         }
         // A wide slide covers the whole wall, so no card can be seen beside it — read off
         // the slide rather than off which builder function declared it, which is what lets a
-        // new wide kind arrive without this line changing.
-        panelOf += if (slide.wide || panels.isEmpty()) -1 else panels.size - 1
+        // new wide kind arrive without this line changing. One that carries its card keeps it:
+        // it is the card, taking the wall.
+        panelOf += if ((slide.wide && !slide.carriesCard) || panels.isEmpty()) -1 else panels.size - 1
     }
 
     internal fun build(): Show {

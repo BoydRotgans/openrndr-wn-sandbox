@@ -141,6 +141,10 @@ dependencies {
     // AL calls do not resolve at compile time. No new artifact is downloaded: Gradle
     // resolves the very jar the openal module already pulls in.
     implementation(libs.lwjgl.openal)
+    // The OpenGL bindings, for the same reason: openrndr-gl3 is runtimeOnly, and the show's
+    // recorder reads its frames back through pixel buffers, which OPENRNDR has no API for.
+    // The same 3.3.6 jar openrndr-gl3 already pulls in at runtime.
+    implementation(libs.lwjgl.opengl)
     // The QR code on the ending wall. Small, pure Java, no natives.
     implementation("com.google.zxing:core:3.5.3")
 
