@@ -245,6 +245,23 @@ class AssembleScene(
     private val cubeSize: Int = 12,
     private val blocks: Int = 30,
     private val maxSide: Int = 6,
+    /**
+     * Under the `cube` form: a block is **a stack of copies of its one piece** rather than the piece stretched
+     * through the block's thickness — as many, along the block's thinnest side, as it takes for none to be
+     * more than this many times as thick as the piece is at the block's size. 0 stretches the one piece to
+     * fill the block, as before.
+     */
+    private val stack: Double = 0.0,
+    /** Under [stack]: the gap between two copies in a stack, as a share of a copy's thickness. */
+    private val stackGap: Double = 0.2,
+    /** Under [stack]: the most copies a block is a stack of. */
+    private val stackMax: Int = 16,
+    /**
+     * Under [stack] and [explode]: how much further apart the copies stand once the stack is out of the cube,
+     * as a share of a copy, opening as the piece travels; never so far that the stack runs longer than its
+     * block's longest side.
+     */
+    private val stackOpen: Double = 0.0,
     private val seed: Int = 5,
     override val transition: Transition = Cut,
     override val sound: Sound? = null
@@ -668,7 +685,7 @@ class AssembleScene(
      * Under `solid`: piece [b] where [now] says, [seed] telling one copy of it from another, and how far
      * it is from standing in its building — 1 outside or on its way, 0 set in.
      */
-    private class Placed(val b: Int, val now: Now, val seed: Int, val active: Double = 0.0)
+    private class Placed(val b: Int, val now: Now, val seed: Int, val active: Double = 0.0, val open: Double = 0.0)
 
     /** A piece of the row for a drawer of its own: its mesh, its model matrix in cells, how far from set in it is (1 outside, 0 in), and which copy. */
     class RowPiece(val mesh: ObjMesh, val model: Matrix44, val active: Double, val seed: Int)
@@ -1131,11 +1148,52 @@ class AssembleScene(
         }
     }
 
-    /** Under `catalogue`, the pieces and lines at [t], for a drawer of its own: see [catalogueFrame]. */
+    /**
+     * Under `catalogue`, the pieces and lines at [t], for a drawer of its own: see [catalogueFrame]. A block
+     * that is a stack ([stack]) hands over a piece a copy, every copy with the block's seed.
+     */
     fun catalogue(t: Double): Pair<List<RowPiece>, List<Pair<Pair<Vector3, Vector3>, Double>>> {
         if (!ready) return emptyList<RowPiece>() to emptyList()
         val (placed, lines) = catalogueFrame(t)
-        return placed.map { RowPiece(solids[it.b].mesh, modelOf(solids[it.b], it.now), it.active, it.seed) } to lines
+        return placed.flatMap { p ->
+            stackOf(solids[p.b], p.now, copies.getOrElse(p.b) { 1 }, p.open).map { RowPiece(solids[p.b].mesh, it, p.active, p.seed) }
+        } to lines
+    }
+
+    /** Under the `cube` form: how many copies of its piece each block is a stack of; 1 a block without [stack]. */
+    private var copies: IntArray = IntArray(0)
+
+    /**
+     * How many copies of [s] a block of [box] is a stack of: the piece is sized to the block by its two
+     * longer sides, which puts its own thickness at that size, and the copies are as many as keep each no
+     * more than [stack] times that — the gaps between them counted in.
+     */
+    private fun stackCount(s: Solid, box: Vector3): Int {
+        if (stack <= 0.0) return 1
+        val b = listOf(box.x, box.y, box.z).sortedDescending()
+        val p = listOf(s.extent.x, s.extent.y, s.extent.z).sortedDescending()
+        val own = max(p[2], STACK_FLOOR * p[0]) * sqrt(b[0] / p[0] * (b[1] / p[1]))
+        return kotlin.math.ceil((b[2] / (own * stack) + stackGap) / (1.0 + stackGap)).toInt().coerceIn(1, stackMax)
+    }
+
+    /**
+     * [n] copies of [s] laid into [now]'s box as a stack along its thinnest side, each the same share of it
+     * with [stackGap] of a copy between them; one copy fills the box, as [modelOf] lays it. [open], 0 to 1,
+     * spreads the copies about the box's middle by up to [stackOpen] of a copy more — as far as keeps the
+     * stack no longer than the box's longest side.
+     */
+    private fun stackOf(s: Solid, now: Now, n: Int, open: Double = 0.0): List<Matrix44> {
+        if (n <= 1) return listOf(modelOf(s, now))
+        fun c(v: Vector3, a: Int) = when (a) { 0 -> v.x; 1 -> v.y; else -> v.z }
+        val axis = (0..2).sortedByDescending { c(now.size, it) }[2]
+        val along = when (axis) { 0 -> Vector3.UNIT_X; 1 -> Vector3.UNIT_Y; else -> Vector3.UNIT_Z }
+        val span = c(now.size, axis)
+        val copy = span / (n + (n - 1) * stackGap)
+        val room = ((c(now.size, (0..2).maxBy { c(now.size, it) }) - n * copy) / ((n - 1) * copy) - stackGap).coerceAtLeast(0.0)
+        val gap = stackGap + open.coerceIn(0.0, 1.0) * min(stackOpen, room)
+        val first = (span - n * copy - (n - 1) * copy * gap) / 2.0
+        val size = now.size - along * (span - copy)
+        return (0 until n).map { k -> modelOf(s, Now(now.corner + along * (first + k * copy * (1.0 + gap)), size, now.alongX, now.lying)) }
     }
 
     /**
@@ -1160,6 +1218,29 @@ class AssembleScene(
         val n = floor(t / cycle)
         val f = ((t - n * cycle) / catalogueHold).coerceIn(0.0, 1.0)
         return n + f * f * f * (f * (f * 6.0 - 15.0) + 10.0)
+    }
+
+    /**
+     * Under `catalogue`: the cycle as its four stretches, in seconds — standing apart, coming together,
+     * standing whole, coming apart — from t = 0.
+     */
+    val phases: List<Double> get() = listOf(catalogueHold, catalogueLift, buildHold, catalogueLift)
+
+    /**
+     * Under `catalogue`: how far the kit stands apart at [t] — 1 while it stands laid out, 0 while it stands
+     * whole, and eased across the moves between, over the time all the pieces take to go.
+     */
+    fun apartAt(t: Double): Double {
+        val lift = catalogueLift
+        val cycle = catalogueHold + lift + buildHold + lift
+        val u = t - floor(t / cycle) * cycle
+        fun ease(x: Double) = x.coerceIn(0.0, 1.0).let { it * it * it * (it * (it * 6.0 - 15.0) + 10.0) }
+        return when {
+            u < catalogueHold -> 1.0
+            u < catalogueHold + lift -> 1.0 - ease((u - catalogueHold) / lift)
+            u < catalogueHold + lift + buildHold -> 0.0
+            else -> ease((u - catalogueHold - lift - buildHold) / lift)
+        }
     }
 
     private fun catalogueFrame(t: Double): Pair<List<Placed>, List<Pair<Pair<Vector3, Vector3>, Double>>> {
@@ -1214,7 +1295,12 @@ class AssembleScene(
                 u >= inStart -> 1.0 - ((u - inLands) / ACCENT_FADE).coerceIn(0.0, 1.0)
                 else -> 0.0
             }
-            pieces += Placed(e, now, e, active)
+            // Under explode: how far out of the cube the piece has come, 0 in its place and 1 in its box — how
+            // far its stack has opened.
+            val open = if (!explode) 0.0 else (hc - sc).length.let { d ->
+                if (d < 1e-9) 0.0 else ((now.corner + now.size * 0.5 - sc).length / d).coerceIn(0.0, 1.0)
+            }
+            pieces += Placed(e, now, e, active, open)
             if (!guides) continue
             if (u >= inLands && u < outStart) {
                 val strength = 1.0 - ((u - inLands) / fade).coerceIn(0.0, 1.0)
@@ -1338,6 +1424,8 @@ class AssembleScene(
                 val near = kitAll.sortedBy { k -> shape(k.extent).let { (want[0] - it[0]).let { d -> d * d } + (want[1] - it[1]).let { d -> d * d } * 0.25 } }.take(3)
                 near[rnd.nextInt(near.size)]
             }
+            copies = IntArray(solids.size) { e -> stackCount(solids[e], cubeBlocks[e].size - Vector3(JOINT)) }
+            if (stack > 0.0) println("assemble: stacks of ${copies.joinToString(",")}, ${copies.sum()} pieces in all")
             if (catalogueMode) homes = if (layout == "lattice" || layout == "boxes") packLattice() else packCatalogue()
             ready = true
             println("assemble: a cube of ${cubeBlocks.size} blocks, ${cubeSize} a side")
@@ -1540,6 +1628,12 @@ class AssembleScene(
         const val WALL = 0.35
         const val PLATE = 0.35
         const val JOINT = 0.12
+
+        /**
+         * Under [stack]: the thinnest a piece is taken to be, as a share of its length. The floor plates are
+         * modelled as sheets a millimetre thick, and a stack of those would never end.
+         */
+        const val STACK_FLOOR = 0.04
 
         /** The four neighbours of a bay. */
         val SIDES = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)

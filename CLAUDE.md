@@ -2663,6 +2663,18 @@ grid's lines, a flat shadow and the pieces, one ortho camera, no shadow map and 
   `KIT_MAX_SIDE`. Each block takes the catalogue piece nearest its proportions, one of the nearest three,
   fitted **longest side to longest side** — so the same piece reads the same whichever way its block stands,
   and the door wall's and the windows' openings become holes and notches in the blocks.
+- **A block is a stack of its one piece, never the piece stretched thick** (`KIT_STACK`, 25 September). The
+  kit's pieces are thin — a wall panel is 4 to 9% as thick as it is long, and the floor plates are modelled a
+  millimetre thick — so filling a block with one of them stretched it to many times its own thickness. Now
+  the piece is sized to the block by its two longer sides and copied along the block's thinnest side, as
+  many times as keep each copy no more than `KIT_STACK` (1.5) times as thick as the piece is at that size,
+  a `_STACK_GAP` of a copy between them (`AssembleScene.stackOf`). The plates are counted 4% of their length
+  thick (`STACK_FLOOR`), or their stacks would never end. The seeded cube comes out as stacks of 1 to 9,
+  86 pieces for 25 blocks; a stack moves, and is coloured, as its block. 0 stretches the one piece again.
+  **Exploded, a stack opens up**: its copies stand `KIT_STACK_OPEN` (0.8) of a copy further apart, about the
+  block's middle, opening with how far the piece has come from its place in the cube to its box and closing
+  on the way back — never so far that the stack runs longer than its block's longest side, so it keeps to the
+  reach `latticeFits` allowed it.
 - **The pieces keep their size; the cube turns.** Every round builds the same blocks turned about the cube's
   middle by another of its 24 turns, so the big blocks come round to other faces — the kit is fixed, as a
   box of bricks is, and a block never changes size in the air.
@@ -2708,9 +2720,33 @@ grid's lines, a flat shadow and the pieces, one ortho camera, no shadow map and 
   1 above and below the cube's), a piece floating at the middle of its box rather than on its floor, and the
   exploded view carries each out in three dimensions (`KIT_SPREAD`, its place in the cube times 3.5) to the
   nearest free box. The scale is worked out so the frame's corners fall inside the diamond the boxes make
-  from a corner, so the field runs off every edge (`KIT_FILL` over 1 pushes further). The pieces are grey
-  for now (`KIT_TOP`, `_SIDE`, `_SIDE_Z`) with no shadow (`KIT_SHADOWS`), the lines a light grey; the red,
-  navy and black are the variant "on a flat grid, in colour".
+  from a corner, so the field runs off every edge (`KIT_FILL` over 1 pushes further). No shadow
+  (`KIT_SHADOWS`).
+- **The camera stands close on the cube while it is whole and pulls out to the field as it explodes**
+  (`KIT_CLOSE`, 25 September): whole, the cube fills 0.8 of the frame's height; exploded, the field is
+  framed as before; the zoom runs between the two in log space on a smootherstep, out as it comes apart and
+  back in as it goes together. It opens whole, explodes, and loops. **The zoom's timing is fitted to the
+  pieces, once, at load**: synced to the explode's own clock the outermost pieces flew off the frame's top and
+  foot (3.7–4.2 s and 9.9–10.5 s, measured on stills a tenth of a second apart), since they fly out faster
+  than an even pull and come home after it; tracking them every frame kept them in but lurched the zoom to
+  four times its speed wherever a fast piece took over. So every frame of both moves is looked at from all
+  four corners the camera comes round to, how far through the pull the camera must be to keep every piece
+  whole in the frame is read off, and each move takes the longest ease that is always at least that far
+  through: out over 1.2 s, and in over 2.3 s ending a quarter of the move after the last piece lands
+  (`ZOOM_SETTLE`). Checked on 176 stills a frame apart across both moves: no piece touches the frame's
+  edge, and the zoom's speed is one smooth swell each way.
+- **It wears `CourseClimb`'s look** (`KIT_STYLE=climb`, 25 September): a black ground, every piece one flat
+  red or blue off `KIT_COLOURS` (`FF0000,3D5AE0`, the climb's), the same on every face, and a white line on
+  every real edge of it — the climb's line thinned, reaching `KIT_EDGE_WIDTH` 0.5 px either side of an edge
+  and fading over `_EDGE_SOFT` 0.6, about a pixel — with the boxes in a dim grey (`4A4D55`) so the pieces
+  lead. **The boxes are only there while the kit stands apart** (`AssembleScene.apartAt`): they come in with
+  the explode and go with the reassembly, eased over the time all the pieces take, and the cube stands whole
+  on the bare ground; `KIT_BOXES_ALWAYS=true` keeps them up. **The colours
+  are dealt so blocks touching in the cube differ**: read off the cube standing whole, each block in turn,
+  the most touching first, takes the colour it shares least face with among those already dealt, and keeps
+  it wherever it goes. `KIT_STYLE=grey` is the kit's greys on a light ground (the variant "grey"), and
+  every colour is also a `KIT_*` key
+  of its own that wins over the style. The two lattice variants run on the grey style's ground.
 
 **`row` on one projector floats and drops** (variant "street, floating and falling"): a piece taken out
 lands in the exploded view, floats there `_FLOAT` seconds rising and settling `_BOB` cells, and then falls
@@ -5707,7 +5743,10 @@ sketch's variant says `// sketch-variant-of: CourseFlow` and gets no card of its
 a variant, each with its own picture (`sketch-previews/<Sketch>--<variant-slug>.png`) and a run command
 with its values in front. The course walls in `courses/` draw through `runCourse`, which writes the same
 preview under `SKETCH_PREVIEW` (half the canvas, without the concrete wall) and is picked up as drawing
-without a `sketchPreview` call; a wall-shaped picture takes two columns and is shown whole.
+without a `sketchPreview` call; a wall-shaped picture takes two columns and is shown whole. Run on its own,
+a course shows **the show's concrete wall over its live window** while `COURSE_WALL` is on (`w` switches it),
+off the same `SLIDES_CONCRETE*` keys and `ConcreteWall` the show lays over the wall, so a sketch is judged on
+the stone it will be seen on; its stills (`COURSE_AT`) and previews stay clean, as the show's do.
 
 ### Long shadow type v2
 

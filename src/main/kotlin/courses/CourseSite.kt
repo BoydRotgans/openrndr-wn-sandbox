@@ -14,6 +14,7 @@ import org.openrndr.draw.ColorType
 import org.openrndr.draw.Drawer
 import org.openrndr.draw.RenderTarget
 import org.openrndr.draw.colorBuffer
+import org.openrndr.draw.isolated
 import org.openrndr.draw.isolatedWithTarget
 import org.openrndr.draw.renderTarget
 import org.openrndr.math.Vector2
@@ -184,7 +185,8 @@ class Site(
  * The harness every course sketch runs in: the wall composed at 3840x1080, multisampled, shown in
  * the window at half, and driven by a clock that is a pure function of the frame.
  *
- * - interactive: `space` holds, `←` `→` jump ten seconds, `0` back to the start.
+ * - interactive: `space` holds, `←` `→` jump ten seconds, `0` back to the start, `w` switches the show's
+ *   concrete wall over the picture (on while `COURSE_WALL` is; stills and previews stay clean).
  * - `COURSE_AT=5,40` writes a still at each of those seconds to `screenshots/courses/` and quits.
  * - `COURSE_RECORD=true` writes `video/courses/<name>.mp4`, `COURSE_DURATION` seconds from
  *   `COURSE_FROM`, at `COURSE_FPS`, at `COURSE_RECORD_SCALE` of the canvas (half), under the concrete
@@ -215,6 +217,17 @@ fun runCourse(
             colorBuffer(); depthBuffer()
         }
         val resolved = colorBuffer(w, h)
+        // The show's concrete wall, off the show's own SLIDES_CONCRETE* keys, laid over the picture where it
+        // meets the window and in a recording, while COURSE_WALL is on — so a sketch is judged on the stone
+        // the room will see it on. `w` switches it; stills and previews stay clean, as the show's do.
+        val wall = slideshow.ConcreteWall.load(
+            Env["SLIDES_CONCRETE"],
+            Env["SLIDES_CONCRETE_MIX"]?.toDoubleOrNull() ?: 1.0,
+            Env["SLIDES_CONCRETE_SCALE"]?.toDoubleOrNull() ?: 1.0,
+            Env["SLIDES_CONCRETE_FLOOR"]?.toDoubleOrNull() ?: 0.0
+        )
+        val wallStyle = wall?.style(Vector2(w.toDouble(), h.toDouble()))
+        var wallOn = wallStyle != null && (Env["COURSE_WALL"]?.let { it == "true" } ?: true)
         fun render(time: Double): ColorBuffer {
             drawer.isolatedWithTarget(canvas) {
                 ortho(canvas)
@@ -267,13 +280,6 @@ fun runCourse(
             val scale = (Env["COURSE_RECORD_SCALE"]?.toDoubleOrNull() ?: 0.5).coerceIn(0.1, 1.0)
             val cw = (w * scale).toInt() / 2 * 2
             val ch = (h * scale).toInt() / 2 * 2
-            val wall = if (Env["COURSE_WALL"]?.let { it == "true" } ?: true) slideshow.ConcreteWall.load(
-                Env["SLIDES_CONCRETE"],
-                Env["SLIDES_CONCRETE_MIX"]?.toDoubleOrNull() ?: 1.0,
-                Env["SLIDES_CONCRETE_SCALE"]?.toDoubleOrNull() ?: 1.0,
-                Env["SLIDES_CONCRETE_FLOOR"]?.toDoubleOrNull() ?: 0.0
-            ) else null
-            val wallStyle = wall?.style(Vector2(w.toDouble(), h.toDouble()))
             val out: RenderTarget = renderTarget(cw, ch) { colorBuffer() }
             val pixels = ByteBuffer.allocateDirect(cw * ch * 4)
             val suffix = if (CourseControl.fixed != null) "-view${Env["COURSE_VIEW"]}" else ""
@@ -284,7 +290,7 @@ fun runCourse(
                 val image = render(from + f.toDouble() / fps)
                 drawer.isolatedWithTarget(out) {
                     ortho(out)
-                    if (wallStyle != null) shadeStyle = wallStyle
+                    if (wallOn) shadeStyle = wallStyle
                     image(image, 0.0, 0.0, cw.toDouble(), ch.toDouble())
                 }
                 out.colorBuffer(0).read(pixels, ColorFormat.RGBa, ColorType.UINT8)
@@ -304,11 +310,16 @@ fun runCourse(
                 "arrow-right" -> time += 10.0
                 "arrow-left" -> time = (time - 10.0).coerceAtLeast(0.0)
                 "0" -> time = 0.0
+                "w" -> { wallOn = wallStyle != null && !wallOn; println("$name: concrete wall ${if (wallOn) "on" else "off"}") }
             }
         }
         extend {
             if (!paused) time += 1.0 / 60.0
-            drawer.image(render(time), 0.0, 0.0, width.toDouble(), height.toDouble())
+            val image = render(time)
+            drawer.isolated {
+                if (wallOn) drawer.shadeStyle = wallStyle
+                drawer.image(image, 0.0, 0.0, width.toDouble(), height.toDouble())
+            }
         }
     }
 }
