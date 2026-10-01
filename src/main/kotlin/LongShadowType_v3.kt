@@ -190,9 +190,9 @@ fun longShadowV3FromEnv(
             v3Env("FACE") ?: Env["SLIDES_FONT_BOLD"] ?: "Rockwell-Bold"
         ),
         ink = colour("LONGSHADOW_INK", "FFFFFF"),
-        paper = paper ?: colour("LONGSHADOW_PAPER", "3D5AE0"),
+        paper = paper ?: colour("LONGSHADOW_PAPER", "000000"),
         groundGrain = groundGrain,
-        shade = colour("LONGSHADOW_SHADE", "1E3A72"),
+        shade = colour("LONGSHADOW_SHADE", slideshow.Brand.blueHex),
         margin = number("LONGSHADOW_MARGIN", 160.0),
         lines = v3Env("LINES")?.toIntOrNull(),
         leading = number("LONGSHADOW_LEADING", 1.0),

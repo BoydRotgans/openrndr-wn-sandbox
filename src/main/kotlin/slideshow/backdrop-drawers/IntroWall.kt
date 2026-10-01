@@ -35,6 +35,8 @@ class IntroWall(
 ) : Backdrop() {
 
     override val name = "Intro"
+    /** It opens on the name tag's own last frame, so the cut into it cannot be seen: nothing may build. */
+    override val buildsIn get() = false
     override val background: ColorRGBa = ColorRGBa.BLACK
     override val stepFrames get() = programme.stepFrames
     override val steps get() = programme.steps + if (guest != null) 1 else 0

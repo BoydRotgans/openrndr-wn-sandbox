@@ -68,9 +68,9 @@ fun main() = application {
         val file = File(Env["CUT_SVG"] ?: "data/titles/v5/title01-test3.svg")
         // The slab and the floor of the cuts, and the shadow, hex: the house blue, a shade under
         // it, and the house navy.
-        val surface = ColorRGBa.fromHex(Env["CUT_SURFACE"] ?: "3D5AE0")
-        val floor = ColorRGBa.fromHex(Env["CUT_FLOOR"] ?: "2E48B8")
-        val shade = ColorRGBa.fromHex(Env["CUT_SHADE"] ?: "10214A")
+        val surface = ColorRGBa.fromHex(Env["CUT_SURFACE"] ?: slideshow.Brand.blueHex)
+        val floor = ColorRGBa.fromHex(Env["CUT_FLOOR"] ?: "02326D")
+        val shade = ColorRGBa.fromHex(Env["CUT_SHADE"] ?: "01152D")
         // How deep the cut is, in pane pixels, and how long it takes to sink to that from flat.
         val depth = number("CUT_DEPTH", 12.0)
         val sink = number("CUT_SINK", 2.0).coerceAtLeast(0.05)
@@ -175,7 +175,7 @@ fun main() = application {
             parameter("floor", floor)
             parameter("shade", shade)
             parameter("strength", strength)
-            parameter("lit", ColorRGBa.fromHex(Env["CUT_LIP"] ?: "7E98F0"))
+            parameter("lit", ColorRGBa.fromHex(Env["CUT_LIP"] ?: "4D79AB"))
             parameter("stoned", if (stone != null) 1.0 else 0.0)
             parameter("stone", stone ?: blank)
             parameter("tile", Vector2((stone ?: blank).width * stoneScale * DETAIL, (stone ?: blank).height * stoneScale * DETAIL))

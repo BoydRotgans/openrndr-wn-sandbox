@@ -15,6 +15,7 @@ import slideshow.Palette
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
+import slideshow.easeInOutCubic
 import slideshow.frames
 import slideshow.smoothstep
 import kotlin.math.abs
@@ -44,10 +45,10 @@ fun nodes(labels: List<String>): List<TreeNode> = labels.map { TreeNode(it) }
  *
  * **It opens on the frame the slide before it closed on.** [opening] hands over a [Mark] —
  * the shape the previous slide left standing, at the size and place it left it — and the
- * tree's first state is exactly that and nothing else, so the cut between the two is
+ * tree's first frame is exactly that and nothing else, so the cut between the two is
  * invisible. `CityMapSlide.closingMark` is the one that does this: the city closes down
- * onto a single catalogue element, and that element is this tree's root. The first click
- * then shrinks it to node size, turns it [accent], and fans the tree out of it.
+ * onto a single catalogue element, and that element is this tree's root. The root then
+ * shrinks to node size, turns [accent], and the tree grows out of it.
  *
  * That handover is a load-order dependency and the only fragile thing here: [opening] is
  * called in this slide's `load`, and it can only answer if the slide that fills it was
@@ -70,11 +71,18 @@ fun nodes(labels: List<String>): List<TreeNode> = labels.map { TreeNode(it) }
  * Nothing in the show needs that yet.
  *
  * **[highlights] picks a few things out before the fan.** Forty labels arriving at once is a
- * picture; one arriving is a point. So the first clicks draw one named factor each — its curve
+ * picture; one arriving is a point. So each named factor gets a state of its own — its curve
  * and its label, with nothing else on the pane but the root — and only the click after those
  * opens the whole fan around them. They are the ink like every other label: they were the
- * accent until the review of 22 September, which read the blue as too hard to see. The root shrinks to
- * node size on the very first click either way, since a curve has to have an edge to leave.
+ * accent until the review of 22 September, which read the blue as too hard to see.
+ *
+ * **The first highlight is the arrival, not a click** (29 September). The tree used to open on the
+ * city's last frame and hold it, so the click into the tree changed nothing anyone could see and
+ * the first label waited for a second click. Now the root starts shrinking and the first factor
+ * starts growing on the slide's own clock from the frame it comes up, over one click's length, so
+ * the click off the city runs straight into "Locatie". Only while the slide is on its opening
+ * state, so stepping back to it from the second factor finds it built. With no highlights the
+ * slide opens holding the city's frame, and the fan is its first click.
  *
  * **A highlight stands beside the root while it is the only thing there, and travels to its own
  * row when the fan opens.** Drawn at its settled place from the start it is wherever its row
@@ -110,18 +118,21 @@ class TreeSlide(
 ) : Slide() {
     override val name = "Tree"
 
-    /** A click a highlight, then one click a level, and the first of all is the tree arriving. */
-    override val steps = 1 + highlights.size + maxOf(depthOf(left), depthOf(right))
+    /**
+     * The first highlight arrives with the slide and each of the rest takes a click, then one click a
+     * level. With no highlights the first state is the city's frame, held.
+     */
+    override val steps = maxOf(highlights.size, 1) + maxOf(depthOf(left), depthOf(right))
     override val stepFrames = frames(pace)
 
     /** The click that opens the whole fan: the one after the last highlight. */
-    private val fanStep: Int get() = 1 + highlights.size
+    private val fanStep: Int get() = maxOf(highlights.size, 1)
 
     /** Seamless: the first frame here is the last frame of the slide before it. */
     override val transition = Cut
 
     override fun stepName(step: Int) = when {
-        step in 1..highlights.size -> highlights[step - 1]
+        step in highlights.indices -> highlights[step]
         step == fanStep -> "open the tree"
         else -> null
     }
@@ -140,8 +151,18 @@ class TreeSlide(
         face = program.loadFont(fontPath, ATLAS, TYPE_CHARACTERS, contentScale = 1.0)
     }
 
+    /**
+     * How far highlight [k] has arrived. The first comes in on the slide's own clock as it opens,
+     * the way a click would bring it in; the rest on their clicks.
+     */
+    private fun named(stage: Stage, k: Int): Double =
+        if (k > 0) stage.on(k)
+        else if (stage.step == 0 && stage.position < 1e-6) easeInOutCubic(stage.since(0, stepFrames))
+        else 1.0
+
     override fun draw(drawer: Drawer, stage: Stage) {
-        val opened = stage.on(1)
+        // The root becomes a node as the first thing grows out of it.
+        val opened = if (highlights.isEmpty()) stage.on(1) else named(stage, 0)
         val centre = stage.center
 
         // One scale for both sides: the tighter of the row pitch and the measure a label
@@ -174,7 +195,7 @@ class TreeSlide(
                 // from the middle of the fan outwards, which is the order the bundle at the
                 // root can actually come apart in, on the clicks after the highlights.
                 val picked = highlights.indexOf(one.node.label)
-                val grown = if (picked >= 0) stage.on(picked + 1)
+                val grown = if (picked >= 0) named(stage, picked)
                             else smoothstep((stage.on(fanStep + one.depth - 1) - one.row * STAGGER) / (1.0 - STAGGER))
                 if (grown <= 0.0) return@forEach
                 // Every label and its curve are the ink, the named factors included: they were the
@@ -277,9 +298,10 @@ class TreeSlide(
         }
     }
 
+    /** A mix that keeps the colours' linearity: the plain constructor drops it and the house blue came out a sky blue. */
     private fun mix(a: ColorRGBa, b: ColorRGBa, t: Double) = ColorRGBa(
         a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t, a.alpha + (b.alpha - a.alpha) * t
+        a.b + (b.b - a.b) * t, a.alpha + (b.alpha - a.alpha) * t, b.linearity
     )
 
     private fun mix(a: Double, b: Double, t: Double) = a + (b - a) * t

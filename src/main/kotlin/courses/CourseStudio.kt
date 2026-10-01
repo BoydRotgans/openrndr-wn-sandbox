@@ -64,6 +64,9 @@ fun main() = application {
         val gridPieces = PieceChoice.fromEnv()
         val courses = CourseWalls.all.map { w ->
             if (w.key == "course-v3-grid") Course(w.key, w.title, gridPieces) { gridCourse(gridPieces) }
+            // Draft 2 on a photograph steps its photographs the same way.
+            else if (w.key == "course-v6-kit-draft2" && Env["KIT_DRAFT2_STYLE"] == "photo")
+                draft2Photos().let { photos -> Course(w.key, w.title, photos) { kitDraft2Course(photos) } }
             else Course(w.key, w.title) { w.make(this) }
         }
         var index = ((Env["COURSE"]?.toIntOrNull() ?: 1) - 1).coerceIn(0, courses.size - 1)
@@ -229,7 +232,7 @@ fun main() = application {
 
             // A red mark while filming, on the window only, so it never lands in the clip.
             if (clip != null) {
-                drawer.fill = ColorRGBa.fromHex("E3141B")
+                drawer.fill = slideshow.Palette.RED
                 drawer.stroke = null
                 drawer.circle(width - 18.0, 18.0, 7.0)
                 if (font != null) {
@@ -268,7 +271,7 @@ fun main() = application {
                     val row = "${if (on) "▶" else " "} ${i + 1}   ${"%.1f".format(v.x)}° round   ${"%.1f".format(v.y)}° up" +
                         when { v.y < 0.0 -> "   from below"; v.y > 90.0 -> "   over the top"; else -> "" }
                     drawer.fill = when {
-                        on -> ColorRGBa.fromHex("E3141B")
+                        on -> slideshow.Palette.RED
                         under -> ColorRGBa.WHITE.opacify(0.35)
                         else -> ColorRGBa.BLACK.opacify(0.7)
                     }

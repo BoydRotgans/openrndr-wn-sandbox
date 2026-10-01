@@ -90,7 +90,7 @@ class BlockStacks(
     /** The catalogue pieces the cubes hold, dealt among them from the seed; empty leaves the cubes empty. */
     private val pieces: List<File> = emptyList(),
     /** The pieces' colour, and how much of a cube a piece's longest side takes. */
-    private val piece: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val piece: ColorRGBa = slideshow.Palette.RED,
     private val fill: Double = 0.72,
     private val seed: Int = 7,
     override val transition: Transition = Cut,

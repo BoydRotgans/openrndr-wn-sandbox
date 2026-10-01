@@ -1,0 +1,23 @@
+{
+    "about": "The two projectors of the wall and where its 1920x1080 halves stand on them, set in the organizer's Projection tab. width and height are each projector's size in points, read at the start; x, y and scale place the half on it and move the running show at once. desktop is the left projector's top left corner on the desktop, null for the rightmost two displays. SLIDES_PROJECTORS names the file.",
+    "left": {
+        "width": 1920,
+        "height": 1080,
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "model": "Vivitek 1080p"
+    },
+    "right": {
+        "width": 1920,
+        "height": 1080,
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "model": "Vivitek 1080p"
+    },
+    "desktop": {
+        "x": null,
+        "y": null
+    }
+}

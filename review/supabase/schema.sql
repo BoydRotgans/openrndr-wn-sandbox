@@ -21,7 +21,8 @@ create table if not exists public.releases (
 create table if not exists public.comments (
   id          uuid primary key default gen_random_uuid(),
   release_id  uuid not null references public.releases(id) on delete cascade,
-  -- 'comment', or 'voiceover' for a proposed voice-over text (the body is the whole text)
+  -- 'comment', 'voiceover' for a proposed voice-over text (the body is the whole text), or
+  -- 'audio_status' for where a sound stands in the audio timeline (the body is the status)
   kind        text not null default 'comment',
   -- 'visual' or 'audio': which side of the state the remark is about
   topic       text not null default 'visual',
@@ -41,7 +42,11 @@ create table if not exists public.comments (
   -- who an audio comment is for, by name
   assignees   text[] not null default '{}',
   -- a reply: the note it answers; goes with it
-  parent_id   uuid references public.comments(id) on delete cascade
+  parent_id   uuid references public.comments(id) on delete cascade,
+  -- the sound in the audio timeline a note or an 'audio_status' row is about: 'design:<state>',
+  -- 'voice:<state>' or 'music:<file>', and the file it held when this was written
+  clip        text,
+  clip_file   text
 );
 -- a project made before the voice-over column existed
 alter table public.comments add column if not exists kind text not null default 'comment';
@@ -52,6 +57,9 @@ alter table public.comments add column if not exists x double precision;
 alter table public.comments add column if not exists y double precision;
 alter table public.comments add column if not exists assignees text[] not null default '{}';
 alter table public.comments add column if not exists parent_id uuid references public.comments(id) on delete cascade;
+alter table public.comments add column if not exists clip text;
+alter table public.comments add column if not exists clip_file text;
+create index if not exists comments_clip on public.comments (clip);
 create index if not exists comments_release_state on public.comments (release_id, state_key);
 create index if not exists comments_slide on public.comments (slide_id);
 
@@ -102,3 +110,20 @@ drop policy if exists "releases bucket update" on storage.objects;
 create policy "releases bucket read"   on storage.objects for select using (bucket_id = 'releases');
 create policy "releases bucket insert" on storage.objects for insert with check (bucket_id = 'releases');
 create policy "releases bucket update" on storage.objects for update using (bucket_id = 'releases') with check (bucket_id = 'releases');
+
+-- The client's speaker notes on the practice page (/practice): one text per click, keyed by the
+-- state's 'slide-LETTER' so a note stays with its click from one film to the next. The same
+-- no-sign-in rule as the comments: anyone with the anon key may read and write them.
+create table if not exists public.speaker_notes (
+  state_key   text primary key,
+  slide_id    text not null default '',
+  body        text not null default '',
+  updated_at  timestamptz not null default now()
+);
+alter table public.speaker_notes enable row level security;
+drop policy if exists "speaker notes read"   on public.speaker_notes;
+drop policy if exists "speaker notes insert" on public.speaker_notes;
+drop policy if exists "speaker notes update" on public.speaker_notes;
+create policy "speaker notes read"   on public.speaker_notes for select using (true);
+create policy "speaker notes insert" on public.speaker_notes for insert with check (true);
+create policy "speaker notes update" on public.speaker_notes for update using (true) with check (true);

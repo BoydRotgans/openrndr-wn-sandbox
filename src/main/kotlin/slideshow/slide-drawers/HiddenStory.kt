@@ -33,7 +33,12 @@ class Reduction(
     val share: Double,
     val figure: String,
     val subject: String,
-    val measures: List<String> = emptyList()
+    val measures: List<String> = emptyList(),
+    /**
+     * Since when, and against what, set small under the subject: "sinds 2025, t.o.v. het vorige mengsel".
+     * Without it −30% reads as a cut made every year (meeting of 30 September).
+     */
+    val baseline: String? = null
 )
 
 /**
@@ -69,8 +74,8 @@ class HiddenStory(
     private val reductions: List<Reduction>,
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
-    private val ink: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
-    private val accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val ink: ColorRGBa = slideshow.Palette.BLUE,
+    private val accent: ColorRGBa = slideshow.Palette.RED,
     private val lettering: ColorRGBa = ColorRGBa.WHITE,
     /** Seconds a piece takes to turn once. */
     private val spin: Double = 36.0,
@@ -224,10 +229,35 @@ class HiddenStory(
         val eyeWorld = Vector3(iso.eye.x, 0.0, iso.eye.z).normalized
         val toEye = Vector3(eyeWorld.x * cos(main.angle) - eyeWorld.z * sin(main.angle), 0.0,
             eyeWorld.x * sin(main.angle) + eyeWorld.z * cos(main.angle))
-        fun onPiece(height: Double, facing: Boolean = false): Vector2 {
-            val q = leaderEnd(tris, height / main.scale, if (facing) toEye else null)
+        /** A point of the piece's own frame on the pane, as the piece stands and has turned this frame. */
+        fun toPane(q: Vector3): Vector2 {
             val r = Vector3(q.x * cos(main.angle) + q.z * sin(main.angle), q.y, -q.x * sin(main.angle) + q.z * cos(main.angle))
             return project(main.centre + r * main.scale)
+        }
+        fun onPiece(height: Double, facing: Boolean = false): Vector2 =
+            toPane(leaderEnd(tris, height / main.scale, if (facing) toEye else null))
+
+        // **A lever's leader stops where it first meets the piece** (feedback of 28 September). Aimed
+        // at the axis, the side leaders ran across the whole face to the doorway's jamb and lay over the
+        // piece. They keep that aim, so the labels stay put and a line still points at the same place,
+        // but end on the outline they reach first — the projected triangles, this frame — so only a
+        // leader's length changes as the piece turns, and none crosses it.
+        val shadow = tris.chunked(3).filter { it.size == 3 }.map { t -> t.map(::toPane) }
+        fun firstHit(from: Vector2, to: Vector2): Vector2 {
+            val d = to - from
+            fun cross(a: Vector2, b: Vector2) = a.x * b.y - a.y * b.x
+            var nearest = 1.0
+            for (t in shadow) {
+                for (k in 0 until 3) {
+                    val p = t[k]; val e = t[(k + 1) % 3] - p
+                    val den = cross(d, e)
+                    if (kotlin.math.abs(den) < 1e-9) continue
+                    val s = cross(p - from, e) / den
+                    val u = cross(p - from, d) / den
+                    if (s in 0.0..nearest && u in 0.0..1.0) nearest = s
+                }
+            }
+            return from + d * nearest
         }
         val topmost = onPiece(half)
         val rightmost = onPiece(half * SIDE_HIGH)
@@ -261,17 +291,17 @@ class HiddenStory(
             levers.getOrNull(0)?.let { l ->
                 val at = Vector2(topmost.x, topReach - h * LEVER_UP)
                 drawer.setLine(l, bold, Vector2(at.x, at.y - gap), size, SIZE, align = 0.5)
-                leader(at, topmost, leversAlpha)
+                leader(at, firstHit(at, topmost), leversAlpha)
             }
             levers.getOrNull(1)?.let { l ->
                 val at = Vector2(middle.x + reach + w * LEVER_OUT, rightmost.y)
                 drawer.setLine(l, bold, Vector2(at.x + gap, at.y + size * 0.34), size, SIZE, align = 0.0)
-                leader(at, rightmost, leversAlpha)
+                leader(at, firstHit(at, rightmost), leversAlpha)
             }
             levers.getOrNull(2)?.let { l ->
                 val at = Vector2(middle.x - reach - w * LEVER_OUT, leftmost.y)
                 drawer.setLine(l, bold, Vector2(at.x - gap, at.y + size * 0.34), size, SIZE, align = 1.0)
-                leader(at, leftmost, leversAlpha)
+                leader(at, firstHit(at, leftmost), leversAlpha)
             }
         }
 
@@ -288,9 +318,16 @@ class HiddenStory(
             drawer.setLine(r.figure, bold, Vector2(x, y), h * FIGURE, SIZE)
             drawer.fill = lettering.opacify(alpha)
             drawer.setLine(r.subject, bold, Vector2(x, y + h * LEAD * 1.4), size, SIZE)
+            // The baseline sits under the subject, quieter, and the measures move down a line for it.
+            val below = r.baseline?.let { b ->
+                drawer.fill = lettering.opacify(alpha * 0.7)
+                drawer.setLine(b, text, Vector2(x, y + h * LEAD * 2.3), h * TEXT, SIZE)
+                drawer.fill = lettering.opacify(alpha)
+                1.0
+            } ?: 0.0
             r.measures.forEachIndexed { i, m ->
                 text.wrapped(m, (w * (1.0 - EDGE) - x) * SIZE / (h * TEXT)).forEachIndexed { j, line ->
-                    drawer.setLine(line, text, Vector2(x, y + h * LEAD * (3.0 + i + j * 0.9)), h * TEXT, SIZE)
+                    drawer.setLine(line, text, Vector2(x, y + h * LEAD * (3.0 + below + i + j * 0.9)), h * TEXT, SIZE)
                 }
             }
             val anchor = Vector2(x - gap, y + h * LEAD * 1.4 - size * 0.34)

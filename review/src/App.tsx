@@ -12,6 +12,8 @@ import Timeline, { type NoteMark } from './components/Timeline'
 import { NameDialog, NewReleaseDialog } from './components/Dialogs'
 import General, { GENERAL } from './components/General'
 import TasksTab from './components/TasksTab'
+import AudioReview, { type NewNote } from './components/AudioReview'
+import { fmtDb } from './lib/audio'
 import { commentsCsv, download, formatTime } from './lib/csv'
 import { prefs, seenKey } from './lib/prefs'
 import { createStore } from './lib/store'
@@ -37,6 +39,24 @@ function hashFor(release: Release | null, state: StateInfo | null) {
   return release ? `#${release.slug}${state ? `/${state.key}` : ''}` : ''
 }
 
+type View = 'review' | 'audio'
+
+/**
+ * A row the audio timeline keeps rather than a remark anyone wrote — a sound's status or its gain.
+ * Left out of the review's counts and threads; the activity feed still says it happened.
+ */
+const isRecord = (c: Comment) => c.kind === 'audio_status' || c.kind === 'audio_gain'
+
+/**
+ * The address: `#<release>/<state>` for the review, `#audio/<release>/<slot>` for the audio
+ * timeline review — so a link lands on a sound as it lands on a state.
+ */
+function readHash(): { view: View; slug: string; key: string } {
+  const parts = location.hash.slice(1).split('/')
+  if (parts[0] === 'audio') return { view: 'audio', slug: parts[1] ?? '', key: decodeURIComponent(parts.slice(2).join('/')) }
+  return { view: 'review', slug: parts[0] ?? '', key: parts[1] ?? '' }
+}
+
 export default function App() {
   const store = useMemo(createStore, [])
   const player = useRef<PlayerHandle>(null)
@@ -57,6 +77,10 @@ export default function App() {
   const [newRelease, setNewRelease] = useState(false)
   const [general, setGeneral] = useState(false)
   const [tasks, setTasks] = useState(false)
+  const [view, setView] = useState<View>(() => readHash().view)
+  /** The sound selected on the audio page, by slot; it survives a switch of release. */
+  const [audioSlot, setAudioSlot] = useState<string | null>(() => (readHash().view === 'audio' ? readHash().key || null : null))
+  const [audioFocus, setAudioFocus] = useState<{ key: string; n: number } | null>(null)
   // a pin taken for the next comment: the frame, and the spot once the picture is clicked
   const [pin, setPin] = useState<{ at: number; x: number | null; y: number | null } | null>(null)
   // the comment tool is armed for one note and disarms once it is placed or cancelled
@@ -101,7 +125,7 @@ export default function App() {
   // the release: the one in the address, else the newest
   useEffect(() => {
     if (!releases.length || releaseId) return
-    const slug = location.hash.slice(1).split('/')[0]
+    const slug = readHash().slug
     const wanted = releases.find((r) => r.slug === slug) ?? releases[0]
     setReleaseId(wanted.id)
   }, [releases, releaseId])
@@ -111,7 +135,7 @@ export default function App() {
   useEffect(() => {
     if (!release || openedHash.current) return
     openedHash.current = true
-    const key = location.hash.slice(1).split('/')[1]
+    const key = readHash().view === 'review' ? readHash().key : ''
     const s = key ? states.find((x) => x.key === key) : null
     if (s) {
       setTime(s.start)
@@ -131,9 +155,29 @@ export default function App() {
   }, [release, track])
 
   useEffect(() => {
-    const h = hashFor(release, state)
+    const h = view === 'audio'
+      ? release ? `#audio/${release.slug}${audioSlot ? `/${encodeURIComponent(audioSlot).replace(/%3A/gi, ':')}` : ''}` : ''
+      : hashFor(release, state)
     if (h && location.hash !== h) history.replaceState(null, '', h)
-  }, [release, state])
+  }, [view, release, state, audioSlot])
+
+  // Back on the review the film is a new element at its start: put it where the review was.
+  const lastView = useRef(view)
+  useEffect(() => {
+    if (lastView.current === view) return
+    lastView.current = view
+    if (view === 'review') setTimeout(() => player.current?.seek(time, false), 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view])
+
+  const onAudioSlot = useCallback((key: string | null) => setAudioSlot(key), [])
+  const openAudio = (key: string | null) => {
+    setView('audio')
+    if (key) {
+      setAudioSlot(key)
+      setAudioFocus((f) => ({ key, n: (f?.n ?? 0) + 1 }))
+    }
+  }
 
   // --- seen / unread ------------------------------------------------------------------ //
 
@@ -155,7 +199,7 @@ export default function App() {
     const m = new Map<string, Counts>()
     if (!release) return m
     for (const c of comments) {
-      if (c.releaseId !== release.id) continue
+      if (c.releaseId !== release.id || isRecord(c)) continue
       const e = m.get(c.stateKey) ?? { total: 0, open: 0, unread: 0 }
       e.total++
       if (!c.done) e.open++
@@ -189,7 +233,7 @@ export default function App() {
       if (!c?.unread) continue
       const last = seen[seenKey(release.id, s.key)]
       const fresh = comments
-        .filter((x) => x.releaseId === release.id && x.stateKey === s.key && x.author !== name && (!last || x.createdAt > last))
+        .filter((x) => x.releaseId === release.id && x.stateKey === s.key && !isRecord(x) && x.author !== name && (!last || x.createdAt > last))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       out.push({ state: s, count: fresh.length, latestAuthor: fresh[0]?.author ?? '', latestAt: fresh[0]?.createdAt ?? '' })
     }
@@ -223,7 +267,7 @@ export default function App() {
   )
 
   const threadComments = useMemo(
-    () => (release && state ? comments.filter((c) => c.releaseId === release.id && c.stateKey === state.key) : []),
+    () => (release && state ? comments.filter((c) => c.releaseId === release.id && c.stateKey === state.key && !isRecord(c)) : []),
     [comments, release, state],
   )
 
@@ -231,7 +275,7 @@ export default function App() {
     if (!release || !state) return []
     return releases
       .filter((r) => r.id !== release.id)
-      .map((r) => ({ release: r, comments: comments.filter((c) => c.releaseId === r.id && c.slideId === state.slide && !c.done) }))
+      .map((r) => ({ release: r, comments: comments.filter((c) => c.releaseId === r.id && c.slideId === state.slide && !c.done && !isRecord(c)) }))
       .filter((e) => e.comments.length)
   }, [releases, release, state, comments])
 
@@ -254,6 +298,17 @@ export default function App() {
         const c = await store.addComment({ kind, topic, releaseId: release.id, slideId, stateKey, author, body, assignees, parentId, ...pinned })
         setComments((all) => [...all, c])
         if (pin && !general && kind === 'comment' && !parentId) setPin(null)
+      } catch (e) {
+        setError(`Could not post: ${(e as Error).message}`)
+      }
+    })
+
+  /** A note, reply or status from the audio page, which states every field itself. */
+  const addNote = (c: NewNote) =>
+    withName(async (author) => {
+      try {
+        const x = await store.addComment({ ...c, author })
+        setComments((all) => [...all, x])
       } catch (e) {
         setError(`Could not post: ${(e as Error).message}`)
       }
@@ -311,26 +366,34 @@ export default function App() {
     const you = c.author === name
     const who = you ? 'You' : c.author
     const mine = !you && !!name && (parent?.author === name || !!c.assignees?.includes(name))
-    const title = parent
+    const sound = c.clipFile ?? c.clip?.slice(c.clip.indexOf(':') + 1) ?? ''
+    const title = c.kind === 'audio_status'
+      ? `${who} marked ${sound} ${c.body === 'needs-work' ? 'as needing work' : c.body}`
+      : c.kind === 'audio_gain'
+      ? `${who} set ${sound} to ${fmtDb(Number(c.body))}`
+      : parent
       ? parent.author === name && !you ? `${who} replied to your note` : `${who} replied`
       : c.kind === 'voiceover' ? `${who} changed the voice-over`
       : c.kind === 'voiceover_extended' ? `${who} changed the extended voice-over`
       : c.kind === 'voiceover_note' ? `${who} wrote about the voice-over`
       : c.kind === 'voiceover_extended_note' ? `${who} wrote about the extended voice-over`
       : !you && c.assignees?.includes(name) ? `${who} assigned you a note`
+      : c.clip ? `${who} wrote about ${sound}`
       : `${who} added ${general ? 'a general comment' : `a ${c.topic} note`}`
-    const where = general ? 'General comments' : `${c.stateKey}${r && r.id !== release?.id ? ` · ${r.name}` : ''}`
+    const where = general ? 'General comments' : `${c.clip ? 'Audio timeline · ' : ''}${c.stateKey}${r && r.id !== release?.id ? ` · ${r.name}` : ''}`
     const target = parent ?? c
     return {
       id: c.id,
       title,
-      body: c.body.length > 140 ? c.body.slice(0, 140) + '…' : c.body,
+      body: isRecord(c) ? '' : c.body.length > 140 ? c.body.slice(0, 140) + '…' : c.body,
       where,
       mine,
       at: c.createdAt,
       onOpen: () => {
+        if (target.clip) { openAudio(target.clip); return }
         if (general || target.stateKey === GENERAL) { setGeneral(true); return }
         if (r && r.id !== release?.id) setReleaseId(r.id)
+        setView('review')
         goToNote(target.id, target.at ?? null, s?.start ?? 0)
       },
     }
@@ -373,6 +436,7 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (view !== 'review') return
       const t = e.target as HTMLElement
       // the comment box holds the focus so the cursor blinks there; while it is empty the
       // film's keys still work from inside it
@@ -483,7 +547,7 @@ export default function App() {
         release={release}
         onRelease={(id) => { setReleaseId(id); setTime(0); player.current?.pause() }}
         updates={updates}
-        onJump={(i) => goTo(i, false)}
+        onJump={(i) => { setView('review'); goTo(i, false) }}
         onMarkAllRead={markAllRead}
         name={name}
         onName={() => setAskName({})}
@@ -496,10 +560,34 @@ export default function App() {
         activity={activity}
         onExport={exportCsv}
         mode={store.kind}
+        view={view}
+        onView={(v) => { player.current?.pause(); setView(v) }}
       />
 
       {error && <div className="banner">{error}</div>}
 
+      {view === 'audio' && release && (
+        <AudioReview
+          key={release.id}
+          release={release}
+          releases={releases}
+          comments={comments}
+          name={name}
+          onName={() => setAskName({})}
+          slot={audioSlot}
+          onSlot={onAudioSlot}
+          focus={audioFocus}
+          onAdd={addNote}
+          onDone={setDone}
+          onEdit={editComment}
+          onDelete={deleteComment}
+          tracks={tracks}
+          track={track}
+          onTrack={setTrack}
+          thumbUrl={thumbUrl}
+        />
+      )}
+      {view === 'review' && (
       <main className="main">
         <section className="stage">
           {release && (
@@ -649,6 +737,7 @@ export default function App() {
           />
         )}
       </main>
+      )}
 
       {/* The strip of every state along the foot of the page — hidden for now (22 September), kept to bring back:
       <Minimap states={states} current={current} time={time} counts={counts} thumbUrl={thumbUrl} onSelect={(i) => goTo(i, true)} />
@@ -679,7 +768,12 @@ export default function App() {
             <TasksTab
               release={release}
               comments={comments.filter((c) => c.releaseId === release.id)}
-              onGo={(s, at, id) => { setTasks(false); goToNote(id, at != null && at >= s.start && at < s.end ? at : null, s.start) }}
+              onGo={(s, at, id, clip) => {
+                setTasks(false)
+                if (clip) { openAudio(clip); return }
+                setView('review')
+                goToNote(id, at != null && at >= s.start && at < s.end ? at : null, s.start)
+              }}
               onDone={setDone}
             />
           </div>

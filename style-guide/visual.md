@@ -31,14 +31,22 @@
 
 ## Colour
 - **White** `#FFFFFF` for type and neutral shapes (rungs, boxes, labels).
-- **Red** `#FF0000` (`wnRed`) is the accent: WN's own share, the point being made, the highlight. One red idea per state.
-- **Blue** on slides is the bright Figma pair — `#3D5AE0` (slabs, frames) and `#4674D6` (`wnSky`: people, discs).
-  Walls use the navy `wnBlue #1E3A72`. Prefer one blue per slide.
-- **Grey** `#D9D9D9` for secondary text and dimmed things; `#2E2E2E` for a ground that must still read as ground.
-- The playful set (`wnAmber`, `wnTeal`, `wnCoral`) belongs to the sectors collage only.
+- **One red and one blue, at every level** (28 September): **red `#FF0000`** (`wnRed`, `Palette.RED`) and
+  **blue `#023F88`** (`wnBlue`, `Palette.BLUE`) — slides, chapter cards, walls, course walls and sketches alike.
+  The bright blue `#3D5AE0`, the sky `#4674D6`, the navy `#1E3A72` and the darker reds are gone.
+- **Red** is the accent: WN's own share, the point being made, the highlight. One red idea per state.
+- **Blue** is the structure: slabs, frames, people, the rest of a chart, and the shadows on black.
+- A darker face of either — the side of a slab, where two shadows lap, a lit and an unlit wall — is **shaded from
+  the colour** (`wnBlue.shade(0.85)`), never another hex. Bands of one chart are told apart by a joint of the
+  ground, not by four blues.
+- **Grey** `#D9D9D9` for secondary text and **dimmed things**: a red or blue that is not being talked about goes to
+  the quiet grey, not to a darker red. `#2E2E2E` for a ground that must still read as ground.
+- The playful set (`wnAmber`, `wnTeal`) belongs to the sectors collage only.
 - Flat fills. No gradients, no drop shadows on slides (walls have their own light), no transparency as
   decoration — opacity only while something arrives or leaves, or to dim what is not being talked about.
-- Build colours with `ColorRGBa.fromHex`; the plain constructor gets sRGB-lifted in shaders.
+- Build colours with `ColorRGBa.fromHex`; the plain constructor gets sRGB-lifted in shaders. A colour written
+  into a vertex buffer or a vector by hand goes in as `toLinear()`, or it is lifted the same way: `#023F88`
+  came out `#1688C1` on the crowd and the tree until that was done.
 
 ## Type
 Rockwell — `boldFont` for titles, labels, quotes, figures; `textFont` for body, notes, captions. Paths are

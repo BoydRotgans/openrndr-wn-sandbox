@@ -75,7 +75,7 @@ class BlockCluster(
     private val ink: ColorRGBa = ColorRGBa.BLACK,
     private val line: Double = 2.0,
     private val pieces: List<File> = emptyList(),
-    private val piece: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val piece: ColorRGBa = slideshow.Palette.RED,
     private val fill: Double = 0.72,
     private val seed: Int = 7,
     override val transition: Transition = Cut,

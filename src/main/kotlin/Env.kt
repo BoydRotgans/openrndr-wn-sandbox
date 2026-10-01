@@ -34,8 +34,19 @@ object Env {
      */
     private val scoped = ThreadLocal<Map<String, String>>()
 
-    /** The value for [key], or null when it is unset or blank in every source. */
-    operator fun get(key: String): String? =
+    /**
+     * The value for [key], or null when it is unset or blank in every source.
+     *
+     * `@red` and `@blue` in a value are the house colours as this run has them — see
+     * [slideshow.Brand] — so a key such as `LONGSHADOW_SHADE=@blue` follows the colour set in the
+     * organizer rather than stating a hex of its own.
+     */
+    operator fun get(key: String): String? = raw(key)?.let { value ->
+        if ('@' !in value) value
+        else { slideshow.Brand.use(raw("SLIDES_COLOURS")); slideshow.Brand.expand(value) }
+    }
+
+    private fun raw(key: String): String? =
         scoped.get()?.get(key)?.takeIf { it.isNotBlank() }
             ?: System.getenv(key)?.takeIf { it.isNotBlank() }
             ?: fromFile[key]?.takeIf { it.isNotBlank() }

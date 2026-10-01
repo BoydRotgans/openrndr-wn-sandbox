@@ -542,3 +542,224 @@ a.button:hover { border-color: #b8b8b3; background: #e9e9e6; }
 .voiceover-notes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .voiceover-note-new textarea { width: 100%; resize: vertical; }
 .voiceover-note-new .composer-row { justify-content: flex-end; margin-top: 4px; }
+
+/* --- the two pages ------------------------------------------------------------ */
+.view-tabs { display: flex; gap: 2px; padding: 2px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+.view-tab { border: none; background: none; border-radius: 6px; padding: 4px 12px; font-weight: 600; color: var(--muted); }
+.view-tab:hover:not(:disabled) { background: rgba(0,0,0,0.04); border: none; color: var(--text); }
+.view-tab.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.14); }
+
+/* A note written about a sound, wherever it is shown. */
+.clip-chip { display: inline-block; margin-top: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #4a2bb8; background: #efe8ff; border-radius: 4px; padding: 1px 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+
+/* --- audio timeline review ------------------------------------------------------ */
+.audio-page {
+  --st-undone: #8f98a8; --st-undone-fill: #e6e9ef;
+  --st-work: #d49b00; --st-work-fill: #fff0c2;
+  --st-done: #1f9d55; --st-done-fill: #dbf2e4;
+  --lane-voice: #10a63b; --lane-design: #5e00ff; --lane-music: #e07000;
+  flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(360px, 27vw, 460px); gap: 14px; padding: 12px 14px 14px;
+}
+/* the film, the filter and the timeline down the left; the sound being reviewed down the right */
+.audio-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.audio-stage { flex: none; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.audio-stage .player { max-height: 40vh; }
+.audio-stage .player video { object-fit: contain; }
+.audio-main > .atl { flex: 1 1 0; min-height: 250px; overflow-y: auto; overflow-x: hidden; }
+.audio-transport { flex: none; display: flex; align-items: center; gap: 6px; }
+.audio-transport .play { min-width: 44px; }
+.audio-transport .toggle.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.audio-transport .follow { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.audio-empty { flex: 1; padding: 28px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 6px; line-height: 1.7; background: var(--panel); }
+.audio-empty b { color: var(--text); }
+
+.audio-bar { flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.filter-chip { border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+.filter-chip.on { background: var(--text); border-color: var(--text); color: white; }
+.filter-chip.on:hover:not(:disabled) { background: #333; }
+.filter-count { font-size: 10px; color: var(--muted); margin-left: 1px; }
+.filter-chip.on .filter-count, .assign-chip.on .filter-count { color: rgba(255,255,255,0.75); }
+.audio-bar .assign-chip { display: inline-flex; align-items: center; gap: 5px; }
+.bar-gap { margin-left: 10px; }
+.next-match { border-radius: 999px; padding: 3px 10px; font-size: 12px; }
+.zoom { display: flex; align-items: center; gap: 4px; }
+.zoom button { padding: 2px 9px; }
+.zoom input[type='range'] { width: 150px; padding: 0; accent-color: var(--text); }
+.zoom-read { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); min-width: 64px; text-align: right; }
+
+/* the dot a status is told by, everywhere on the page */
+.aclip-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--st-undone); }
+.s-undone .aclip-dot, .aclip-dot.s-undone { background: var(--st-undone); }
+.s-needs-work .aclip-dot, .aclip-dot.s-needs-work { background: var(--st-work); }
+.s-done .aclip-dot, .aclip-dot.s-done { background: var(--st-done); }
+.aclip-dot.s-missing, .aclip.missing:not(.s-done) .aclip-dot { background: var(--accent); }
+
+/* the timeline: track heads on the left, the film on its side to the right */
+.atl { flex: none; display: flex; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); overflow: hidden; user-select: none; }
+.atl-heads { flex: none; width: 178px; border-right: 1px solid var(--line); background: var(--panel-2); }
+.atl-head { box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.atl-head:last-child { border-bottom: none; }
+.atl-head b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; background: #dcdcd7; border-radius: 3px; padding: 1px 5px; }
+.atl-head > span { display: flex; flex-direction: column; line-height: 1.25; font-weight: 600; }
+.atl-head small { font-weight: 400; color: var(--muted); font-size: 11px; }
+.atl-head small em { font-style: normal; color: var(--accent); }
+.atl-head.small { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.atl-head.lane-voice { box-shadow: inset 3px 0 0 var(--lane-voice); }
+.atl-head.lane-design { box-shadow: inset 3px 0 0 var(--lane-design); }
+.atl-head.lane-music { box-shadow: inset 3px 0 0 var(--lane-music); }
+.atl-tc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--accent); }
+
+.atl-scroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.atl-canvas { position: relative; }
+.atl-ruler { position: relative; box-sizing: border-box; border-bottom: 1px solid var(--line); cursor: col-resize; background: var(--panel); touch-action: none; }
+.atl-tick { position: absolute; bottom: 0; width: 1px; height: 5px; background: #c3c3be; pointer-events: none; }
+.atl-tick.major { height: 11px; background: #85857f; }
+.atl-tick span { position: absolute; left: 4px; bottom: 10px; font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: nowrap; }
+.atl-chapters { position: relative; box-sizing: border-box; border-bottom: 1px solid var(--line); }
+.atl-chapter { position: absolute; top: 3px; bottom: 3px; box-sizing: border-box; background: #ebebe7; border-left: 2px solid var(--text); overflow: clip; font-size: 11px; white-space: nowrap; }
+.atl-chapter.kind-moment { background: #f5f5f3; border-left-color: #a5a5a0; color: var(--muted); }
+.atl-chapter span { position: sticky; left: 0; display: inline-block; padding: 0 6px; line-height: 14px; }
+.atl-chapter b { margin-right: 5px; }
+.atl-film { position: relative; box-sizing: border-box; border-bottom: 1px solid var(--line); background: #151515; }
+.atl-state { position: absolute; top: 0; bottom: 0; overflow: clip; background: #1d1d1d; border-left: 1px solid #333; cursor: pointer; }
+.atl-state.first { border-left-color: #8a8a8a; }
+.atl-state img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0.88; pointer-events: none; }
+.atl-state span { position: absolute; left: 4px; bottom: 2px; font-size: 10px; color: white; text-shadow: 0 0 3px black, 0 0 2px black; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+.atl-state:hover img { opacity: 1; }
+.atl-state.sel { box-shadow: inset 0 0 0 2px var(--accent); z-index: 1; }
+.atl-lane { position: relative; box-sizing: border-box; border-bottom: 1px solid var(--line); background: #fbfbfa; }
+.atl-lane:last-of-type { border-bottom: none; }
+.atl-subrow { position: absolute; left: 0; right: 0; border-top: 1px dashed #e8e8e5; pointer-events: none; }
+.atl-span { position: absolute; bottom: 0; background: rgba(225, 0, 0, 0.045); border-left: 1px solid rgba(225, 0, 0, 0.35); border-right: 1px solid rgba(225, 0, 0, 0.35); pointer-events: none; z-index: 0; }
+.atl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; z-index: 6; }
+.atl-playhead::before { content: ''; position: absolute; top: 0; left: -5px; border: 6px solid transparent; border-top: 8px solid var(--accent); border-bottom: none; }
+
+/* a clip: the file's waveform, its name held at its left edge, its status in its colour */
+.aclip {
+  position: absolute; box-sizing: border-box; border-radius: 4px; overflow: clip; cursor: pointer; z-index: 1;
+  background: var(--st-undone-fill); border: 1px solid var(--st-undone); color: var(--st-undone);
+}
+.aclip.s-needs-work { background: var(--st-work-fill); border-color: var(--st-work); color: var(--st-work); }
+.aclip.s-done { background: var(--st-done-fill); border-color: var(--st-done); color: var(--st-done); }
+.aclip:hover { z-index: 2; filter: brightness(0.97); }
+.aclip.sel { z-index: 3; box-shadow: 0 0 0 2px var(--text); }
+.aclip.dim { opacity: 0.2; }
+.aclip.silent, .aclip.absent { border-color: var(--accent); border-style: dashed; }
+.aclip.missing {
+  background: repeating-linear-gradient(135deg, rgba(225, 0, 0, 0.12) 0 6px, rgba(225, 0, 0, 0.03) 6px 12px);
+  border: 1px dashed var(--accent); color: var(--accent);
+}
+.aclip.missing.s-needs-work { border-color: var(--st-work); border-style: solid; }
+.aclip.missing.s-done { background: repeating-linear-gradient(135deg, rgba(31, 157, 85, 0.10) 0 6px, transparent 6px 12px); border-color: var(--st-done); color: var(--st-done); }
+.aclip-wave { position: absolute; left: 0; right: 0; bottom: 1px; width: 100%; height: calc(100% - 15px); pointer-events: none; }
+.aclip-wave path { fill: currentColor; opacity: 0.55; }
+.aclip-head { position: absolute; left: 0; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(0,0,0,0.10) 0 3px, transparent 3px 6px); border-right: 1px dashed rgba(0,0,0,0.35); pointer-events: none; }
+.aclip-fade { position: absolute; top: 0; bottom: 0; pointer-events: none; background: linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(0,0,0,0.45) 50%, transparent calc(50% + 1px)); }
+.aclip-label {
+  position: sticky; left: 0; display: inline-flex; align-items: center; gap: 4px; max-width: 100%; box-sizing: border-box;
+  padding: 1px 5px; font-size: 11px; line-height: 13px; white-space: nowrap; color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.aclip.missing .aclip-label { color: var(--accent); }
+.aclip.missing.s-done .aclip-label { color: #13693a; }
+.aclip-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.aclip-flag { flex: none; background: var(--accent); color: white; border-radius: 3px; padding: 0 4px; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; }
+.aclip-badges { flex: none; display: inline-flex; align-items: center; gap: 2px; margin-left: 2px; }
+.aclip-who { width: 13px; height: 13px; border-radius: 50%; color: white; font-size: 8px; font-weight: 700; font-style: normal; display: inline-flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.aclip-badges em { font-style: normal; background: #9a9a95; color: white; border-radius: 999px; padding: 0 4px; font-size: 9px; line-height: 13px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.aclip-badges em.open { background: var(--warn); }
+
+/* the panel beside the player: one sound, or the overview */
+.panel-col { position: relative; min-height: 0; min-width: 0; }
+.clip-panel { position: absolute; inset: 0; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.cp-top { display: flex; align-items: center; gap: 6px; }
+.cp-layer { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.cp-layer.lane-voice { color: var(--lane-voice); }
+.cp-layer.lane-design { color: var(--lane-design); }
+.cp-layer.lane-music { color: var(--lane-music); }
+.cp-nav { width: 28px; height: 26px; padding: 0; font-size: 16px; line-height: 1; }
+.cp-top .link { margin-left: 6px; font-size: 12px; }
+.cp-file .copy-key.big { font-size: 17px; max-width: 100%; text-align: left; white-space: normal; }
+.cp-file .copy-key-text { word-break: break-all; }
+.cp-name.missing { font-size: 17px; font-weight: 600; color: var(--accent); }
+.cp-name.missing.silent { color: #13693a; }
+.cp-dir { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); margin-top: 5px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cp-where { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.cp-facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.cp-facts b { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-right: 3px; }
+.cp-facts em { font-style: normal; color: var(--muted); }
+.cp-facts .warn { color: #a07400; }
+.cp-facts .muted { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.cp-flag { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; border-radius: 4px; padding: 1px 6px; background: var(--accent-soft); color: var(--accent); }
+.cp-plays { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cp-play { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 2px 8px; }
+.cp-play.on { border-color: var(--text); background: var(--panel); }
+.cp-status { display: flex; }
+.cp-st { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 0; margin-left: -1px; padding: 7px 8px; font-weight: 600; color: var(--muted); }
+.cp-st:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.cp-st:last-child { border-radius: 0 6px 6px 0; }
+.cp-st.on { position: relative; z-index: 1; color: var(--text); }
+.cp-st.on.s-undone { background: var(--st-undone-fill); border-color: var(--st-undone); }
+.cp-st.on.s-needs-work { background: var(--st-work-fill); border-color: var(--st-work); color: #6d5000; }
+.cp-st.on.s-done { background: var(--st-done-fill); border-color: var(--st-done); color: #13693a; }
+.cp-status-by { font-size: 11px; color: var(--muted); margin-top: -4px; }
+.cp-notes { display: flex; flex-direction: column; gap: 8px; }
+.cp-release-tag { color: var(--warn); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; margin: 2px 0 3px; }
+.clip-panel .chat-composer.cp-composer { border: 1px solid var(--line); border-radius: 8px; flex: none; }
+.cp-more { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.cp-more .link { align-self: flex-start; }
+.cp-history { font-size: 12px; }
+.cp-history summary { color: var(--muted); cursor: pointer; }
+.cp-history-row { display: flex; align-items: center; gap: 5px; padding: 3px 0; flex-wrap: wrap; }
+.ov-lane { display: flex; flex-direction: column; gap: 4px; }
+.ov-head { font-size: 13px; font-weight: 600; }
+.ov-head b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; background: #dcdcd7; border-radius: 3px; padding: 1px 5px; margin-right: 4px; }
+.ov-head .muted { font-weight: 400; font-size: 12px; margin-left: 4px; }
+.ov-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--panel-2); }
+.ov-bar i { display: block; height: 100%; }
+.ov-bar .s-done { background: var(--st-done); }
+.ov-bar .s-needs-work { background: var(--st-work); }
+.ov-bar .s-undone { background: #c3c9d4; }
+.ov-bar .s-missing { background: var(--accent); }
+.ov-counts { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
+.ov-counts span { display: inline-flex; align-items: center; gap: 4px; }
+.ov-att-head { margin-top: 4px; }
+.ov-attention { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex: none; }
+.ov-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; border: none; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--panel); text-align: left; padding: 6px 10px; }
+.ov-item:last-child { border-bottom: none; }
+.ov-item:hover:not(:disabled) { border: none; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.ov-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-why { font-size: 11px; color: var(--muted); }
+.ov-at { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); }
+.ov-help { font-size: 11px; color: var(--muted); line-height: 1.9; }
+kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; background: var(--panel); margin: 0 1px; }
+
+/* what the audio page plays: the film's own track, the remix at the reviewed gains, or one sound */
+.listen { display: flex; }
+.listen button { border-radius: 0; margin-left: -1px; padding: 6px 11px; }
+.listen button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.listen button:last-child { border-radius: 0 6px 6px 0; }
+.listen button.on { position: relative; z-index: 1; background: var(--text); border-color: var(--text); color: white; }
+
+/* a cue's gain, on the clip and in the panel */
+.aclip-gain { flex: none; font-size: 10px; line-height: 12px; padding: 0 4px; border-radius: 3px; background: rgba(0,0,0,0.08); color: var(--text); }
+.aclip-gain.pending { background: #fff3cc; border: 1px dashed var(--st-work); color: #6d5000; }
+.aclip.clipping { box-shadow: inset 0 3px 0 var(--accent); }
+.aclip.clipping.sel { box-shadow: inset 0 3px 0 var(--accent), 0 0 0 2px var(--text); }
+.cp-gain { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.cp-gain.pending { border-color: var(--st-work); background: #fffaeb; }
+.cp-gain-head { display: flex; align-items: baseline; gap: 10px; }
+.cp-gain-value { flex: none; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 18px; }
+.cp-gain-note { flex: 1; min-width: 0; font-size: 11px; color: var(--muted); }
+.cp-gain-head .link { flex: none; font-size: 11px; }
+.cp-gain.pending .cp-gain-note { color: #6d5000; }
+.cp-gain-row { display: flex; align-items: center; gap: 6px; }
+.cp-gain-row button { padding: 2px 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.cp-gain-row input[type='range'] { flex: 1; min-width: 80px; padding: 0; accent-color: var(--text); }
+.cp-gain-num { width: 64px; padding: 3px 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; text-align: right; }
+.cp-gain-meter { display: flex; flex-wrap: wrap; gap: 3px 14px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.cp-gain-meter b { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-right: 3px; }
+.cp-gain-meter .bad { color: var(--accent); }
+.cp-gain-hint { font-size: 11px; color: var(--muted); }
+.ov-gains { display: flex; align-items: baseline; gap: 10px; font-size: 11px; color: var(--muted); }
+.ov-gains em { font-style: normal; color: #a07400; }

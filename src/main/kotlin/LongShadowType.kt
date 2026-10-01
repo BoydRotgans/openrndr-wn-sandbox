@@ -165,8 +165,8 @@ fun longShadowFromEnv(concrete: File? = null, detail: Double = 1.0, field: Boole
             Env["LONGSHADOW_FACE"] ?: Env["SLIDES_FONT_BOLD"] ?: "Rockwell-Bold"
         ),
         ink = colour("LONGSHADOW_INK", "FFFFFF"),
-        paper = colour("LONGSHADOW_PAPER", "3D5AE0"),
-        shade = colour("LONGSHADOW_SHADE", "1E3A72"),
+        paper = colour("LONGSHADOW_PAPER", "000000"),
+        shade = colour("LONGSHADOW_SHADE", slideshow.Brand.blueHex),
         margin = number("LONGSHADOW_MARGIN", 160.0),
         lines = Env["LONGSHADOW_LINES"]?.toIntOrNull(),
         leading = number("LONGSHADOW_LEADING", 1.0),

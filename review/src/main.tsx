@@ -13,8 +13,11 @@ function Private() {
   )
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    {hasAccess() ? <App /> : <Private />}
-  </React.StrictMode>,
+const root = ReactDOM.createRoot(document.getElementById('root')!)
+hasAccess('review').then((open) =>
+  root.render(
+    <React.StrictMode>
+      {open ? <App /> : <Private />}
+    </React.StrictMode>,
+  ),
 )

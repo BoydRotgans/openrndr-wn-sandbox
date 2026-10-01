@@ -53,7 +53,7 @@ private const val BASELINE = 0.78
  * different picture rather than a dimmed one: the words are felt to be clipped rather than seen
  * to be. Giving [BLACK_PLATE] a value off black brings the plates back.
  */
-private val PAPER = ColorRGBa.fromHex("3D5AE0")
+private val PAPER = slideshow.Palette.BLUE
 private val PLATE = ColorRGBa.fromHex("FF7A00")
 private val BLACK_PAPER = ColorRGBa.BLACK
 private val BLACK_PLATE = ColorRGBa.BLACK

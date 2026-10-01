@@ -59,8 +59,8 @@ class ConcreteLevers(
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
     private val ink: ColorRGBa = ColorRGBa.WHITE,
-    private val accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
-    private val blue: ColorRGBa = ColorRGBa.fromHex("4674D6"),
+    private val accent: ColorRGBa = slideshow.Palette.RED,
+    private val blue: ColorRGBa = slideshow.Palette.BLUE,
     private val seed: Int = 1,
     /** Frames the arrow takes to go once round the ring. */
     private val travel: Int = frames(9.0),

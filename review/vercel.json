@@ -1,3 +1,10 @@
 {
-  "rewrites": [{ "source": "/((?!releases/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/practice", "destination": "/practice.html" },
+    { "source": "/practice/", "destination": "/practice.html" },
+    { "source": "/((?!releases/|practice\\.html|api/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/practice(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
+  ]
 }

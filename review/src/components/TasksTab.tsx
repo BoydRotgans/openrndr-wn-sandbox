@@ -8,7 +8,8 @@ import type { Comment, Release, StateInfo } from '../lib/types'
 interface Props {
   release: Release
   comments: Comment[]
-  onGo(state: StateInfo, at: number | null, id: string): void
+  /** To the note: the frame it is about, or the sound on the audio page when it is about one. */
+  onGo(state: StateInfo, at: number | null, id: string, clip: string | null): void
   onDone(id: string, done: boolean): void
 }
 
@@ -35,7 +36,8 @@ export default function TasksTab({ release, comments, onGo, onDone }: Props) {
       <div key={c.id} className={`task-card${c.done ? ' done' : ''}`}>
         <div className="task-head">
           <CopyKey value={s.key} />
-          <span className="task-meta">{s.title} · {formatTime(s.start)}{frame != null ? ` · frame ${frame}` : ''}</span>
+          <span className="task-meta">{s.title} · {formatTime(s.start)}{frame != null && !c.clip ? ` · frame ${frame}` : ''}</span>
+          {c.clip && <span className="clip-chip" title="A note in the audio timeline review">♪ {c.clipFile ?? c.clip}</span>}
           <span className="spacer" />
           {c.assignees!.map((a) => <span key={a} className="assignee" style={{ color: colourOf(a), background: `${colourOf(a)}18` }}>→ {a}</span>)}
         </div>
@@ -46,7 +48,7 @@ export default function TasksTab({ release, comments, onGo, onDone }: Props) {
           </div>
         )}
         <div className="task-actions">
-          <button onClick={() => onGo(s, c.at ?? null, c.id)}>▶ Go to the video</button>
+          <button onClick={() => onGo(s, c.at ?? null, c.id, c.clip ?? null)}>{c.clip ? '▶ Go to the sound' : '▶ Go to the video'}</button>
           {c.done ? (
             <button onClick={() => onDone(c.id, false)}>Reopen</button>
           ) : (

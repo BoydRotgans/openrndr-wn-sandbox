@@ -80,8 +80,8 @@ class LongShadowV3(
     /** A font file `loadFont` can open — for the show, the deck's own bold. */
     private val fontPath: String,
     val ink: ColorRGBa = ColorRGBa.fromHex("FFFFFF"),
-    val paper: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
-    val shade: ColorRGBa = ColorRGBa.fromHex("1E3A72"),
+    val paper: ColorRGBa = ColorRGBa.fromHex("000000"),
+    val shade: ColorRGBa = slideshow.Palette.BLUE,
     /** Pane pixels kept clear round the title, a forced line count, and the line height. */
     private val margin: Double = 160.0,
     private val lines: Int? = null,
@@ -316,8 +316,10 @@ class LongShadowV3(
         // Once: a chapter's opening wall and its card share one effect, and both are loaded.
         if (::mask.isInitialized) return
         font = program.loadFont(fontPath, EM, characterSet = TYPE_CHARACTERS, contentScale = detail)
+        // Two channels, reach and coverage, which is all the passes read or write: the four the
+        // default format carries doubled the memory every one of a dozen passes a frame goes through.
         fun field() = renderTarget(wallWide.toInt(), HIGH.toInt(), contentScale = detail) {
-            colorBuffer(type = ColorType.FLOAT32)
+            colorBuffer(format = ColorFormat.RG, type = ColorType.FLOAT32)
         }
         // The plan carries a stencil so an svg title's concave pieces can be drawn as shapes.
         mask = renderTarget(wallWide.toInt(), HIGH.toInt(), contentScale = detail) {
@@ -444,9 +446,17 @@ class LongShadowV3(
      * [pane] null draws the whole composition; a number draws that pane of it alone — the chapter
      * card is pane 0 of its opening wall, so beside the slides it goes on showing exactly the half
      * of the wall it stood in, shadows crossing the seam and all.
+     *
+     * [rise], where given, stands each element of the reveal's field at that share of its height,
+     * by its index in [elements], in place of its own arrival — which is how something that builds
+     * the field up draws it: at 1 for every element and [frame] 0 it is the opening's first frame.
+     *
+     * [leave], where given, is the second the field starts to leave instead of [revealHold] after the
+     * title is whole — never before the title is whole — and infinity holds it standing. It is how a
+     * chapter opening waits for its click; see `ChapterOpening`.
      */
     fun draw(drawer: Drawer, bounds: Rectangle, text: String, frame: Int, plate0: Plate? = null, svg: File? = null,
-             pane: Int? = null) {
+             pane: Int? = null, rise: ((Int) -> Double)? = null, leave: Double? = null) {
         // With reveal, a drawn title in an svg is the final type when one is given and readable.
         // With no svg the title is the chapter's own words, set in the face as outlines.
         val drawn = if (fieldOrder == "reveal") svg?.let { svgTitle(it) } ?: typeTitle(text) else null
@@ -457,7 +467,7 @@ class LongShadowV3(
         // which is the card's cost for the rest of its chapter.
         val shown = if (pane == null || panes == 1) Rectangle(0.0, 0.0, wallWide, HIGH)
                     else Rectangle(pane * WIDE, 0.0, WIDE, HIGH)
-        val span = if (pane == 0 && drawn != null && quiet(drawn, quoted, seconds(frame))) WIDE else wallWide
+        val span = if (pane == 0 && drawn != null && quiet(drawn, quoted, seconds(frame), leave)) WIDE else wallWide
         val (direction, reach) = sun(frame)
 
         drawer.isolated {
@@ -470,7 +480,7 @@ class LongShadowV3(
                 // title rise on the same curve and no tower is as tall as the title, so from then on
                 // every tower is lower than every letter at every frame: the type is always highest.
                 if (drawn != null) {
-                    reveal(drawer, drawn, quoted, seconds(frame))
+                    reveal(drawer, drawn, quoted, seconds(frame), rise, leave)
                 } else if (fieldOrder == "reveal" && plate != null && plate.pieceKinds.isNotEmpty()) {
                     reveal(drawer, blockTitle(plate), null, seconds(frame))
                 } else if (fieldOrder == "build" && plate != null && plate.pieceBoxes.isNotEmpty()) {
@@ -486,7 +496,7 @@ class LongShadowV3(
             // printed on the floor, so it throws none — no height to cast from, and none of the
             // fringe a letter of height 0 in the passes would leave at its own edge. In the plan it
             // still takes the roofs' white and, below, their concrete marks. Asked 24 September.
-            if (quoted != null) layQuote(drawer, drawn!!, quoted, seconds(frame), shown)
+            if (quoted != null) layQuote(drawer, drawn!!, quoted, seconds(frame), shown, leave)
 
             val (cw, ch) = if (fieldOrder == "reveal" && fieldLayout == "mosaic")
                 (WIDE / mosaicColumns) to (HIGH / MosaicCells.rows(Rectangle(0.0, 0.0, WIDE, HIGH), mosaicColumns))
@@ -1121,9 +1131,9 @@ class LongShadowV3(
      * there — the quote — is flat and throws no shadow at all. False for a composition of one pane,
      * which has nothing to leave out.
      */
-    private fun quiet(title: Title, quoted: Title?, time: Double): Boolean {
+    private fun quiet(title: Title, quoted: Title?, time: Double, leave: Double? = null): Boolean {
         if (panes == 1) return false
-        val plan = planFor(null, title, quoted)
+        val plan = planFor(null, title, quoted, leave)
         return time >= plan.settleFrom + (if (revealFinal < 1.0) revealSettle else 0.0)
     }
 
@@ -1131,17 +1141,29 @@ class LongShadowV3(
      * Seconds from the card coming up until the reveal has come to rest — the title and any quote
      * whole, every element in the floor — for a slide to say how long its opening takes. Off the
      * same [Plan] the picture is drawn from; needs no GL context.
+     *
+     * With [leave] infinite — the field held standing, waiting for a click — it is the title coming
+     * whole, since nothing moves after that until the field is let go.
      */
-    fun settled(svg: File?, text: String): Double {
+    fun settled(svg: File?, text: String, leave: Double? = null): Double {
         // With no font driver, what the arguments alone say: the title's reveal, the hold, the field
         // going, and any quote after it.
-        if (!canSetType) return revealAt + revealSink + revealSpread + revealRise + revealHold + revealLeaveSpread +
-                revealLeaveTime + (if (quote != null) quoteSpread else 0.0) + (if (revealFinal < 1.0) revealSettle else 0.0)
+        if (!canSetType) {
+            val whole = revealAt + revealSink + revealSpread + revealRise
+            if (leave == Double.POSITIVE_INFINITY) return whole
+            val from = leave?.let { maxOf(it, whole) } ?: (whole + revealHold)
+            return from + revealLeaveSpread + revealLeaveTime + (if (quote != null) quoteSpread else 0.0) +
+                    (if (revealFinal < 1.0) revealSettle else 0.0)
+        }
         val title = (if (fieldOrder == "reveal") svg?.let { svgTitle(it) } ?: typeTitle(text) else null) ?: return spread + rise
-        val plan = planFor(null, title, quote?.let { quoteTitle(it) })
+        val plan = planFor(null, title, quote?.let { quoteTitle(it) }, leave)
+        if (plan.leaveFrom.isInfinite()) return plan.whole
         val words = plan.quoteStart.maxOrNull() ?: Double.NEGATIVE_INFINITY
         return maxOf(plan.settleFrom + if (revealFinal < 1.0) revealSettle else 0.0, words)
     }
+
+    /** Seconds from the card coming up until the last piece of the title is up. */
+    fun whole(svg: File?, text: String): Double = settled(svg, text, Double.POSITIVE_INFINITY)
 
     /**
      * Whether the face can be read here. Setting the title and the quote as outlines needs
@@ -1193,6 +1215,23 @@ class LongShadowV3(
         placed
     }
 
+    /**
+     * The reveal's field as something outside it can build it: each element's box, the title's middle,
+     * and the size of the wall they are laid out on — the composition's own pixels, both panes of it.
+     */
+    class Elements(val boxes: List<Rectangle>, val middle: Vector2, val width: Double, val height: Double)
+
+    /**
+     * The reveal's field for the title [text] — or the drawn one in [svg] — in the order [draw]'s
+     * `rise` counts it: every element's box on the wall, and the middle of the title they clear for.
+     * Null where the card has no reveal or the face cannot be read (no window, or no title).
+     */
+    fun elements(svg: File?, text: String): Elements? {
+        if (fieldOrder != "reveal" || !canSetType) return null
+        val title = svg?.let { svgTitle(it) } ?: typeTitle(text) ?: return null
+        return Elements(coversFor(null, title).map { it.box }, title.bounds.center, wallWide, HIGH)
+    }
+
     /** For each piece of the title, when the last element over it has gone. Kept with the covers. */
     private val clears = mutableMapOf<String, DoubleArray>()
     private val starts = mutableMapOf<String, DoubleArray>()
@@ -1210,7 +1249,8 @@ class LongShadowV3(
 
     private val plans = mutableMapOf<String, Plan>()
 
-    private fun planFor(drawer: Drawer?, title: Title, quoted: Title? = null): Plan = plans.getOrPut(title.key + "|" + quoted?.key) {
+    private fun planFor(drawer: Drawer?, title: Title, quoted: Title? = null, leave: Double? = null): Plan =
+        plans.getOrPut(title.key + "|" + quoted?.key + "|" + leave?.let { if (it.isInfinite()) "hold" else frames(it).toString() }) {
         val cells = coversFor(drawer, title)
         val clear = clears.getOrPut(title.key) {
             DoubleArray(title.boxes.size) { i ->
@@ -1228,12 +1268,15 @@ class LongShadowV3(
             DoubleArray(title.boxes.size) { maxOf(clear[it], beat[it]) }
         }
         // The title is whole when its last piece is up; the elements beside it leave after the hold,
-        // and when they are all in the floor the title comes down to a sliver of its height.
+        // and when they are all in the floor the title comes down to a sliver of its height. A
+        // [leave] given moves the start of that to the second asked for — held standing while it is
+        // infinite, and never before the title is whole.
         val whole = (start.maxOrNull() ?: revealAt) + revealRise
-        val leaveFrom = whole + revealHold
+        val leaveFrom = leave?.let { maxOf(it, whole) } ?: (whole + revealHold)
         val settleFrom = leaveFrom + revealLeaveSpread + revealLeaveTime
         Plan(cells, start, whole, leaveFrom, settleFrom,
-            quoted?.let { quoteStarts(it, cells, whole, leaveFrom, settleFrom) } ?: DoubleArray(0))
+            quoted?.let { if (leaveFrom.isInfinite()) DoubleArray(it.boxes.size) { Double.POSITIVE_INFINITY }
+                          else quoteStarts(it, cells, whole, leaveFrom, settleFrom) } ?: DoubleArray(0))
     }
 
     /**
@@ -1310,13 +1353,13 @@ class LongShadowV3(
      * outlines, so neither needs a GL context. A wall with a quote scores its letters rising on a lane
      * of their own; with none the file is what it always was.
      */
-    fun midi(svg: File?, text: String): Pair<List<String>, List<Arrival>> {
+    fun midi(svg: File?, text: String, leave: Double? = null): Pair<List<String>, List<Arrival>> {
         val title = svg?.let { svgTitle(it) } ?: typeTitle(text) ?: run {
             println("long shadow v3: midi has no title to score, neither an svg at ${svg?.path} nor words")
             return emptyList<String>() to emptyList()
         }
         val quoted = quote?.let { quoteTitle(it) }
-        val plan = planFor(null, title, quoted)
+        val plan = planFor(null, title, quoted, leave)
         val lanes = mutableListOf<String>()
         fun lane(name: String) = lanes.size.also { lanes += name }
         val arriving = if (revealFill > 0.0) lane("elements in") else -1
@@ -1371,8 +1414,9 @@ class LongShadowV3(
      * stands and the frame is never open under an element that has not moved. A [quoted] quote is
      * not a tower and is not drawn here; [layQuote] puts it down once the shadows are worked out.
      */
-    private fun reveal(drawer: Drawer, title: Title, quoted: Title?, time: Double) {
-        val plan = planFor(drawer, title, quoted)
+    private fun reveal(drawer: Drawer, title: Title, quoted: Title?, time: Double, rise: ((Int) -> Double)? = null,
+                       leave: Double? = null) {
+        val plan = planFor(drawer, title, quoted, leave)
         val cells = plan.cells
         val start = plan.start
         val leaveFrom = plan.leaveFrom
@@ -1387,8 +1431,9 @@ class LongShadowV3(
         }
         class Draw(val box: Rectangle, val shape: Shape?, val round: Boolean, val height: Double, val tone: Double, val mark: Int = -1)
         val draws = mutableListOf<Draw>()
-        for (c in cells) {
-            var h = c.height * seat((time - c.arrive) / clickIn)
+        for ((i, c) in cells.withIndex()) {
+            val built = rise?.invoke(i)
+            var h = c.height * (built ?: seat((time - c.arrive) / clickIn))
             if (c.sink != null) {
                 val out = ((time - c.sink) / revealSink).coerceIn(0.0, 1.0)
                 h *= 1.0 - out * out                 // accelerating down: going, not fading
@@ -1399,7 +1444,7 @@ class LongShadowV3(
             }
             // A garden lies flat at height 0: it is there from its arrival until it has gone.
             val garden = c.height == 0.0
-            val present = if (garden) time >= c.arrive + clickIn / 2.0 && (c.sink?.let { time < it + revealSink / 2.0 }
+            val present = if (garden) (built?.let { it > 0.0 } ?: (time >= c.arrive + clickIn / 2.0)) && (c.sink?.let { time < it + revealSink / 2.0 }
                 ?: (time < leaveFrom + c.leave * revealLeaveSpread + revealLeaveTime / 2.0)) else h > HIDE_BELOW * c.height
             if (present) draws += Draw(c.box, null, c.round, h, c.tone, c.mark)
         }
@@ -1439,8 +1484,8 @@ class LongShadowV3(
      * nothing, and they appear whole on their beat — nothing here fades, and with no height there is
      * no rise to show.
      */
-    private fun layQuote(drawer: Drawer, title: Title, quoted: Title, time: Double, shown: Rectangle) {
-        val plan = planFor(drawer, title, quoted)
+    private fun layQuote(drawer: Drawer, title: Title, quoted: Title, time: Double, shown: Rectangle, leave: Double? = null) {
+        val plan = planFor(drawer, title, quoted, leave)
         // Only what can be seen. The quote is flat and casts nothing, and every pass after this one
         // reads the plan at its own pixel, so a letter outside the pane shown changes nothing on it:
         // beside the slides, where the card is the wall's first pane, that is the whole quote — and

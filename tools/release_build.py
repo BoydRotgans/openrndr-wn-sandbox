@@ -10,6 +10,8 @@ writes review/public/releases/<slug>/:
     manifest.json     every state with its slide id, letter, title, chapter, start, end and voice-over
     thumbs/<key>.jpg  one frame per state, taken once the state has settled
     video.mp4         the film scaled for the web (--no-video to skip, --width / --crf to tune)
+    audio.json        every cue in the film's .cues log as a clip, for the audio timeline review,
+    sounds/           and a playable copy of each file — tools/release_audio.py (--no-audio-timeline to skip)
 
 and adds the release to review/public/releases/index.json, which is what the site lists when
 it runs without Supabase. `scripts/publish-release.mjs` in review/ uploads the folder to
@@ -103,6 +105,9 @@ def main():
                          "encoded to aac beside the video and the page plays it in lockstep.")
     ap.add_argument("--audio-bitrate", default="128k")
     ap.add_argument("--no-waveform", action="store_true")
+    ap.add_argument("--cues", help="the .cues log; defaults to the one beside the video (or its un-mixed twin)")
+    ap.add_argument("--no-audio-timeline", action="store_true",
+                    help="no audio.json: the audio timeline review then says the release has none")
     ap.add_argument("--waveform-rate", type=int, default=100, help="peaks a second in waveform.json")
     a = ap.parse_args()
 
@@ -214,6 +219,19 @@ def main():
     )
     with open(os.path.join(out, "manifest.json"), "w") as f:
         json.dump(manifest, f, indent=1, ensure_ascii=False)
+
+    # The sounds as clips, measured off the files the film was just scored from — which is why this
+    # runs here, at the release, and not later: a sheet re-cut after the film would be measured instead.
+    if not a.no_audio_timeline:
+        cues = a.cues
+        if not cues:
+            base = re.sub(r"-mixed$", "", os.path.splitext(a.video)[0])
+            cues = next((c for c in (base + ".cues", os.path.splitext(a.video)[0] + ".cues") if os.path.exists(c)), None)
+        try:
+            import release_audio
+            release_audio.build(out, cues)
+        except ImportError as e:
+            print(f"audio: no audio timeline — {e} (tools/release_audio.py needs numpy)")
 
     index_path = os.path.join(a.out, "index.json")
     index = []

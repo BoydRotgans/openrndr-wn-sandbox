@@ -64,8 +64,8 @@ class LongShadowV2(
     /** A font file `loadFont` can open — for the show, the deck's own bold. */
     private val fontPath: String,
     val ink: ColorRGBa = ColorRGBa.fromHex("FFFFFF"),
-    val paper: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
-    val shade: ColorRGBa = ColorRGBa.fromHex("1E3A72"),
+    val paper: ColorRGBa = ColorRGBa.fromHex("000000"),
+    val shade: ColorRGBa = slideshow.Palette.BLUE,
     /** Pane pixels kept clear round the title, a forced line count, and the line height. */
     private val margin: Double = 160.0,
     private val lines: Int? = null,

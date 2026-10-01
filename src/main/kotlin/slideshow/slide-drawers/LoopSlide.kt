@@ -23,7 +23,7 @@ class LoopSlide : Slide() {
     override val name = "Loop"
     override val steps = 2
     override val loop = frames(5.0)
-    override val background = ColorRGBa.fromHex("17255A")
+    override val background = slideshow.Palette.BLUE
     override val transition = Push()
 
     private val ink = ColorRGBa.fromHex("F5F3EE")

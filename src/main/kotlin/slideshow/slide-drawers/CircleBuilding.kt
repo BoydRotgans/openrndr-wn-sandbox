@@ -68,8 +68,8 @@ class CircleBuilding(
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
     private val ink: ColorRGBa = ColorRGBa.WHITE,
-    private val line: ColorRGBa = ColorRGBa.fromHex("FF0000"),
-    private val dots: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
+    private val line: ColorRGBa = slideshow.Palette.RED,
+    private val dots: ColorRGBa = slideshow.Palette.BLUE,
     /** Degrees the camera swings either side of the isometric yaw, and seconds a swing takes. */
     private val drift: Double = 6.0,
     private val period: Double = 60.0,

@@ -9,7 +9,7 @@ function cell(v: unknown): string {
 export function commentsCsv(comments: Comment[], releases: Release[]): string {
   const byId = new Map(releases.map((r) => [r.id, r]))
   const head = ['release', 'release_date', 'chapter', 'slide', 'state', 'title', 'time_in_timeline',
-    'kind', 'topic', 'pinned_at', 'pinned_frame', 'pin_x', 'pin_y', 'assigned_to', 'reply_to', 'author', 'comment', 'written', 'done', 'done_by', 'done_at']
+    'kind', 'topic', 'clip', 'clip_file', 'pinned_at', 'pinned_frame', 'pin_x', 'pin_y', 'assigned_to', 'reply_to', 'author', 'comment', 'written', 'done', 'done_by', 'done_at']
   const rows = [...comments]
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .map((c) => {
@@ -17,7 +17,7 @@ export function commentsCsv(comments: Comment[], releases: Release[]): string {
       const s = r?.manifest.states.find((x) => x.key === c.stateKey)
       return [
         r?.name ?? c.releaseId, r?.created ?? '', s?.chapter ?? '', c.slideId, c.stateKey, s?.title ?? (c.stateKey === 'general' ? 'General' : ''),
-        s ? formatTime(s.start) : '', c.kind, c.topic,
+        s ? formatTime(s.start) : '', c.kind, c.topic, c.clip ?? '', c.clipFile ?? '',
         c.at != null ? c.at.toFixed(3) : '', c.at != null && r ? Math.round(c.at * r.manifest.fps) : '',
         c.x != null ? c.x.toFixed(3) : '', c.y != null ? c.y.toFixed(3) : '',
         (c.assignees ?? []).join('; '), c.parentId ?? '', c.author, c.body, c.createdAt,

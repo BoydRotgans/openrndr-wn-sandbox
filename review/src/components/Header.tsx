@@ -29,6 +29,9 @@ interface Props {
   activity: Toast[]
   onExport(): void
   mode: 'local' | 'supabase'
+  /** Which page: the review of the film, or the audio timeline review. */
+  view: 'review' | 'audio'
+  onView(view: 'review' | 'audio'): void
 }
 
 export default function Header(p: Props) {
@@ -60,6 +63,11 @@ export default function Header(p: Props) {
         ))}
       </select>
 
+      <div className="view-tabs" role="tablist">
+        <button role="tab" aria-selected={p.view === 'review'} className={`view-tab${p.view === 'review' ? ' on' : ''}`} onClick={() => p.onView('review')}>Review</button>
+        <button role="tab" aria-selected={p.view === 'audio'} className={`view-tab${p.view === 'audio' ? ' on' : ''}`} onClick={() => p.onView('audio')}>Audio timeline review</button>
+      </div>
+
       <button className="general-btn" onClick={p.onGeneral} title="Comments on the whole release">
         General comments{p.generalOpen > 0 && <span className="topic-count">{p.generalOpen}</span>}
       </button>
@@ -78,6 +86,11 @@ export default function Header(p: Props) {
           Download video
         </a>
       )}
+      {/* The team's key opens the rehearsal page too, so no second link is needed. */}
+      <a className="button" href="/practice" target="_blank" rel="noopener" title="Open the rehearsal page, the show as the client practises it">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3.5v9l7-4.5z" /></svg>
+        Rehearsal
+      </a>
 
       <div className="spacer" />
 

@@ -385,7 +385,7 @@ private const val STAGGER = 0.025
 private val BACKGROUND = ColorRGBa.fromHex("0E0E10")
 
 /** The two colours of the piece: an object is highlighted while new, then built in. */
-private val HIGHLIGHT = ColorRGBa.fromHex("FF0000")
+private val HIGHLIGHT = slideshow.Palette.RED
 private val SOLID = ColorRGBa.fromHex("5E00FF")
 
 /**

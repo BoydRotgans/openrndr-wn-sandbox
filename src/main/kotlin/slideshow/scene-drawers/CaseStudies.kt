@@ -13,12 +13,14 @@ import slideshow.Breathe
 import slideshow.Frame
 import slideshow.Palette
 import slideshow.Scene
+import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceWithSubscripts
 import slideshow.drawers.setLine
 import slideshow.frames
 import slideshow.linear
+import slideshow.seconds
 import slideshow.smoothstep
 import java.io.File
 import kotlin.math.floor
@@ -101,12 +103,37 @@ class CaseStudies(
      */
     private val cycle: Double? = null,
     /** The wall everything is laid out for; `draw` fits it into whatever it gets. */
-    private val wall: Vector2 = Vector2(3840.0, 1080.0)
+    private val wall: Vector2 = Vector2(3840.0, 1080.0),
+    /** What the opening sounds like: the project highlights' own, since the effect is theirs. */
+    private val arrival: Sound? = null,
+    /** What every handover sounds like, on the wall's own clock or on a click: the highlights' click. */
+    private val click: Sound? = null
 ) : Scene() {
     override val name = "Case studies"
     override val background: ColorRGBa = Palette.onBlack.paper
     override val settle get() = frames(PhotoMosaic.OPENING)
     override val stepFrames get() = frames(PhotoMosaic.CLICK)
+
+    // **It sounds as the project highlights do** (feedback of 28 September): their arrival as the first
+    // view builds, and their click as every handover begins — on a click where it steps, and where it
+    // runs on its own clock on the frame each handover starts, which is the schedule `draw` keeps.
+    override val sound get() = arrival
+    override fun stepSound(step: Int) = if (cycle == null) click else null
+    override val clockCues get() = if (cycle != null) listOfNotNull(click) else emptyList()
+    override fun cuesBetween(from: Int, until: Int): List<Sound> {
+        val c = click ?: return emptyList()
+        val hold = cycle ?: return emptyList()
+        val first = PhotoMosaic.OPENING + hold
+        val period = hold + handoverLength
+        // Handover k starts at first + k * period seconds; every k whose frame falls in (from, until].
+        val k0 = kotlin.math.max(0.0, kotlin.math.ceil((seconds(from) - first) / period)).toInt()
+        return generateSequence(k0) { it + 1 }
+            .map { frames(first + it * period) }
+            .dropWhile { it <= from }
+            .takeWhile { it <= until }
+            .map { c }
+            .toList()
+    }
 
     /** Seconds a handover takes: the whole click, since a drawing still dissolves at the end of it. */
     private val handoverLength get() = PhotoMosaic.CLICK

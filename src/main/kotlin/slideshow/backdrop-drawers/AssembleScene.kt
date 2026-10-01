@@ -118,7 +118,7 @@ class AssembleScene(
     /** Under `grid`: how fast the camera pulls back, as a share of the view a second, linear, cut at the next building. */
     private val zoom: Double = 0.006,
     private val paper: ColorRGBa = ColorRGBa.BLACK,
-    private val piece: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val piece: ColorRGBa = slideshow.Palette.RED,
     private val ink: ColorRGBa = ColorRGBa.BLACK,
     /** The outline's weight in pixels. */
     private val line: Double = 2.0,
@@ -224,6 +224,19 @@ class AssembleScene(
     private val latticeLayers: Int = 0,
     private val latticeSpread: Double = 0.0,
     /**
+     * Under the exploded `boxes` layout, in place of the boxes: each block carried out from the form's middle to
+     * its place there times this, axis by axis (each at least 1), and [explodeDepth] toward or away from the
+     * camera, a share of it dealt to each block. Null keeps the boxes. See [packScaled].
+     */
+    private val explodeScale: Vector3? = null,
+    private val explodeDepth: Double = 0.0,
+    /**
+     * Under [explodeScale]: how long an open stack may run, in its block's longest sides — more than 1 lets the
+     * copies spread past the block. Across and up a stack still grows by no more than the explode spreads that
+     * axis, which keeps two blocks from meeting; toward the camera it may, since no two are apart only in depth.
+     */
+    private val stackReach: Double = 1.0,
+    /**
      * Under `boxes`: which boxes a piece may be carried to, by the box's middle from the cube's — the drawer
      * says which it can show whole. Null: any.
      */
@@ -232,7 +245,11 @@ class AssembleScene(
      * Under `solid`: what the pieces make. `building`: the precast building of bays and storeys. `cube`: a
      * cube [cubeSize] cells a side cut into blocks — at least [blocks] of them, none longer than [maxSide] —
      * each a catalogue piece stretched to fill it; the same blocks every round, the cube turned another of
-     * its 24 ways. See [partitionCube].
+     * its 24 ways. See [partitionCube]. `letter-W`, `letter-N` …: a letter in the cube's place, set on a five by
+     * five grid as a pixel font sets it, as tall and wide as the cube and [LETTER_DEPTH] of it deep, cut into
+     * blocks as the cube is. See [partitionLetter]. `image:<path>`: the dark ink of a picture read the same way,
+     * on a grid [IMAGE_ROWS] high, standing [IMAGE_HEIGHT] of the cube tall, so two pictures of letters of one
+     * height stand at one height. See [partitionImage].
      */
     private val form: String = "building",
     /**
@@ -302,13 +319,16 @@ class AssembleScene(
     val pieceCount: Int get() = count
 
     /** Under `solid`: the height, in cells, every building stands on. */
-    val ground: Double get() = if (form == "cube") -cubeSize / 2.0 else -storeys * STOREY / 2.0
+    val ground: Double get() = if (cubeForm) -cubeSize / 2.0 else -storeys * STOREY / 2.0
 
     /** Under `solid`: every massing the kit builds exactly, in the order they are built. */
     private var massings: List<Massing> = emptyList()
 
     private val buildings = HashMap<Long, List<Slot>>()
-    private val cubeForm = form == "cube"
+    /** A form made of blocks in the cube's volume: the cube itself, or a letter standing in it. */
+    private val cubeForm get() = form == "cube" || letterOf(form) != null || form.startsWith("image:")
+    private fun letterOf(form: String) = form.removePrefix("letter-").takeIf { form.startsWith("letter-") && it.length == 1 }
+        ?.get(0)?.uppercaseChar()?.takeIf { it in LETTERS }
 
     /** Under the `cube` form: a block of the cube — its lowest corner, from the cube's, and its size, in cells. */
     private class Block(val corner: Vector3, val size: Vector3)
@@ -320,11 +340,95 @@ class AssembleScene(
      * seed, once: the pieces are these blocks for the life of the wall.
      */
     private fun partitionCube(): List<Block> {
+        val side = cubeSize.toDouble()
+        return partition(listOf(Block(Vector3.ZERO, Vector3(side, side, side))))
+    }
+
+    /**
+     * Under a `letter-` form: the letter's solid, cut into blocks. The pixel font's grid is read into as few
+     * rectangles as cover its ink — each row's runs, stacked down while the run below is the same — each laid
+     * across the cube's width and height at the cube's size over five, and [LETTER_DEPTH] of the cube deep in
+     * the middle of it; those are then cut as the cube is, into [blocks] with none longer than [maxSide]. The
+     * letter faces +z, which the camera sees from its corner, reading along +x.
+     */
+    private fun partitionLetter(letter: Char): List<Block> {
+        val rows = LETTERS.getValue(letter)
+        val n = rows.size
+        val cell = (cubeSize / n).toDouble()
+        return partition(gridBlocks(Array(n) { r -> BooleanArray(rows[r].length) { rows[r][it] == 'X' } }, cell, LETTER_DEPTH))
+    }
+
+    /**
+     * Under an `image:` form: the picture's ink — its dark pixels — read onto a grid [IMAGE_ROWS] high over the
+     * ink's own height, a cell ink where half of it is, and laid as [gridBlocks] lays a letter: [IMAGE_HEIGHT] of
+     * the cube tall whatever the picture's proportion, so two letters drawn to one height stand at one height,
+     * and a diagonal becomes a staircase of slabs a row high. A picture that cannot be read gives the cube.
+     */
+    private fun partitionImage(file: File): List<Block> {
+        val img = runCatching { javax.imageio.ImageIO.read(file) }.getOrNull() ?: return partitionCube().also {
+            println("assemble: no picture at $file, a cube instead")
+        }
+        fun ink(x: Int, y: Int): Boolean {
+            val argb = img.getRGB(x, y)
+            val a = argb ushr 24 and 0xff
+            return a > 127 && (argb shr 16 and 0xff) + (argb shr 8 and 0xff) + (argb and 0xff) < 384
+        }
+        var x0 = img.width; var x1 = -1; var y0 = img.height; var y1 = -1
+        for (y in 0 until img.height) for (x in 0 until img.width) if (ink(x, y)) {
+            if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y
+        }
+        if (x1 < 0) return partitionCube()
+        val rows = IMAGE_ROWS
+        val px = (y1 - y0 + 1).toDouble() / rows
+        val cols = maxOf(1, Math.round((x1 - x0 + 1) / px).toInt())
+        val pxAcross = (x1 - x0 + 1).toDouble() / cols
+        val grid = Array(rows) { r ->
+            BooleanArray(cols) { c ->
+                var hit = 0
+                for (i in 0 until 5) for (j in 0 until 5) {
+                    val x = (x0 + (c + (i + 0.5) / 5.0) * pxAcross).toInt().coerceIn(0, img.width - 1)
+                    val y = (y0 + (r + (j + 0.5) / 5.0) * px).toInt().coerceIn(0, img.height - 1)
+                    if (ink(x, y)) hit++
+                }
+                hit >= 13
+            }
+        }
+        return partition(gridBlocks(grid, cubeSize * IMAGE_HEIGHT / rows, LETTER_DEPTH))
+    }
+
+    /**
+     * A grid of ink, top row first, as blocks in the cube's volume: each row's runs of ink, stacked down while the
+     * run below is exactly the same, [cell] a side, centred across and up the cube and [depth] of it deep in its
+     * middle. The letter faces +z, reading along +x.
+     */
+    private fun gridBlocks(grid: Array<BooleanArray>, cell: Double, depth: Double): List<Block> {
+        val n = grid.size
+        val cols = grid.maxOf { it.size }
+        fun at(r: Int, c: Int) = grid.getOrNull(r)?.getOrNull(c) == true
+        val insetX = (cubeSize - cell * cols) / 2.0
+        val insetY = (cubeSize - cell * n) / 2.0
+        val deep = maxOf(1.0, Math.round(cubeSize * depth).toDouble())
+        val z0 = Math.round((cubeSize - deep) / 2.0).toDouble()
+        val taken = Array(n) { BooleanArray(cols) }
+        val out = mutableListOf<Block>()
+        for (r in 0 until n) for (c in 0 until cols) {
+            if (!at(r, c) || taken[r][c]) continue
+            var w = 0
+            while (at(r, c + w) && !taken[r][c + w]) w++
+            var h = 1
+            while (r + h < n && (c until c + w).all { at(r + h, it) && !taken[r + h][it] } && !at(r + h, c - 1) && !at(r + h, c + w)) h++
+            for (rr in r until r + h) for (cc in c until c + w) taken[rr][cc] = true
+            out += Block(Vector3(insetX + c * cell, insetY + (n - r - h) * cell, z0), Vector3(w * cell, h * cell, deep))
+        }
+        return out
+    }
+
+    /** Cuts [start] into blocks, a guillotine cut at a time, as [partitionCube] describes. */
+    private fun partition(start: List<Block>): List<Block> {
         fun c(v: Vector3, a: Int) = when (a) { 0 -> v.x; 1 -> v.y; else -> v.z }
         fun with(v: Vector3, a: Int, value: Double) = when (a) { 0 -> Vector3(value, v.y, v.z); 1 -> Vector3(v.x, value, v.z); else -> Vector3(v.x, v.y, value) }
         val rnd = Random(seed * 131 + 17)
-        val side = cubeSize.toDouble()
-        val out = mutableListOf(Block(Vector3.ZERO, Vector3(side, side, side)))
+        val out = start.toMutableList()
         while (true) {
             val cuttable = out.filter { b -> (0..2).any { c(b.size, it) >= 2.0 } }
             val tooLong = cuttable.filter { b -> (0..2).any { c(b.size, it) > maxSide } }
@@ -340,7 +444,9 @@ class AssembleScene(
         return out
     }
 
-    private val cubeBlocks: List<Block> = if (cubeForm) partitionCube() else emptyList()
+    private val cubeBlocks: List<Block> = letterOf(form)?.let { partitionLetter(it) }
+        ?: form.takeIf { it.startsWith("image:") }?.let { partitionImage(File(it.removePrefix("image:"))) }
+        ?: if (cubeForm) partitionCube() else emptyList()
 
     /** Under the `cube` form: the cube's 24 turns, as the axis each axis takes and its sign, in the order the rounds take them. */
     private val turns: List<Pair<IntArray, IntArray>> by lazy {
@@ -687,8 +793,11 @@ class AssembleScene(
      */
     private class Placed(val b: Int, val now: Now, val seed: Int, val active: Double = 0.0, val open: Double = 0.0)
 
-    /** A piece of the row for a drawer of its own: its mesh, its model matrix in cells, how far from set in it is (1 outside, 0 in), and which copy. */
-    class RowPiece(val mesh: ObjMesh, val model: Matrix44, val active: Double, val seed: Int)
+    /**
+     * A piece of the row for a drawer of its own: its mesh, its model matrix in cells, how far from set in it
+     * is (1 outside, 0 in), and which copy — and, in a block that is a stack ([stack]), which layer of how many.
+     */
+    class RowPiece(val mesh: ObjMesh, val model: Matrix44, val active: Double, val seed: Int, val layer: Int = 0, val layers: Int = 1)
 
     /**
      * The row at [t] seconds for a drawer of its own — the city course draws it under its sun:
@@ -960,6 +1069,7 @@ class AssembleScene(
      * across x or z. The radius grows if the hexagon has fewer nodes than there are pieces.
      */
     private fun packLattice(): List<Home> {
+        if (explode && cubeForm && explodeScale != null) return packScaled(explodeScale)
         val rnd = Random(seed * 31 + 7)
         val s = latticeStep
         // A node is free unless it lies within the clearing round the building's middle.
@@ -1034,6 +1144,29 @@ class AssembleScene(
             // In a box a piece floats at its middle; on the flat grid it lies on the floor.
             val y = if (layout == "boxes") ground + (k + 0.5) * s - size.y / 2.0 else ground
             Home(Rectangle(c.x - s / 2.0, c.z - s / 2.0, s, s), Vector3(c.x - size.x / 2.0, y, c.z - size.z / 2.0), size, alongX)
+        }
+    }
+
+    /**
+     * The exploded view as a drawing of one: every block carried out from the form's middle, its place times
+     * [scale] axis by axis, and pushed [explodeDepth] toward or away from the camera by a share dealt from the
+     * seed. **No two blocks can meet on the way.** Blocks standing whole are a joint apart along some axis, and
+     * scaling each axis by at least 1 about one point only widens that gap — at every moment of the move too,
+     * so long as every piece is at the same point of it, which a stagger of 0 gives. The push toward the camera
+     * cannot bring two together either, provided no block is cut through the form's depth: then any two are
+     * apart across or up, whatever their depth. Stacks must not open, since an opening stack grows in the air.
+     */
+    private fun packScaled(scale: Vector3): List<Home> {
+        val rnd = Random(seed * 53 + 11)
+        val slots = building(0)
+        val lo = Vector3(slots.minOf { it.corner.x }, slots.minOf { it.corner.y }, slots.minOf { it.corner.z })
+        val hi = Vector3(slots.maxOf { it.corner.x + it.size.x }, slots.maxOf { it.corner.y + it.size.y }, slots.maxOf { it.corner.z + it.size.z })
+        val middle = (lo + hi) * 0.5
+        return slots.map { slot ->
+            val centre = slot.corner + slot.size * 0.5
+            val out = centre - middle
+            val at = middle + Vector3(out.x * scale.x, out.y * scale.y, out.z * scale.z) + Vector3(0.0, 0.0, explodeDepth * (rnd.nextDouble() * 2.0 - 1.0))
+            Home(Rectangle(at.x - slot.size.x / 2.0, at.z - slot.size.z / 2.0, slot.size.x, slot.size.z), at - slot.size * 0.5, slot.size, true)
         }
     }
 
@@ -1156,7 +1289,8 @@ class AssembleScene(
         if (!ready) return emptyList<RowPiece>() to emptyList()
         val (placed, lines) = catalogueFrame(t)
         return placed.flatMap { p ->
-            stackOf(solids[p.b], p.now, copies.getOrElse(p.b) { 1 }, p.open).map { RowPiece(solids[p.b].mesh, it, p.active, p.seed) }
+            val n = copies.getOrElse(p.b) { 1 }
+            stackOf(solids[p.b], p.now, n, p.open).mapIndexed { k, m -> RowPiece(solids[p.b].mesh, m, p.active, p.seed, k, n) }
         } to lines
     }
 
@@ -1189,7 +1323,14 @@ class AssembleScene(
         val along = when (axis) { 0 -> Vector3.UNIT_X; 1 -> Vector3.UNIT_Y; else -> Vector3.UNIT_Z }
         val span = c(now.size, axis)
         val copy = span / (n + (n - 1) * stackGap)
-        val room = ((c(now.size, (0..2).maxBy { c(now.size, it) }) - n * copy) / ((n - 1) * copy) - stackGap).coerceAtLeast(0.0)
+        val longest = c(now.size, (0..2).maxBy { c(now.size, it) })
+        val room = if (explodeScale == null) ((longest - n * copy) / ((n - 1) * copy) - stackGap).coerceAtLeast(0.0) else {
+            // Growing by a factor q along an axis the explode spreads by S, a stack keeps clear of its neighbours
+            // while q ≤ S: the gap between two blocks grows by S and each one's half by at most q.
+            val reach = ((stackReach * longest - n * copy) / ((n - 1) * copy) - stackGap).coerceAtLeast(0.0)
+            val grows = when (axis) { 0 -> explodeScale.x - 1.0; 1 -> explodeScale.y - 1.0; else -> Double.MAX_VALUE }
+            min(reach, grows * span / ((n - 1) * copy))
+        }
         val gap = stackGap + open.coerceIn(0.0, 1.0) * min(stackOpen, room)
         val first = (span - n * copy - (n - 1) * copy * gap) / 2.0
         val size = now.size - along * (span - copy)
@@ -1595,6 +1736,21 @@ class AssembleScene(
 
     private companion object {
         val COS30 = sqrt(3.0) / 2.0
+
+        /**
+         * The letters a `letter-` form can stand, on a five by five grid, top row first. The W is a square
+         * display face's — two uprights, a shorter one between and a bar along the foot — since the pixel font's
+         * joins its strokes only at their corners, and a letter of blocks touching at a corner comes apart.
+         */
+        val LETTERS = mapOf(
+            'W' to listOf("X...X", "X...X", "X.X.X", "X.X.X", "XXXXX"),
+            'N' to listOf("X...X", "XX..X", "X.X.X", "X..XX", "X...X")
+        )
+        /** How deep a letter stands, as a share of the cube's side. */
+        const val LETTER_DEPTH = 0.2
+        /** The rows a picture's ink is read onto, and how tall it stands, as a share of the cube's side. */
+        const val IMAGE_ROWS = 16
+        const val IMAGE_HEIGHT = 0.66
 
         fun fract(x: Double) = x - floor(x)
 

@@ -75,9 +75,9 @@ class LifeCycle(
     private val spin: Double = 30.0,
     /** A piece before its step is named. */
     private val waiting: ColorRGBa = ColorRGBa.fromHex("B8BCC4"),
-    private val ink: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val ink: ColorRGBa = slideshow.Palette.RED,
     /** The column frames. The Figma export's blue, not the draaiboek's navy. */
-    private val frame: ColorRGBa = ColorRGBa.fromHex("4674D6"),
+    private val frame: ColorRGBa = slideshow.Palette.BLUE,
     private val paper: ColorRGBa = ColorRGBa.WHITE,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val stepFrames: Int = frames(0.8),

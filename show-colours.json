@@ -1,0 +1,5 @@
+{
+  "about": "The house red and blue, six hex digits each. Every red and blue in the project is one of these: Palette.RED and Palette.BLUE, wnRed and wnBlue, the drawers' defaults, and any .env value written @red or @blue. Read once at the start of a run; the organizer's colours move them live and save them here. SLIDES_COLOURS names the file.",
+  "red": "FF0000",
+  "blue": "023F88"
+}

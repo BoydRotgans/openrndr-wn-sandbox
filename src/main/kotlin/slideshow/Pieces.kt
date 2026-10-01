@@ -31,12 +31,12 @@ object Pieces {
      * Where to cut [slides] into [count] pieces, as the index each piece after the first opens on.
      *
      * Only at a wall that stands on its own — a backdrop, never a slide beside its card or a scene
-     * that carries one — and as near as the walls allow to an even share of the film, which
+     * that carries one, nor a wall that carries on from the one before it — and as near as the walls allow to an even share of the film, which
      * [seconds] gives a slide at a time.
      */
     fun cuts(slides: List<Slide>, seconds: List<Double>, count: Int, from: Int = 0, until: Int = slides.lastIndex): List<Int> {
         if (count <= 1) return emptyList()
-        val candidates = (from + 1..until).filter { slides[it].wide && !slides[it].carriesCard }
+        val candidates = (from + 1..until).filter { slides[it].wide && !slides[it].carriesCard && !slides[it].carriesOn }
         val total = (from..until).sumOf { seconds[it] }
         val startsAt = HashMap<Int, Double>()
         var t = 0.0

@@ -1,0 +1,150 @@
+/**
+ * The practice page's words, in Dutch for the client and in English beside it. One table a language
+ * rather than strings in the components, so a wording is changed in one place.
+ */
+export type Lang = 'nl' | 'en'
+
+const nl = {
+  brand: 'Presentatie 28 oktober 2026',
+  tag: 'Rehearsal',
+  version: (date: string) => `Versie ${date}`,
+  versionHint: 'De nieuwste versie van de presentatie: deze pagina toont altijd de laatste.',
+  locale: 'nl-NL',
+  share: 'Delen',
+  shareTitle: 'Deel deze pagina',
+  shareHint: 'Iedereen met deze link kan de presentatie bekijken en de notities lezen en aanpassen. Deel hem alleen met wie mee voorbereidt.',
+  shareNone: 'Open deze pagina via de privélink om hem te kunnen delen.',
+  copy: 'Kopiëren',
+  copied: 'Gekopieerd',
+  prev: 'Vorige',
+  next: 'Volgende',
+  replay: 'Opnieuw',
+  overview: "Alle dia's",
+  close: 'Sluiten',
+  chapter: (n: number) => `Hoofdstuk ${n}`,
+  moment: 'Tussen de hoofdstukken',
+  slideOf: (n: number, m: number) => `Dia ${n} van ${m}`,
+  clickOf: (n: number, m: number) => (m > 1 ? `klik ${n} van ${m}` : 'één klik'),
+  clicks: (n: number) => (n === 1 ? '1 klik' : `${n} klikken`),
+  start: 'Begin hier',
+  startHint: 'Speel deze klik af',
+  playing: 'Speelt af…',
+  paused: 'Gepauzeerd',
+  ready: 'Klaar voor de volgende klik',
+  loading: 'De film laadt…',
+  end: 'Einde van de presentatie',
+  notes: 'Sprekersnotities',
+  notesFor: (slide: string, click: string) => `bij “${slide}”, ${click}`,
+  placeholder: '',
+  saving: 'Bewaren…',
+  saved: 'Bewaard',
+  local: 'Bewaard op dit apparaat — nog niet online',
+  download: 'Notities downloaden',
+  upNext: 'Hierna',
+  sameSlide: 'Volgende klik op deze dia',
+  noNote: 'Nog geen notitie.',
+  timer: 'Tijd',
+  resetTimer: 'Tijd op nul zetten',
+  sound: 'Geluid',
+  mute: 'Geluid uit',
+  unmute: 'Geluid aan',
+  fullscreen: 'Volledig scherm',
+  exitFullscreen: 'Volledig scherm uit',
+  pickHint: 'Kies een dia om daar verder te gaan. De rode rand is waar je nu bent.',
+  hasNote: 'heeft een notitie',
+  keys: '→ of je presenter: volgende  ·  ← vorige  ·  R opnieuw  ·  O alle dia’s  ·  F volledig scherm',
+  empty: 'Er staat nog geen film klaar.',
+  failed: 'De film kon niet worden geladen.',
+  private: 'Deze pagina is privé.',
+  privateHint: 'Open hem met de link die je hebt ontvangen.',
+  exportTitle: 'Sprekersnotities',
+  transition: (n: string) => `Terug naar hoofdstuk ${n}`,
+  wall: 'Sfeerbeeld',
+  moments: {
+    Arrival: 'Aankomst',
+    Opening: 'Opening',
+    Aperitif: 'Aperitief',
+    'Opening course': 'Voorgerecht',
+    'First course': 'Eerste gang',
+    'Second course': 'Tweede gang',
+    Dessert: 'Dessert',
+    Questions: 'Vragen',
+    Exit: 'Uitloop',
+  } as Record<string, string>,
+}
+
+const en: typeof nl = {
+  brand: 'Presentation 28 October 2026',
+  tag: 'Rehearsal',
+  version: (date) => `Version ${date}`,
+  versionHint: 'The newest version of the presentation: this page always shows the latest.',
+  locale: 'en-GB',
+  share: 'Share',
+  shareTitle: 'Share this page',
+  shareHint: 'Anyone with this link can view the presentation and read and edit the notes. Only share it with people preparing with you.',
+  shareNone: 'Open this page through its private link to share it.',
+  copy: 'Copy',
+  copied: 'Copied',
+  prev: 'Back',
+  next: 'Next',
+  replay: 'Replay',
+  overview: 'All slides',
+  close: 'Close',
+  chapter: (n) => `Chapter ${n}`,
+  moment: 'Between the chapters',
+  slideOf: (n, m) => `Slide ${n} of ${m}`,
+  clickOf: (n, m) => (m > 1 ? `click ${n} of ${m}` : 'one click'),
+  clicks: (n) => (n === 1 ? '1 click' : `${n} clicks`),
+  start: 'Start here',
+  startHint: 'Play this click',
+  playing: 'Playing…',
+  paused: 'Paused',
+  ready: 'Ready for the next click',
+  loading: 'Loading the film…',
+  end: 'End of the presentation',
+  notes: 'Speaker notes',
+  notesFor: (slide, click) => `for “${slide}”, ${click}`,
+  placeholder: '',
+  saving: 'Saving…',
+  saved: 'Saved',
+  local: 'Saved on this device — not online yet',
+  download: 'Download notes',
+  upNext: 'Up next',
+  sameSlide: 'Next click on this slide',
+  noNote: 'No note yet.',
+  timer: 'Time',
+  resetTimer: 'Reset the time',
+  sound: 'Sound',
+  mute: 'Sound off',
+  unmute: 'Sound on',
+  fullscreen: 'Full screen',
+  exitFullscreen: 'Exit full screen',
+  pickHint: 'Pick a slide to carry on from there. The red outline is where you are.',
+  hasNote: 'has a note',
+  keys: '→ or your clicker: next  ·  ← back  ·  R replay  ·  O all slides  ·  F full screen',
+  empty: 'There is no film ready yet.',
+  failed: 'The film could not be loaded.',
+  private: 'This page is private.',
+  privateHint: 'Open it with the link you were sent.',
+  exportTitle: 'Speaker notes',
+  transition: (n) => `Back to chapter ${n}`,
+  wall: 'Ambient picture',
+  moments: {},
+}
+
+export const copy: Record<Lang, typeof nl> = { nl, en }
+
+/** A chapter's name as its card sets it, with the card's own line-break hyphens closed up. */
+export const sectionName = (name: string) => name.replace(/(\p{Ll})-(\p{Ll})/gu, '$1$2')
+
+/**
+ * A slide's title as the client should read it. The running order's titles are the show's own, and a
+ * few are workshop names: the walls between the chapters are sketches, and the wall that ends a course
+ * is named after where it leads.
+ */
+export function slideTitle(t: typeof nl, title: string, moment: boolean) {
+  const back = /^Course transition to chapter (\d+)/i.exec(title)
+  if (back) return t.transition(back[1])
+  if (moment && /^Sketch:/i.test(title)) return t.wall
+  return title
+}

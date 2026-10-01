@@ -83,7 +83,7 @@ class EsgFramework(
     private val folder: File = File("data/svg/3-shapes"),
     private val fontPath: String = "data/fonts/default.otf",
     /** The pieces. The house red, as the draaiboek draws them. */
-    private val ink: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val ink: ColorRGBa = slideshow.Palette.RED,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     /**
      * How far a piece stands off the joint before it is closed, as a share of the bar's width.
@@ -245,7 +245,9 @@ class EsgFramework(
                 // three fit at all — they were cut from one layout at one scale
                 drawer.scale(scale / unit)
                 drawer.translate(-piece.box.corner)
-                drawer.fill = ink.opacify(shown * colour)
+                // Dimmed, a piece goes to the quiet grey rather than a darker red: the one red on the
+                // wall is the piece being named, and there is no second red (28 September).
+                drawer.fill = (if (dimmed > 0.0) ink.mix(slideshow.Palette.onBlack.quiet, dimmed) else ink).opacify(shown * colour)
                 drawer.stroke = null
                 piece.shapes.forEach { drawer.shape(it) }
             }

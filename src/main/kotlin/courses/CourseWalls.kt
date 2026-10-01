@@ -48,7 +48,8 @@ object CourseWalls {
         CourseWall("course-v4-flow", "v4 · assembling and taking apart, flat", "CourseFlow", "Flow", 20.0) { flowCourse() },
         CourseWall("course-v4-flow-v2", "v4 flow v2 · on the shadow mosaic's grid, closer", "CourseFlow2", "Flow v2", 20.0) { flowMosaicCourse() },
         CourseWall("course-v5-assemble", "v5 · assembling along a street, in the city", "CourseAssemble", "Assemble", 30.0) { assembleCourse() },
-        CourseWall("course-v6-kit", "v6 · the kit: a cube, then a grid", "CourseKit", "Kit", 4.0) { kitCourse() }
+        CourseWall("course-v6-kit", "v6 · the kit: a cube, then a grid", "CourseKit", "Kit", 4.0) { kitCourse() },
+        CourseWall("course-v6-kit-draft2", "v6 · the kit, draft 2", "CourseKit_draft2", "Kit, draft 2", 4.0) { kitDraft2Course() }
     )
 
     /** The wall a main class runs, for a variant that names another file's. */

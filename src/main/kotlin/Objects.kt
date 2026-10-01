@@ -118,9 +118,9 @@ import kotlin.math.tan
 private fun reachY(mesh: ObjMesh) = hypot(mesh.halfHeight, mesh.spinRadius)
 
 private const val DEFAULT_STYLE = "poster"
-private const val DEFAULT_TOP = "B7CEEE"
-private const val DEFAULT_LEFT = "8FB2DF"
-private const val DEFAULT_RIGHT = "22406C"
+private const val DEFAULT_TOP = "B3C5DB"
+private const val DEFAULT_LEFT = "7495BE"
+private val DEFAULT_RIGHT get() = slideshow.Brand.blueHex
 private const val DEFAULT_PAPER_SHADE = "E2E4E8"
 private const val DEFAULT_FACE_GRADIENT = 0.10
 private const val DEFAULT_SHADOW = "8A93A6"

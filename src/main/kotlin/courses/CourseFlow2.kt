@@ -46,6 +46,26 @@ import kotlin.random.Random
  * passes — `FLOW2_BUILD`, `_BUILD_GROW` and `_BUILD_JITTER`. `FLOW2_BUILD_FROM=right` is the first
  * version, the front crossing the wall from right to left (`left` and `top` also work).
  *
+ * **`FLOW2_BLOCK` stands a block of concrete on the left, and the pieces are cut out of it.** Inside
+ * the block the mosaic is pressed together with no joint and every leaf is its whole cell, so the
+ * leaves are one mass of stone running off the left edge. Past its face, over `FLOW2_BLOCK_CUT` of the
+ * wall, each piece is cut free at a place of its own: its joint opens round it and then, in one frame,
+ * its notches, doorway or windows are cut through — and only once every piece is cut does the strip
+ * let them come loose. A piece that runs off the right comes back into the block, off the wall.
+ *
+ * **`FLOW2_INVERT` swaps the open and the built.** Every that many seconds the loose stretches close
+ * into walls and the wall in the middle comes apart, over `FLOW2_INVERT_MOVE`, and then swaps back: a
+ * piece cut from the block then leaves it as part of a wall rather than on its own. The block stands
+ * through both. Nothing overlaps during the swap either, since the strip is still only ever pulled apart.
+ *
+ * **`FLOW2_VARY` lets the wall's slots trade what they do.** The wall is cut into slots at
+ * `FLOW2_VARY_SLOTS`, each a block, loose pieces or one assembled wall, opening as the block variant is
+ * laid out; every `FLOW2_VARY` seconds two slots doing different things trade over `FLOW2_VARY_MOVE`, so
+ * a block is cut up into a wall where it stands, a wall sets into stone, and the loose and the joined
+ * change places. A block in the middle of the wall takes pieces in on its left and cuts them free on its
+ * right. It replaces `FLOW2_BLOCK`, `_JOIN` and `_INVERT`; `_BLOCK_CUT`, `_OPEN`, `_EACH` and `_FACE`
+ * still say how a block cuts. Nothing overlaps here either: every profile is only ever pulled apart.
+ *
  * The motion is v1's and reads v1's keys — `FLOW_SPEED`, `_SPREAD`, `_LIFT`, `_JOIN`, the colours
  * and the seed — unless a `FLOW2_` key of the same name says otherwise; `FLOW2_ROWS`, `_JOINT`,
  * `_STRAY` and `_DRIFT` are its own. Black and white, as v1 is for now.
@@ -64,6 +84,12 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
     val buffers: List<VertexBuffer> = marks.map { m ->
         vertexBuffer(format, m.triangles.size).also { vb -> vb.put { m.triangles.forEach { write(Vector3(it.x, it.y, 0.0)) } } }
     }
+    // A unit square for the stone of the block, drawn the way the pieces are. `drawer.rectangle` softens
+    // its own edges in the shader, so two boxes butted together each leave a half-covered pixel and the
+    // block showed a hairline seam along every row; a plain quad leaves the edges to the multisampling.
+    val square = vertexBuffer(format, 6).also { vb ->
+        vb.put { listOf(-0.5 to -0.5, 0.5 to -0.5, 0.5 to 0.5, -0.5 to -0.5, 0.5 to 0.5, -0.5 to 0.5).forEach { (x, y) -> write(Vector3(x, y, 0.0)) } }
+    }
 
     val width = 3840.0
     val height = 1080.0
@@ -73,7 +99,169 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
     val joint = own("JOINT")?.toDoubleOrNull() ?: 4.0
     val spread = number("SPREAD", 2.4)
     val join = (key("JOIN") ?: "0.14,0.38,0.62,0.86").split(",").map { it.trim().toDouble() }
-    val strip = FlowStrip(width, spread, join, (cellWidth * spread + cellWidth) * 1.2)
+    val margin = (cellWidth * spread + cellWidth) * 1.2
+
+    // The block and the swap. The block holds the wall joined from the left edge through its face and
+    // the band past it where pieces are cut free, then lets them loose over `FLOW2_BLOCK_OPEN`; the swap
+    // runs the joined profile toward its own inverse and back. Both off, the strip is the one it was.
+    val block = own("BLOCK")?.toDoubleOrNull() ?: 0.0
+    val blockCut = (own("BLOCK_CUT")?.toDoubleOrNull() ?: 0.1).coerceAtLeast(0.001)
+    val blockOpen = (own("BLOCK_OPEN")?.toDoubleOrNull() ?: 0.08).coerceAtLeast(0.001)
+    // How much of the cut band one piece's own cut takes; the rest is where along it each piece starts.
+    val blockEach = (own("BLOCK_EACH")?.toDoubleOrNull() ?: 0.25).coerceIn(0.01, 1.0)
+    val invert = own("INVERT")?.toDoubleOrNull() ?: 0.0
+    val invertMove = own("INVERT_MOVE")?.toDoubleOrNull() ?: 12.0
+    val vary = own("VARY")?.toDoubleOrNull() ?: 0.0
+    val fixed = block <= 0.0 && invert <= 0.0 && vary <= 0.0
+    fun profile(swap: Double): (Double) -> Double = { u ->
+        val a = FlowStrip.smooth(join[0], join[1], u) * (1.0 - FlowStrip.smooth(join[2], join[3], u))
+        val f = a + (1.0 - 2.0 * a) * swap
+        if (block > 0.0) maxOf(f, 1.0 - FlowStrip.smooth(block + blockCut, block + blockCut + blockOpen, u)) else f
+    }
+    fun smoother(u: Double) = u.coerceIn(0.0, 1.0).let { it * it * it * (it * (it * 6.0 - 15.0) + 10.0) }
+
+    // **`FLOW2_VARY`: the wall as slots that trade what they do.** The wall is cut at `FLOW2_VARY_SLOTS`
+    // into slots, and each slot does one of three things: stands as a block of stone that pieces are
+    // pressed into and cut out of, lets its pieces float loose, or holds them as one assembled wall. It
+    // opens as the block variant is laid out — block, loose, wall, loose — and every `FLOW2_VARY` seconds
+    // two slots doing different things trade, over the last `FLOW2_VARY_MOVE` of those seconds: a block
+    // cut up into a wall, a wall set back into stone, the loose and the joined changing places. Which two
+    // is dealt from the seed, never the pair that traded last, so the wall keeps finding new orders.
+    val varyMove = (own("VARY_MOVE")?.toDoubleOrNull() ?: 50.0).coerceIn(0.01, maxOf(vary, 0.01))
+    val cuts = listOf(0.0) + (own("VARY_SLOTS") ?: "0.25,0.5,0.75").split(",").mapNotNull { it.trim().toDoubleOrNull() } + listOf(1.0)
+    val slots = cuts.size - 1
+    /** What a slot does: how joined its pieces are, and whether it is a block of stone. */
+    val joinOf = doubleArrayOf(1.0, 0.0, 1.0)
+    val stoneOf = doubleArrayOf(1.0, 0.0, 0.0)
+    val orders = mutableListOf(IntArray(slots) { listOf(0, 1, 2, 1)[it % 4] })
+    val lastTrade = mutableListOf(-1 to -1)
+    val dealing = Random((key("SEED")?.toIntOrNull() ?: 7) * 31 + 5)
+    /** The slots' behaviours after [n] trades, dealt in turn from the seed so any second draws the same wall. */
+    fun orderAt(n: Int): IntArray {
+        while (orders.size <= n) {
+            val o = orders.last()
+            val pairs = (0 until slots).flatMap { a -> (a + 1 until slots).map { b -> a to b } }
+                .filter { (a, b) -> o[a] != o[b] && (a to b) != lastTrade.last() }
+            val pair = pairs[dealing.nextInt(pairs.size)]
+            orders += o.copyOf().also { it[pair.first] = o[pair.second]; it[pair.second] = o[pair.first] }
+            lastTrade += pair
+        }
+        return orders[n]
+    }
+    /** The slots at a moment: which trade is under way, how far its wall has gone, and how much of each slot is stone. */
+    class Slots(val n: Int, val join: Double, val stone: DoubleArray) {
+        val key get() = listOf(this.n.toDouble(), this.join)
+    }
+    /**
+     * The slots at [time]. A block is cut free in the first part of a trade and set in the last, and the
+     * wall between — which slots are loose and which joined, and the band a block holds joined past its
+     * face — goes from the one arrangement to the next on one curve between them (see [varyProfile]).
+     * A trade with no block in it changes over the whole move.
+     */
+    fun slotsAt(time: Double): Slots {
+        val n = (time / vary).toInt().coerceAtLeast(0)
+        // Held, then moving over the last `VARY_MOVE` seconds of the step.
+        val raw = ((time - n * vary) - (vary - varyMove)) / varyMove
+        fun ease(a: Double, b: Double) = FlowStrip.smooth(a, b, raw)
+        val from = orderAt(n)
+        val to = orderAt(n + 1)
+        val stoned = (0 until slots).any { stoneOf[from[it]] != stoneOf[to[it]] }
+        val join = if (stoned) ease(0.3, 0.7) else ease(0.0, 1.0)
+        val stone = DoubleArray(slots) { i ->
+            val sa = stoneOf[from[i]]; val sb = stoneOf[to[i]]
+            sa + (sb - sa) * if (sb < sa) ease(0.0, 0.45) else ease(0.55, 1.0)
+        }
+        return Slots(n, join, stone)
+    }
+    /**
+     * How far outside each block a piece standing at screen x is, in pixels — negative inside it. A block
+     * fills its slot less half the cut band on a side it shares, so the band where pieces are cut free
+     * straddles the join; one at the end of the wall runs off it, as the block variant's does. It grows
+     * from its slot's middle, or in from the wall's edge, and starts a whole band short of anything, so
+     * the first piece set into stone is set there gradually rather than as the slot turns.
+     */
+    fun blocksAt(stone: DoubleArray): List<Pair<Double, (Double) -> Double>> {
+        val band = blockCut * width
+        val pad = band / 2.0
+        return (0 until slots).filter { stone[it] > 0.0 }.map { i ->
+            val s = stone[i]
+            val lo = cuts[i] * width
+            val hi = cuts[i + 1] * width
+            s to when {
+                i == 0 -> { val face = -band + (hi - pad + band) * s; { x: Double -> x - face } }
+                i == slots - 1 -> { val face = width + band - (width + band - lo - pad) * s; { x: Double -> face - x } }
+                else -> { val c = (lo + hi) / 2.0; val hw = -band + ((hi - lo) / 2.0 - pad + band) * s; { x: Double -> abs(x - c) - hw } }
+            }
+        }
+    }
+    /**
+     * How joined the wall is at a share `u` of it in one arrangement: each slot's own, eased across its
+     * edges, and past a block's face the band its pieces are cut free in, joined and then eased out.
+     */
+    fun arrangement(order: IntArray): (Double) -> Double {
+        val edge = 0.05
+        val band = blockCut * width
+        val open = blockOpen * width
+        val holds = blocksAt(DoubleArray(slots) { stoneOf[order[it]] }).map { it.second }
+        return { u ->
+            var f = 0.0
+            for (i in 0 until slots) {
+                val enter = if (i == 0) 1.0 else FlowStrip.smooth(cuts[i] - edge, cuts[i] + edge, u)
+                val leave = if (i == slots - 1) 0.0 else FlowStrip.smooth(cuts[i + 1] - edge, cuts[i + 1] + edge, u)
+                f += joinOf[order[i]] * (enter - leave)
+            }
+            for (d in holds) f = maxOf(f, 1.0 - FlowStrip.smooth(band, band + open, d(u * width)))
+            // **The margins off either end stay joined whatever the end slots do.** The strip is laid
+            // from the left margin, so a change there moves every piece on the wall: the first version
+            // let the end slot's own behaviour run on into it, and as the block at the left came
+            // loose, 3000 px of strip off the wall loosened with it and slid the whole wall left at
+            // 140 px a second. Held, a trade moves only what stands right of the slot trading.
+            maxOf(f, 1.0 - FlowStrip.smooth(-2.0 * edge, 0.0, u), FlowStrip.smooth(1.0, 1.0 + 2.0 * edge, u)).coerceIn(0.0, 1.0)
+        }
+    }
+    val arrangements = mutableMapOf<Int, (Double) -> Double>()
+    /** How much strip a pixel of wall holds, joined as much as [f] — and back. */
+    fun density(f: Double) = 1.0 / (1.0 + (spread - 1.0) * (1.0 - f))
+    fun joinedOf(density: Double) = if (spread <= 1.0) 1.0 else (1.0 - (1.0 / density - 1.0) / (spread - 1.0)).coerceIn(0.0, 1.0)
+    /**
+     * **The two arrangements are blended in how much strip the wall holds, not in how joined it is**, so
+     * the wall beyond a trade stands still. The strip is laid from the left, so a piece stands wherever
+     * the strip before it adds up to — and a stretch of wall half joined holds less strip than the mean of
+     * joined and loose, so two slots trading joined for loose on one curve still gave up strip in the
+     * middle of the trade and took it back at the end: the wall beyond slid out at 70 px a second and back
+     * at 56. Blended in strip, what one slot gives up the other takes in the same frame.
+     */
+    fun varyProfile(at: Slots): (Double) -> Double {
+        val a = arrangements.getOrPut(at.n) { arrangement(orderAt(at.n)) }
+        if (at.join <= 0.0) return a
+        val b = arrangements.getOrPut(at.n + 1) { arrangement(orderAt(at.n + 1)) }
+        if (at.join >= 1.0) return b
+        return { u -> val da = density(a(u)); joinedOf(da + (density(b(u)) - da) * at.join) }
+    }
+
+    val strip = when {
+        fixed -> FlowStrip(width, spread, join, margin)
+        vary > 0.0 -> FlowStrip(width, spread, varyProfile(slotsAt(0.0)), margin)
+        else -> FlowStrip(width, spread, profile(0.0), margin)
+    }
+    // The deck has to cover the strip at its longest, which is at one end of the swap or the other — or,
+    // with the slots varying, at its most joined, which no arrangement can pass.
+    val longest = when {
+        vary > 0.0 -> FlowStrip(width, spread, { 1.0 }, margin).visible
+        invert > 0.0 -> maxOf(strip.visible, FlowStrip(width, spread, profile(1.0), margin).visible)
+        else -> strip.visible
+    }
+    /** How far the swap has gone at [time]: held open, swapped over `INVERT_MOVE`, held, swapped back. */
+    fun swapAt(time: Double): Double {
+        if (invert <= 0.0) return 0.0
+        val half = invert / 2.0
+        val move = invertMove.coerceIn(0.01, half)
+        val p = time.mod(invert)
+        return if (p < half) smoother((p - (half - move)) / move) else 1.0 - smoother((p - (invert - move)) / move)
+    }
+    var stripAt = strip
+    var stripSwap = 0.0
+    var stripSlots: List<Double>? = null
 
     // The deck: whole coarse columns until the strip covers the wall and its margins, each column's
     // cells split from the seed. A leaf is kept in strip coordinates — across from the strip's start,
@@ -115,7 +303,7 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
         val pick = pool[random.nextInt(pool.size)]
         leaves += Leaf(r, pick.mark, pick.onEnd, random.nextInt(), column)
     }
-    while (columns * cellWidth < strip.visible) {
+    while (columns * cellWidth < longest) {
         for (row in 0 until rows) {
             MosaicCells.split(Rectangle(columns * cellWidth, row * cellHeight, cellWidth, cellHeight), random) { r -> place(r, columns) }
         }
@@ -124,7 +312,10 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
     val total = columns * cellWidth
     val worst = leaves.maxOf { l -> exp(abs(ln((if (l.onEnd) 1.0 / marks[l.mark].aspect else marks[l.mark].aspect) / drawnAspect(l.box)))) }
     println("flow v2: $columns coarse columns of $rows, ${leaves.size} leaves (${leaves.count { it.onEnd }} on end, $cut cells cut again), " +
-        "furthest from its own shape ${"%.2f".format(worst)}x, strip ${"%.0f".format(total)} px")
+        "furthest from its own shape ${"%.2f".format(worst)}x, strip ${"%.0f".format(total)} px" +
+        (if (block > 0.0) ", a block to ${"%.0f".format(block * width)} px cutting pieces free by ${"%.0f".format((block + blockCut) * width)}" else "") +
+        (if (invert > 0.0 && vary <= 0.0) ", open and built swapping every ${"%.0f".format(invert / 2.0)} s" else "") +
+        (if (vary > 0.0) ", $slots slots trading every ${"%.0f".format(vary)} s over ${"%.0f".format(varyMove)} s" else ""))
 
     val speed = number("SPEED", 24.0)
     val lift = number("LIFT", 0.7)
@@ -135,6 +326,8 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
     val paper = ColorRGBa.fromHex(key("PAPER") ?: "000000")
     val ink = ColorRGBa.fromHex(key("INK") ?: "000000")
     val line = own("LINE")?.toDoubleOrNull() ?: 0.0
+    // The block's own colour, which a piece leaves for the face as it is cut free; empty, the face's.
+    val blockFace = own("BLOCK_FACE")?.let { ColorRGBa.fromHex(it) } ?: face
     val fill = shadeStyle { fragmentTransform = "x_fill = p_color;" }
 
     // **It opens on a build.** A front rises up the wall from the floor over `FLOW2_BUILD` seconds
@@ -163,8 +356,22 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
         CourseControl.current = null
         drawer.clear(paper)
         val outlines = mutableListOf<ShapeContour>()
+        // The strip as the swap or the slots have it now, built again only while they are moving.
+        val varied = if (vary > 0.0) slotsAt(time) else null
+        // Each block's distance function; the block variant's is its one face.
+        val blocks = varied?.let { blocksAt(it.stone) }
+            ?: if (block > 0.0) listOf(1.0 to { x: Double -> x - block * width }) else emptyList()
+        if (varied != null) {
+            val at = varied.key
+            if (at != stripSlots) { stripAt = FlowStrip(width, spread, varyProfile(varied), margin); stripSlots = at }
+        } else {
+            val swap = swapAt(time)
+            if (swap != stripSwap) { stripAt = FlowStrip(width, spread, profile(swap), margin); stripSwap = swap }
+        }
+        val strip = stripAt
         drawer.isolated {
             drawer.shadeStyle = fill
+            drawer.stroke = null
             fill.parameter("color", face)
             // How loose each coarse column is, read at its middle: every piece in a column lifts by the
             // same share, so pieces stacked in it keep their order up the wall.
@@ -207,6 +414,30 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
                 val shape = if (leaf.onEnd) 1.0 / m.aspect else m.aspect
                 if (w / h > shape * tolerance) w = h * shape * tolerance
                 if (w / h < shape / tolerance) h = w / (shape / tolerance)
+                // **Cut out of the block.** Until its cut is half done a piece is still stone of the
+                // block: a plain box, its whole cell with no joint inside the block, drawing in to the
+                // piece's own box as the joint opens round it. At half it becomes the piece in one frame,
+                // its notches and openings cut through at once. Where along the band past the face a
+                // piece is cut is its own, drawn after the build's lateness so the stream above holds.
+                if (block > 0.0 || vary > 0.0) {
+                    val band = blockCut * width
+                    val each = band * blockEach
+                    val cutAt = r.nextDouble()
+                    // Whichever block a piece stands deepest in decides how much of it is still stone.
+                    val cx = (left + right) / 2.0
+                    val k = blocks.minOfOrNull { (_, d) -> ((d(cx) - cutAt * (band - each)) / each).coerceIn(0.0, 1.0) } ?: 1.0
+                    if (k < 0.5) {
+                        val e = smoother(k / 0.5)
+                        val bw = (leaf.box.width + (w - leaf.box.width) * e) * built
+                        val bh = (leaf.box.height + (h - leaf.box.height) * e) * built
+                        fill.parameter("color", blockFace.mix(face, e))
+                        drawer.model = buildTransform { translate(x, y, 0.0); scale(bw, bh, 1.0) }
+                        drawer.vertexBuffer(square, DrawPrimitive.TRIANGLES)
+                        fill.parameter("color", face)
+                        if (line > 0.0) outlines += Rectangle(x - bw / 2.0, y - bh / 2.0, bw, bh).contour
+                        continue
+                    }
+                }
                 w *= built
                 h *= built
                 val model = if (leaf.onEnd) buildTransform {

@@ -22,13 +22,15 @@ import slideshow.Settings
 import slideshow.Show
 import slideshow.Scene
 import slideshow.backdrops.BlockCity
+import slideshow.backdrops.CourseTransition
+import slideshow.backdrops.CourseIntro
 import slideshow.backdrops.CityBlock02
 import slideshow.backdrops.NameTag
 import slideshow.backdrops.IntroWall
 import slideshow.backdrops.PlainScene
 import slideshow.backdrops.Programme
 import slideshow.backdrops.EndingScene
-import slideshow.playlist
+import slideshow.coursePlaylist
 import slideshow.stemCue
 import slideshow.backdrops.Entry
 import slideshow.backdrops.ShadowFacade
@@ -78,6 +80,15 @@ import slideshow.drawers.SwivelBlock
 import slideshow.drawers.Type
 import slideshow.drawers.TreeSlide
 import slideshow.drawers.nodes
+
+/**
+ * Where the house red and blue are kept — see [slideshow.Brand]. First of all the values here,
+ * because every one after it that names a colour reads it, and the file can only be chosen before
+ * a colour has been read.
+ */
+private val colours = slideshow.Brand.use(Env["SLIDES_COLOURS"])
+// The two projectors and where the wall's halves stand on them, set in the organizer's Projection tab.
+private val projectorsFile = slideshow.Projectors.use(Env["SLIDES_PROJECTORS"])
 
 /**
  * The talk is set in one family, in two weights.
@@ -211,6 +222,14 @@ val cueSheet = slideshow.CueSheet.read(
 )
 
 /**
+ * The level the audio timeline review gave each sound-design cue, per state: `show-gains.json`,
+ * exported by the review site. `none` plays every cue as delivered. See [slideshow.ReviewGains].
+ */
+val reviewGains = (Env["SLIDES_GAINS"] ?: "show-gains.json")
+    .takeUnless { it.isBlank() || it.equals("none", ignoreCase = true) }
+    ?.let { slideshow.ReviewGains.read(File(it)) }
+
+/**
  * What both life-cycle databases know about what they hold — the same five either way, which
  * is the point: the analysis can only add them up because they are asked the same questions.
  * One list handed in twice, so rewording it moves both fans.
@@ -244,18 +263,39 @@ val ambience = slideshow.Sound(
 )
 
 /**
- * The dinner music, a bed a course, off the playlists in `SLIDES_MUSIC` — one folder a course,
- * joined into one looping wav each (see [playlist]). The track order is the tracklist's, not the
- * folder's, which sorts by file name. Quieter than the opening's ambience: the meeting asked for
- * the opening loud and present and the evening moving from mysterious to uplifting, and these
- * sit under people eating.
+ * The dinner music, a bed a course, off the course soundtracks in `SLIDES_MUSIC`: the sound
+ * designers' `course-soundtracks`, one folder a course and a tracklist beside them, delivered with
+ * the release of 1 October — ten to thirteen tracks a course, 39 to 53 minutes, where the first
+ * playlists were three tracks each. Each is joined into one looping wav (see [coursePlaylist]) in
+ * the tracklist's order, and picks up where it stopped when its course comes round again, so Main,
+ * under two courses, plays on through its tracks rather than starting over. Quieter than the
+ * opening's ambience: the meeting asked for the opening loud and present and the evening moving
+ * from mysterious to uplifting, and these sit under people eating.
+ *
+ * Each folder is one course's playlist, in the order of the evening — see the `music(...)` lines in
+ * the show: Aperitif (delivered as `Aperitif (_)`) under the opening course, Starter under the first,
+ * Main under the second and on through it under the third, Dessert under the dessert.
  */
-val musicFolder = File(Env["SLIDES_MUSIC"] ?: "input/diner_music/option1")
+val musicFolder = File(Env["SLIDES_MUSIC"] ?: "data/sounds/course-soundtracks")
 val musicGain = Env["SLIDES_MUSIC_GAIN"]?.toDoubleOrNull() ?: 0.45
-val aperitifBed = playlist("aperitif", File(musicFolder, "Aperitif"), listOf("Backspace", "Memories Collide", "Wind And Unwind"), gain = musicGain)
-val starterBed = playlist("starter", File(musicFolder, "Starter"), listOf("SRY", "Hazy Haze", "First Wave"), gain = musicGain)
-val mainBed = playlist("main", File(musicFolder, "Main"), listOf("You Go", "Float", "Lost & Found"), gain = musicGain)
-val dessertBed = playlist("dessert", File(musicFolder, "Dessert"), listOf("Port Ella", "Groovier Things", "Red Crescent"), gain = musicGain)
+val aperitifBed = coursePlaylist(musicFolder, "Aperitif", gain = musicGain)
+val starterBed = coursePlaylist(musicFolder, "Starter", gain = musicGain)
+val mainBed = coursePlaylist(musicFolder, "Main", gain = musicGain)
+val dessertBed = coursePlaylist(musicFolder, "Dessert", gain = musicGain)
+
+/**
+ * The exit's music: the ending track of the release of 29 September, which answers "need a better
+ * ending track" on the ending wall. It is the Exit moment's, like a dinner playlist, so it runs on
+ * unbroken from the ending into whatever wall stands after it, and the ending's own ambience gives
+ * way to it. As delivered and looped: 5:20 with its own silent head and swell, so it needs almost
+ * no fade in. Null — `none`, or no file — leaves the exit on the ambience as before.
+ */
+val endingTrack = (Env["SLIDES_ENDING_MUSIC"] ?: "data/sounds/General/ending_track(v3).wav")
+    .takeUnless { it == "none" }?.let(::File)?.takeIf { it.isFile }
+    ?.let {
+        slideshow.Sound(it, gain = 1.0, loop = true, fadeIn = slideshow.frames(1.0), fadeOut = slideshow.frames(2.5),
+            layer = slideshow.Layer.MUSIC)
+    }
 
 /**
  * The cues the talk itself is marked with, and **the sheet's numbering is the running order**:
@@ -315,25 +355,24 @@ val stackSteps = listOf("A", "B", "C", "D", "E").map { cue("1-09$it.wav") }
 val city = CityMapSlide(pace = 12.0, sound = mapCue)
 
 /**
- * The house colours, as the draaiboek draws them: navy and red on a light ground. Named
- * here so a backdrop says `wnBlue` and the value lives in one place. The Figma export
- * carries `#FF0000` and a lighter `#4674D6` for the same pair; the navy is the draaiboek's.
+ * The house colours: the one blue and the one red, and nothing else for either at any level of the
+ * show (28 September). They are `Palette`'s, named here so a backdrop says `wnBlue`, and they are
+ * the organizer's colours — `#023F88` and `#FF0000` until moved there, kept in `show-colours.json`.
+ * A darker face of either is `.shade(...)` of it, never another hex.
  */
-val wnBlue = ColorRGBa.fromHex("1E3A72")
-val wnRed = ColorRGBa.fromHex("FF0000")
+val wnBlue = slideshow.Palette.BLUE
+val wnRed = slideshow.Palette.RED
 val wnPaper = ColorRGBa.fromHex("E8E8E8")
 /** The white the brand's graphics stand on — not the paper grey above, which reads as a wall. */
 val wnWhite = ColorRGBa.fromHex("F5F7FA")
 
 /**
- * The playful set, for the collage. The house red and navy open it and the other four are
- * picked to stand beside them — a warm amber, a green, a coral and the Figma export's lighter
- * blue. They are a proposal rather than a brand palette: nothing in the exports names them.
+ * The playful set, for the collage: the house red with a warm amber and a green picked to stand
+ * beside it. A proposal rather than a brand palette: nothing in the exports names them. The coral
+ * and the lighter blue it had went on 28 September, being another red and another blue.
  */
 val wnAmber = ColorRGBa.fromHex("F2B705")
 val wnTeal = ColorRGBa.fromHex("2E9E5B")
-val wnCoral = ColorRGBa.fromHex("FF6B4A")
-val wnSky = ColorRGBa.fromHex("4674D6")
 
 /**
  * The sheet the backdrops stand their elements off. A path, so it is in `.env`; which
@@ -496,6 +535,50 @@ val beltSheet = File(Env["SLIDES_BELT_SHEET"] ?: "data/svg/objects-front.svg")
  */
 val yardObjects = File(Env["SLIDES_YARD_OBJECTS"] ?: "data/objects")
 
+/**
+ * The catalogue the fourth chapter clicks through — the ring, the grid and the webtool's box as one scene under
+ * three slides, so each cut between them is the next frame of one picture. Named above [show] for the city's
+ * reason: the three slides hold the one scene, and whichever loads first loads it. See CircleCatalogue.
+ */
+val circleCatalogue = CircleCatalogue(
+    objects = yardObjects,
+    path = File(Env["SLIDES_MARK"] ?: "data/logo/wn-mark.svg"),   // the mark's centreline, tools/trace_wn_mark.py
+    boldPath = boldFont,
+    // The scale figure on the grid's second click: a standing adult at its real size.
+    people = (Env["SLIDES_CIRCLE_PEOPLE"] ?: "data/ref/silhouette_people_lowpoly_obj.obj").takeIf { it != "none" }?.let { File(it) },
+    personName = Env["SLIDES_CIRCLE_PERSON"],                       // empty: the adult standing stillest
+    // The longest piece kept on the sheet to scale, in metres: the long beams and columns shrink away.
+    largest = Env["SLIDES_CIRCLE_SCALE_MAX"]?.toDoubleOrNull() ?: 10.0,
+    // The round pieces, out since the meeting of 30 September: fittings rather than building elements, and
+    // discs at the sheet's size. Read off the meshes — a round section about one axis — plus the two void
+    // formers whose section is not square but which read as discs all the same.
+    exclude = setOf(
+        "DRST_M16", "DRST_M24", "DRST_M24_1500", "HIJSOOG_DIAM_63", "HIJSOOG_DIAM_63_2", "HPKM39_ORANJE",
+        "KOGELKOPANKER_2.5T_85", "KOGELKOPANKER_7.5T_20", "KUNSTSTOFUITSPARING", "KUNSTSTOFUITSPARING_2",
+        "KUNSTSTOFUITSPARING_3", "PAAL", "PAAL_2"
+    )
+)
+
+/**
+ * The webtool slide, the last of the catalogue's three. Named above [show] because the grid before it names it too:
+ * the grid's export runs on into its arrival, the sheet pouring into "Start a new circle". See CircleGrid.
+ */
+val webtoolKit = WebtoolKit(
+    title = "Het gebouw uit de webtool",
+    labels = listOf(
+        // "Binnen 2 uur": the client's own wording (aanvullingen.txt, the jubileum script). The meeting
+        // heard four, the organizer edit said one; the files say two.
+        "Ontwerp en kostenindicatie binnen 2 uur",
+        "Plan, automatisch",
+        "CO₂ per gebouw, automatisch",
+        "Demontabel en herbruikbaar bouwen",
+        "Bouwstenen hergebruikt",
+        "Bouwstenen op voorraad"
+    ),
+    boldPath = boldFont,
+    // Opens on the grid's last frame: the kit's pieces lit and poured into the button.
+    catalogue = circleCatalogue
+)
 
 /**
  * The catalogue's register, which is what lets the wall name a piece and quote its box.
@@ -703,8 +786,8 @@ fun slideshow.ChapterBuilder.opening(start: ChapterStart, title: String, notes: 
 fun slideshow.ChapterBuilder.takeaway(n: Int, sentence: String) = slide(
     QuoteSlide(sentence, boldFont, lines = 4),
     title = "Kernboodschap $n",
-    notes = "De kernboodschap van hoofdstuk $n, vóór de gang: één zin, dan de vraag " +
-            "die het volgende hoofdstuk beantwoordt. DRAFT wording from the script plan."
+    notes = "De kernboodschap van hoofdstuk $n, vóór de gang: één zin, en een vraag voor aan tafel " +
+            "om tijdens het eten over te praten (meeting van 30 september). DRAFT wording, voor Erik."
 )
 
 /**
@@ -725,6 +808,26 @@ val highlightClick = stemCue(
     listOf("chapterTransitionReveal", "chapterTransitionBuild").map { File(highlightSounds, "project-highlight-$it.wav") },
     from = 6.30, to = 10.0, gain = cueGain
 )
+
+/**
+ * The sample a course transition is timed to and plays — `SLIDES_COURSE_TRANSITION`, the designers'
+ * `course-transistion-T2` (their spelling) unless it names another. `none` declares no transitions.
+ */
+val transitionSample: File? = (Env["SLIDES_COURSE_TRANSITION"] ?: File(highlightSounds, "course-transistion-T2.wav").path)
+    .takeIf { it != "none" }?.let { File(it) }
+
+/** The wall that ends the course before [start] and builds into its opening, or null with no wall to build into. */
+fun courseTransition(start: ChapterStart): CourseTransition? {
+    val opening = start.wall ?: return null
+    val sample = transitionSample ?: return null
+    return CourseTransition(
+        opening, sample, textFont,
+        fade = Env["SLIDES_COURSE_TRANSITION_FADE"]?.toDoubleOrNull() ?: 10.0,
+        dark = Env["SLIDES_COURSE_TRANSITION_DARK"]?.toDoubleOrNull() ?: 0.12,
+        rest = Env["SLIDES_COURSE_TRANSITION_REST"]?.toDoubleOrNull() ?: 10.0,
+        countdown = Env.boolean("SLIDES_COURSE_TRANSITION_COUNTDOWN", default = true)
+    )
+}
 
 /**
  * A chapter's project highlight: the storyline brought down to one real building, standing just
@@ -781,7 +884,7 @@ val rightFactors = listOf(
  * "systematische" for what the earlier copy had as "systemische".
  */
 val chapterMessages = listOf(
-    "Hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst niet te belasten?",
+    "Hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?",
     "ESG is geen checklist, maar de systematische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren.",
     "We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter.",
     "We bouwen vandaag, met het oog op wie na ons komt."
@@ -910,13 +1013,13 @@ fun cityMosaic(
         elevation = 32.0,                       // ground at 220 and 22 degrees they streaked half a
                                                 // projector and weighed on the blue
 paper = ColorRGBa.fromHex("2B2D31"),     // a dark grey ground
-        fieldLow = wnBlue, fieldHigh = wnSky,
+        fieldLow = wnBlue, fieldHigh = wnBlue,
         // The story: what is built conventionally is blue and ages to grey where it stands until it
         // is taken down; the WN elements are red, never age, and are lifted and set down elsewhere.
         blues = 1.0,                            // every building mark blue: the conventional fabric
         oldLow = ColorRGBa.fromHex("8C9199"), oldHigh = ColorRGBa.fromHex("C3C7CD"),
         grow = 8.0, hold = 40.0, emptyHold = 8.0, // built, forty seconds of greying, down, a gap
-        accentLow = ColorRGBa.fromHex("C40000"), accentHigh = wnRed,
+        accentLow = wnRed, accentHigh = wnRed,
         // The red units always stand as buildings, and there come to be more of them: one of four,
         // two and three, one of six, two, two and three, three and four — each taken apart and put
         // together again elsewhere a unit at a time; new ones built up out of the floor where they
@@ -952,6 +1055,24 @@ val show = slideshow {
     title("openrndr")
     slideBed(slideLoop)     // the base loop under the slides; walls and scenes play their own
     cueSheet(cueSheet)      // the sound design read off its folder, placed by the state each file names
+    gains(reviewGains)      // and each cue's level as the audio timeline review set it
+    // Every backdrop takes the stage the same way and over the same seconds: the wall, already moving,
+    // uncovered behind one wide soft front from left to right (feedback of 28 September; tiles cut its lines
+    // into fragments). SLIDES_BACKDROP_BUILD says how long.
+    wallBuild(slideshow.SweepWallBuild(), seconds = 12.0)
+
+    // The dinner music: a playlist a moment, under every wall the order file puts in it, whatever
+    // wall that is. Named as show-order.json names the moments; the startup line says which have none.
+    // The delivered folders in the order of the evening (1 October), so each course has its own: four
+    // folders for five courses, so the third course carries on through Main from where the second
+    // stopped, and hears other tracks. No Aperitif moment since 30 September: the amuse is served in
+    // the reception room, so the Aperitif playlist opens the dinner.
+    music("Opening course", aperitifBed)
+    music("First course", starterBed)
+    music("Second course", mainBed)
+    music("Third course", mainBed)
+    music("Dessert", dessertBed)
+    music("Exit", endingTrack)
 
     // The left pane: the chapter, set as large as it will go, white on black. One
     // card per section, standing for as long as the show is in it — see
@@ -1025,6 +1146,23 @@ val show = slideshow {
     // that chapter's card, and there is no chapter yet — the talk has not started. A
     // backdrop takes the whole wall with no card beside it, which is exactly the frame a
     // title card wants. See NameTag in backdrop-drawers/.
+    // The director's tag comes first: the director gives the first word of welcome, and the click after
+    // it hands over to Erik's tag, the talk going on from there as before (1 October). The same name tag,
+    // so the two read as one kind of moment, at one size: NameTag sets each line off the wall's height, so a
+    // placeholder as long as a real name stands as large as Erik's ("[Naam]" read as a smaller tag). PLACEHOLDER:
+    // the director's name, and the company line.
+    backdrop(
+        NameTag(
+            presenter = "Voornaam Achternaam",
+            organisation = "Willy Naessens",
+            role = "Directeur",
+            fontPath = boldFont,
+            accent = wnRed
+        ),
+        title = "Director is speaking",
+        notes = "Het eerste welkom, door de directeur van Willy Naessens; de click erna is Erik. " +
+                "PLACEHOLDER: naam en bedrijfsregel van de directeur."
+    )
     backdrop(
         NameTag(
             presenter = "Erik Koremans",
@@ -1056,14 +1194,16 @@ val show = slideshow {
             programme = Programme(
                 entries = listOf(
                     Entry("Opening"),
-                    Entry("Aperitief"),
                     Entry("De wereld van bouwen", chapter = true, message = chapterMessages[0]),
                     Entry("Voorgerecht"),
                     Entry("Waardekader en verantwoordelijkheid", chapter = true, message = chapterMessages[1]),
                     Entry("Eerste gang"),
                     Entry("Beton: ruggengraat en transitie", chapter = true, message = chapterMessages[2]),
                     Entry("Tweede gang"),
-                    Entry("The Circle: een nieuwe manier van denken", chapter = true, message = chapterMessages[3]),
+                    // "Denken en doen" from the programme on (meeting of 30 September); the chapter's own
+                    // title on its card is unchanged, its rename having been dropped.
+                    Entry("The Circle: een nieuwe manier van denken en doen", chapter = true, message = chapterMessages[3]),
+                    Entry("Derde gang"),
                     Entry("Vragen"),
                     Entry("Dessert"),
                     Entry("Uitloop")
@@ -1073,9 +1213,9 @@ val show = slideshow {
                 accent = wnRed,
                 side = 1
             ),
-            // PLACEHOLDER: the guest's name and title are still to come.
+            // Else de Bruin of StudioBuik (meeting of 30 September; her name confirmed 1 October). PLACEHOLDER: her role.
             guest = NameTag(
-                presenter = "[Naam]",
+                presenter = "Else de Bruin",
                 organisation = "StudioBuik",
                 role = "[Functie]",
                 fontPath = boldFont,
@@ -1085,9 +1225,28 @@ val show = slideshow {
         ),
         title = "Het programma",
         notes = "Erik links, het programma rechts: de avond in vier delen, geserveerd tussen de gangen, " +
-                "een click per hoofdstuk en een voor het geheel. De laatste click: Erik stelt [Naam] van " +
-                "StudioBuik voor, als introductie op het diner. DRAFT: haar naam en functie."
+                "een click per hoofdstuk en een voor het geheel. De laatste click: Erik stelt Else de Bruin van " +
+                "StudioBuik voor, als introductie op het diner. DRAFT: haar functie."
     )
+
+    // The silent moment before each course: StudioBuik introduces the dish over it, with no music, and the
+    // course wall with its playlist is the click after it (meeting of 30 September). Each course moment in
+    // the order file opens on one. The ideas are the menu's as read out at the meeting; the third course's
+    // and the dessert's are still to come from StudioBuik. See CourseIntro.
+    listOf(
+        Triple("Voorgerecht", "Gieten", "voorgerecht"),
+        Triple("Eerste gang", "Ontkisten", "eerste gang"),
+        Triple("Tweede gang", "Drogen en uitharden", "tweede gang"),
+        Triple("Derde gang", "In de vorm van een cirkel", "derde gang"),
+        Triple("Dessert", "", "dessert")
+    ).forEach { (course, idea, name) ->
+        backdrop(
+            CourseIntro(course, idea, fontPath = boldFont, accent = wnRed),
+            title = "StudioBuik: $name",
+            notes = "De stille wand voor de gang: Else de Bruin van StudioBuik licht het gerecht toe, zonder muziek. " +
+                    "De click erna is de wand van de gang, met de playlist eronder."
+        )
+    }
 
     // Each chapter opens on one wall: the card's field across both projectors, the title up on
     // the left, then the quote on the right — see ChapterStart. Its card is the left pane of it.
@@ -1114,8 +1273,8 @@ val show = slideshow {
         )
 
         // Opens on the city's own last frame — the same element, the same size, the
-        // same place — so the cut into it cannot be seen. One click then fans the
-        // tree out of it. The two lists are the whole of the content: add, remove or
+        // same place — so the cut into it cannot be seen, and goes straight on into the
+        // first factor. The two lists are the whole of the content: add, remove or
         // reword a line and the type resizes and the fan re-spaces to suit.
         slide(
             TreeSlide(
@@ -1123,21 +1282,23 @@ val show = slideshow {
                 right = nodes(rightFactors),
                 opening = { city.closingMark },
                 fontPath = boldFont,
-                // Four factors named first, one a click, then the fan. They stand beside the root
-                // while they are the only thing on the pane and travel out to their rows when it
-                // opens. The four and their order are the voice-over's (data/subtitles, 21
+                // Four factors named first — the first with the slide's arrival, the other three a
+                // click each (29 September: the click into the tree used to change nothing) — then
+                // the fan. They stand beside the root while they are the only thing on the pane
+                // and travel out to their rows when it opens. The four and their order are the voice-over's (data/subtitles, 21
                 // September): "op welke locatie, welke materialen we kiezen, hoe we produceren,
                 // hoe we transporteren". **They alternate sides** — Locatie and Productie are in
                 // the left list, Materiaal and Transport in the right — so the pane reads left,
                 // right, left, right, as it did with two.
                 highlights = listOf("Locatie", "Materiaal", "Productie", "Transport"),
-                // On the fan's click, not the arrival: this slide opens on the city's own
-                // last frame and holds there, so what the cue marks is the fan coming apart.
+                // On the fan's click. The sound design's sheet owns this slide, so this is the
+                // fallback for a checkout without data/.
                 fanCue = treeCue
             ),
             title = "Everything a build answers to",
-            notes = "The element the city closed on becomes the root. Clicks 1 to 4 name Locatie, " +
-                    "Materiaal, Productie and Transport, click 5 fans out everything a build answers to. " +
+            notes = "The element the city closed on becomes the root, and Locatie grows out of it as " +
+                    "the slide arrives. Clicks 1 to 3 name Materiaal, Productie and Transport, click 4 " +
+                    "fans out everything a build answers to. " +
                     "Nesting a label with node(\"...\", node(\"...\")) adds a level and costs a click."
         )
 
@@ -1154,7 +1315,7 @@ val show = slideshow {
                 // strong blue where a line runs through — the same pair that slide uses.
                 sheet = hundredSheet,
                 piece = ColorRGBa.WHITE,
-                grid = ColorRGBa.fromHex("2E5BFF"),
+                grid = wnBlue,
                 sound = globeCue
             ),
             title = "The globe",
@@ -1181,7 +1342,7 @@ val show = slideshow {
                     row("Eigen grond- en omgevingswerken", "Eigen funderingsploegen en paalmachines"),
                     row("Eigen transport", "Eigen montageploegen"),
                     row("Eigen dakdichtingsbedrijf", "Eigen alu-schrijn- en glasbedrijf"),
-                    row("Eigen technische afdeling", "Eigen after sales")
+                    row("Eigen technische afdeling", "Eigen beheer en after sales")
                 ),
                 sheet = backdropSheet,                       // the bars take the subset piece's contour
                 fontPath = boldFont,
@@ -1191,8 +1352,8 @@ val show = slideshow {
             title = "Verticale integratie",
             notes = "Six clicks, a band each. The last is picked out in red."
         )
-        val groupFront = ColorRGBa.fromHex("FF0000")       // the WN red
-        val groupSide = ColorRGBa.fromHex("D40000")        // a shade under it, as the blue's side is
+        val groupFront = wnRed                             // the WN red
+        val groupSide = wnRed.shade(0.85)                  // a shade under it, as the blue's side is
         // The company's figures, a slab a figure and a figure a click — one slide since 16
         // September, where it was two. The same drawer as the train it replaced, carrying
         // a different palette — which is the whole point of the copy being a list
@@ -1212,12 +1373,12 @@ val show = slideshow {
                     SwivelBlock("250 werven per jaar", note = "Group", front = groupFront, side = groupSide),
                     SwivelBlock("1,2 miljard omzet/jaar", note = "Group", front = groupFront, side = groupSide),
                     SwivelBlock("2.750 medewerkers", note = "Group", front = groupFront, side = groupSide),
-                    SwivelBlock("9.000 referenties", note = "Group", front = groupFront, side = groupSide)
+                    SwivelBlock("> 9.000 referenties", note = "Group", front = groupFront, side = groupSide)
                 ),
                 clicked = true,                              // a figure a click, centred and close up
                 across = 700.0,                              // three slabs across the pane: the centred one is the picture
-                front = ColorRGBa.fromHex("3D5AE0"),
-                side = ColorRGBa.fromHex("3550C4"),
+                front = wnBlue,
+                side = wnBlue.shade(0.85),
                 fontPath = boldFont,
                 sound = swivelCue
             ),
@@ -1225,7 +1386,8 @@ val show = slideshow {
             notes = "Kerncijfers Willy Naessens Nederland + Willy Naessens Group, een cijfer per " +
                     "click: Nederland in blauw, de Group in WN-rood. Nederland: 30 projecten per jaar, 85 medewerkers, " +
                     "± 150 miljoen omzet per jaar. Group: 250 werven per jaar, 1,2 miljard " +
-                    "omzet per jaar, 2.750 medewerkers, 9.000 referenties. Checked 21 September."
+                    "omzet per jaar, 2.750 medewerkers, > 9.000 referenties. Checked 21 September; the sign on " +
+                    "the references since 30 September (Kerncijfers: \"+ 9000 referenties\")."
         )
         highlight(
             1, "Case Studie - van Cranenbroek Budel", "Van Cranenbroek - De wereld van Bouwen.jpg",
@@ -1234,8 +1396,8 @@ val show = slideshow {
             notes = "Verhaallijn hoofdstuk 1: van Cranenbroek in Budel, de hal met kolommen. " +
                     "Location and wording to be confirmed by WN."
         )
-        takeaway(1, "We hebben gekeken naar de organisatie achter het bouwen. Na deze gang stellen " +
-                "we de volgende vraag: hoe beoordelen we de keuzes die we maken?")
+        takeaway(1, "We hebben gekeken naar de organisatie achter het bouwen. Een vraag voor aan " +
+                "tafel: waar ligt u wakker van?")
     }
 
     // "verantwoor-delijkheid" is hyphenated so the card may break it there; written
@@ -1286,11 +1448,12 @@ val show = slideshow {
                 left = BarChart(
                     heading = "26% minder CO\u2082 behaald (ge\u00EFndexeerde omzet)",
                     years = listOf("2020", "2021", "2022", "2023", "2024"),
-                    // PLACEHOLDER: read off the client's chart (frame 2-08), which carries no data
-                    // table — WN is asked for the figures behind it, and for the target.
-                    values = listOf(27.0, 28.0, 20.0, 19.2, 19.6),
+                    // The client's own figures: ton CO₂e per million euro of indexed turnover, Build-Concrete-
+                    // Pools, off the data table under the chart on slide 24 of "Willy Naessens Duurzaam
+                    // Algemeen 2026-03-04" (input/fact-check-folder). The target falls 2,5% a year from 2020.
+                    values = listOf(26.41, 27.63, 20.05, 19.13, 19.49),
                     max = 30.0, step = 5.0,
-                    target = listOf(26.8, 25.9, 25.2, 24.5, 23.6),
+                    target = listOf(26.41, 25.75, 25.09, 24.43, 23.77),
                     targetLabel = listOf("Doelstelling CO\u2082 per", "ge\u00EFndexeerde omzet"),
                     reachedLabel = listOf("Behaalde CO\u2082-reductie", "per ge\u00EFndexeerde omzet"),
                     // Three a chart at most; the rest is in the notes for the speaker.
@@ -1302,11 +1465,12 @@ val show = slideshow {
                 ),
                 right = BarChart(
                     heading = "Eigen productie groene stroom",
-                    years = listOf("2024", "2025", "2026"),
-                    // PLACEHOLDER: 6,2 GWh is the client's figure for 2026; 2024 and 2025 are read off the chart.
-                    values = listOf(5.2, 5.6, 6.2),
-                    max = 6.0, step = 1.0,
-                    reachedLabel = listOf("6,2 GWh eigen productie", "van groene stroom"),
+                    // The deck's two figures and nothing between them: 5,2 GWh produced in 2024, and about
+                    // 1 GWh more foreseen for 2026 (slide 26). The 2025 bar that stood here was invented.
+                    years = listOf("2024", "2026"),
+                    values = listOf(5.2, 6.2),
+                    max = 7.0, step = 1.0,
+                    reachedLabel = listOf("5,2 GWh in 2024,", "ca. 6,2 GWh", "voorzien in 2026"),   // three lines: two ran to the pane's edge
                     bullets = listOf(
                         "1 GWh meer eigen productie voorzien voor 2026",
                         "Sinds 2022 groene stroom voor wat we niet zelf produceren",
@@ -1316,13 +1480,13 @@ val show = slideshow {
                 boldPath = boldFont,
                 textPath = textFont,
                 bar = wnRed,
-                line = wnSky
+                line = wnBlue
             ),
             title = "CO2 behaald",
             notes = "De cijfers achter de ladder. Click 1: de doelstelling erover; click 2: eigen " +
-                    "groene stroom; click 3: de maatregelen. PLACEHOLDER figures, read off the " +
-                    "client's chart \u2014 the real values (CO\u2082 per ge\u00EFndexeerde omzet 2020\u201324 " +
-                    "and the target, groene stroom 2024\u201326) are still to come from WN. " +
+                    "groene stroom; click 3: de maatregelen. Figures off the client's deck (Duurzaam " +
+                    "Algemeen, slides 24 and 26): CO\u2082e per ge\u00EFndexeerde omzet 26,41 \u2192 19,49, \u221226%; " +
+                    "5,2 GWh groene stroom in 2024, ca. 1 GWh meer voorzien voor 2026. " +
                     "Voor de spreker, niet op de muur: het CSC Silver-statuut staat voor zorgvuldige " +
                     "bedrijfsvoering op management, milieu en sociale aspecten; water met fijn " +
                     "materiaal wordt in suspensie gehouden en hergebruikt; uitgebreide monitoring van " +
@@ -1349,7 +1513,7 @@ val show = slideshow {
                 boldPath = boldFont,
                 textPath = textFont,
                 accent = wnRed,
-                blue = ColorRGBa.fromHex("3D5AE0"),
+                blue = wnBlue,
                 stepCues = List(4) { markCue }      // the certificate going, a mark a named measure, and one for the rest
             ),
             title = "Geen compensatie",
@@ -1367,10 +1531,10 @@ val show = slideshow {
                 right = rightFactors,
                 sheet = backdropSheet,
                 centres = listOf(
-                    Centre(0, ColorRGBa.fromHex("3D5AE0")),
+                    Centre(0, wnBlue),
                     Centre(5, ColorRGBa.WHITE),
                     Centre(8, wnRed),
-                    Centre(12, wnSky)
+                    Centre(12, slideshow.Palette.GREY)   // the fourth was a lighter blue: one blue only
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
@@ -1400,7 +1564,14 @@ val show = slideshow {
         // between them, the group as an arrow with one out ahead, and the whole with a share
         // marked out. Read off data/ref/social.pdf, a click a frame. See Crowd.
         slide(
-            Crowd(fontPath = boldFont, many = wnSky, share = ColorRGBa.fromHex("2E5BFF")),   // the globe grid in a strong blue, so a line a figure wide still reads against the white
+            // The globe's people all in one strong blue, meridians and parallels alike (feedback of 28 September;
+            // the meridians were the one's white).
+            Crowd(
+                fontPath = boldFont, many = wnBlue, share = wnBlue, meridians = wnBlue,
+                // Social while the voice-over is on social — the lines between the people included —
+                // and Governance from the arrow, the one out in front (meeting of 30 September).
+                titles = listOf("ESG Social", "ESG Social", "ESG Social", "ESG Governance", "ESG Governance")
+            ),
             title = "ESG Social & Governance",
             notes = "Opleiding, veiligheid en werkzekerheid vormen de basis, en hoe de groep ook " +
                     "nadenkt over levenskwaliteit. Then governance: transparante rapportering, " +
@@ -1411,9 +1582,9 @@ val show = slideshow {
         // end-of-life column is taken away and The Circle put in its place. Read off
         // data/ref/Levenscyclus van betonproducten.pdf, whose six states are these six
         // clicks. See LifeCycle for the layout, which is a function of the column count.
-        slide(
-            LifeCycle(
-                phases = listOf(
+        // The phases, declared once: the A·B·C slide before the life cycle reads the same list, so the
+        // two cannot disagree about what a letter holds.
+        val lifePhases = listOf(
                     // One vocabulary with the reduction slide in chapter 4: the same five steps
                     // in the same Dutch words, compounds closed.
                     LifePhase("A1-A3", "Productfase", listOf(
@@ -1438,7 +1609,24 @@ val show = slideshow {
                         LifeStep("C3", "Afvalverwerking"),
                         LifeStep("C4", "Verwijdering")
                     ))
-                ),
+        )
+        // What A, B and C stand for, a letter a click, before the life cycle sets every box with its code
+        // (meeting of 30 September: "maybe we should think of a slide that explains ABC").
+        slide(
+            LifeCycleKey(
+                phases = lifePhases,
+                meaning = mapOf("A" to "Van grondstof tot gebouw", "B" to "In gebruik", "C" to "Einde levensduur"),
+                boldPath = boldFont,
+                textPath = textFont
+            ),
+            title = "De fasen A, B en C",
+            notes = "De letters van de levenscyclus uitgelegd voordat ze op elk vak staan: A de productie en " +
+                    "de bouw, B het gebruik, C het einde van de levensduur. Een letter per click, uit dezelfde " +
+                    "fasen als de levenscyclus erna."
+        )
+        slide(
+            LifeCycle(
+                phases = lifePhases,
                 // No code on these: they are not a phase of the linear cycle, they are what
                 // replaces its last one.
                 closing = LifePhase("", "The Circle", listOf(
@@ -1483,8 +1671,8 @@ val show = slideshow {
             notes = "Verhaallijn hoofdstuk 2 (ESG): VGP Park Nijmegen, de foto met zonnepanelen. " +
                     "Wording to be confirmed by WN."
         )
-        takeaway(2, "We hebben besproken hoe we keuzes beoordelen. Na deze gang kijken we waar die " +
-                "keuzes concreet worden: in het materiaal en de levenscyclus van beton.")
+        takeaway(2, "We hebben besproken hoe we keuzes beoordelen. Een vraag voor aan tafel: welke " +
+                "keuze van vandaag telt over twintig jaar nog?")
     }
 
     // The chapter's own opening line, set the way the first two chapters open. The draaiboek
@@ -1517,28 +1705,30 @@ val show = slideshow {
                             // Cement is the accent; the other four are one structure blue at four
                             // values, not four hues. Reinforcement is not a binder and is not named here.
                             Band("share", "Cement (bindmiddel)", 81.5, wnRed),
-                            Band("toeslag", "Toeslagstoffen", 4.0, ColorRGBa.fromHex("B7C6F2")),
-                            Band("aanvoer", "Aanvoer grondstoffen", 8.5, ColorRGBa.fromHex("8AA0E6")),
-                            Band("energie", "Energieproductie", 1.0, ColorRGBa.fromHex("5E7BDB")),
-                            Band("transport", "Transport naar de bouwplaats", 5.0, ColorRGBa.fromHex("3D5AE0"))
+                            Band("toeslag", "Toeslagstoffen", 4.0, wnBlue),
+                            Band("aanvoer", "Aanvoer grondstoffen", 8.5, wnBlue),
+                            Band("energie", "Energieproductie", 1.0, wnBlue),
+                            Band("transport", "Transport naar de bouwplaats", 5.0, wnBlue)
                         ),
                         caption = "In beton is cement veruit het meest vervuilende bestanddeel: ongeveer 80% " +
                                 "van de totale CO\u2082-uitstoot van het materiaal. Wereldwijd is de " +
-                                "cementindustrie verantwoordelijk voor zo\u2019n 5 tot 8% van alle door de " +
+                                "cementindustrie verantwoordelijk voor zo\u2019n 8% van alle door de " +
                                 "mens veroorzaakte CO\u2082-emissies."
                     ),
                     ColumnState(
                         "CO\u2082 impact van beton: wereld",
                         bands = listOf(
-                            Band("share", "Wereldwijd: 7% aandeel CO\u2082-uitstoot door beton", 7.0, wnRed),
-                            Band("rest", "", 93.0, ColorRGBa.fromHex("4370CE"))
+                            // Cement and concrete together: "as much as 9 percent of all human CO2 emissions"
+                            // (Scientific American); cement alone about 8% (WRI, WEF). Erik's 9, 30 September.
+                            Band("share", "Wereldwijd: tot 9% aandeel CO\u2082-uitstoot door beton", 9.0, wnRed),
+                            Band("rest", "", 91.0, wnBlue)
                         )
                     ),
                     ColumnState(
                         "CO\u2082 impact van beton: Nederland",
                         bands = listOf(
                             Band("share", "Nederland: 1,9% aandeel CO\u2082-uitstoot door beton", 1.9, wnRed),
-                            Band("rest", "", 98.1, ColorRGBa.fromHex("4370CE"))
+                            Band("rest", "", 98.1, wnBlue)
                         )
                     )
                 ),
@@ -1547,7 +1737,7 @@ val show = slideshow {
             ),
             title = "CO2 impact van beton",
             notes = "Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking " +
-                    "op schaal. Click 1: wereldwijd 7% van de CO\u2082-uitstoot door beton; click 2: " +
+                    "op schaal. Click 1: wereldwijd tot 9% van de CO\u2082-uitstoot door beton; click 2: " +
                     "Nederland 1,9%. The four blue bands are read off the client's drawing, not " +
                     "measured \u2014 to confirm with WN."
         )
@@ -1556,7 +1746,7 @@ val show = slideshow {
         slide(
             ConcreteLevers(
                 populations = listOf(
-                    Population(30, wnSky, Vector2(-0.13, -0.02), 0.07),
+                    Population(30, wnBlue, Vector2(-0.13, -0.02), 0.07),
                     Population(180, wnRed, Vector2(0.0, 0.02), 0.045),
                     Population(90, ColorRGBa.WHITE, Vector2(0.13, 0.0), 0.04)
                 ),
@@ -1583,7 +1773,7 @@ val show = slideshow {
                 boldPath = boldFont,
                 textPath = textFont,
                 accent = wnRed,
-                blue = wnSky
+                blue = wnBlue
             ),
             title = "Verduurzamen van beton",
             notes = "Drie niveaus: samenstelling (de wolk scheidt zich vanzelf), productie (de " +
@@ -1608,7 +1798,7 @@ val show = slideshow {
                         "Overstap van CEM I naar CEM II",
                         "Gebruik CEM III A",
                         "Alternatieve samenstellingen"
-                    )),
+                    ), baseline = "t.o.v. het mengsel van 2024"),
                     // The TT floor plate is the gewelf product; it is modelled standing, so it is
                     // seen edge on. WERKVLOER_2 was tried lying flat and read as a bracket.
                     Reduction("TT-590-2400-120", 0.15, "\u201315%", "CO\u2082 in gewelven"),
@@ -1616,7 +1806,7 @@ val show = slideshow {
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
-                ink = ColorRGBa.fromHex("3D5AE0"),
+                ink = wnBlue,
                 accent = wnRed
             ),
             title = "Verborgen verhaal",
@@ -1633,7 +1823,7 @@ val show = slideshow {
                 panel = "WAND_27",          // the doorway is the ear-clipping proof; the same wall breaks
                 boldPath = boldFont,
                 textPath = textFont,
-                ink = ColorRGBa.fromHex("3D5AE0"),
+                ink = wnBlue,
                 accent = wnRed
             ),
             title = "Recyclage",
@@ -1649,12 +1839,12 @@ val show = slideshow {
         )
         highlight(
             3, "Case Studie - Kivits Ridderkerk", "WDP - Kivits Ridderkerk - Koelopslag - Beton als ruggengraat.jpg",
-            "Kivits", "Ridderkerk  ·  koelopslag",
+            "Kivits", "Ridderkerk  ·  koelopslag voor WDP",
             notes = "Verhaallijn hoofdstuk 3 (beton): Kivits in Ridderkerk, de koelopslag. " +
                     "Wording to be confirmed by WN."
         )
-        takeaway(3, "We hebben gekeken naar beton en zijn onderdelen. Straks brengen we die " +
-                "onderdelen samen in het verhaal van The Circle.")
+        takeaway(3, "We hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer. " +
+                "Een vraag voor aan tafel: wat gebeurt er met uw gebouw na zijn eerste leven?")
     }
 
     // Two sentences, so six lines rather than the four the shorter quotes take.
@@ -1670,29 +1860,47 @@ val show = slideshow {
             title = "We bouwen vandaag",
             notes = "Opens the fourth chapter. Frame 4-01 of the client's deck."
         )
+        // The catalogue, one scene under three slides: the ring, the grid and the webtool's box, each cut
+        // the next frame of the one before (28 September). See CircleCatalogue.
+        //
         // The mark drawn as a loop of the catalogue's pieces, landing along it one after
-        // another and turning. The mark's own path is the one thing it waits on: until the
-        // svg arrives a plain ring open at the top stands in. See RingOfPieces.
+        // another and turning, in the webtool's drawing. See CircleRing.
         slide(
-            RingOfPieces(
-                objects = yardObjects,
-                path = File(Env["SLIDES_MARK"] ?: "data/logo/wn-mark.svg"),   // the mark's centreline, tools/trace_wn_mark.py
-                boldPath = boldFont
-            ),
+            CircleRing(circleCatalogue),
             title = "The Circle in elementen",
             notes = "The Circle is een concept dat laat zien hoe een gebouw m\u00E9\u00E9r kan zijn dan " +
                     "een optelsom van materialen. No clicks: the pieces land along the ring on the " +
                     "slide's own clock, along the WN mark (SLIDES_MARK), each landing white and settling grey."
         )
-        // Every silhouette of the front sheet once, packed at one height in the red, and dealt
-        // out again on the click. See HundredElements.
+        // The ring's pieces leaving the mark for a sheet, each snapping to its cell and square to
+        // it. The click that takes them to their real size, a person in the middle for scale, is
+        // out for now (29 September); `toScale = true` puts it back. See CircleGrid.
         slide(
-            HundredElements(sheet = hundredSheet, boldPath = boldFont, ink = wnRed),
+            // Its export runs on into the webtool's arrival, so the clip carries the pour into the button.
+            CircleGrid(circleCatalogue, toScale = false, runsInto = webtoolKit),
             title = "100 elementen",
             notes = "The Circle gaat uit van vaste betonelementen, een modulair stramien en een " +
-                    "digitale ontwerptool. Click 1 reshuffles the field. The list of eight " +
+                    "digitale ontwerptool. Opens on the ring's last frame and lays the pieces out as a " +
+                    "sheet. Its click to scale is out for now (toScale = false). The list of eight " +
                     "(vaste afmetingen, stramien 12 op 24 m, webtool, plannen, CO\u2082, demontabel, " +
                     "hergebruik, voorraad) is the speaker's."
+        )
+        // Shelved on 28 September for the two above, which took their places and their ids: the ring
+        // in grey solids on its own, and the iso sheet's silhouettes packed in red.
+        slide(
+            RingOfPieces(
+                objects = yardObjects,
+                path = File(Env["SLIDES_MARK"] ?: "data/logo/wn-mark.svg"),
+                boldPath = boldFont
+            ),
+            title = "The Circle in elementen, grijs",
+            notes = "The ring as it was before the catalogue became one scene: grey solids, its title centred."
+        )
+        slide(
+            HundredElements(sheet = hundredSheet, boldPath = boldFont, ink = wnRed),
+            title = "100 elementen, silhouetten",
+            notes = "The field of silhouettes as it was before the catalogue became one scene: the iso sheet " +
+                    "packed at one height in the red, reshuffled on the click."
         )
         // The travelling slabs that stood here — the six countries, the sites, the people and
         // the companies — are the later clicks of "De cijfers" in chapter 1 since 16 September.
@@ -1720,14 +1928,31 @@ val show = slideshow {
                         parts = listOf(NamePart("Transport", "Trans"), NamePart("Willy", "wi"),
                                        NamePart("Naessens", "na"), NamePart("beton", "ton")),
                         joiners = listOf(", ", " ", ", ")),
-                    europe
+                    europe,
+                    // The countries the group builds in, lit after the factories (meeting of 30 September):
+                    // the map pulls out until all of Sweden is in, and the six take the house blue.
+                    MapCountries(
+                        "Waar we bouwen",
+                        codes = listOf("BEL", "NLD", "FRA", "LUX", "DNK", "SWE"),
+                        colour = wnBlue,
+                        labels = listOf(
+                            CountryLabel("FRA", "Frankrijk"),
+                            CountryLabel("DNK", "Denemarken", "en de bredere Scandinavische regio"),
+                            CountryLabel("SWE", "Zweden"),
+                            // Benelux is a few cells across out here: a column over Germany, dark on the grey,
+                            // each with a hairline back to its country.
+                            CountryLabel("NLD", "Nederland", lonLat = Vector2(9.0, 53.2), align = 0.0, ink = ColorRGBa.fromHex("111111")),
+                            CountryLabel("BEL", "België", "de thuisbasis", lonLat = Vector2(9.0, 51.5), align = 0.0, ink = ColorRGBa.fromHex("111111")),
+                            CountryLabel("LUX", "Luxemburg", lonLat = Vector2(9.0, 49.1), align = 0.0, ink = ColorRGBa.fromHex("111111"))
+                        )
+                    )
                 ),
                 factories = factories,     // the factories alone for now: `offices` is not drawn
                 footer = false,            // no name bar for now: the name card is the only lettering
                 background = ColorRGBa.BLACK, // the sea black, the wall's own ground under the concrete (review of 22 September; it was the navy)
                 dot = wnRed,
                 picked = wnBlue,           // the selected factory's dot turns blue...
-                pickedPulse = wnSky,       // ...and pulses toward the lighter blue
+                pickedPulse = wnBlue,      // ...and holds it: the pulse was toward a lighter blue, and there is one blue
                 // For reference, the way Google Maps names a city. Placed on their market squares.
                 cities = listOf(
                     City("Brugge", 3.2242, 51.2089),
@@ -1767,12 +1992,25 @@ val show = slideshow {
                 boldPath = boldFont,
                 textPath = textFont,
                 line = wnRed,
-                dots = ColorRGBa.fromHex("3D5AE0")
+                dots = wnBlue
             ),
-            title = "Gebouw uit de webtool",
+            // Shelved on 28 September for the kit below, which took over its place and its id.
+            title = "Gebouw uit de webtool, lijnen",
             notes = "In plaats van lineair bouwen wordt een circulaire gedachte geschetst: bouwen met " +
                     "demontabele elementen, voor de volgende gebruiker. The building alone, then a label a click, " +
                     "left to right across the roof; the fourth label's click swaps to the second set."
+        )
+        // The webtool as an interface: a cursor clicks "Start a new circle", the kit course's pieces come out from
+        // behind it, and the cursor drags one a label, each label travelling with its piece; the last click combines
+        // them into one building. Its title keeps the slide's id, so the cue sheet, the subtitles and the voice
+        // lines stand on it as they did on the line drawing. See WebtoolKit.
+        slide(
+            webtoolKit,
+            title = "Gebouw uit de webtool",
+            notes = "An interface with a cursor: \"Start a new circle\" hovered and clicked, the button bursting into " +
+                    "the pieces, which stand apart until the next click; then a piece dragged and labelled a click, " +
+                    "the labels adding up; the last click gathers " +
+                    "them into one building as the camera turns a quarter round, one movement."
         )
         // The ordinary process against the process with reuse: two columns of steps, the copy
         // taking its steps across, the removed steps turning red, disassembly sliding in. See
@@ -1792,7 +2030,7 @@ val show = slideshow {
                 shares = "80%" to "20%",     // the client's split
                 boldPath = boldFont,
                 textPath = textFont,
-                blue = ColorRGBa.fromHex("3D5AE0"),
+                blue = wnBlue,
                 red = wnRed,
                 stepCues = List(3) { markCue }      // a mark a step
             ),
@@ -1857,7 +2095,7 @@ val show = slideshow {
                 notes = listOf(
                     listOf("Minder materiaal", "Hergebruik", "Lagere CO\u2082-voetafdruk"),
                     listOf("Toekomstbestendig", "Nieuwe functies, nieuwe noden, nieuwe generaties"),
-                    listOf("Systematiek", "Meetbaarheid", "Herhaalbaarheid")
+                    listOf("Verantwoord bestuur", "Verantwoord bouwen voor de toekomst", "Meetbaar en herhaalbaar")
                 ),
                 fontPath = boldFont,
                 ink = wnRed
@@ -1865,8 +2103,8 @@ val show = slideshow {
             title = "The Circle en ESG",
             notes = "Environment: minder materiaal, lagere CO\u2082-voetafdruk, hergebruik. " +
                     "Social: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe " +
-                    "functies, noden en generaties. Governance: systematiek, meetbaarheid en " +
-                    "herhaalbaarheid in ontwerp en uitvoering. Then all three, then the joint closes."
+                    "functies, noden en generaties. Governance: verantwoord bestuur, als " +
+                    "bestuur ESG meenemen in je keuzes en verantwoord bouwen voor de toekomst; meetbaar en herhaalbaar. Then all three, then the joint closes."
         )
         highlight(
             4, "Case Studie - Intervest The Circle", "k-Intervest Herstal + technieken  170.jpg",
@@ -1874,8 +2112,8 @@ val show = slideshow {
             notes = "Verhaallijn hoofdstuk 4 (The Circle): Intervest, ons eerst verkochte " +
                     "Circle-pand, de buitenkant. Wording to be confirmed by WN."
         )
-        takeaway(4, "Laten we dit nu naast concrete projecten leggen. Welke vragen roept dit op " +
-                "voor uw eigen praktijk?")
+        takeaway(4, "Eén keten, verantwoorde keuzes, kennis van beton en circulair bouwen: dat is de " +
+                "toegevoegde waarde van Willy Naessens. Een vraag voor aan tafel: met wie bouwt u verder?")
     }
 
     // The yard: the catalogue's pieces in the round, side by side at one height on a
@@ -1888,7 +2126,7 @@ val show = slideshow {
         // or four pieces stand in view rather than one adrift. Measured on the export of 15
         // September the wall was 97% black. The second course's bed.
         YardScene(objects = yardObjects, ink = wnRed, paper = ColorRGBa.BLACK,
-            shadow = ColorRGBa.fromHex("2E4A8A"), shadowDeep = wnBlue, gap = 0.012, sound = mainBed),
+            shadow = wnBlue, shadowDeep = wnBlue.shade(0.6), gap = 0.012, sound = mainBed),
         title = "Yard",
         notes = "The pieces laid end to end at one height, one colour with a long sharp " +
                 "shadow, passing slowly and each turning on its own axis."
@@ -1941,7 +2179,7 @@ val show = slideshow {
             // Inverted: white pieces on black, the shadow in the house red. Where two shadows
             // lap, a deeper red — black would drop the overlap into the ground.
             ink = ColorRGBa.WHITE, paper = ColorRGBa.BLACK,
-            shadow = wnRed, shadowDeep = ColorRGBa.fromHex("A00000")
+            shadow = wnRed, shadowDeep = wnRed.shade(0.63)
         ),
         title = "Gallery",
         notes = "All 115 pieces once each on a 23x5 grid on the white ground, every one " +
@@ -2174,6 +2412,28 @@ val show = slideshow {
         notes = "Draft backdrop. Stacks of subset pieces as a bar chart, on red to navy and back."
     )
 
+    // DRAFT. The catalogue to scale: the flat elevations added one at a time in the order of their
+    // longest side, 2 mm to 23.8 m, each measured as it arrives, and every one staying on the wall
+    // while the camera pulls back — so the wall fills up. On the shelf. See ScaleScene in backdrop-drawers/.
+    backdrop(
+        ScaleScene(
+            sheet = File(Env["SLIDES_SCALE_SHEET"] ?: "data/svg/objects-front.svg"),
+            details = File(Env["SLIDES_SCALE_DETAILS"] ?: "data/csv/objects-115-details.csv"),
+            accent = wnRed,
+            beat = Env["SLIDES_SCALE_BEAT"]?.toDoubleOrNull()?.coerceAtLeast(1.0) ?: 5.0,
+            hold = Env["SLIDES_SCALE_HOLD"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 8.0,
+            fontPath = textFont,
+            // Scale figures among the pieces: one with the first, then more as the pieces' area grows.
+            people = (Env["SLIDES_SCALE_PEOPLE"] ?: "data/ref/silhouette_people_lowpoly_obj.obj")
+                .takeIf { it != "none" }?.let { File(it) },
+            peopleShare = Env["SLIDES_SCALE_PEOPLE_SHARE"]?.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.08
+        ),
+        title = "To scale",
+        notes = "DRAFT. The front sheet to scale, small to large: each piece arrives in red and is measured, " +
+                "everything added stays, and the camera pulls back until the wall is full. A loop of about " +
+                "nine and a half minutes."
+    )
+
     // TRYOUT. A wall of identical recessed cells with the chapter title in it, under a sun going
     // round: the letters are cut shallow and everything else deep. The sun opens square on, where
     // nothing throws a shadow and letter and ground are the same to the pixel — a plain grid drawn
@@ -2309,10 +2569,10 @@ val show = slideshow {
             // what the shadows are drawn in, and a navy piece beside a navy shadow reads
             // as a hole rather than as a colour — measured, it was 10% of the wall and
             // the eye took it for one thing.
-            palette = listOf(wnRed, wnAmber, wnTeal, wnCoral, wnSky),
+            palette = listOf(wnRed, wnAmber, wnTeal),
             // On black: the navy shadow still reads against it, and where two lap a deeper navy.
             paper = ColorRGBa.BLACK, lettering = ColorRGBa.WHITE,
-            shadow = wnBlue, shadowDeep = ColorRGBa.fromHex("12244A"),
+            shadow = wnBlue, shadowDeep = wnBlue.shade(0.6),
             highlights = 3           // only the first three are taken full frame
         ),
         title = "De sectoren",
@@ -2380,7 +2640,11 @@ val show = slideshow {
             // Round and round on its own clock, like a backdrop, and the pictures kept in the
             // grid rather than dissolved (review of 22 September).
             dissolves = false,
-            cycle = 6.0
+            // A click a view since 30 September: Erik talks the cases through and the wall waits for him.
+            cycle = null,
+            // The project highlights' own sounds, since it is their effect (feedback of 28 September): the
+            // arrival as the first view builds and the click on every handover, on the wall's own clock.
+            arrival = highlightArrival, click = highlightClick
         ),
         title = "Case studies",
         notes = "De case studies over de hele wand: per project de foto's links en de blauwdrukken rechts, " +
@@ -2397,14 +2661,16 @@ val show = slideshow {
             // "Ontdek The Circle": The Circle is not a place that can be visited, so the earlier
             // "plan uw bezoek" was a false invitation. What the code reaches is still to be
             // confirmed, and the supporting line with it.
-            action = Env["SLIDES_ENDING_ACTION"] ?: "Ontdek The Circle.",
+            action = Env["SLIDES_ENDING_ACTION"] ?: "Zullen we samen verder bouwen aan de toekomst?",
             url = Env["SLIDES_ENDING_URL"] ?: "https://www.willynaessens.nl",
             boldPath = boldFont,
             textPath = textFont,
             accent = wnRed,
             // The exit has sound: the arrival's own room, back under the last thing on the
             // wall. The export of 15 September went silent at the ending.
-            sound = ambience
+            sound = ambience,
+            // "Take away the qr code from the screen" (30 September): the action and the address alone.
+            qr = false
         ),
         title = "Ending",
         notes = "The call to action, before the exit wall. Sentence, action and address are " +
@@ -2428,6 +2694,19 @@ val show = slideshow {
         title = "Closing scene",
         notes = "Uitloop. The opening scene, colours swapped. The last -> lands here."
     )
+
+    // The course transitions: one into each chapter, standing last in the moment before it. A click
+    // onto it ends the course — the sample plays, the playlist and the course wall fade out together, and
+    // once the wall is dark the chapter's blocks rise until the wall is the chapter opening's first
+    // frame. See CourseTransition.
+    listOf(chapter1, chapter2, chapter3, chapter4).forEachIndexed { i, start ->
+        courseTransition(start)?.let {
+            backdrop(it, title = "Course transition to chapter ${i + 1}",
+                notes = "Last in the moment before chapter ${i + 1}: the click that ends the course. The music and " +
+                        "the course wall fade out together, the transition sample plays, and once the wall is dark " +
+                        "the chapter's blocks build up to the opening's first frame, a countdown bottom left. Click on at 0:00.")
+        }
+    }
 
     // The course walls of the sandbox (src/main/kotlin/courses): every sketch on the organizer's
     // Sketches tab and every variant of it, as a wall. They are kept on the shelf of the order file,
@@ -2490,6 +2769,10 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         hold = Env["${prefix}_HOLD"]?.toDoubleOrNull() ?: settings.hold,
         holdWide = Env["${prefix}_HOLD_WIDE"]?.toDoubleOrNull() ?: settings.holdWide,
         holdBackdrop = Env["${prefix}_HOLD_BACKDROP"]?.toDoubleOrNull() ?: settings.holdBackdrop,
+        backdropBuild = Env["${prefix}_BACKDROP_BUILD"]?.toDoubleOrNull() ?: settings.backdropBuild,
+        holdRestart = Env["${prefix}_HOLD_RESTART"]?.toDoubleOrNull() ?: settings.holdRestart,
+        overviewDouble = Env["${prefix}_OVERVIEW_DOUBLE"]?.toDoubleOrNull() ?: settings.overviewDouble,
+        practice = Env["${prefix}_PRACTICE"]?.let { Env.boolean("${prefix}_PRACTICE") } ?: settings.practice,
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,
@@ -2500,6 +2783,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         bench = Env.boolean("${prefix}_BENCH"),
         benchSamples = Env["${prefix}_BENCH_SAMPLES"]?.toIntOrNull() ?: settings.benchSamples,
         waitForFinish = Env["${prefix}_WAIT_FOR_FINISH"]?.let { Env.boolean("${prefix}_WAIT_FOR_FINISH") } ?: settings.waitForFinish,
+        finishOnUnbind = Env["${prefix}_FINISH_ON_UNBIND"]?.let { Env.boolean("${prefix}_FINISH_ON_UNBIND") } ?: settings.finishOnUnbind,
         sound = Env["${prefix}_SOUND"]?.let { Env.boolean("${prefix}_SOUND") } ?: settings.sound,
         muted = Env["${prefix}_MUTED"]?.let { Env.boolean("${prefix}_MUTED") } ?: settings.muted,
         organizer = Env["${prefix}_ORGANIZER"]?.let { Env.boolean("${prefix}_ORGANIZER") } ?: settings.organizer,
@@ -2516,11 +2800,16 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         voice = Env["${prefix}_VOICE"]?.takeIf { it.isNotBlank() && it != "none" } ?: settings.voice,
         voiceGain = Env["${prefix}_VOICE_GAIN"]?.toDoubleOrNull() ?: settings.voiceGain,
         voiceOn = Env["${prefix}_VOICE_ON"]?.let { Env.boolean("${prefix}_VOICE_ON") } ?: settings.voiceOn,
+        autoplay = Env["${prefix}_AUTOPLAY"]?.let { Env.boolean("${prefix}_AUTOPLAY") } ?: settings.autoplay,
         levels = slideshow.Layer.entries.associateWith { layer ->
             Env["${prefix}_MIX_${layer.name}"]?.toDoubleOrNull() ?: settings.levels[layer] ?: 1.0
         },
         soundTrace = Env["${prefix}_SOUND_TRACE"]?.let { Env.boolean("${prefix}_SOUND_TRACE") } ?: settings.soundTrace,
         feedback = Env["${prefix}_FEEDBACK"]?.takeIf { it.isNotBlank() } ?: settings.feedback,
+        meeting = Env["${prefix}_MEETING"]?.takeIf { it.isNotBlank() } ?: settings.meeting,
+        draaiboek = Env["${prefix}_DRAAIBOEK"]?.takeIf { it.isNotBlank() } ?: settings.draaiboek,
+        draaiboekTab = Env["${prefix}_DRAAIBOEK_TAB"]?.takeIf { it.isNotBlank() } ?: settings.draaiboekTab,
+        subtitleFeedback = Env["${prefix}_SUBTITLE_FEEDBACK"]?.takeIf { it.isNotBlank() } ?: settings.subtitleFeedback,
         midi = Env["${prefix}_MIDI"]?.takeIf { it.isNotBlank() } ?: settings.midi,
         references = Env["${prefix}_REFERENCES"]?.takeIf { it.isNotBlank() } ?: settings.references,
         concrete = Env["${prefix}_CONCRETE"]?.takeIf { it.isNotBlank() } ?: settings.concrete,

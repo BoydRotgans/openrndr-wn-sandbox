@@ -115,13 +115,13 @@ class StackLayout(
 val beams = StackLayout("STACK", "TC-BALK", 30, 1.4, 0.034, 0.038, 0.17, true, "F6B3BC", "FBC7CE", "FFFFFF")
 val panels = StackLayout("ROW", "WAND_27", 48, 0.0, 0.0, 0.3, 0.2, false, "FFFFFF", "FFFFFF", "FFFFFF",
     seeThrough = false, travel = true, orbit = 0.0, lanes = 7, yaw = 60.0, line = 1.1, paper = "000000", vary = 0.0,
-    ink = "C4C5C9", soft = 1.4, gradient = "FF0000,3D5AE0", concrete = 0.75,
+    ink = "C4C5C9", soft = 1.4, gradient = "${slideshow.Brand.redHex},${slideshow.Brand.blueHex}", concrete = 0.75,
     move = 3.6, rest = 4.2, lag = 0.22, shadow = 0.0)
 
 /** The panels as storeys: the row built level upon level, for ever, the camera climbing with it. */
 val storeys = StackLayout("CLIMB", "WAND_27", 22, 0.0, 0.0, 0.3, 0.5, false, "FFFFFF", "FFFFFF", "FFFFFF",
     seeThrough = false, travel = false, orbit = 0.0, lanes = 7, yaw = 60.0, line = 1.1, paper = "000000",
-    ink = "FFFFFF", soft = 0.6, gradient = "FF0000,3D5AE0", concrete = 0.0, move = 2.2, climb = true, viewPitch = 18.0,
+    ink = "FFFFFF", soft = 0.6, gradient = "${slideshow.Brand.redHex},${slideshow.Brand.blueHex}", concrete = 0.0, move = 2.2, climb = true, viewPitch = 18.0,
     flow = 0.0, toBlack = false)
 
 /** The wall panels standing in a row, face to face, in line only. */

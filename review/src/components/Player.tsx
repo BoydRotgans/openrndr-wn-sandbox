@@ -58,13 +58,17 @@ interface Props {
   tracks?: { key: string; name: string; audio?: string }[]
   track?: string
   onTrack?(key: string): void
+  /** Silences the film whatever its own switch says: a sound is being heard on its own over it. */
+  forceMute?: boolean
+  /** No comment tool: a click on the picture only plays and pauses. */
+  noComments?: boolean
 }
 
 /**
  * The film. Time is reported every animation frame while playing rather than on `timeupdate`,
  * which fires four times a second — too coarse for a loop to turn on the state's own end.
  */
-const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange, onTime, onPlaying, paused, fps, commenting, onCommenting, pending, pendingBox, onPlace, onMove, dots, onDotDone, onDotEdit, onDotDelete, onDotReply, onReplyEdit, onReplyDelete, focus, tracks, track, onTrack }, ref) {
+const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange, onTime, onPlaying, paused, fps, commenting, onCommenting, pending, pendingBox, onPlace, onMove, dots, onDotDone, onDotEdit, onDotDelete, onDotReply, onReplyEdit, onReplyDelete, focus, tracks, track, onTrack, forceMute, noComments }, ref) {
   const video = useRef<HTMLVideoElement>(null)
   const dub = useRef<HTMLAudioElement>(null)
   /** The chosen track's own audio file, or null for the film's own sound. */
@@ -95,9 +99,9 @@ const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange,
   }, [focus])
   const dragging = useRef(false)
   useEffect(() => {
-    if (video.current) video.current.muted = muted || !!dubbed
+    if (video.current) video.current.muted = muted || !!dubbed || !!forceMute
     prefs.setMuted(muted)
-  }, [muted, src, dubbed])
+  }, [muted, src, dubbed, forceMute])
 
   // The other mix rides on the picture: it follows every play, pause, seek and rate, and any
   // drift past a fifth of a second is pulled back. The film is muted while it plays, so the two
@@ -131,8 +135,8 @@ const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange,
   }, [dubbed, src])
 
   useEffect(() => {
-    if (dub.current) dub.current.muted = muted
-  }, [muted, dubbed])
+    if (dub.current) dub.current.muted = muted || !!forceMute
+  }, [muted, dubbed, forceMute])
 
   useImperativeHandle(ref, () => ({
     seek(t, play = true) {
@@ -209,7 +213,7 @@ const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange,
         <svg className="glyph-play" width="26" height="26" viewBox="0 0 26 26" fill="currentColor"><path d="M8 4.5v17l14-8.5z" /></svg>
       </div>
       {dubbed && <audio ref={dub} src={dubbed} preload="auto" />}
-      <video ref={video} src={src} preload="auto" playsInline controls={false} muted={muted || !!dubbed} onClick={(e) => {
+      <video ref={video} src={src} preload="auto" playsInline controls={false} muted={muted || !!dubbed || !!forceMute} onClick={(e) => {
         const v = video.current
         if (!v) return
         if (commenting && onPlace) {
@@ -265,9 +269,9 @@ const Player = forwardRef<PlayerHandle, Props>(function Player({ src, loopRange,
         )}
       </div>
       <div className="player-bar">
-        <button className={`player-btn tool${commenting ? ' on' : ''}`} onClick={() => onCommenting(!commenting)} title={commenting ? 'Comment tool on: click the picture to add a note (C)' : 'Comment tool off: click the picture to play or pause (C)'}>
+        {!noComments && <button className={`player-btn tool${commenting ? ' on' : ''}`} onClick={() => onCommenting(!commenting)} title={commenting ? 'Comment tool on: click the picture to add a note (C)' : 'Comment tool off: click the picture to play or pause (C)'}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"><path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-4 3.5V12H4.5A1.5 1.5 0 0 1 3 10.5z" /></svg>
-        </button>
+        </button>}
         <button className="player-btn" onClick={toggleFullscreen} title={fullscreen ? 'Exit full screen' : 'Full screen'}>
           {fullscreen ? (
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3v4H3M11 3v4h4M7 15v-4H3M11 15v-4h4" /></svg>

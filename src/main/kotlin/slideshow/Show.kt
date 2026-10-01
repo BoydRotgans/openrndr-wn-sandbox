@@ -5,7 +5,13 @@ import org.openrndr.KEY_ARROW_DOWN
 import org.openrndr.KEY_ARROW_LEFT
 import org.openrndr.KEY_ARROW_RIGHT
 import org.openrndr.KEY_ARROW_UP
+import org.openrndr.KEY_ENTER
 import org.openrndr.KEY_ESCAPE
+import org.openrndr.KEY_F5
+import org.openrndr.KeyEvent
+import org.openrndr.KeyModifier
+import org.openrndr.KEY_PAGE_DOWN
+import org.openrndr.KEY_PAGE_UP
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.ColorFormat
@@ -29,6 +35,7 @@ import slideshow.drawers.PlaceholderSlide
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.Type
 import java.io.File
+import kotlin.math.max
 import kotlin.math.min
 
 /**
@@ -71,9 +78,13 @@ fun present(show: Show) {
     // would otherwise keep the JVM up after the red button.
     var cleanup: (() -> Unit)? = null
     // Read once, lazily, the first time a shape is filled — so it has to be set before the program is.
+    // Off unless asked for, watched or filmed alike: the show is native GL, not the ANGLE it works round.
     val settings = show.settings
-    if (!(settings.waitForFinish ?: !(settings.record || settings.bench)))
+    if (!(settings.waitForFinish ?: false))
         System.setProperty("org.openrndr.draw.wait_for_finish", "false")
+    // The other wait, on every render-target switch — see UnbindFinish. Before the first window,
+    // since it has to be in place before OPENRNDR loads the class.
+    if (!settings.finishOnUnbind) UnbindFinish.remove()
     application {
         present(show, { afterwards = it }, { cleanup = it })
     }
@@ -98,10 +109,16 @@ private fun org.openrndr.ApplicationBuilder.present(
     val organizing = settings.organizer && !settings.stills && !settings.record
     // The client's frames, for the placeholders a saved modules file conjures while the show runs.
     val references = if (organizing) References.read(File(settings.references ?: "export/references"), quiet = true) else References.NONE
+    // The two projectors the window spans and where the halves stand on them — see Projectors. Read
+    // once: their sizes are the window's. A film, a still or a bench is the canvas and nothing else.
+    val projectors = if (settings.record || settings.stills || settings.bench) null
+        else Projectors.read(Projectors.plain(settings.width, settings.height)).also { Projectors.started = it }
+    val spanned = projectors?.takeUnless { it.plain(settings.width / 2, settings.height) }
+    spanned?.let { println("projection: " + Projectors.describe(it)) }
 
     configure {
-        width = (settings.width * settings.windowScale).toInt()
-        height = (settings.height * settings.windowScale).toInt()
+        width = ((spanned?.width ?: settings.width) * settings.windowScale).toInt()
+        height = ((spanned?.height ?: settings.height) * settings.windowScale).toInt()
         title = settings.title
         hideWindowDecorations = settings.undecorated
         settings.windowX?.let { position = IntVector2(it, settings.windowY ?: 0) }
@@ -118,7 +135,14 @@ private fun org.openrndr.ApplicationBuilder.present(
 
         // Everything a slide needs is loaded before the first frame: a show must not
         // stall on a click. Panel cards are slides too, and load the same way.
-        (if (organizing) catalogue.slides else slides).forEach { it.load(this) }
+        //
+        // **The running order, and only the running order**, organizer or not. The organizer used to
+        // load the whole catalogue — the shelf of seventy-odd archived slides and sketch variants —
+        // in case an order applied while the window was up called for one: 44 course walls built
+        // for the 4 that play, a 4.4M-triangle building nobody saw, some 12 GB. The rest now loads
+        // the first time something asks for it — see ensureLoaded below.
+        val loaded: MutableSet<Slide> = java.util.Collections.newSetFromMap(java.util.IdentityHashMap())
+        slides.forEach { it.load(this); loaded += it }
         show.panels.forEach { it.load(this) }
 
         val startSlide = startIndex(slides, settings.start)
@@ -138,6 +162,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                 File(settings.midi ?: "show-midi.json"),
                 subtitlesFile = File(settings.subtitles ?: "show-subtitles.json"),
                 subtitlesExtendedFile = File(settings.subtitlesExtended ?: "show-subtitles-extended.json"),
+                meetingFile = File(settings.meeting ?: "show-meeting-tasks.json"),
+                draaiboekFile = settings.draaiboek?.let { File(it) },
+                draaiboekTab = settings.draaiboekTab,
+                subtitleFeedbackFile = File(settings.subtitleFeedback ?: "show-subtitle-feedback.json"),
                 voiceDir = settings.voice?.let { File(it) },
                 open = settings.organizerOpen
             ).takeIf { it.start() }?.also { onClose { it.stop() } }
@@ -157,8 +185,9 @@ private fun org.openrndr.ApplicationBuilder.present(
             VoiceTrack.read(settings.voice, track, settings.voiceGain)?.let { track to it }
         }.toMap().toMutableMap()
         // The renderer writes into the folder while the show is up, so it is read again every few
-        // seconds and what is new is decoded — a handful of short files, never the whole set. Not
-        // on a filmed run, which must be the same run however long it takes to make.
+        // seconds and what is new is decoded — a handful of short files, never the whole set. Only
+        // under the organizer, which is where lines are rendered and listened to: a show on its own
+        // reads the folder once. Not on a filmed run, which must be the same run however long it takes.
         var voicesReadAt = 0
 
         // The sound design delivered as a folder, re-keyed from the names in that folder to the
@@ -174,9 +203,32 @@ private fun org.openrndr.ApplicationBuilder.present(
         /** The id the sheet knows a slide by, which is the id the order file names it by. */
         fun idAt(index: Int) = ids.getOrElse(index) { "" }
 
-        /** What the deck should sound at [step] of the slide at [index] — the sheet's, or the slide's own. */
+        /**
+         * What the deck should sound at [step] of the slide at [index] — the sheet's, or the slide's
+         * own — at the level the audio timeline review gave that state, where it gave one.
+         */
         fun cueAt(index: Int, step: Int) =
             slides.getOrNull(index)?.let { soundAt(it, idAt(index), step, cueSheet) }
+                ?.let { settings.gains?.at(it, "${idAt(index)}-${letter(step)}") ?: it }
+
+        /** The playlist of the moment the slide at [index] stands in, where the moment has one and the slide takes it. */
+        fun momentBed(index: Int): Sound? = slides.getOrNull(index)?.takeIf { it.momentMusic }
+            ?.let { settings.momentMusic[show.outline[index]?.moment.orEmpty()] }
+
+        /** A bed: a loop on the music track — what a moment's playlist takes the place of on its walls. */
+        fun isBed(sound: Sound?) = sound != null && sound.loop && sound.layer == Layer.MUSIC
+
+        /**
+         * Everything the slide at [index] can be sounding while it stands: its cues, its lead-in, and its
+         * moment's playlist in place of any bed of its own. What is let go as it is left, and what is kept
+         * playing when the slide arriving sounds it too.
+         */
+        fun heardAt(index: Int): List<Sound> {
+            val slide = slides.getOrNull(index) ?: return emptyList()
+            val bed = momentBed(index)
+            return cuesOf(slide, idAt(index), cueSheet).filter { bed == null || !isBed(it) } + listOfNotNull(slide.leadIn, bed) +
+                    slide.clockCues
+        }
 
         if (settings.sound && !settings.stills) {
             // Every cue the deck can reach: a slide's own, the marks its clicks make, the
@@ -187,18 +239,48 @@ private fun org.openrndr.ApplicationBuilder.present(
             // The whole sheet is decoded rather than only the part the running order reaches,
             // for the reason it is bound against the catalogue: an order applied while the
             // window is up may call for any declared slide, and a cue read late is a cue that
-            // lands on the click after the one it was for.
-            // Paired with its own ids: the catalogue is in declaration order and the deck in
-            // running order, so indexing one by the other's names would ask the wrong slide.
-            val loading = if (organizing) catalogue.slides to catalogue.slideIds else slides to ids
+            // lands on the click after the one it was for. A slide's own cues are decoded with the
+            // slide, so a shelved one brings its cues in when it is loaded — see ensureLoaded.
+            val loading = slides to ids
             val declared = loading.first.flatMapIndexed { i: Int, slide: Slide ->
                 cuesOf(slide, loading.second.getOrElse(i) { "" }, cueSheet)
             }
             speakers.load(
-                declared + cueSheet?.all.orEmpty() +
+                declared + loading.first.mapNotNull { it.leadIn } + loading.first.flatMap { it.clockCues } + settings.momentMusic.values + cueSheet?.all.orEmpty() +
                         show.panels.mapNotNull { it.sound } + listOfNotNull(settings.slideBed) +
                         voices.values.flatMap { it.all }
             )
+            // Which moment plays which playlist, and where one has nothing to play under: the
+            // moments are named in the order file and the music in the show, so a rename in the
+            // one without the other is said here rather than heard as a silent course.
+            val moments = slides.indices.mapNotNull { show.outline[it]?.moment?.takeIf(String::isNotBlank) }.distinct()
+            if (settings.momentMusic.isNotEmpty()) println("music: " + moments.joinToString(", ") { m ->
+                "$m ${settings.momentMusic[m]?.file?.name ?: "(none)"}"
+            } + (settings.momentMusic.keys - moments.toSet()).takeIf { it.isNotEmpty() }
+                ?.let { "; no wall to play under: ${it.joinToString(", ")}" }.orEmpty())
+        }
+
+        /**
+         * Loads whichever of [wanted] is not loaded yet, and decodes its cues with it.
+         *
+         * The running order and the cards load before the first frame. Everything else in the
+         * catalogue — the shelf, a slide switched off, a sketch shown on the side — loads here, the
+         * first time something asks for it: an order that plays it, a preview or an export of it,
+         * the overview's side. That is a stall on the frame it happens, a second at most, and it
+         * falls on arranging the show rather than on a click of the talk: the order as it stands
+         * never waits on it.
+         */
+        fun ensureLoaded(wanted: List<Slide>) {
+            val fresh = wanted.filter { loaded.add(it) }
+            if (fresh.isEmpty()) return
+            val started = System.nanoTime()
+            fresh.forEach { it.load(this) }
+            if (settings.sound && !settings.stills) speakers.load(fresh.flatMap { slide ->
+                val id = catalogue.slideIds.getOrElse(catalogue.slides.indexOfFirst { it === slide }) { "" }
+                cuesOf(slide, id, cueSheet) + listOfNotNull(slide.leadIn) + slide.clockCues
+            })
+            println("show: loaded %s off the shelf in %.1fs".format(
+                fresh.joinToString(", ") { it.name }, (System.nanoTime() - started) / 1e9))
         }
 
         // --- two panes -------------------------------------------------------------- //
@@ -248,7 +330,9 @@ private fun org.openrndr.ApplicationBuilder.present(
             // redelivered against the slide rather than the card — so the card holds its tongue
             // and the slide speaks. A chapter whose sheet has not arrived still announces.
             if (cueAt(deck.index, 0) != null && cueSheet?.owns(idAt(deck.index)) == true) return
-            speakers.play(show.panels.getOrNull(panel)?.sound)
+            // it sounds on the arriving slide's opening state, and the review hears it there
+            val sting = show.panels.getOrNull(panel)?.sound
+            speakers.play(settings.gains?.at(sting, "${idAt(deck.index)}-${letter(0)}") ?: sting)
         }
 
         /** A slide's own cue, where it has one. Cards are announced separately, above. */
@@ -256,6 +340,11 @@ private fun org.openrndr.ApplicationBuilder.present(
 
         /** The click its cue was last fired on, so a build marks each one exactly once. */
         var soundedStep = -1
+
+        /** Which slide's own clock was last asked for its cues, from which start, and up to which frame. */
+        var clockSlide = -1
+        var clockStart = -1
+        var clockAsked = 0
 
         // A contact sheet is a record of the *slides*, and the card standing open is a move
         // rather than a state of one — left open it would cover the first slide of every
@@ -286,6 +375,13 @@ private fun org.openrndr.ApplicationBuilder.present(
         val hasWide = organizing || slides.any { it.wide }
         val wallLeaving = if (hasWide) buffer(settings.width, settings.height) else null
         val wallArriving = if (hasWide) buffer(settings.width, settings.height) else null
+
+        // How a backdrop takes the stage (see WallBuild): the arriving wall drawn here first, still
+        // moving, and then through the build into the frame. Only a show with a build and a backdrop
+        // pays for the buffer; stills are all taken on cuts and show the wall itself.
+        val wallBuild = settings.wallBuild?.takeIf { hasWide && settings.backdropBuild > 0.0 && !settings.stills }
+        val wallBuilding = if (wallBuild != null) buffer(settings.width, settings.height) else null
+        wallBuild?.load(this, settings.width, settings.height)
 
         // A preview is the wall as the show composes it, drawn once more at a fraction of the
         // size: the full canvas first, so a pane and its card compose exactly as they do on
@@ -350,6 +446,11 @@ private fun org.openrndr.ApplicationBuilder.present(
         val concreteStyle = concreteWall?.style(Vector2(canvasBounds.width, canvasBounds.height))
         var concreteOn = settings.concreteOn && concrete != null
 
+        // The organizer's colours on the wall while the slides are still in the ones this run was
+        // built in: one pass as the canvas goes to the window, off until a colour is moved. See
+        // BrandPreview, and Brand for why the slides themselves cannot change under a running show.
+        val brandPreview = BrandPreview(settings.width, settings.height)
+
         var debug = settings.debug
         val overlay = DebugOverlay(runCatching { loadFont("data/fonts/default.otf", 13.0) }.getOrNull())
 
@@ -357,6 +458,53 @@ private fun org.openrndr.ApplicationBuilder.present(
         // the window like the overlay. `g` and the organizer switch it. See GridOverlay.
         var gridOn = false
         val grid = GridOverlay(runCatching { loadFont("data/fonts/default.otf", 12.0) }.getOrNull())
+
+        // The presenter clicker's two extra buttons. Screen held fills a ring and then takes the show
+        // back to its start (HoldRestart); play pressed twice opens every slide as thumbnails on the right
+        // projector (SlideOverview) — twice rather than held, because the R400 sends play as a whole tap
+        // however long it is held, where screen sends a real press and release; a lone press does nothing. The key handlers only
+        // note each press and release, in order, and the draw loop times them in frames like everything
+        // else — a press and its release landing between two draws still reach it, as a hold of no length.
+        fun face(size: Double) = runCatching { loadFont(slideshow.drawers.Type.file, size, contentScale = 1.0) }.getOrNull()
+        val holdRing = HoldRestart(face(HoldRestart.LABEL_SIZE))
+        val overview = SlideOverview(File("build/previews"), face(SlideOverview.HEADER_SIZE), face(SlideOverview.SMALL_SIZE))
+        overview.refresh(ids)
+        val screenEdges = ArrayDeque<Boolean>()
+        val playEdges = ArrayDeque<Boolean>()
+        var screenSince = -1
+        var screenSpent = false
+        var ringProgress = 0.0
+        var ringShown = 0.0
+        var overviewOpen = false
+        var playTapAt = -1
+        /** Practice mode: whether the screen and play buttons do anything. See [Settings.practice]. */
+        var practice = settings.practice
+        // The overview's hidden section, at its foot: the sketches off the shelf that fill both
+        // projectors. One chosen there is shown on the side, in a deck of its own, and never enters the
+        // running order; forward or back puts the show back as it was. Read again each time the overview
+        // opens, so a sketch placed in the order since stands there instead.
+        var shelf: List<Pair<String, Slide>> = emptyList()
+        //
+        // Every wall off the shelf that can stand on its own across both projectors: the course sketches
+        // that fill the wall, and the shelved backdrops and scenes — the block cities, the assemble walls,
+        // the yard. Not a wall that only makes sense where the order puts it: a chapter opening, which
+        // carries its chapter's card, or a course transition, which goes on from the wall before it. Not a
+        // pink placeholder either. One not loaded yet loads as it is picked (ensureLoaded), which may take
+        // a second — it is the hidden section, not the talk.
+        fun shelfNow() = catalogue.slideIds.zip(catalogue.slides).filter { (id, s) ->
+            id !in ids && s.wide && !s.carriesCard && !s.carriesOn && s !is PlaceholderSlide &&
+                    (s !is SketchWall || Sketches.fillsTheWall(s.sketch))
+        }
+        var aside: Deck? = null
+        var asideId = ""
+        var overviewShown = 0.0
+        var overviewGo = false
+        var pick = 0
+        var uiFrame = 0
+        /** The play button sends F5 and Esc by turns, so Esc is the clicker's; shift-Esc still quits. */
+        fun isPlay(event: KeyEvent) = event.key == KEY_F5 || (event.key == KEY_ESCAPE && KeyModifier.SHIFT !in event.modifiers)
+        /** The screen button sends `b` or `.` by model; `.` stays the debug view's frame step while that is up. */
+        fun isScreen(event: KeyEvent) = event.name == "b" || ((event.name == "." || event.name == "period") && !debug)
 
         // Named into the canvas rather than onto the window, so a filmed run carries it. See
         // Nameplate — it is the one overlay here that is meant to be in the picture.
@@ -377,6 +525,8 @@ private fun org.openrndr.ApplicationBuilder.present(
         fun subtitles(): Subtitles = tracks[subtitleTrack] ?: Subtitles.EMPTY
         // Spoken or not, apart from whether the words are on the wall — see Settings.voiceOn.
         var voiceOn = settings.voiceOn
+        // Whether the presented run clicks on by itself, or says each state's line and waits — see Settings.autoplay.
+        var autoplay = settings.autoplay
         fun voice(): VoiceTrack? = voices[subtitleTrack]?.takeIf { voiceOn }
         /** Frames the voice for this state runs, or null where none is rendered or it is off. */
         fun voiceFrames(index: Int, step: Int): Int? = voice()?.frames(ids.getOrElse(index) { "" }, step)
@@ -488,15 +638,48 @@ private fun org.openrndr.ApplicationBuilder.present(
         // taken here would sit in the draw loop's future (the note under demo01 in
         // CLAUDE.md). Here there is no timestamp to take: the deck animates against the
         // frame it is ticked to.
+        // Whether the next draw has to paint the wall afresh whatever the frame — see "the repaint"
+        // in the draw loop. A key, a clicker edge or the organizer can move the deck, or change what a
+        // slide that listens to keys draws, between two draws.
+        var repaint = true
+
         keyboard.keyDown.listen { event ->
+            repaint = true
+            // Every key the show is handed goes to the output, so a clicker or keyboard that does
+            // something unexpected on site can be read back from the terminal.
+            println("key: ${event.name} (${event.key})" + if (event.modifiers.isEmpty()) "" else " with ${event.modifiers.joinToString("+")}")
+            // The clicker's held buttons, and the overview while it is open, before anything else. Out of
+            // practice mode they are taken and dropped, so a wrong press in front of the room does nothing.
+            if (isPlay(event)) { if (practice) playEdges.addLast(true); return@listen }
+            if (isScreen(event)) { if (practice) screenEdges.addLast(true); return@listen }
+            if (overviewOpen) {
+                val last = ids.size + shelf.size - 1
+                when (event.key) {
+                    KEY_ARROW_RIGHT, KEY_PAGE_DOWN -> pick = (pick + 1).coerceAtMost(last)
+                    KEY_ARROW_LEFT, KEY_PAGE_UP -> pick = (pick - 1).coerceAtLeast(0)
+                    KEY_ARROW_DOWN -> pick = overview.neighbour(pick, 1).coerceIn(0, last)
+                    KEY_ARROW_UP -> pick = overview.neighbour(pick, -1).coerceIn(0, last)
+                    KEY_ENTER -> overviewGo = true
+                }
+                return@listen
+            }
+            // Forward or back off a sketch shown on the side puts the show back where it was, unclicked.
+            if (aside != null && (event.key == KEY_ARROW_RIGHT || event.key == KEY_ARROW_LEFT ||
+                    event.key == KEY_PAGE_DOWN || event.key == KEY_PAGE_UP)) {
+                aside = null
+                println("show: back to the show from #$asideId")
+                return@listen
+            }
             // The slide on screen asks first, for controls of its own.
             if (event.key != KEY_ESCAPE && deck.slide.key(event.name)) return@listen
             when {
-                event.key == KEY_ARROW_RIGHT -> forward()
-                event.key == KEY_ARROW_LEFT -> backward()
+                // A presenter clicker is a keyboard to the machine: the Logitech R400's forward and
+                // back buttons send Page Down and Page Up, so those click exactly as the arrows do.
+                event.key == KEY_ARROW_RIGHT || event.key == KEY_PAGE_DOWN -> forward()
+                event.key == KEY_ARROW_LEFT || event.key == KEY_PAGE_UP -> backward()
                 event.key == KEY_ARROW_DOWN -> deck.nextSlide()
                 event.key == KEY_ARROW_UP -> deck.previousSlide()
-                event.key == KEY_ESCAPE -> { speakers.close(); application.exit() }
+                event.key == KEY_ESCAPE -> { println("show: shift-escape — closing"); speakers.close(); application.exit() }
 
                 event.name == "0" -> { deck.home(); openCard() }
                 event.name == "r" -> deck.replay()
@@ -510,6 +693,13 @@ private fun org.openrndr.ApplicationBuilder.present(
                 debug && event.name == "p" -> clock.paused = !clock.paused
                 debug && (event.name == "." || event.name == "period") -> clock.step(1)
                 debug && (event.name == "," || event.name == "comma") -> clock.step(-1)
+            }
+        }
+        keyboard.keyUp.listen { event ->
+            repaint = true
+            when {
+                event.key == KEY_F5 || event.key == KEY_ESCAPE -> { println("key up: ${event.name}"); playEdges.addLast(false) }
+                event.name == "b" || event.name == "." || event.name == "period" -> { println("key up: ${event.name}"); screenEdges.addLast(false) }
             }
         }
 
@@ -572,6 +762,12 @@ private fun org.openrndr.ApplicationBuilder.present(
         var ended = false
         var fps = 0.0
         var lastSeconds = 0.0
+        // The same for the draws that painted, which on a screen faster than the deck's clock is fewer.
+        var paintFps = 0.0
+        var lastPainted = 0.0
+        // What the wall was last painted at, and the slide's stage then — see "the repaint".
+        var paintedAt: List<Any?> = emptyList()
+        var paintedStage: Stage? = null
 
         // A bench: every state of the running order from the start to the until, timed. The clock
         // is held and stepped by hand, a sample at a time across each state's hold, so the draws
@@ -588,6 +784,9 @@ private fun org.openrndr.ApplicationBuilder.present(
             println("bench: ${benchPlan.size} states, ${settings.benchSamples} draws each across its hold")
         }
 
+        // Ahead of the draw below, so its frame can be laid onto the projectors after it — see ProjectorSplit.
+        projectors?.let { extend(ProjectorSplit(it, settings.width, settings.height)) }
+
         extend {
             val drawStarted = System.nanoTime()
             drawTimes.lap(ids.getOrElse(deck.index) { deck.slide.name })
@@ -599,8 +798,86 @@ private fun org.openrndr.ApplicationBuilder.present(
             // video time while recording and wall time otherwise. Everything downstream
             // sees frame numbers.
             val frame = clock.advance(seconds)
+
+            // The clicker's held buttons, timed here — see their declaration.
+            val dt = (frame - uiFrame).coerceIn(0, 10)
+            uiFrame = frame
+            // Practice mode switched off with either up: both go, and nothing half done is left to finish.
+            if (!practice) {
+                screenEdges.clear(); playEdges.clear()
+                screenSince = -1; playTapAt = -1
+                if (overviewOpen) { overviewOpen = false; println("show: overview closed") }
+                if (aside != null) { aside = null; println("show: back to the show from #$asideId") }
+            }
+            while (screenEdges.isNotEmpty()) {
+                if (screenEdges.removeFirst()) {
+                    // A press of screen closes the overview, and is spent doing it.
+                    if (overviewOpen) { overviewOpen = false; println("show: overview closed") }
+                    else { screenSince = frame; screenSpent = false }
+                } else screenSince = -1
+            }
+            // The ring shows only once the button has been held a moment, so a tap shows nothing.
+            val ringDelay = frames(0.2)
+            val ringLength = frames(settings.holdRestart).coerceAtLeast(ringDelay + 1)
+            val ringHeld = screenSince >= 0 && !screenSpent && frame - screenSince >= ringDelay
+            if (screenSince >= 0 && !screenSpent) {
+                val held = frame - screenSince
+                ringProgress = ((held - ringDelay).toDouble() / (ringLength - ringDelay)).coerceIn(0.0, 1.0)
+                if (held >= ringLength) {
+                    screenSpent = true
+                    println("show: screen button held — back to the start")
+                    aside = null
+                    deck.home()
+                    openCard()
+                }
+            }
+            ringShown = if (ringHeld) min(1.0, ringShown + dt / 6.0) else max(0.0, ringShown - dt / 10.0)
+
+            while (playEdges.isNotEmpty()) {
+                // Two presses of play close together open the overview; in it, one starts the show at the pick.
+                if (playEdges.removeFirst()) {
+                    when {
+                        overviewOpen -> { overviewGo = true; playTapAt = -1 }
+                        playTapAt >= 0 && frame - playTapAt <= frames(settings.overviewDouble) -> {
+                            overviewOpen = true
+                            playTapAt = -1
+                            shelf = shelfNow()
+                            pick = if (aside != null) ids.size + shelf.indexOfFirst { it.first == asideId }.coerceAtLeast(0) else deck.index
+                            overview.refresh(ids + shelf.map { it.first })
+                            println("show: overview open")
+                        }
+                        else -> playTapAt = frame
+                    }
+                }
+            }
+            if (overviewGo) {
+                overviewGo = false
+                if (overviewOpen) {
+                    overviewOpen = false
+                    if (pick >= ids.size) {
+                        // A sketch from the foot: shown on the side, from its own beginning.
+                        shelf.getOrNull(pick - ids.size)?.let { (id, slide) ->
+                            ensureLoaded(listOf(slide))
+                            aside = Deck(listOf(slide), 0, Outline.EMPTY).also { it.tick(frame); it.replay() }
+                            asideId = id
+                            println("show: #$id on the side — forward or back returns to the show")
+                        }
+                    } else if (pick == deck.index && aside == null) {
+                        // The pick left on the slide already up closes the overview and leaves it standing,
+                        // rather than cutting it back to its first state.
+                        println("show: overview closed")
+                    } else {
+                        aside = null
+                        println("show: overview — starting at #${ids.getOrElse(pick) { "?" }}")
+                        if (pick != deck.index) deck.goTo(pick.coerceIn(0, ids.size - 1), 0, cut = true)
+                    }
+                }
+            }
+            overviewShown = if (overviewOpen) min(1.0, overviewShown + dt / 5.0) else max(0.0, overviewShown - dt / 8.0)
+
             deck.tick(frame)
             panelDeck?.tick(frame)
+            aside?.tick(frame)
             // The state log: one mark per state the deck reaches, on the frame the click starts.
             // Frame-accurate by construction, because it is read off the deck the film is
             // drawn from rather than worked out again afterwards.
@@ -686,15 +963,25 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // the slide arriving stands on the same file, so a bed spanning two slides
                 // keeps playing rather than dipping between them. A sting declares no fade, so
                 // it is not sustained and is left to ring out.
+                // A moment's playlist runs on from one of its walls to the next the same way, and
+                // the slide arriving may ask for what it leaves to be let go more slowly than its
+                // own fade — the course transition quietens the dinner over seconds, not a beat.
                 if (leaving != null) {
-                    val arrivingFiles = cuesOf(deck.slide, idAt(deck.index), cueSheet)
-                        .mapTo(mutableSetOf()) { it.file }
-                    cuesOf(leaving, idAt(soundedFrom), cueSheet)
+                    val arrivingFiles = heardAt(deck.index).mapTo(mutableSetOf()) { it.file }
+                    val over = deck.slide.outgoingFade
+                    heardAt(soundedFrom)
                         .filter { it.sustained && it.file !in arrivingFiles }
-                        .forEach { speakers.release(it) }
+                        .forEach { speakers.release(if (over != null && over > it.fadeOut) it.copy(fadeOut = over) else it) }
                 }
 
-                speakers.play(cueAt(deck.index, 0))
+                // The slide's own cue, unless it is a bed and the moment has a playlist of its own
+                // to play instead; then the playlist, which asked for again does not restart.
+                val bed = momentBed(deck.index)
+                val own = cueAt(deck.index, 0)
+                speakers.play(if (bed != null && isBed(own)) null else own)
+                speakers.play(bed)
+                // The way in, beside the state's cue: coming forward, or opening on it.
+                if (first || deck.index > soundedFrom) speakers.play(deck.slide.leadIn)
                 // The bed under the talk: up on any slide of a chapter, let go while a wall
                 // or a scene is up. Asking for it again on the next slide does not restart it —
                 // a held loop only picks its fade up from where it stands — so it runs on
@@ -710,6 +997,18 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // the marks would say it is being built when it is being taken apart.
                 if (deck.step > soundedStep) speakers.play(cueAt(deck.index, deck.step))
                 soundedStep = deck.step
+            }
+
+            // A slide that turns over on its own clock marks each turn off its own frame count (see
+            // Slide.cuesBetween): whatever fell due since the frame last asked, so a draw that skips
+            // frames still sounds every turn once. Counted afresh when the slide comes up or replays.
+            if (deck.index != clockSlide || deck.startedAt != clockStart) {
+                clockSlide = deck.index; clockStart = deck.startedAt; clockAsked = 0
+            }
+            val clockFrame = frame - deck.startedAt
+            if (clockFrame > clockAsked) {
+                deck.slide.cuesBetween(clockAsked, clockFrame).forEach { speakers.play(it) }
+                clockAsked = clockFrame
             }
 
             fps = mix(fps, 1.0 / (seconds - lastSeconds).coerceAtLeast(1e-4), 0.1)
@@ -746,7 +1045,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                     speakers.close()
                     application.exit()
                 }
-            } else if ((subtitleMode || voiceOn) && subtitleTrack == SubtitleTrack.EXTENDED && !settings.stills) {
+            } else if (autoplay && (subtitleMode || voiceOn) && subtitleTrack == SubtitleTrack.EXTENDED && !settings.stills) {
                 // The presented run: on the extended track the deck runs itself, each state held
                 // for what a hands-off run would hold it — its line said, and a beat after — and
                 // then clicked on. The arrows still work: a click lands on a new state, whose
@@ -773,10 +1072,31 @@ private fun org.openrndr.ApplicationBuilder.present(
             val leaving = deck.leavingSlide
             val crossing = leaving != null && (arriving.wide || leaving.wide)
 
+            // --- the repaint ----------------------------------------------------------- //
+            //
+            // Every slide is a function of its frame and the deck's moves, so a frame already
+            // painted at this count would paint the same pixels again. The deck's clock runs at 60
+            // and the MacBook's screen at 120, so half the draws there were exactly that; they now
+            // show the canvas painted last, and only the window's own layers — the concrete, the
+            // overlays — are drawn again. The sound, the organizer and the voice still run every
+            // draw. Never on a filmed run, a bench or stills, which step their own clocks.
+            val paintKey = listOf<Any?>(
+                frame, deck.moves, panelDeck?.moves, aside?.let { System.identityHashCode(it) }, aside?.moves,
+                subtitleMode, subtitleTrack, voiceOn
+            )
+            val fresh = repaint || paintedStage == null || paintKey != paintedAt ||
+                    settings.record || settings.bench || settings.stills
+            repaint = false
+            paintedAt = paintKey
+            if (fresh) {
+                paintFps = mix(paintFps, 1.0 / (seconds - lastPainted).coerceAtLeast(1e-4), 0.1)
+                lastPainted = seconds
+            }
+
             // The card is rendered whenever it can be seen: beside a slide, or in a wall a
             // slide is leaving or arriving as. Under a backdrop standing alone it is not
             // asked for — a mosaic card repaints its plate every frame, for nobody.
-            val panelStage = if (panelDeck != null && (crossing || !arriving.wide))
+            val panelStage = if (fresh && panelDeck != null && (crossing || !arriving.wide))
                 renderPane(panelCanvas!!, panelLeaving!!, panelArriving!!, panelDeck, panelBounds) else null
 
             /**
@@ -808,9 +1128,35 @@ private fun org.openrndr.ApplicationBuilder.present(
             // How far the card has crossed this frame: its opening click, or home.
             val cardOpened = if (panelDeck != null && panelDeck.slide.steps > 1 && panelStage != null) panelStage.on(1) else 1.0
 
+            /**
+             * A wide shot into [target] — through the show's [WallBuild] while a backdrop the deck came
+             * to going forward is still coming up, and otherwise the wall itself. [arriving] is false for
+             * the wall a handover is leaving, which is never built again.
+             */
+            fun paintWide(target: RenderTarget, shot: Deck.Shot, arriving: Boolean) {
+                val build = wallBuild
+                val buf = wallBuilding
+                val length = frames(settings.backdropBuild)
+                if (build == null || buf == null || !arriving || !shot.slide.buildsIn || deck.arrivedBack ||
+                    shot.stage.frame >= length) {
+                    paint(target, shot)
+                    return
+                }
+                paint(buf, shot)
+                drawer.isolatedWithTarget(target) {
+                    drawer.ortho(target)
+                    drawer.clear(build.ground)
+                    drawer.fill = ColorRGBa.WHITE
+                    drawer.stroke = null
+                    drawer.shadeStyle = null
+                    build.draw(drawer, buf.colorBuffer(0), target.width.toDouble(), target.height.toDouble(),
+                        shot.stage.frame.toDouble() / length)
+                }
+            }
+
             /** The whole wall for one shot: a backdrop edge to edge, or a slide beside its card. */
-            fun wall(target: RenderTarget, shot: Deck.Shot) {
-                if (shot.slide.wide) paint(target, shot)
+            fun wall(target: RenderTarget, shot: Deck.Shot, arriving: Boolean) {
+                if (shot.slide.wide) paintWide(target, shot, arriving)
                 else {
                     paint(slideCanvas, shot)
                     composePanes(target, cardOpened)
@@ -841,6 +1187,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                     ?: catalogue.slideIds.indexOf(id).takeIf { it >= 0 }?.let { catalogue to it }
                     ?: return
                 val slide = of.slides[index]
+                ensureLoaded(listOf(slide))
                 val shot = Remote.previewShots(slide)[k]
                 val stage = stageAt(slide, boundsOf(slide), shot.step, shot.frame)
                 if (slide.wide) paint(target, Deck.Shot(slide, stage))
@@ -883,18 +1230,20 @@ private fun org.openrndr.ApplicationBuilder.present(
                 val id = j.queue.getOrNull(j.at) ?: return false
                 val index = catalogue.slideIds.indexOf(id).takeIf { it >= 0 } ?: return false
                 val slide = catalogue.slides[index]
+                // A slide that runs on into the next is filmed and scored across the click into it.
+                val slides = listOfNotNull(slide, slide.runsInto)
+                ensureLoaded(slides)
                 val w = if (slide.wide) settings.width else slideWidth
-                slide.layOut(w, settings.height)
-                val clicks = midiClicks(slide, settings.hold)
-                val tracks = midiTracksOf(slide, clicks = clicks)
+                slides.forEach { it.layOut(w, settings.height) }
+                val run = exportRun(slide, settings.hold)
+                val tracks = run.tracks
                 val mid = remote!!.midiFileOf(id)
                 writeMidi(mid, tracks)
-                val last = tracks.flatMap { it.notes }.maxOfOrNull { frames(it.at + it.length) } ?: 0
-                j.clicks = clicks
+                j.clicks = run.clicks
                 j.nextClick = 0
                 j.frame = 0
-                j.frames = clipFrames(slide, settings.hold, clicks, last)
-                j.deck = Deck(listOf(slide), 0, Outline.EMPTY)
+                j.frames = run.frames
+                j.deck = Deck(run.slides, 0, Outline.EMPTY)
                 j.pixels = java.nio.ByteBuffer.allocateDirect(w * settings.height * 4)
                     .order(java.nio.ByteOrder.nativeOrder())
                 // A target of its own rather than the show's pane buffers. A preview may scribble
@@ -945,12 +1294,20 @@ private fun org.openrndr.ApplicationBuilder.present(
                 j.at++
             }
 
-            val slideStage: Stage = when {
+            val sideDeck = aside
+            val slideStage: Stage = if (!fresh) paintedStage!! else when {
+                // A sketch shown on the side takes the whole wall; the show goes on under it, unseen.
+                sideDeck != null -> {
+                    val shot = sideDeck.shot(canvasBounds)
+                    paint(canvas, shot)
+                    shot.stage
+                }
+
                 crossing -> {
                     val from = deck.leavingShot(boundsOf(leaving!!))!!
                     val to = deck.shot(boundsOf(arriving))
-                    wall(wallLeaving!!, from)
-                    wall(wallArriving!!, to)
+                    wall(wallLeaving!!, from, arriving = false)
+                    wall(wallArriving!!, to, arriving = true)
                     drawer.isolatedWithTarget(canvas) {
                         drawer.ortho(canvas)
                         // the ground a push slides over; a fade never shows it
@@ -962,7 +1319,7 @@ private fun org.openrndr.ApplicationBuilder.present(
 
                 arriving.wide -> {
                     val to = deck.shot(canvasBounds)
-                    paint(canvas, to)
+                    paintWide(canvas, to, arriving = true)
                     to.stage
                 }
 
@@ -972,11 +1329,12 @@ private fun org.openrndr.ApplicationBuilder.present(
                     stage
                 }
             }
+            paintedStage = slideStage
 
             // The plate goes on last and into the canvas, over whatever the frame turned out to
             // be — a slide, a wall, or two of them handing over. Named off the deck rather than
             // off the shot, so a frame mid-handover carries the slide it is arriving at.
-            nameplate?.let { plate ->
+            if (fresh) nameplate?.let { plate ->
                 drawer.isolatedWithTarget(canvas) {
                     drawer.ortho(canvas)
                     plate.draw(drawer, canvasBounds, ids.getOrElse(deck.index) { deck.slide.name }, deck.step)
@@ -1000,7 +1358,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 speakers.release(voicePlaying)
                 voicePlaying = null
             }
-            if (settings.voice != null && settings.sound && !settings.record && !settings.stills &&
+            if (organizing && settings.voice != null && settings.sound && !settings.record && !settings.stills &&
                 frame - voicesReadAt >= frames(VOICE_RESCAN)
             ) {
                 voicesReadAt = frame
@@ -1030,7 +1388,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                             if (speakers.isPlaying(v)) "playing" else "NOT PLAYING")
                 }
             }
-            if (subtitleMode) {
+            if (subtitleMode && fresh) {
                 val said = subtitles()[ids.getOrElse(deck.index) { "" }, deck.step]
                 val fit = voiceFrames(deck.index, deck.step)?.let { pace.spoken(it) }
                 val heard = voice()?.speech(ids.getOrElse(deck.index) { "" }, deck.step)
@@ -1051,17 +1409,39 @@ private fun org.openrndr.ApplicationBuilder.present(
                 Rectangle(0.0, 0.0, width.toDouble(), height.toDouble()).center,
                 canvasBounds.width * fit, canvasBounds.height * fit
             )
-            canvas.colorBuffer(0).generateMipmaps()
+            if (fresh) canvas.colorBuffer(0).generateMipmaps()
+            val picture = brandPreview.apply(drawer, canvas.colorBuffer(0))
             drawer.clear(ColorRGBa.BLACK)
             drawer.isolated {
                 if (concreteOn) drawer.shadeStyle = concreteStyle
-                drawer.image(canvas.colorBuffer(0), shown.corner.x, shown.corner.y, shown.width, shown.height)
+                drawer.image(picture, shown.corner.x, shown.corner.y, shown.width, shown.height)
             }
 
             if (gridOn && !settings.stills) grid.draw(drawer, shown, canvasBounds, settings.panelWidth)
 
+            // The clicker's overview and hold ring, on the window like the grid: never in a film or a still.
+            if (overviewShown > 0.0) {
+                // The face has no subscript two, and a missing glyph drops out — "CO -prestatieladder".
+                val titles = ids.indices.map { i -> (show.outline[i]?.title ?: show.slides.getOrNull(i)?.name.orEmpty()).replace('₂', '2') }
+                // A chapter by its number and title; a moment of the evening by its name, and marked as walls.
+                val groups = ids.indices.map { i ->
+                    show.outline[i]?.let { p -> p.moment.ifBlank { if (p.chapterTitle.isBlank()) "" else "${p.chapter}  ${p.chapterTitle}" } }.orEmpty()
+                }
+                val walls = ids.indices.map { i -> show.outline[i]?.let { p -> p.moment.isNotBlank() || p.chapterTitle.isBlank() } ?: true }
+                // The sketches at the foot, as a block of their own after the evening.
+                val shelfIds = shelf.map { it.first }
+                val shelfTitles = shelf.map { (id, slide) ->
+                    (catalogue.outline[catalogue.slideIds.indexOf(id)]?.title ?: slide.name).removePrefix("Sketch: ")
+                }
+                val current = if (aside != null) ids.size + shelfIds.indexOf(asideId) else deck.index
+                overview.draw(drawer, shown, canvasBounds, settings.panelWidth, ids + shelfIds, titles + shelfTitles,
+                    groups + List(shelf.size) { SlideOverview.SHELF }, walls + List(shelf.size) { false },
+                    pick, current, overviewShown, hiddenFrom = ids.size)
+            }
+            holdRing.draw(drawer, shown, canvasBounds, settings.panelWidth, ringProgress, ringShown)
+
             if (debug && !settings.stills) {
-                overlay.draw(drawer, deck, slideStage, width, height, fps, clock.paused)
+                overlay.draw(drawer, deck, slideStage, width, height, fps, clock.paused, paintFps)
             }
 
             // The organizer's commands, drained here and nowhere else: the deck is moved from
@@ -1078,6 +1458,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 fun play(order: Order) {
                     val next = runCatching { catalogue.arranged(order) }
                         .getOrElse { println("organizer: could not play that order (${it.message})"); null } ?: return
+                    // a slide dragged in off the shelf is loaded before it can come up
+                    ensureLoaded(next.slides)
                     val nextIds = next.slideIds
                     val at = ((deck.index until ids.size) + (deck.index - 1 downTo 0))
                         .firstNotNullOfOrNull { i -> nextIds.indexOf(ids[i]).takeIf { it >= 0 } } ?: 0
@@ -1100,7 +1482,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                 }
 
                 while (true) {
-                    when (val command = remote.commands.poll() ?: break) {
+                    val command = remote.commands.poll() ?: break
+                    // anything the page asks for may move the deck or change what is drawn
+                    repaint = true
+                    when (command) {
                         is Remote.Go -> ids.indexOf(command.id).takeIf { it >= 0 }?.let {
                             // Asked for the state already on the wall: the deck has nowhere to go,
                             // so say its line again from the start — choosing a state on the page
@@ -1124,6 +1509,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                             speakers.muted = command.on ?: !speakers.muted
                             println("organizer: sound ${if (speakers.muted) "muted" else "on"}")
                         }
+                        is Remote.Practice -> {
+                            practice = command.on ?: !practice
+                            println("organizer: practice mode ${if (practice) "on" else "off"}")
+                        }
                         is Remote.Subtitle -> {
                             subtitleMode = command.on ?: !subtitleMode
                             println("organizer: subtitles ${if (subtitleMode) "on" else "off"}")
@@ -1142,6 +1531,11 @@ private fun org.openrndr.ApplicationBuilder.present(
                             // switched on mid-state, the line is said from its start
                             if (voiceOn) subtitleState = -1 to -1
                             println("organizer: voice ${if (voiceOn) "on" else "off"}")
+                        }
+                        is Remote.Autoplay -> {
+                            // switched back on, a state whose line has been said moves on at once
+                            autoplay = command.on ?: !autoplay
+                            println("organizer: autoplay ${if (autoplay) "on" else "off"}")
                         }
                         is Remote.Track -> {
                             subtitleTrack = command.track
@@ -1173,17 +1567,18 @@ private fun org.openrndr.ApplicationBuilder.present(
                             // timing rather than a record of the run.
                             val wanted = command.ids.toSet()
                             catalogue.slideIds.forEachIndexed { i, id ->
-                                val slide = catalogue.slides[i]
                                 if (id !in wanted) return@forEachIndexed
+                                val slide = catalogue.slides[i]
+                                val slides = listOfNotNull(slide, slide.runsInto).also { ensureLoaded(it) }
                                 val file = remote.midiFileOf(id)
                                 // The pane the slide composes for, since a slide that deals its
                                 // elements against the frame has no schedule until it has one.
-                                slide.layOut(if (slide.wide) settings.width else slideWidth, settings.height)
+                                slides.forEach { it.layOut(if (slide.wide) settings.width else slideWidth, settings.height) }
                                 // At the pace a filmed run really gives it, so the file and a
                                 // clip of the same slide agree at every click and not just the
-                                // first. A wall that builds on its own clock ignores it.
-                                val clicks = midiClicks(slide, settings.hold)
-                                val tracks = midiTracksOf(slide, clicks = clicks)
+                                // first. A wall that builds on its own clock ignores it. The export
+                                // with its clip goes the same way, so the two cannot disagree.
+                                val tracks = exportRun(slide, settings.hold).tracks
                                 writeMidi(file, tracks)
                                 val notes = tracks.sumOf { it.notes.size }
                                 val last = tracks.flatMap { it.notes }.maxOfOrNull { it.at + it.length } ?: 0.0
@@ -1201,7 +1596,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                             // the order is played again over the new catalogue.
                             val next = catalogue.withModules(command.modules, references)
                             val fresh = next.slides.filterIsInstance<PlaceholderSlide>().filter { !it.loaded }
-                            fresh.forEach { it.load(this) }
+                            ensureLoaded(fresh)
                             catalogue = next
                             remote.catalogued(next)
                             next.slideIds.forEachIndexed { i, id ->
@@ -1215,6 +1610,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 previewJobs.removeFirstOrNull()?.let { (id, k) ->
                     renderPreview(id, k)
                     remote.previewStamp = System.currentTimeMillis()
+                    // a preview draws its slide at another frame; the next draw paints the wall again
+                    repaint = true
                 }
 
                 // The export, a chunk of frames a tick. Previews are held off while it runs:
@@ -1240,9 +1637,9 @@ private fun org.openrndr.ApplicationBuilder.present(
                 remote.snapshot = Remote.Snapshot(
                     deck.index, ids[deck.index], deck.step, deck.slide.steps, frame, previewJobs.size, remote.previewStamp,
                     concreteOn, concrete != null, gridOn,
-                    muted = speakers.muted, hasSound = speakers.ready,
+                    muted = speakers.muted, hasSound = speakers.ready, practice = practice,
                     subtitles = subtitleMode, subtitleTrack = subtitleTrack, voice = voiceOn,
-                    mix = Layer.entries.associateWith { speakers.mixOf(it) }
+                    mix = Layer.entries.associateWith { speakers.mixOf(it) }, autoplay = autoplay
                 )
             }
 
@@ -1336,8 +1733,11 @@ private const val VOICE_RESCAN = 4.0
  */
 internal fun standFrames(slide: Slide, step: Int, said: String, settings: Settings, pace: Pace, voiced: Int? = null,
                          heard: Speech? = null): Int {
-    val settle = if (step == 0) slide.settle else slide.stepLength(step)
-    val read = if (slide.wide && !slide.carriesCard && slide.steps == 1) settings.holdWide else settings.hold
+    // A backdrop coming up through the show's build has not settled until the build is done.
+    val building = step == 0 && slide.wide && slide.buildsIn && settings.wallBuild != null && settings.backdropBuild > 0.0
+    val settle = if (step == 0) (if (building) maxOf(slide.settle, frames(settings.backdropBuild)) else slide.settle)
+        else slide.stepLength(step)
+    val read = slide.holdAfterSettle ?: if (slide.wide && !slide.carriesCard && slide.steps == 1) settings.holdWide else settings.hold
     val spoken = when {
         // The voice and the cards, whichever runs longer. With the voice's own word times the
         // cards end with the speech and this is the voice; without them the cards are fitted to

@@ -133,7 +133,7 @@ fun Program.gridCourse(pieces: PieceChoice = PieceChoice.fromEnv()): (Drawer, Do
     }
 
     val paper = ColorRGBa.fromHex(key("PAPER") ?: "000000")
-    val tints = (key("TINTS") ?: "3D5AE0,FF0000").split(",").map { ColorRGBa.fromHex(it.trim()) }
+    val tints = (key("TINTS") ?: "${slideshow.Brand.blueHex},${slideshow.Brand.redHex}").split(",").map { ColorRGBa.fromHex(it.trim()) }
     val style = shadeStyle {
         vertexPreamble = "out vec3 vBary; out vec3 vEdges;"
         vertexTransform = "vBary = va_bary; vEdges = va_edges;"

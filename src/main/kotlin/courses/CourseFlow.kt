@@ -20,6 +20,8 @@ import kotlin.random.Random
 // name | main class (empty for this file's) | .env values | what it is.
 // sketch-default: v1, black and white
 // sketch-variant: v2, on the mosaic grid | CourseFlow2Kt | | the same loop on the shadow mosaic's grid, closer in: every leaf its own piece, none overlapping
+// sketch-variant: v2, out of a concrete block | CourseFlow2Kt | FLOW2_BLOCK=0.18 FLOW2_JOIN=0.42,0.52,0.68,0.86 FLOW2_INVERT=60 FLOW2_BUILD=0 | v2 with a block of concrete on the left that the pieces are cut out of, and the open and the built swapping places every half minute; it opens standing, since the show brings every wall up itself
+// sketch-variant: v2, out of a concrete block, slots trading | CourseFlow2Kt | FLOW2_VARY=60 FLOW2_BUILD=0 | the block variant cut into four slots, each a block, loose pieces or an assembled wall, and every minute two of them slowly trading what they do, so the block turns up anywhere and is cut up into a wall where it stands
 // sketch-variant: v2, built from the right | CourseFlow2Kt | FLOW2_BUILD_FROM=right | v2 as it first opened: the build crossing the wall from right to left rather than rising from the floor
 // sketch-variant: in colour, slanted | | FLOW_TINT=0.2 FLOW_SIDE=4E5056 FLOW_INK=9A9CA2 FLOW_LINE=1 FLOW_SHEAR=0.35 | the first version: the v3 grid's colours and the panels slanted into chevrons
 /**
@@ -91,7 +93,7 @@ fun Program.flowCourse(): (Drawer, Double) -> Unit {
         return hex("%02X%02X%02X".format(ch(x.r, y.r), ch(x.g, y.g), ch(x.b, y.b)))
     }
     val face = key("FACE") ?: "FFFFFF"
-    val tints = (key("TINTS") ?: "3D5AE0,FF0000").split(",").map { it.trim() }
+    val tints = (key("TINTS") ?: "${slideshow.Brand.blueHex},${slideshow.Brand.redHex}").split(",").map { it.trim() }
     val tint = number("TINT", 0.0)
     val white = hex(face)
     val blue = mixHex(face, tints[0], tint)
@@ -237,11 +239,21 @@ fun Program.flowCourse(): (Drawer, Double) -> Unit {
  * and a piece slows as it joins and speeds up as it comes apart. [join] places the four edges of the
  * joined stretch as shares of the wall: loose until the first, joined from the second to the third,
  * loose again from the fourth. Both flow sketches stand on it.
+ *
+ * [profile] is the general form — how joined the wall is at a share `u` of it — for a wall whose
+ * joined stretch is not those four edges, or changes: flow v2's block and its swap build a strip a
+ * frame from it.
  */
-class FlowStrip(private val width: Double, private val spread: Double, private val join: List<Double>, margin: Double) {
-    private fun smooth(e0: Double, e1: Double, x: Double) = ((x - e0) / (e1 - e0)).coerceIn(0.0, 1.0).let { it * it * (3.0 - 2.0 * it) }
+class FlowStrip(private val width: Double, private val spread: Double, private val profile: (Double) -> Double, margin: Double) {
+    constructor(width: Double, spread: Double, join: List<Double>, margin: Double) :
+        this(width, spread, { u -> smooth(join[0], join[1], u) * (1.0 - smooth(join[2], join[3], u)) }, margin)
+
+    companion object {
+        fun smooth(e0: Double, e1: Double, x: Double) = ((x - e0) / (e1 - e0)).coerceIn(0.0, 1.0).let { it * it * (3.0 - 2.0 * it) }
+    }
+
     /** How joined a piece standing at screen [x] is: 0 loose, 1 one wall. */
-    fun joined(x: Double): Double { val u = x / width; return smooth(join[0], join[1], u) * (1.0 - smooth(join[2], join[3], u)) }
+    fun joined(x: Double): Double = profile(x / width)
     private fun stretch(x: Double) = 1.0 + (spread - 1.0) * (1.0 - joined(x))
 
     private val step = 2.0

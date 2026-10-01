@@ -1,0 +1,20 @@
+{
+ "cuts": [
+  {
+   "slug": "2026-09-29",
+   "name": "Rehearsal 29 September",
+   "created": "2026-09-29",
+   "folder": "practice/2026-09-29",
+   "audio": "film",
+   "about": "The show of 29 September filmed without subtitles (video/wn-experience_2026-09-29-clean.mp4), the voice mixed out; its states are frame for frame those of Release 29 September."
+  },
+  {
+   "slug": "2026-09-30",
+   "name": "Rehearsal 30 September",
+   "created": "2026-09-30",
+   "folder": "practice/2026-09-30",
+   "audio": "film",
+   "about": "The show of 30 September filmed without subtitles (video/wn-experience_2026-09-30-clean.mp4), the voice mixed out; its states are frame for frame those of Release 30 September."
+  }
+ ]
+}

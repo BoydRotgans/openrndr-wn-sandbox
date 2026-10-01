@@ -116,11 +116,15 @@ class Co2Column(
         val values = keys.map { k -> ((fa[k]?.value ?: 0.0) + ((fb[k]?.value ?: 0.0) - (fa[k]?.value ?: 0.0)) * t) * built }
         val rects = stackedFrom(box, values, total)
 
+        // A joint of the ground at the top of every band, so bands of the one blue still read apart:
+        // the four under the cement were four blues until 28 September, when the show went to one.
         keys.forEachIndexed { i, k ->
             val band = fb[k] ?: fa[k] ?: return@forEachIndexed
             val colour = fa[k]?.colour?.let { c -> fb[k]?.colour?.let { d -> c.mix(d, t) } ?: c } ?: band.colour
+            val r = rects[i]
+            val joint = if (r.height > 2.0 * JOINT) JOINT else 0.0
             drawer.fill = colour
-            drawer.rectangle(rects[i])
+            drawer.rectangle(Rectangle(r.x, r.y + joint, r.width, r.height - joint))
         }
 
         // The labels: each at its band's middle, then pushed apart from the top down.
@@ -196,6 +200,8 @@ class Co2Column(
         const val LEAD = 0.034
         const val LABEL_GAP = 0.03
         const val LEADER_GAP = 0.008
+        /** Pixels of ground between two bands. */
+        const val JOINT = 3.0
         const val TEXT = 0.0287
         const val TEXT_LEAD = 0.035
         /** Where the paragraph's first baseline sits, below the lowest label the bands can push to. */

@@ -36,6 +36,14 @@ class Deck(
     var frame: Int = 0
         private set
 
+    /**
+     * Counts every move of the deck — a click, a jump, a replay, a restart, a new order. With
+     * [frame] it is the whole of what a picture of the deck depends on, so a driver that has
+     * painted this frame at this count has nothing new to paint. See the repaint in `present`.
+     */
+    var moves: Int = 0
+        private set
+
     private var current: Playhead = Playhead(start.coerceIn(slides.indices), 0)
     private var leaving: Playhead? = null
 
@@ -82,6 +90,7 @@ class Deck(
 
     /** The next click, running on into the next slide once this one is out of clicks. */
     fun next() {
+        moves++
         if (current.step < current.slide.steps - 1) current.goTo(current.step + 1, instant = false)
         else if (current.index < slides.size - 1) show(current.index + 1, 0, reverse = false, cut = false)
     }
@@ -92,6 +101,7 @@ class Deck(
      * than resetting what you already showed.
      */
     fun back() {
+        moves++
         if (current.step > 0) current.goTo(current.step - 1, instant = false)
         else if (current.index > 0) {
             val previous = current.index - 1
@@ -101,15 +111,18 @@ class Deck(
 
     /** Whole slides, skipping whatever clicks are left. */
     fun nextSlide() {
+        moves++
         if (current.index < slides.size - 1) show(current.index + 1, 0, reverse = false, cut = false)
     }
 
     fun previousSlide() {
+        moves++
         if (current.index > 0) show(current.index - 1, 0, reverse = true, cut = false)
     }
 
     /** Jumps straight to a slide. Cuts by default: this is for finding a slide, not showing it. */
     fun goTo(index: Int, step: Int = 0, cut: Boolean = true) {
+        moves++
         val target = index.coerceIn(slides.indices)
         if (target == current.index) {
             current.goTo(step, instant = cut)
@@ -129,11 +142,15 @@ class Deck(
 
     /** Runs the current slide again from its first click and frame zero. */
     fun replay() {
+        moves++
         current = Playhead(current.index, 0)
     }
 
     /** The frame the slide up now came up on: its frame count runs from here. */
     val startedAt: Int get() = current.startedAt
+
+    /** Whether the slide up now was come to going back, which lands it built — see [WallBuild]. */
+    val arrivedBack: Boolean get() = current.back
 
     /**
      * Slide [index] afresh at [step], on a cut, its frame count running from [since] rather than
@@ -143,6 +160,7 @@ class Deck(
      * while the card's deck is only moved inside one.
      */
     fun restart(index: Int, step: Int = 0, since: Int = frame) {
+        moves++
         leaving = null
         transition = Cut
         current = Playhead(index.coerceIn(slides.indices), step, since)
@@ -159,6 +177,7 @@ class Deck(
         require(slides.isNotEmpty()) { "a deck needs at least one slide" }
         val at = index.coerceIn(slides.indices)
         val survives = slides[at] === current.slide
+        moves++
         this.slides = slides
         this.outline = outline
         current = if (survives) current.at(at) else Playhead(at, 0)
@@ -166,6 +185,7 @@ class Deck(
     }
 
     private fun show(target: Int, step: Int, reverse: Boolean, cut: Boolean) {
+        val left = current
         leaving = current
         transition = when {
             cut -> Cut
@@ -176,7 +196,8 @@ class Deck(
         }
         reversed = reverse
         transitionAt = frame
-        current = Playhead(target, step)
+        current = Playhead(target, step, back = reverse)
+        slides[target].cameFrom(left.slide, frame - left.startedAt, left.step, step)
     }
 
     // --- what the driver draws ------------------------------------------------------ //
@@ -204,11 +225,11 @@ class Deck(
      * wherever it *currently* is towards the new step, so clicking again mid-move picks up
      * from the frame on screen instead of snapping back.
      */
-    private inner class Playhead(val index: Int, step: Int, val startedAt: Int = frame) {
+    private inner class Playhead(val index: Int, step: Int, val startedAt: Int = frame, val back: Boolean = false) {
         val slide = slides[index]
 
         /** This playhead at another index over the same slide: click, ramp and frame count carried over. */
-        fun at(index: Int): Playhead = Playhead(index, step, startedAt).also { it.from = from; it.changedAt = changedAt; it.length = length }
+        fun at(index: Int): Playhead = Playhead(index, step, startedAt, back).also { it.from = from; it.changedAt = changedAt; it.length = length }
 
         var step: Int = step
             private set

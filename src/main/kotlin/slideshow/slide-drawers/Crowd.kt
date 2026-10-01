@@ -51,7 +51,8 @@ import kotlin.random.Random
  * `data/ref/social.pdf`.
  *
  * **The whole is the globe slide's globe, in people.** Only its grid is drawn: people standing
- * along the meridians, in the one's white, and along the parallels, in [share], on a sphere
+ * along the meridians, in [meridians] (the one's white unless given), and along the parallels, in
+ * [share] — the show gives both the same blue, so everyone on the globe is one colour — on a sphere
  * tilted so its north pole leans toward the viewer. It turns once in [spin] seconds and every
  * person rides round with it; only the near half is drawn, and a person shrinks toward the rim
  * and is gone before the far side, so the sphere turns away rather than reading as a disc. A full disc of people with the grid picked out in colour was
@@ -107,9 +108,11 @@ class Crowd(
     /** The one, the kin, the leader, the whole: what stands apart from the crowd. */
     private val one: ColorRGBa = ColorRGBa.fromHex("FFFFFF"),
     /** The crowd. */
-    private val many: ColorRGBa = ColorRGBa.fromHex("4674D6"),
-    /** The globe's parallels, on the last click; its meridians are in [one]. */
-    private val share: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val many: ColorRGBa = slideshow.Palette.BLUE,
+    /** The globe's parallels, on the last click. */
+    private val share: ColorRGBa = slideshow.Palette.RED,
+    /** The globe's meridians; null takes [one]. Given [share], everyone on the globe is the one colour. */
+    private val meridians: ColorRGBa? = null,
     /** Seconds for the globe of the whole to turn once; 0 holds it still. */
     private val spin: Double = 60.0,
     override val background: ColorRGBa = ColorRGBa.BLACK,
@@ -207,49 +210,8 @@ class Crowd(
      * child stays a child beside a grown-up.
      */
     private fun read(file: File): Pair<VertexBuffer, List<Variant>>? {
-        if (!file.isFile) return null
-        val verts = ArrayList<Vector3>()
-        val groups = LinkedHashMap<String, MutableList<IntArray>>()
-        var current = groups.getOrPut("") { mutableListOf() }
-        file.forEachLine { line ->
-            when {
-                line.startsWith("v ") -> {
-                    val t = line.trim().split(Regex("\\s+"))
-                    verts += Vector3(t[1].toDouble(), t[2].toDouble(), t[3].toDouble())
-                }
-                line.startsWith("g ") -> current = groups.getOrPut(line.substring(2).trim()) { mutableListOf() }
-                line.startsWith("f ") -> {
-                    val ids = line.substring(2).trim().split(Regex("\\s+")).map { it.substringBefore('/').toInt() - 1 }
-                    for (k in 1 until ids.size - 1) current += intArrayOf(ids[0], ids[k], ids[k + 1])
-                }
-            }
-        }
-
-        class Flat(val triangles: List<Vector2>, val height: Double)
-
-        val flats = groups.values.filter { it.isNotEmpty() }.map { faces ->
-            val used = faces.flatMap { it.toList() }.distinct().map { verts[it] }
-            val floor = used.minOf { it.y }
-            val height = (used.maxOf { it.y } - floor) / ADULT
-
-            // the broadest direction across the footprint
-            val mx = used.sumOf { it.x } / used.size
-            val mz = used.sumOf { it.z } / used.size
-            var sxx = 0.0; var szz = 0.0; var sxz = 0.0
-            for (v in used) { val dx = v.x - mx; val dz = v.z - mz; sxx += dx * dx; szz += dz * dz; sxz += dx * dz }
-            val theta = 0.5 * atan2(2.0 * sxz, sxx - szz)
-            val ax = cos(theta); val az = sin(theta)
-
-            fun across(v: Vector3) = (v.x - mx) * ax + (v.z - mz) * az
-            val left = used.minOf { across(it) }
-            val right = used.maxOf { across(it) }
-            val middle = (left + right) / 2.0
-
-            val triangles = faces.flatMap { f ->
-                f.map { i -> val v = verts[i]; Vector2((across(v) - middle) / ADULT, (v.y - floor) / ADULT) }
-            }
-            Flat(triangles, height)
-        }
+        // Read by readSilhouettes, which the to-scale wall shares, so both draw the same people.
+        val flats = readSilhouettes(file, ADULT)
         if (flats.isEmpty()) return null
 
         val tallest = flats.maxOf { it.height }
@@ -355,7 +317,7 @@ class Crowd(
             for (m in 0 until (360.0 / MERIDIAN_STEP).toInt()) {
                 val lon = m * MERIDIAN_STEP * PI / 180.0
                 val n = ((PI - 2.0 * pole) / along).toInt()
-                for (i in 0..n) add(SpherePoint(-PI / 2.0 + pole + i * (PI - 2.0 * pole) / n, lon) to one)
+                for (i in 0..n) add(SpherePoint(-PI / 2.0 + pole + i * (PI - 2.0 * pole) / n, lon) to (meridians ?: one))
             }
             val bands = (90.0 / LAT_STEP).toInt()
             for (b in -bands + 1 until bands) {
@@ -612,7 +574,10 @@ class Crowd(
             place[o] = foot.x.toFloat(); place[o + 1] = foot.y.toFloat()
             place[o + 2] = (size * popped * if (flipped[i]) -1.0 else 1.0).toFloat()
             place[o + 3] = (size * popped).toFloat()
-            place[o + 4] = tint.r.toFloat(); place[o + 5] = tint.g.toFloat(); place[o + 6] = tint.b.toFloat(); place[o + 7] = 1f
+            // In linear light, as the drawer hands a fill to a shader: written as the hex's own sRGB
+            // numbers the output encoded them a second time, and the house blue came out a sky blue.
+            val lin = tint.toLinear()
+            place[o + 4] = lin.r.toFloat(); place[o + 5] = lin.g.toFloat(); place[o + 6] = lin.b.toFloat(); place[o + 7] = 1f
         }
 
         // Into the multisampled wall, a variant at a time: its slots are every `variants.size`th

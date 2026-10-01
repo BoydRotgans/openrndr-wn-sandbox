@@ -77,7 +77,17 @@ data class Sound(
      * Which track of the mix this is on — the voice, the sound design or the music — so each can
      * be levelled and muted on its own while all three play together. See [Layer].
      */
-    val layer: Layer = Layer.DESIGN
+    val layer: Layer = Layer.DESIGN,
+    /**
+     * Played again once it has stopped, **pick up where it stopped** rather than from the top.
+     *
+     * What a playlist wants and a cue does not: the Main playlist plays under three courses, and
+     * starting each from its first track would play the same three tracks to the room three times
+     * over. Asked for again while it is still sounding it carries on as any held cue does; this is
+     * only about a bed that has faded out altogether and comes back later in the evening. The
+     * [Soundtrack] keeps the same rule, so a film hears the playlist go on as the room did.
+     */
+    val resume: Boolean = false
 ) {
     constructor(
         path: String, gain: Double = 1.0, loop: Boolean = false,
@@ -110,6 +120,7 @@ data class Sound(
         append(file.name)
         if (gain != 1.0) append(" @%.2f".format(gain))
         if (loop) append(" loop")
+        if (resume) append(" resumes")
         if (fadeIn > 0 || fadeOut > 0) append(" fade %.1f/%.1fs".format(seconds(fadeIn), seconds(fadeOut)))
         if (!present) append(" (missing)")
     }

@@ -185,8 +185,9 @@ class Site(
  * The harness every course sketch runs in: the wall composed at 3840x1080, multisampled, shown in
  * the window at half, and driven by a clock that is a pure function of the frame.
  *
- * - interactive: `space` holds, `←` `→` jump ten seconds, `0` back to the start, `w` switches the show's
- *   concrete wall over the picture (on while `COURSE_WALL` is; stills and previews stay clean).
+ * - interactive: `space` holds, `←` `→` jump ten seconds, `0` back to the start, `t` (or `w`) switches the
+ *   show's concrete texture over the picture on and off (it starts as `COURSE_WALL` says; stills and previews
+ *   stay clean).
  * - `COURSE_AT=5,40` writes a still at each of those seconds to `screenshots/courses/` and quits.
  * - `COURSE_RECORD=true` writes `video/courses/<name>.mp4`, `COURSE_DURATION` seconds from
  *   `COURSE_FROM`, at `COURSE_FPS`, at `COURSE_RECORD_SCALE` of the canvas (half), under the concrete
@@ -305,12 +306,16 @@ fun runCourse(
         var time = Env["COURSE_FROM"]?.toDoubleOrNull() ?: 0.0
         var paused = false
         keyboard.keyDown.listen {
-            when (it.name) {
+            when (it.name.lowercase()) {
                 "space" -> paused = !paused
                 "arrow-right" -> time += 10.0
                 "arrow-left" -> time = (time - 10.0).coerceAtLeast(0.0)
                 "0" -> time = 0.0
-                "w" -> { wallOn = wallStyle != null && !wallOn; println("$name: concrete wall ${if (wallOn) "on" else "off"}") }
+                // The concrete texture on and off: w for the wall, t for texture.
+                "w", "t" -> {
+                    if (wallStyle == null) println("$name: no concrete to lay over the window — SLIDES_CONCRETE names no texture")
+                    else { wallOn = !wallOn; println("$name: concrete ${if (wallOn) "on" else "off"}") }
+                }
             }
         }
         extend {

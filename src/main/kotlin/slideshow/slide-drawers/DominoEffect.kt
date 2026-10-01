@@ -27,6 +27,7 @@ import slideshow.MosaicCells
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
+import slideshow.Want
 import slideshow.drawers.LongShadowV3
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
@@ -34,7 +35,9 @@ import slideshow.drawers.setLine
 import slideshow.drawers.setToFit
 import slideshow.frames
 import slideshow.linear
+import slideshow.pitchStep
 import slideshow.smoothstep
+import slideshow.voiced
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.exp
@@ -237,12 +240,14 @@ class DominoEffect(
     override fun stepLength(step: Int): Int = if (step == 3) frames(if (gridWord) grid.seconds else WORD_CLICK) else stepFrames
 
     /**
+     * The grid word is scored whole by [gridScore]. What follows is the `packed` word's score.
+     *
      * The field on one lane and the word on another, which is what the slide really is: three
      * states of trees multiplying, and then a thousand-odd elements landing as DUURZAAM.
      *
-     * **The trees are three events, not many.** A click brings a whole ring of them up together —
-     * `alpha = smoothstep(t)` for every newcomer at once — so there is nothing per tree to write
-     * down, and saying otherwise would invent a texture the slide does not have.
+     * **The trees are three events here.** A click brings a whole ring of them up together —
+     * `alpha = smoothstep(t)` for every newcomer at once — so this score gives a ring one note.
+     * [gridScore] gives it a chord instead, a note a tree at its height.
      *
      * **The word is the opposite**, and it is where the notes are. `MOSAIC_ARRIVAL` grows element
      * *i* once `arrived * (marks + ramp)` passes it, so its start is exact; it is banded into
@@ -253,13 +258,14 @@ class DominoEffect(
      * crowds into the middle.
      */
     override val lanes: List<String> get() =
-        if (gridWord) listOf("the field", "the ground", "the word") else listOf("the field", "the word")
+        if (gridWord) listOf("trees arriving", "trees pulling back", "knocked out", "the chain", "the word", "states")
+        else listOf("the field", "the word")
 
     override fun arrivals(clicks: List<Int>): List<Arrival> {
+        if (gridWord) return gridScore(clicks)
         val field = listOf(Arrival(lane = 0, index = 0, start = 0, length = stepFrames)) +
                 clicks.take(2).mapIndexed { k, at -> Arrival(lane = 0, index = k + 1, start = at, length = stepLength(k + 1)) }
         val at = clicks.getOrNull(2) ?: return field
-        if (gridWord) return field + gridArrivals(at)
         val span = stepLength(3)
         if (marks <= 0) return field + Arrival(lane = 1, index = 0, start = at, length = span)
 
@@ -302,6 +308,9 @@ class DominoEffect(
 
     private var cells: List<GridCell> = emptyList()
 
+    /** The word's letters' boxes, left to right: what the score spells DUURZAAM off. */
+    private var letterBoxes: List<Rectangle> = emptyList()
+
     /**
      * The pane dealt on the chapter build's grid, the cells that straddle a letter's edge split on
      * down to the grid's floor, and the two dominoes worked out: once, here, since the grid is fixed.
@@ -311,6 +320,7 @@ class DominoEffect(
         val h = paneHeight.toDouble()
         val shapes = wordShapes(w, h)
         if (shapes.isEmpty()) return emptyList()
+        letterBoxes = shapes.map { it.bounds }
         val cover = coverage(shapes, paneWidth, paneHeight)
         val aspects = effect?.markAspects.orEmpty()
         val solidity = effect?.markSolidity.orEmpty()
@@ -490,9 +500,12 @@ class DominoEffect(
 
     /** How much of whatever stands over [at] is left at [time]: gone over [KNOCK] from when the chain stands the cell under it. */
     private fun knocked(at: Vector2, time: Double): Double {
-        val under = cells.firstOrNull { at in it.box } ?: cells.minByOrNull { it.box.center.distanceTo(at) } ?: return 1.0
-        return 1.0 - smoothstep((time - under.stands) / KNOCK)
+        if (cells.isEmpty()) return 1.0
+        return 1.0 - smoothstep((time - under(at).stands) / KNOCK)
     }
+
+    /** The cell under [at]: the one holding it, or the nearest. */
+    private fun under(at: Vector2) = cells.firstOrNull { at in it.box } ?: cells.minBy { it.box.center.distanceTo(at) }
 
     /** 0 to 1 with a small overshoot: a part seating, the chapter build's click. */
     private fun seat(t: Double): Double {
@@ -524,21 +537,77 @@ class DominoEffect(
     }
 
     /**
-     * The grid on two lanes, banded as the packed word's marks are: the ground clicking up along the
-     * chain, and the word rising out of it. Exact, since while the click plays its time is the frame
-     * less the frame it began on.
+     * The whole slide as a score, with a note for everything that moves, read off the numbers
+     * [draw] runs on. Pitch is height on the pane wherever a thing has a place, the webtool's rule.
+     *
+     * - **Trees arriving**: the opening tree growing from its middle, then on each zoom every tree
+     *   of the ring coming in from beyond the edge. A ring comes up together, so it is a chord.
+     * - **Trees pulling back**: on each zoom, the trees already standing shrinking toward the middle.
+     * - **Knocked out**: every tree and the title as the chain reaches the cell under it, over [KNOCK].
+     * - **The chain**: a note a hop of the chain, rising a semitone a hop, from the first of that
+     *   hop's cells clicking up to the last one seated. A hop is the unit a domino falls in; the 2 312
+     *   cells alone are a texture with no pitch left to give.
+     * - **The word**: a note a letter, DUURZAAM spelled left to right up the register, each from its
+     *   first cell starting to rise to its last one up. Rising out from the middle, the letters open
+     *   as a spread.
+     * - **States**: the slide's own arrival and clicks, as every slide has.
+     *
+     * Exact, since while the word's click plays its time is the frame less the frame it began on.
      */
-    private fun gridArrivals(at: Int): List<Arrival> {
-        fun lane(lane: Int, starts: List<Double>, length: Double): List<Arrival> {
-            val sorted = starts.sorted()
-            val n = min(BANDS, sorted.size)
-            return (0 until n).map { b ->
-                val from = sorted[b * sorted.size / n]
-                val to = sorted[((b + 1) * sorted.size / n - 1).coerceAtLeast(b * sorted.size / n)] + length
-                Arrival(lane = lane, index = b, start = at + frames(from), length = frames(to - from).coerceAtLeast(1))
+    private fun gridScore(clicks: List<Int>): List<Arrival> {
+        val states = super.arrivals(clicks).map { it.copy(lane = STATES) }
+        val w = paneWidth.toDouble()
+        val h = paneHeight.toDouble()
+        val top = h * FIELD_TOP
+        val fh = h - top
+        val middle = Vector2(w / 2.0, top + fh / 2.0)
+        fun height(y: Double) = ((1.0 - y / h) * (SCORE_NOTES - 1)).roundToInt().coerceIn(0, SCORE_NOTES - 1)
+        fun want(lane: Int, pitch: Int, from: Int, length: Int) = Want(lane, pitch, from, length.coerceAtLeast(1), 0, SCORE_NOTES - 1)
+        /** Where the tree at row [r], column [c] stands once the field is state [s]'s grid. */
+        fun treeAt(r: Int, c: Int, s: Int) = middle + Vector2(c * w / grid(s), r * fh / grid(s))
+        val wants = ArrayList<Want>()
+
+        wants += want(ARRIVING, height(middle.y), 0, stepFrames)
+        clicks.take(2).forEachIndexed { k, at ->
+            val s = k + 1
+            val here = ringAt(s - 1)
+            val coming = ringAt(s)
+            for (r in -coming..coming) for (c in -coming..coming) {
+                val lane = if (max(abs(r), abs(c)) <= here) PULLING_BACK else ARRIVING
+                wants += want(lane, height(treeAt(r, c, s).y), at, stepLength(s))
             }
         }
-        return lane(1, cells.map { it.stands }, grid.click) + lane(2, cells.filter { it.letter }.map { it.rises }, grid.rise)
+
+        val at = clicks.getOrNull(2)
+        if (at == null || cells.isEmpty()) return voiced(wants) + states
+
+        val reach = ringAt(2)
+        for (r in -reach..reach) for (c in -reach..reach) {
+            val tree = treeAt(r, c, 2)
+            wants += want(KNOCKED, height(tree.y), at + frames(under(tree).stands), frames(KNOCK))
+        }
+        val title = Vector2(w / 2.0, h * TITLE_Y)
+        wants += want(KNOCKED, height(title.y), at + frames(under(title).stands), frames(KNOCK))
+
+        val hops = cells.groupBy { it.hop }.toSortedMap().values.toList()
+        hops.forEachIndexed { k, hop ->
+            val from = hop.minOf { it.stands }
+            val to = hop.maxOf { it.stands } + grid.click
+            wants += want(CHAIN, pitchStep(k, hops.size), at + frames(from), frames(to - from))
+        }
+
+        cells.filter { it.letter }.groupBy { letterOf(it.box.center) }.forEach { (k, letter) ->
+            val from = letter.minOf { it.rises }
+            val to = letter.maxOf { it.rises } + grid.rise
+            wants += want(WORD, LETTER_NOTE + k, at + frames(from), frames(to - from))
+        }
+        return voiced(wants) + states
+    }
+
+    /** Which of the word's letters [p] falls in: the one whose box holds it, or the nearest. */
+    private fun letterOf(p: Vector2): Int {
+        fun gap(r: Rectangle) = Vector2(max(0.0, max(r.x - p.x, p.x - r.x - r.width)), max(0.0, max(r.y - p.y, p.y - r.y - r.height))).length
+        return letterBoxes.indices.minWithOrNull(compareBy({ gap(letterBoxes[it]) }, { letterBoxes[it].center.distanceTo(p) })) ?: 0
     }
 
     /**
@@ -803,5 +872,15 @@ class DominoEffect(
         /** Seconds a tree takes to go once the chain has reached the cell under it, and one ground cell's sinking when the ground clears. */
         const val KNOCK = 0.25
         const val LEAVE = 0.6
+
+        /** The grid word's score: its lanes, the register pitch is height within, and where the letters start in it. */
+        const val ARRIVING = 0
+        const val PULLING_BACK = 1
+        const val KNOCKED = 2
+        const val CHAIN = 3
+        const val WORD = 4
+        const val STATES = 5
+        const val SCORE_NOTES = 48
+        const val LETTER_NOTE = 20
     }
 }

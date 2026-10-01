@@ -214,6 +214,17 @@
   .sub.playing { background: color-mix(in srgb, var(--live) 10%, transparent); }
   .sub.playing .state .voice button { border-color: var(--live); color: var(--live); }
   #voiceCount { font-size: 12px; color: var(--dim); white-space: nowrap; }
+  /* the house colours: a swatch and six hex digits each, global to the project */
+  .colour { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; }
+  .colour input[type=color] { width: 22px; height: 22px; padding: 0; border: 1px solid var(--line-2); border-radius: 4px; background: none; cursor: pointer; }
+  .colour input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+  .colour input[type=color]::-webkit-color-swatch { border: none; border-radius: 3px; }
+  .colour input[type=text] { width: 58px; font: 11.5px ui-monospace, Menlo, monospace; padding: 2px 4px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--panel); color: var(--ink); text-transform: uppercase; }
+  .colour input[type=text].bad { border-color: var(--accent); }
+  #colourNote { font-size: 11px; color: var(--dim); white-space: nowrap; }
+  .colour + .colourReset { margin: 0 8px 0 -2px; padding: 0 6px; height: 22px; line-height: 20px; font-size: 13px; }
+  .colourReset:disabled { opacity: 0.35; cursor: default; }
   /* the mix: a fader per track of the sound, all three playing together */
   #mixWrap { position: relative; }
   #mixPanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; background: var(--panel); border: 1px solid var(--line-2);
@@ -260,6 +271,55 @@
   .fb.done textarea { color: var(--dimmer); text-decoration: line-through; }
   .fb.new { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 10px; align-items: flex-start; }
   .fb.new textarea { background: var(--panel); border-color: var(--line); }
+  /* the meeting: what a walkthrough asked of this slide, a task a row, each agreed, adjusted or
+     dropped. Dark purple in either theme, so it never reads as the user's own feedback beside it. */
+  #meeting { margin-top: 18px; max-width: 760px; padding: 12px 14px; border-radius: var(--radius);
+    background: #221133; color: #ebe4f7; border: 1px solid #3a2257; border-left: 4px solid #8a5cf0; }
+  #meeting h3 { color: #f3edff; }
+  #meeting .count { font-size: 12px; color: #c8a8ff; font-weight: 600; }
+  #meeting .hint { color: #9a88b8; font-size: 11px; }
+  #meeting .said { margin: 2px 0 8px; padding: 6px 10px; border-left: 2px solid #5b3a8c; color: #cbbde3; font-style: italic; line-height: 1.45; user-select: text; }
+  #meeting .said .at { font-style: normal; margin-left: 8px; font: 11px ui-monospace, Menlo, monospace; color: #9a88b8; white-space: nowrap; }
+  #meeting .none { color: #9a88b8; padding: 6px 0 2px; }
+  .mt { display: grid; grid-template-columns: 58px 1fr auto; gap: 8px; align-items: start; padding: 8px 0; border-top: 1px solid #3a2257; }
+  .mt .kind { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; text-align: center; padding: 2px 0; border-radius: 3px; margin-top: 5px; color: #160b22; font-weight: 700; background: #c4a5ff; }
+  .mt .kind.script { background: #7fe0d4; }
+  .mt .kind.check { background: #ffd27a; }
+  .mt .kind.sound { background: #ff9ccf; }
+  .mt .kind.event { background: #9cc8ff; }
+  .mt textarea { width: 100%; min-height: 0; resize: none; overflow: hidden; padding: 4px 6px; background: transparent; color: #f3edff; border-color: transparent; line-height: 1.45; }
+  .mt textarea:hover { border-color: #4a2d70; }
+  .mt textarea:focus { background: #2c1842; border-color: #8a5cf0; outline: none; }
+  .mt textarea.note { margin-top: 4px; font-size: 12px; color: #d9c8ff; background: #2a173f; border-color: #4a2d70; }
+  .mt .meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 0 6px; }
+  .mt .meta span { font-size: 10.5px; padding: 0 6px; border-radius: 8px; border: 1px solid #4a2d70; color: #b9a6da; white-space: nowrap; }
+  .mt .meta .reading { border-style: dashed; color: #ffd27a; border-color: #8a6a2a; }
+  .mt .meta .edited, .mt .meta .added { color: #7fe0d4; border-color: #2f6f68; }
+  .mt .meta .where, .mt .meta .at { font-family: ui-monospace, Menlo, monospace; }
+  .mt .was { margin: 4px 0 0 6px; font-size: 11.5px; color: #8f7fae; text-decoration: line-through; user-select: text; }
+  .mt .acts { display: flex; gap: 4px; align-items: center; padding-top: 2px; }
+  .mt .acts button { background: #2e1a47; border-color: #4a2d70; color: #e4d8fa; padding: 3px 8px; font-size: 11.5px; }
+  .mt .acts button.ok.on { background: #3fb27f; border-color: #3fb27f; color: #08130d; }
+  .mt .acts button.no.on { background: #6b5a86; border-color: #6b5a86; color: #fff; }
+  .mt .acts button.quiet { background: transparent; border-color: transparent; color: #9a88b8; }
+  .mt.approved .kind { box-shadow: 0 0 0 2px #3fb27f; }
+  .mt.dropped textarea:not(.note) { color: #8f7fae; text-decoration: line-through; }
+  .mt.dropped .kind { opacity: .45; }
+  /* done: built as agreed — a green rule down the task and a line saying what was done */
+  .mt.done { box-shadow: inset 3px 0 0 #3fb27f; padding-left: 8px; }
+  .mt.done textarea:not(.note) { color: #cfeedd; }
+  .mt .meta .done { color: #8fe3b4; border-color: #2f7a52; }
+  .mt .did { margin: 5px 0 0 6px; font-size: 12px; color: #8fe3b4; line-height: 1.4; user-select: text; white-space: pre-wrap; }
+  .mt .acts button.dn.on { background: #1f5c3d; border-color: #3fb27f; color: #d6f5e4; }
+  .card .mt-todo { display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 8px; border: 1.5px solid #6d3fc0; color: #6d3fc0; font-size: 9.5px; font-weight: 600; vertical-align: middle; }
+  [data-theme="dark"] .card .mt-todo { border-color: #a07ae6; color: #b48cff; }
+  #meeting .new { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start; padding-top: 10px; border-top: 1px solid #3a2257; margin-top: 4px; }
+  #meeting .new select, #meeting .new textarea { background: #2a173f; color: #f3edff; border-color: #4a2d70; }
+  #meeting .new textarea { min-height: 0; resize: none; overflow: hidden; }
+  #meeting .new button { background: #8a5cf0; border-color: #8a5cf0; color: #fff; }
+  .card .mt-open { display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 8px; background: #5b2fa8; color: #fff; font-size: 10px; font-weight: 600; vertical-align: middle; }
+  #meetingNext { color: #7b4fd6; font-weight: 600; }
+  [data-theme="dark"] #meetingNext { color: #b48cff; }
   #banner { display: none; margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius); background: var(--banner-bg); border: 1px solid var(--banner-line); color: var(--warn); }
   #banner.on { display: block; }
   /* files changed by another tab, or another tab holding unsaved edits: held at the top while it lasts */
@@ -356,6 +416,148 @@
   .sketch .variant-note { color: var(--dim); font-size: 12px; line-height: 1.45; font-style: italic; }
   .sketch .variant-note:empty { display: none; }
   @media (max-width: 700px) { .sketch.wide { grid-column: auto; } }
+  /* ---------- the Projection tab ---------- */
+  body.view-projection #nav, body.view-projection #main { display: none; }
+  body.view-projection #top .show-only:not(#grpShow) { display: none !important; }
+  body.view-sketches #help, body.view-projection #help { display: none; }
+  #projection { grid-column: 1 / -1; grid-row: 2; overflow-y: auto; padding: 14px 20px 40px; }
+  #projBar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  #projBar .spacer { flex: 1; }
+  #projBar label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  #projModels { display: inline-flex; gap: 6px; }
+  #projState { color: var(--dim); }
+  #projState.live { color: var(--live); }
+  #projStage { position: relative; background: var(--thumb); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  #projStage .proj { position: absolute; box-shadow: inset 0 0 0 1px #5a5a60; }
+  #projStage .proj .lbl { position: absolute; left: 8px; bottom: 6px; color: #9a9aa0; font-size: 11px; pointer-events: none; z-index: 2; }
+  #projStage .half { position: absolute; background: #2a2a2e center / 200% 100% no-repeat; outline: 2px solid var(--live); outline-offset: -2px; cursor: grab; touch-action: none; }
+  #projStage .half.sel { outline-color: var(--accent); }
+  #projStage .half.dragging { cursor: grabbing; }
+  #projStage .half .lbl { position: absolute; left: 8px; top: 6px; color: #fff; font-size: 11px; text-shadow: 0 1px 2px #000; pointer-events: none; }
+  #projCols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .projCard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .projCard.sel { border-color: var(--accent); }
+  .projCard h3 { margin: 0 0 2px; font-size: 13px; }
+  .projCard .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .projCard .row > .k { width: 74px; color: var(--dim); }
+  .projCard input[type=number] { width: 86px; }
+  .projCard .note { color: var(--dim); font-size: 11.5px; line-height: 1.45; }
+  .projCard .note.warn { color: var(--warn); }
+  .projCard .displays { display: flex; flex-direction: column; gap: 4px; font: 11.5px ui-monospace, Menlo, monospace; color: var(--dim); }
+  /* ---------- the Subtitles tab: the talk as a script ---------- */
+  body.view-subtitles #nav, body.view-subtitles #main, body.view-subtitles #help { display: none; }
+  body.view-subtitles #top .show-only:not(#grpShow) { display: none !important; }
+  #script { grid-column: 1 / -1; grid-row: 2; overflow-y: auto; user-select: text; }
+  #scriptBar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 9px 20px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  #scriptBar .seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius); background: var(--panel-2); }
+  #scriptBar .seg button { background: transparent; border-color: transparent; color: var(--dim); padding: 3px 10px; }
+  #scriptBar .seg button.on { background: var(--panel); color: var(--ink); border-color: var(--line); }
+  #scriptBar .seg[hidden] { display: none; }
+  #scriptBar .spacer { flex: 1; }
+  #scriptBar .note { color: var(--dimmer); }
+  #scriptSave { color: var(--dim); }
+  #scriptSave.busy { color: var(--ink); }
+  #scriptSave.warn { color: var(--warn); }
+  #scriptShowTrack { color: var(--dim); }
+  #scriptDoc { max-width: 900px; margin: 0 auto; padding: 18px 28px 55vh; }
+  #scriptDoc.both { max-width: 1480px; }
+  #scriptDoc.both.md { max-width: 1840px; }
+  #scriptDoc .sb, #scriptDoc .colhead { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 16px; }
+  #scriptDoc.md .sb, #scriptDoc.md .colhead { grid-template-columns: minmax(0, var(--trackfr, 1fr)) minmax(0, 1fr); }
+  #scriptDoc .colhead { position: sticky; top: var(--barh, 46px); z-index: 2; color: var(--dim); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .08em; padding: 6px 0; background: var(--bg); }
+  #scriptDoc .colhead .tracks { display: grid; grid-template-columns: 34px repeat(var(--cols, 1), minmax(0, 1fr)); gap: 6px; }
+  #scriptDoc .colhead span { padding-left: 9px; }
+  #scriptDoc .colhead .tracks span:first-child { padding: 0; }
+  #scriptDoc .mdp { margin: 2px 0 6px; padding: 6px 12px 8px; border-left: 3px solid var(--moment-line); background: var(--moment-bg);
+    border-radius: 0 var(--radius) var(--radius) 0; color: var(--note-ink); font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+  #scriptDoc .mdp .h { display: block; font-size: 11px; font-weight: 600; color: var(--moment); margin-bottom: 3px; white-space: normal; }
+  #scriptDoc .mdp.none { background: transparent; border-left-color: var(--line); color: var(--dimmer); font-style: italic; font-size: 12px; }
+  #scriptDoc .sm { margin: 34px 0 4px; padding-top: 10px; border-top: 1px solid var(--moment-line); color: var(--moment);
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; display: flex; align-items: baseline; gap: 12px; }
+  /* the draaiboek's time against a section, and how long its lines take to say */
+  #scriptDoc .when { margin-left: auto; font: 500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    letter-spacing: 0; text-transform: none; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #scriptDoc .when .slot { color: var(--dimmer); }
+  #scriptDoc .when .said { color: var(--dimmer); }
+  #scriptDoc .when .said.over { color: var(--warn); }
+  #scriptDoc .gang { margin: 2px 0 0 40px; color: var(--dim); font-size: 12px; font-style: italic; }
+  #scriptDoc .gang::before { content: "▸ "; font-style: normal; color: var(--accent); }
+  #scriptBook { color: var(--dimmer); }
+  #scriptBook.warn { color: var(--warn); }
+  #scriptDoc .sc { margin: 40px 0 6px; padding-top: 12px; border-top: 2px solid var(--line-2); font-size: 22px; font-weight: 700;
+    color: var(--ink); display: flex; gap: 12px; align-items: baseline; }
+  #scriptDoc .sc .n { color: var(--accent); }
+  #scriptDoc .sx { margin: 18px 0 2px; font-size: 13px; font-weight: 600; color: var(--dim); }
+  #scriptDoc > :first-child, #scriptDoc .colhead + * { margin-top: 6px; border-top: none; }
+  #scriptDoc .sl { margin: 16px 0 2px; }
+  #scriptDoc .sh { display: flex; align-items: baseline; gap: 8px; padding-left: 40px; margin-bottom: 1px; }
+  #scriptDoc .sh .t { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+  #scriptDoc .sh .vh { color: var(--dim); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  #scriptDoc .sh code { font: 11px ui-monospace, Menlo, monospace; color: var(--dimmer); }
+  #scriptDoc .sh .tag { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--dimmer); border: 1px solid var(--line-2); border-radius: 3px; padding: 0 4px; }
+  #scriptDoc .sh .tag.draft { color: var(--warn); border-color: var(--banner-line); }
+  #scriptDoc .sh .go { margin-left: auto; font-size: 11px; padding: 1px 8px; visibility: hidden; }
+  #scriptDoc .sl:hover .sh .go { visibility: visible; }
+  #scriptDoc .sl.live .sh .t { color: var(--live); }
+  #scriptDoc .ln { display: grid; grid-template-columns: 34px repeat(var(--cols, 1), minmax(0, 1fr)); gap: 6px; align-items: start;
+    position: relative; border-radius: var(--radius); }
+  #scriptDoc .ln .lt { font: 600 12px ui-monospace, Menlo, monospace; color: var(--dimmer); background: transparent; border: none;
+    padding: 9px 2px 0 0; text-align: right; cursor: pointer; }
+  #scriptDoc .ln .lt:hover:not(:disabled) { color: var(--ink); }
+  #scriptDoc .ln .lt:disabled { cursor: default; }
+  #scriptDoc .ln .cell { min-width: 0; }
+  #scriptDoc .ln .cell .main { display: flex; align-items: flex-start; gap: 4px; }
+  #scriptDoc .ln .cell textarea { flex: 1; min-width: 0; }
+  /* a line whose voice is missing or says older text: an amber edge, so it is seen without reading */
+  #scriptDoc .ln .cell.needvoice textarea { box-shadow: inset 3px 0 0 var(--warn); }
+  /* feedback on a line: the button beside it, and the notes under it */
+  #scriptDoc .ln .fbb { flex: none; width: 34px; padding: 3px 0; margin-top: 4px; font-size: 11px; background: transparent;
+    border-color: transparent; color: var(--dimmer); visibility: hidden; }
+  #scriptDoc .ln:hover .fbb, #scriptDoc .ln:focus-within .fbb, #scriptDoc .ln .fbb.has { visibility: visible; }
+  #scriptDoc .ln .fbb:hover { border-color: var(--line); color: var(--ink); }
+  #scriptDoc .ln .fbb.open { color: var(--warn); border-color: var(--banner-line); }
+  #scriptDoc .lfb:not(:has(.note, input.adder)) { display: none; }
+  #scriptDoc .lfb .notes { display: flex; flex-direction: column; gap: 3px; }
+  #scriptDoc .lfb { margin: 0 38px 6px 9px; display: flex; flex-direction: column; gap: 3px; }
+  #scriptDoc .lfb .note { display: flex; align-items: baseline; gap: 7px; padding: 3px 8px; border-radius: var(--radius);
+    background: color-mix(in srgb, var(--warn) 9%, transparent); border-left: 2px solid var(--warn); font-size: 12.5px; line-height: 1.4; }
+  #scriptDoc .lfb .note.done { background: transparent; border-left-color: var(--line-2); color: var(--dimmer); }
+  #scriptDoc .lfb .note.done .t { text-decoration: line-through; }
+  #scriptDoc .lfb .note input[type=checkbox] { margin: 0; position: relative; top: 1px; }
+  #scriptDoc .lfb .note .t { flex: 1; min-width: 0; white-space: pre-wrap; }
+  #scriptDoc .lfb .note .d { color: var(--dimmer); font-size: 11px; white-space: nowrap; }
+  #scriptDoc .lfb .note .changed { color: var(--dim); font-size: 11px; font-style: italic; white-space: nowrap; cursor: help; }
+  #scriptDoc .lfb .note button { padding: 0 5px; font-size: 11px; background: transparent; border-color: transparent; color: var(--dimmer); }
+  #scriptDoc .lfb .note button:hover { color: var(--ink); }
+  #scriptDoc .lfb input.fbin { font: inherit; font-size: 12.5px; padding: 4px 8px; border-radius: var(--radius); border: 1px solid var(--banner-line);
+    background: var(--panel); color: var(--ink); }
+  #scriptDoc .lfb .note input.edit { flex: 1; min-width: 0; padding: 1px 6px; }
+  #scriptDoc .lfb .note .t { cursor: text; }
+  #scriptDoc .ln.flash { animation: scriptFlash 1.2s ease-out; }
+  @keyframes scriptFlash { from { background: color-mix(in srgb, var(--warn) 30%, transparent); } to { background: transparent; } }
+  #scriptBar .todo { color: var(--warn); border-color: var(--banner-line); }
+  #scriptBar .todo[hidden] { display: none; }
+  #scriptDoc .ln textarea { display: block; width: 100%; box-sizing: border-box; resize: none; overflow: hidden; field-sizing: content;
+    border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; padding: 5px 9px; margin: 0; min-height: 0; }
+  #scriptDoc .ln textarea:hover { border-color: var(--line); }
+  #scriptDoc .ln textarea:focus { outline: none; border-color: var(--line-2); background: var(--panel); }
+  #scriptDoc .ln textarea::placeholder { color: var(--dimmer); }
+  #scriptDoc.both .ln textarea { font-size: 14.5px; }
+  #scriptDoc .ln .meta { flex: none; width: 82px; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    padding-top: 8px; font-size: 11px; color: var(--dimmer); white-space: nowrap; }
+  #scriptDoc .ln .meta.off { display: none; }
+  #scriptDoc .ln .meta button { font-size: 11px; padding: 0 6px; background: transparent; border-color: var(--line); color: var(--dim); }
+  #scriptDoc .ln .meta .stale, #scriptDoc .ln .meta .none { color: var(--warn); cursor: help; }
+  #scriptDoc .ln.said textarea { color: var(--dim); }
+  #scriptDoc .ln.live { background: color-mix(in srgb, var(--live) 13%, transparent); }
+  #scriptDoc .ln.live::before { content: ''; position: absolute; left: -12px; top: 5px; bottom: 5px; width: 3px; border-radius: 2px; background: var(--live); }
+  #scriptDoc .ln.live .lt { color: var(--live); }
+  #scriptDoc .ln.live textarea { color: var(--ink); }
+  #scriptDoc .ln.beyond { opacity: .55; }
+  #scriptEmpty { color: var(--dim); padding: 40px 0; text-align: center; }
 </style>
 </head>
 <body>
@@ -366,9 +568,12 @@
     <span id="tabs">
       <button class="tab on" data-view="show" title="The running order of the show">Show</button>
       <button class="tab" data-view="sketches" title="Every sketch in the project, with a picture and how to run it">Sketches</button>
+      <button class="tab" data-view="projection" title="The two projectors on site: their resolutions, and where the wall's 1920×1080 halves stand on them">Projection</button>
+      <button class="tab" data-view="subtitles" title="Every subtitle of the talk as one script, following the show as it is clicked through; a line edited here is saved at once and on the wall at once">Subtitles</button>
     </span>
     <span class="grp show-only" id="grpShow"><span class="cap">show</span>
       <span id="live"><i></i><span id="liveText">connecting…</span></span>
+      <button class="ghost" id="practiceBtn" title="Practice mode: the clicker's screen button (hold to start over) and play button (twice for the overview of every slide) work. Off, they do nothing, so a wrong press in front of the room changes nothing; forward and back always work">practice mode: off</button>
       <button class="ghost" id="projectionBtn" hidden title="Start the presentation on the two projectors — undecorated, 1:1, across the wall — rather than in a window">projection: off</button>
       <button id="presentBtn" hidden title="Start the show in a window of its own; the page steers it">▶ start presentation</button>
     </span>
@@ -381,6 +586,14 @@
       <button class="pink" id="newBtn" title="A new module after the selected slide (n)">+ module</button>
       <span id="dirty" title="unsaved changes"></span>
       <button class="primary" id="saveBtn" title="Write the order and the modules (⌘S)">save</button>
+    </span>
+    <span class="grp show-only" id="grpMeeting" hidden title="The tasks a meeting asked of the slides, to agree, adjust or drop one by one"><span class="cap" id="meetingCap">meeting</span>
+      <button class="ghost" id="meetingNext" title="The next slide with a meeting task still to decide">…</button>
+    </span>
+    <span class="grp" id="grpColours" title="The house red and blue: every red and every blue in the project is one of these two. Moving one shows it on the running wall at once; letting go saves it to show-colours.json, and every slide is built in it exactly at the next start"><span class="cap">colours</span>
+      <label class="colour" title="The house red"><input type="color" id="redPick" value="#ff0000"><input type="text" id="redHex" maxlength="7" spellcheck="false" autocomplete="off"></label><button class="ghost colourReset" id="redReset" title="Back to WN red, #FF0000">↺</button>
+      <label class="colour" title="The house blue"><input type="color" id="bluePick" value="#023f88"><input type="text" id="blueHex" maxlength="7" spellcheck="false" autocomplete="off"></label><button class="ghost colourReset" id="blueReset" title="Back to WN blue, #023F88">↺</button>
+      <span id="colourNote" hidden title="The running show was built in other colours and is showing these as a preview laid over the frame: exact on flat colour and its edges, approximate where red meets blue or on a photograph. Start the show again to build every slide in them">preview · exact at next start</span>
     </span>
     <button class="ghost" id="themeBtn" title="Light or dark">☾</button>
   </div>
@@ -429,6 +642,49 @@
   <div id="sketchGrid"></div>
 </section>
 
+<section id="projection" hidden>
+  <div id="projBar">
+    <span id="projState">…</span>
+    <span class="spacer"></span>
+    <label title="The projectors' edges in red and the halves' in green, with a cross through each half's middle, drawn on the wall while it is on — for lining up. Never saved"><input type="checkbox" id="projOutlines"> outlines on the wall</label>
+    <span id="projModels"></span>
+    <button class="ghost" id="projReload" title="Read the setup again">reload</button>
+  </div>
+  <div id="projStage"></div>
+  <div id="projCols"></div>
+</section>
+
+<section id="script" hidden>
+  <div id="scriptBar">
+    <span class="seg" id="scriptTracks" title="Which track the script shows. Extended: the talk as it is given, a line a state. Default: the voice-over script as delivered">
+      <button data-track="extended">extended</button>
+      <button data-track="default">default</button>
+      <button data-track="both">side by side</button>
+    </span>
+    <span class="seg" id="scriptCompare" hidden title="What side by side compares: the two tracks, which are edited here, and the voice-over script as delivered, read only">
+      <button data-col="extended" title="The talk as given, a line a state — edited here">extended</button>
+      <button data-col="default" title="The voice-over script placed on the states — edited here">default</button>
+      <button data-col="script" title="The passage of data/subtitles/WN-Voice over.md each slide was placed from, as delivered — read only">WN-Voice over.md</button>
+    </span>
+    <button class="ghost" id="scriptFollow" title="Keep the line the show is on in view (f)">follow: on</button>
+    <span class="seg">
+      <button class="ghost" id="scriptBack" title="A click back in the show (← or Page Up — the clicker works while typing)">◀</button>
+      <button class="ghost" id="scriptFwd" title="A click forward in the show (→ or Page Down — the clicker works while typing)">▶</button>
+    </span>
+    <button class="ghost" id="scriptWall" title="Subtitle mode: the lines on the wall as the show is given (s in the show)">subtitles: off</button>
+    <button class="ghost" id="scriptVoice" title="Speak the rendered voice under each state (v in the show)">voice: off</button>
+    <button class="ghost" id="scriptAutoplay" title="With subtitles or the voice on, on the extended track: autoplay clicks on by itself once each line has been said; wait for click says the line and holds the state until you click. Kept for the next start">autoplay</button>
+    <span id="scriptShowTrack"></span>
+    <span class="spacer"></span>
+    <button class="ghost todo" id="scriptVoiceTodo" hidden title="Lines whose voice is not rendered for the text they now say — click to go to the next one"></button>
+    <button class="ghost todo" id="scriptFbTodo" hidden title="Feedback still open on a line — click to go to the next one"></button>
+    <span id="scriptBook"></span>
+    <span id="scriptCount"></span>
+    <span id="scriptSave" title="Every line is written the moment typing pauses, and at once when its field is left — no save button"></span>
+  </div>
+  <div id="scriptDoc"></div>
+</section>
+
 <main id="main">
   <div id="stale"></div>
   <div id="banner"></div>
@@ -463,6 +719,25 @@
       <dt>arrives</dt><dd id="transition"></dd>
     </dl>
     <div id="notes"></div>
+
+    <div id="meeting">
+      <div class="bar">
+        <h3 id="mtTitle">Meeting</h3>
+        <span class="count" id="mtCount"></span>
+        <span class="spacer"></span>
+        <span class="hint" id="mtHint"></span>
+      </div>
+      <div id="mtSaid"></div>
+      <div id="mtList"></div>
+      <div class="new">
+        <select id="mtKind" title="What kind of work it is">
+          <option value="wall">Wall</option><option value="script">Script</option><option value="check">Check</option>
+          <option value="sound">Sound</option><option value="event">Event</option>
+        </select>
+        <textarea id="mtNew" rows="1" placeholder="Add a task for this slide. ⏎ to add, ⇧⏎ for a new line."></textarea>
+        <button id="mtAdd" title="Add this task (⏎)">add</button>
+      </div>
+    </div>
 
     <div id="intent">
       <div class="bar">
@@ -571,6 +846,8 @@
   let voiceoverExt = {};    // the extended track's own heading and stage note per slide, read only
   let subDrafts = new Set(); // slides whose lines are not in the voice-over script
   let feedback = {};        // id -> [{text,done,at}], the notes written against a slide; saved as written
+  let meeting = { slides: {} }; // the meeting tasks: { meetings, slides: { id: { said, tasks } } }; saved as decided
+  let subFeedback = { lines: {} }; // notes on subtitle lines: { lines: { track: { 'id-LETTER': [note] } } }; saved as written
   let midiWanted = new Set(); // ids wanted as MIDI; saved the moment one is ticked, and exported with it
   let wasExporting = false; // so the page can say when a run has finished
   let frames = [];          // the client's frames: [{name,chapter,index,wide,note,wall,pane}]
@@ -934,6 +1211,19 @@
       badge.title = open + (open === 1 ? ' note' : ' notes') + ' not yet addressed';
       title.appendChild(badge);
     }
+    // and, in purple, the meeting tasks on it still to be decided
+    const mOpen = meetingOpen(c.id);
+    if (mOpen) {
+      const badge = document.createElement('span'); badge.className = 'mt-open'; badge.textContent = mOpen;
+      badge.title = mOpen + (mOpen === 1 ? ' meeting task' : ' meeting tasks') + ' to agree, adjust or drop';
+      title.appendChild(badge);
+    }
+    const mTodo = meetingTodo(c.id);
+    if (mTodo) {
+      const badge = document.createElement('span'); badge.className = 'mt-todo'; badge.textContent = mTodo;
+      badge.title = mTodo + (mTodo === 1 ? ' agreed meeting task' : ' agreed meeting tasks') + ' not built yet';
+      title.appendChild(badge);
+    }
     const meta = document.createElement('span'); meta.className = 'meta';
     meta.textContent = c.module ? `module · ${c.frames.length} frame${c.frames.length === 1 ? '' : 's'}`
       : (c.wide ? c.kind + ' · ' : '') + (c.steps > 1 ? c.steps + ' clicks' : (c.loopSeconds > 0 ? 'loop ' + clock(c.loopSeconds) : '1 click'));
@@ -948,6 +1238,7 @@
   }
 
   function renderNav() {
+    renderMeetingCount();
     nav.innerHTML = '';
     let number = 0;
     const numberOf = (ref) => (ref.on && info(ref.id)) ? String(++number) : '';
@@ -1100,7 +1391,7 @@
     if (!keepFields) it.value = intents[c.id] || '';
     it.oninput = () => { intents[c.id] = it.value; markDirty(true); renderNav(); };
     $('#intentHint').textContent = (show.intentsFile || 'show-intents.json') + (intents[c.id] ? '' : ' — nothing written yet');
-    if (!keepFields) { renderFeedback(c.id); renderSubs(c); }
+    if (!keepFields) { renderMeeting(c.id); renderFeedback(c.id); renderSubs(c); }
     renderMidi(c);
     $('#onBtn').textContent = ref.on ? 'skip slide' : 'play slide';
     $('#onBtn').disabled = archived;
@@ -1507,6 +1798,193 @@
     saveFeedback(); renderFeedback(selected); renderNav();
   }
 
+  // ---------- the meeting: what a walkthrough asked of each slide, decided a task at a time ----------
+  //
+  // Read off a meeting's transcript as tasks, one list a slide (show-meeting-tasks.json). Each task is
+  // agreed (akkoord), adjusted by editing it — the wording it was first read as is kept — or dropped,
+  // and new ones are added under them. It is apart from the feedback on purpose: a feedback note is
+  // the user's own, a meeting task is a reading of what was said, to be agreed before it is built.
+  // Saved the moment something is decided, like the feedback; the deck never reads it.
+
+  const MEETING_KINDS = { wall: 'Wall', script: 'Script', check: 'Check', sound: 'Sound', event: 'Event' };
+  const MEETING_TIPS = {
+    wall: 'What is drawn on the wall or how the slide behaves',
+    script: 'Erik’s words: the subtitles and voice lines follow once he has written them',
+    check: 'A fact or a piece of content to get from Willy Naessens',
+    sound: 'For the sound designers',
+    event: 'Production: the evening, StudioBuik, rehearsals'
+  };
+  const meetingSlide = (id) => (meeting.slides && meeting.slides[id]) || null;
+  const meetingTasks = (id) => ((meetingSlide(id) || {}).tasks) || [];
+  const statusOf = (t) => t.status || 'open';
+  const meetingOpen = (id) => meetingTasks(id).filter(t => statusOf(t) === 'open').length;
+  // agreed (or added and agreed) and not built yet
+  const toBuild = (t) => statusOf(t) === 'approved' && !t.done;
+  const meetingTodo = (id) => meetingTasks(id).filter(toBuild).length;
+  const today = () => new Date().toISOString().slice(0, 10);
+  function meetingName() {
+    const ms = meeting.meetings || {}; const k = Object.keys(ms)[0];
+    return (k && ms[k].title) || 'Meeting';
+  }
+
+  async function saveMeeting() {
+    const r = await putFile('meeting', '/api/meeting', meeting);
+    if (r.ok) setStatus(`meeting saved — ${r.j.open} open`);
+    else setStatus('meeting not saved: ' + (r.j.error || r.status), true);
+  }
+
+  function renderMeetingCount() {
+    let open = 0, all = 0, todo = 0, done = 0;
+    Object.values(meeting.slides || {}).forEach(s => (s.tasks || []).forEach(t => {
+      all++; if (statusOf(t) === 'open') open++; if (toBuild(t)) todo++; if (t.done) done++;
+    }));
+    const g = $('#grpMeeting'); if (!g) return;
+    g.hidden = !all;
+    $('#meetingCap').textContent = meetingName().toLowerCase();
+    const parts = [];
+    if (open) parts.push(`${open} open`);
+    if (todo) parts.push(`${todo} to build`);
+    if (done) parts.push(`${done} done`);
+    $('#meetingNext').textContent = (parts.join(' · ') || `all ${all} decided`) + ' ▸';
+    $('#meetingNext').title = 'The next slide with a meeting task still to decide, or else one agreed and not built yet';
+  }
+
+  /** The next slide in the running order, after the selected one, with a task still open. */
+  function nextMeeting() {
+    const ids = visible().map(e => e.id).filter(id => info(id));
+    const from = ids.indexOf(selected);
+    for (const has of [meetingOpen, meetingTodo]) {
+      for (let k = 1; k <= ids.length; k++) {
+        const id = ids[(from + k + ids.length) % ids.length];
+        if (has(id)) { select(id); $('#meeting').scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+      }
+    }
+    setStatus('every meeting task is decided and built');
+  }
+
+  function mtChip(text, cls, title) {
+    const c = document.createElement('span'); c.className = cls; c.textContent = text; if (title) c.title = title; return c;
+  }
+  function mtButton(text, cls, title, fn) {
+    const b = document.createElement('button'); b.className = cls; b.textContent = text; b.title = title;
+    b.addEventListener('click', fn); return b;
+  }
+
+  function decide(id, t, status) {
+    if (statusOf(t) === status) { t.status = 'open'; delete t.decided; }
+    else { t.status = status; t.decided = today(); }
+    saveMeeting(); renderMeeting(id); renderNav();
+  }
+
+  function renderMeeting(id) {
+    const s = meetingSlide(id);
+    const tasks = meetingTasks(id);
+    $('#mtTitle').textContent = meetingName();
+    const count = (st) => tasks.filter(t => statusOf(t) === st).length;
+    const parts = [];
+    if (count('open')) parts.push(`${count('open')} open`);
+    if (count('approved')) parts.push(`${count('approved')} akkoord`);
+    const nDone = tasks.filter(t => t.done).length;
+    if (nDone) parts.push(`${nDone} done`);
+    if (count('dropped')) parts.push(`${count('dropped')} niet doen`);
+    $('#mtCount').textContent = parts.join(' · ');
+    const src = Object.values(meeting.meetings || {})[0];
+    $('#mtHint').textContent = (show.meetingFile || 'show-meeting-tasks.json') + (src && src.transcript ? ' · transcript ' + src.transcript : '');
+
+    const said = $('#mtSaid'); said.innerHTML = '';
+    ((s && s.said) || []).forEach(x => {
+      const p = document.createElement('div'); p.className = 'said';
+      p.appendChild(document.createTextNode(x.text));
+      if (x.at) p.appendChild(mtChip(x.at, 'at', 'Where in the recording'));
+      said.appendChild(p);
+    });
+
+    const box = $('#mtList'); box.innerHTML = '';
+    if (!tasks.length) {
+      const e = document.createElement('div'); e.className = 'none';
+      e.textContent = s ? 'No task for this slide from the meeting.' : 'Not discussed in the meeting. Add a task below if it needs one.';
+      box.appendChild(e);
+    }
+    const grown = [];
+    tasks.forEach((t, i) => box.appendChild(meetingRow(id, t, i, grown)));
+    grown.forEach(grow);
+  }
+
+  function meetingRow(id, t, i, grown) {
+    const status = statusOf(t);
+    const row = document.createElement('div'); row.className = 'mt ' + status + (t.done ? ' done' : '');
+    const kind = mtChip(MEETING_KINDS[t.kind] || t.kind || 'Task', 'kind ' + (t.kind || 'wall'), MEETING_TIPS[t.kind] || '');
+
+    const body = document.createElement('div');
+    const ta = document.createElement('textarea'); ta.rows = 1; ta.value = t.text || '';
+    ta.title = 'Edit to adjust the task — the wording it was first read as is kept';
+    ta.addEventListener('input', () => grow(ta));
+    ta.addEventListener('change', () => {
+      const text = ta.value.trim();
+      if (!text) { ta.value = t.text || ''; grow(ta); return; }
+      if (text === (t.text || '')) return;
+      if (t.original === undefined && !t.added) t.original = t.text;
+      t.text = text;
+      if (t.original !== undefined && t.original === text) delete t.original;
+      saveMeeting(); renderMeeting(id);
+    });
+    body.appendChild(ta); grown.push(ta);
+
+    const meta = document.createElement('div'); meta.className = 'meta';
+    if (t.reading) meta.appendChild(mtChip('interpretation', 'reading', 'Read into the meeting rather than said outright — confirm before building'));
+    if (t.at) meta.appendChild(mtChip('@ ' + t.at, 'at', 'Where in the recording'));
+    if (t.where) meta.appendChild(mtChip(t.where, 'where', 'Where in the code'));
+    if (t.added) meta.appendChild(mtChip('added ' + t.added, 'added', 'Added in the organizer'));
+    if (t.original !== undefined) meta.appendChild(mtChip('adjusted', 'edited', 'Was: ' + t.original));
+    if (t.decided) meta.appendChild(mtChip((status === 'approved' ? 'akkoord ' : status === 'dropped' ? 'niet doen ' : '') + t.decided, 'when'));
+    if (t.done) meta.appendChild(mtChip('done ' + t.done, 'done', 'Built as agreed'));
+    if (meta.childNodes.length) body.appendChild(meta);
+    if (t.original !== undefined) {
+      const was = document.createElement('div'); was.className = 'was'; was.textContent = 'was: ' + t.original; body.appendChild(was);
+    }
+
+    // what was done about it, once it has been built
+    if (t.doneNote) { const did = document.createElement('div'); did.className = 'did'; did.textContent = (t.done ? '✓ ' : '… ') + t.doneNote; body.appendChild(did); }
+
+    // a remark under the task, added to it rather than written over it
+    const note = document.createElement('textarea'); note.className = 'note'; note.rows = 1;
+    note.value = t.note || ''; note.placeholder = 'A remark on this task…'; note.hidden = !t.note;
+    note.addEventListener('input', () => grow(note));
+    note.addEventListener('change', () => { const v = note.value.trim(); if (v) t.note = v; else delete t.note; saveMeeting(); });
+    body.appendChild(note); if (!note.hidden) grown.push(note);
+
+    const acts = document.createElement('div'); acts.className = 'acts';
+    acts.appendChild(mtButton(status === 'approved' ? 'akkoord ✓' : 'akkoord', 'ok' + (status === 'approved' ? ' on' : ''),
+      status === 'approved' ? 'Agreed — click to take it back' : 'Agree: this is what should be done', () => decide(id, t, 'approved')));
+    acts.appendChild(mtButton(status === 'dropped' ? 'niet doen ✓' : 'niet doen', 'no' + (status === 'dropped' ? ' on' : ''),
+      status === 'dropped' ? 'Dropped — click to take it back' : 'Drop it: not to be done', () => decide(id, t, 'dropped')));
+    if (t.done || status === 'approved') acts.appendChild(mtButton(t.done ? 'done ✓' : 'done', 'dn' + (t.done ? ' on' : ''),
+      t.done ? 'Built — click to take it back to to-do' : 'Mark it built', () => {
+        if (t.done) delete t.done; else t.done = today();
+        saveMeeting(); renderMeeting(id); renderNav();
+      }));
+    if (note.hidden) acts.appendChild(mtButton('+ remark', 'quiet', 'Add a remark under this task', () => { note.hidden = false; note.focus(); grow(note); }));
+    if (t.added) acts.appendChild(mtButton('×', 'quiet', 'Delete this task (only one added here)', () => {
+      meetingTasks(id).splice(i, 1); saveMeeting(); renderMeeting(id); renderNav();
+    }));
+    row.append(kind, body, acts);
+    return row;
+  }
+
+  function addMeetingTask() {
+    if (!selected) return;
+    const ta = $('#mtNew');
+    const text = ta.value.trim();
+    if (!text) return;
+    const slides = meeting.slides || (meeting.slides = {});
+    const s = slides[selected] || (slides[selected] = { said: [], tasks: [] });
+    if (!s.tasks) s.tasks = [];
+    const key = Object.keys(meeting.meetings || {})[0];
+    s.tasks.push({ id: 'add-' + Date.now().toString(36), meeting: key, kind: $('#mtKind').value, text, status: 'open', added: today() });
+    ta.value = ''; grow(ta);
+    saveMeeting(); renderMeeting(selected); renderNav();
+  }
+
   async function save(force) {
     // a module's chapter follows where it stands in the order, so the file's fallback is right
     for (const m of modules) if (findRef(m.id)) m.chapter = chapterOf(m.id);
@@ -1524,11 +2002,7 @@
       // the intents next: they change no slide, so nothing downstream waits on them
       const n = await write('intents', '/api/intents', { note: (show.intents && show.intents.note) || undefined, intents });
       if (failed(n)) return stop(n);
-      // the subtitles: the wall says the new lines at once, in subtitle mode
-      const st = await write('subtitles', '/api/subtitles', { note: (show.subtitles && show.subtitles.note) || undefined, subtitles });
-      if (failed(st)) return stop(st);
-      const sx = await write('subtitlesExtended', '/api/subtitles?track=extended', { note: (show.subtitlesExtended && show.subtitlesExtended.note) || undefined, subtitles: subtitlesExt });
-      if (failed(sx)) return stop(sx);
+      // the subtitles are not the button's: each line is written as it is typed (setLine)
       const r = await write('order', '/api/order', fileForm());
       if (failed(r)) return stop(r);
       const left = held();
@@ -1549,10 +2023,11 @@
   // files. So a page that holds nothing unsaved reads a file again the moment another tab (or an
   // edit on disk) moves it, and one that does hold unsaved edits in it is told, and its save is
   // refused rather than written over the newer file.
-  const SAVED_WITH_BUTTON = ['order', 'modules', 'intents', 'subtitles', 'subtitlesExtended'];
+  const SAVED_WITH_BUTTON = ['order', 'modules', 'intents'];
   function fileName(k) {
     return ({ order: show.orderFile, modules: show.modulesFile, intents: show.intentsFile, subtitles: show.subtitlesFile,
-      subtitlesExtended: show.subtitlesExtendedFile, feedback: show.feedbackFile, midi: show.midiFile })[k] || k;
+      subtitlesExtended: show.subtitlesExtendedFile, feedback: show.feedbackFile, midi: show.midiFile, meeting: show.meetingFile,
+      subtitleFeedback: show.subtitleFeedbackFile })[k] || k;
   }
   /** Takes the files' contents off a /api/show answer: all of them, or the [only] named. */
   function readFiles(s, only) {
@@ -1579,6 +2054,8 @@
     }
     if (want('feedback')) { feedback = {}; Object.entries((s.feedback && s.feedback.feedback) || {}).forEach(([id, ns]) => feedback[id] = ns.map(n => ({ ...n }))); }
     if (want('midi')) midiWanted = new Set(((s.midi && s.midi.midi) || []));
+    if (want('meeting')) { meeting = JSON.parse(JSON.stringify(s.meeting || {})); if (!meeting.slides) meeting.slides = {}; }
+    if (want('subtitleFeedback')) { subFeedback = JSON.parse(JSON.stringify(s.subtitleFeedback || {})); if (!subFeedback.lines) subFeedback.lines = {}; }
     if (want('order')) {
       order = fromFile(s.order.order);
       archive = (s.order.archive || []).map(id => ({ id, on: true }));
@@ -1593,7 +2070,10 @@
    */
   async function checkFiles(now) {
     if (!now || !revs || rereading || writing) return;
-    const moved = Object.keys(now).filter(k => k in revs && revs[k] !== now[k] && !movedFiles.includes(k));
+    // a subtitle file with lines of this page's still to write is left to that save, which reads it
+    // again itself and lays the lines over it
+    const writingSubs = SUB_KEYS.filter(k => subPending(k === 'subtitles' ? 'default' : 'extended')).concat(fbPending() ? ['subtitleFeedback'] : []);
+    const moved = Object.keys(now).filter(k => k in revs && revs[k] !== now[k] && !movedFiles.includes(k) && !writingSubs.includes(k));
     if (!moved.length) return;
     rereading = true;
     const e = epoch;
@@ -1601,7 +2081,9 @@
       const fresh = await (await fetch('/api/show')).json();
       if (writing || e !== epoch || !fresh.revs) return;   // a save began meanwhile; the next poll looks again
       const held = dirty ? moved.filter(k => SAVED_WITH_BUTTON.includes(k)) : [];
-      const read = dirty ? moved.filter(k => !held.includes(k)) : null;
+      let read = dirty ? moved.filter(k => !held.includes(k)) : null;
+      const pendingNow = SUB_KEYS.filter(k => subPending(k === 'subtitles' ? 'default' : 'extended')).concat(fbPending() ? ['subtitleFeedback'] : []);
+      if (pendingNow.length) read = (read || Object.keys(fresh.revs)).filter(k => !pendingNow.includes(k));
       show = fresh; byId = {}; show.catalogue.forEach(c => byId[c.id] = c);
       if (show.previewStamp) stamp = show.previewStamp;
       readFiles(fresh, read);
@@ -1611,6 +2093,8 @@
       for (const k of (read || Object.keys(fresh.revs))) revs[k] = fresh.revs[k];
       renderNav(); renderDetail(); renderExport(lastState); renderVoiceCount();
       renderStale();
+      if (moved.some(k => SUB_KEYS.includes(k)) || moved.includes('order')) renderScript();
+      else if (moved.includes('subtitleFeedback')) { repaintFeedback(); renderScriptTodo(); }
       const names = moved.map(fileName).join(', ');
       if (held.length) setStatus(`${held.map(fileName).join(', ')} changed elsewhere while this page has unsaved edits — see the note above`, true);
       else setStatus(`${names} changed elsewhere — read again`);
@@ -1622,9 +2106,10 @@
     const fresh = await (await fetch('/api/show')).json();
     markDirty(false); movedFiles = [];
     show = fresh; byId = {}; show.catalogue.forEach(c => byId[c.id] = c);
+    subEdits.default.clear(); subEdits.extended.clear();
     readFiles(fresh);
     revs = fresh.revs ? Object.assign({}, fresh.revs) : null;
-    renderNav(); renderDetail(); renderExport(lastState); renderStale();
+    renderNav(); renderDetail(); renderExport(lastState); renderStale(); renderScript();
     setStatus('read the files again');
   }
 
@@ -1753,7 +2238,9 @@
       const s = await (await fetch('/api/state')).json();
       // a poll sent across one of this page's own writes may report the file as it was before it
       if (e === epoch && !writing) checkFiles(s.revs);
-      if (!renderPresentation(s)) return;
+      renderColours(s.colours);
+      renderAutoplay(s);
+      if (!renderPresentation(s)) { renderScriptLive(); return; }
       $('#live').classList.add('on'); $('#liveText').textContent = 'live · ' + (s.id || '') + (s.steps > 1 ? ` · click ${s.step}/${s.steps - 1}` : '');
       lastState = s;
       if (s.id !== liveId) {
@@ -1774,11 +2261,13 @@
       const cb = $('#concreteBtn'); cb.hidden = !s.hasConcrete;
       cb.classList.toggle('primary', !!s.concrete); cb.textContent = s.concrete ? 'concrete: on' : 'concrete: off';
       renderMute(s.muted);
+      renderPractice(s.practice);
       renderSubMode(s.subtitles);
       renderVoiceMode(s.voice);
       renderMix(s.mix);
       renderSubTrack(s.subtitleTrack);
       renderSubLive();
+      renderScriptLive();
       const gb = $('#gridBtn'); gb.classList.toggle('primary', !!s.grid); gb.textContent = s.grid ? 'grid: on' : 'grid: off';
       renderExport(s);
       if (wasExporting && !s.exporting) setStatus(`export done — see ${(show.midiDir || 'midi')}/`);
@@ -1820,6 +2309,7 @@
     if (was !== liveOK) { renderDetail(); renderExport(s); }
     if (!liveOK) {
       renderMute(p.muted);
+      renderPractice(p.practice);
       renderSubMode(p.subtitles);
       renderVoiceMode(p.voice);
       renderMix(p.mix);
@@ -1906,13 +2396,12 @@
       ta.value = mine[k] || '';
       const cards = document.createElement('div'); cards.className = 'cards';
       ta.addEventListener('input', () => {
-        const m = track[c.id] || (track[c.id] = {});
-        if (ta.value.trim()) m[k] = ta.value; else delete m[k];
-        if (!Object.keys(m).length) delete track[c.id];
-        markDirty(true); grow(ta); subCards(cards, ta.value);
+        setLine(editTrack, c.id, k, ta.value);
+        grow(ta); subCards(cards, ta.value);
         $('#subCount').textContent = track[c.id] ? `${Object.values(track[c.id]).length} of ${c.steps}` : '';
         const card = nav.querySelector(`.card[data-id="${CSS.escape(c.id)}"]`); if (card && !!card.querySelector('.cc') !== hasSubtitles(c.id)) renderNav();
       });
+      ta.addEventListener('blur', flushSubs);
       row.appendChild(ta); row.appendChild(cards);
       list.appendChild(row);
       requestAnimationFrame(() => grow(ta));
@@ -2000,6 +2489,7 @@
           $('#voicePlaySlide').disabled = !n;
         }
         markPlaying();
+        loadVoiceTexts();
       }
     } catch (e) { /* the organizer restarting; the next poll finds it */ }
     renderVoiceCount();
@@ -2023,15 +2513,15 @@
     const c = selected && info(selected); if (!c) return;
     const notes = subtitleNotes(c); if (!notes.length) return;
     const track = subsOf(editTrack);
-    const m = track[c.id] || (track[c.id] = {});
     let filled = 0;
     notes.forEach((note, i) => {
       const k = STATE(Math.min(i, c.steps - 1));
-      if ((m[k] || '').trim()) { if (i >= c.steps - 1 && !m[k].includes(note)) { m[k] = m[k].trim() + ' ' + note; filled++; } return; }
-      m[k] = note; filled++;
+      const was = (track[c.id] || {})[k] || '';
+      if (was.trim()) { if (i >= c.steps - 1 && !was.includes(note)) { setLine(editTrack, c.id, k, was.trim() + ' ' + note); filled++; } return; }
+      setLine(editTrack, c.id, k, note); filled++;
     });
-    markDirty(true); renderNav(); renderDetail();
-    setStatus(filled ? `${filled} line${filled === 1 ? '' : 's'} taken from the speaker notes — check them and save` : 'every state already has a line');
+    renderNav(); renderDetail();
+    setStatus(filled ? `${filled} line${filled === 1 ? '' : 's'} taken from the speaker notes and saved — check them` : 'every state already has a line');
   });
   document.querySelectorAll('#subTabs button').forEach(b => b.addEventListener('click', () => {
     stopVoice();
@@ -2053,6 +2543,72 @@
     if (editTrack !== track) { editTrack = track; const c = selected && info(selected); if (c) renderSubs(c); }
     await post('/api/subtitle-track', { track });
   });
+  // ---------- the house colours ----------
+  //
+  // Global to the project: the show paints every red and every blue in these. Dragging a swatch
+  // shows the colour on the running wall at once; letting go (or ⏎ in the hex field) saves it for the
+  // next start. Only the colour moved is sent, so two pages cannot put back each other's other colour.
+  let colourTouched = 0;
+  const colourTimer = {};
+  // WN's own red and blue, which ↺ goes back to: the show's, once it has said them.
+  const colourDefault = { red: 'FF0000', blue: '023F88' };
+  /** ↺ is dimmed while the colour already is WN's own. */
+  function renderResets() {
+    for (const k of ['red', 'blue']) $('#' + k + 'Reset').disabled = hexOf($('#' + k + 'Pick').value) === colourDefault[k];
+  }
+  function renderColours(c) {
+    if (!c) return;
+    if (c.defaultRed) colourDefault.red = c.defaultRed;
+    if (c.defaultBlue) colourDefault.blue = c.defaultBlue;
+    if (Date.now() - colourTouched < 1500) return;   // not while a swatch is being moved
+    for (const k of ['red', 'blue']) {
+      const pick = $('#' + k + 'Pick'), text = $('#' + k + 'Hex');
+      if (pick.value.toUpperCase() !== '#' + c[k]) pick.value = '#' + c[k].toLowerCase();
+      if (document.activeElement !== text) { text.value = c[k]; text.classList.remove('bad'); }
+    }
+    $('#colourNote').hidden = c.red === c.builtRed && c.blue === c.builtBlue;
+    renderResets();
+  }
+  function hexOf(v) {
+    const h = (v || '').trim().replace(/^#/, '').toUpperCase();
+    if (/^[0-9A-F]{6}$/.test(h)) return h;
+    if (/^[0-9A-F]{3}$/.test(h)) return h.split('').map(x => x + x).join('');
+    return null;
+  }
+  function sendColour(k, hex, save) {
+    colourTouched = Date.now();
+    clearTimeout(colourTimer[k]);
+    const send = () => post('/api/colours', { [k]: hex, save }).then(r => r.ok ? r.json() : null).then(c => {
+      if (!c) return;
+      $('#colourNote').hidden = c.red === c.builtRed && c.blue === c.builtBlue;
+      if (save) setStatus(`${k} #${hex} saved — every slide is built in it at the next start`);
+    }).catch(() => setStatus(`could not reach the show to set the ${k}`, true));
+    if (save) send(); else colourTimer[k] = setTimeout(send, 30);
+  }
+  for (const k of ['red', 'blue']) {
+    const pick = $('#' + k + 'Pick'), text = $('#' + k + 'Hex');
+    pick.addEventListener('input', () => { const h = hexOf(pick.value); text.value = h; text.classList.remove('bad'); sendColour(k, h, false); });
+    pick.addEventListener('change', () => sendColour(k, hexOf(pick.value), true));
+    text.addEventListener('input', () => {
+      const h = hexOf(text.value);
+      text.classList.toggle('bad', !h);
+      if (h) { pick.value = '#' + h.toLowerCase(); sendColour(k, h, false); }
+    });
+    const commit = () => { const h = hexOf(text.value); if (h) sendColour(k, h, true); };
+    text.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') { commit(); text.blur(); } });
+    text.addEventListener('change', commit);
+    pick.addEventListener('input', renderResets);
+    text.addEventListener('input', renderResets);
+    // Back to WN's own, and saved at once, as letting go of the swatch saves.
+    $('#' + k + 'Reset').addEventListener('click', ev => {
+      ev.currentTarget.blur();
+      const h = colourDefault[k];
+      pick.value = '#' + h.toLowerCase(); text.value = h; text.classList.remove('bad');
+      renderResets();
+      sendColour(k, h, true);
+    });
+  }
+
   // ---------- the mix ----------
   //
   // A fader per layer. The checkbox mutes a layer without losing where its fader stood: off sends
@@ -2140,11 +2696,29 @@
     await post('/api/mute', { on });
   });
 
+  // ---------- practice mode: the clicker's special buttons ----------
+  let practice = false;
+  function renderPractice(on) {
+    practice = !!on;
+    const b = $('#practiceBtn');
+    b.textContent = practice ? 'practice mode: on' : 'practice mode: off';
+    b.classList.toggle('primary', practice);
+  }
+  $('#practiceBtn').addEventListener('click', async ev => {
+    ev.currentTarget.blur();   // left focused, a clicker's key in the browser could press it again
+    const on = !practice;
+    renderPractice(on);   // at once, rather than on the next poll
+    await post('/api/practice', { on });
+  });
+
   $('#projectionBtn').addEventListener('click', async () => {
     await post('/api/presentation', { action: 'projection' });
     poll();
   });
   $('#presentBtn').addEventListener('click', async ev => {
+    // Let go of the focus: left on the button, which now reads ■ stop, a stray Enter or Space in
+    // the browser — a clicker, a keyboard — would stop the show it has just started.
+    ev.currentTarget.blur();
     const running = $('#presentBtn').textContent.startsWith('■');
     const body = running ? { action: 'stop' } : { action: 'start', ...(ev.shiftKey && selected ? { id: selected } : {}) };
     await post('/api/presentation', body);
@@ -2191,6 +2765,13 @@
     lastState.concrete = on; $('#concreteBtn').classList.toggle('primary', on); $('#concreteBtn').textContent = on ? 'concrete: on' : 'concrete: off';
   });
   $('#fbAdd').addEventListener('click', addFeedback);
+  $('#mtAdd').addEventListener('click', addMeetingTask);
+  $('#mtNew').addEventListener('input', (ev) => grow(ev.target));
+  $('#mtNew').addEventListener('keydown', (ev) => {
+    // ⏎ adds the task, ⇧⏎ is a new line inside it
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); addMeetingTask(); }
+  });
+  $('#meetingNext').addEventListener('click', nextMeeting);
   $('#fbNew').addEventListener('input', (ev) => grow(ev.target));
   $('#fbNew').addEventListener('keydown', (ev) => {
     // ⏎ adds the note, ⇧⏎ is a new line inside it
@@ -2209,7 +2790,732 @@
   $('#picker').addEventListener('click', (ev) => { if (ev.target.id === 'picker') closePicker(); });
   $('#followBtn').classList.add('primary');
 
+  // ---------- subtitles are saved as they are typed ----------
+  //
+  // A line is written half a second after typing pauses, and at once when its field is left —
+  // in the Subtitles tab and in a slide's own pane alike — so the wall says it straight away and
+  // there is nothing to remember to save. Only the lines this page changed are kept apart: when
+  // another tab has written the file since, the save reads it again and lays those lines over it,
+  // rather than putting this page's whole copy back over the other tab's.
+  const SUB_KEYS = ['subtitles', 'subtitlesExtended'];
+  const subEdits = { default: new Map(), extended: new Map() };   // 'id\tLETTER' -> text ('' for removed)
+  const subTimer = {}, subBusy = {}, subAgain = {};
+  let subSaved = null, subError = '';
+  function subPending(track) { return subEdits[track].size > 0 || !!subBusy[track]; }
+  /** One line of a track, as typed: into the page's copy now, into the file a moment later. */
+  function setLine(track, id, k, text) {
+    const t = subsOf(track);
+    const m = t[id] || (t[id] = {});
+    if (text.trim()) m[k] = text; else delete m[k];
+    if (!Object.keys(m).length) delete t[id];
+    subEdits[track].set(id + '\t' + k, text.trim() ? text : '');
+    clearTimeout(subTimer[track]);
+    subTimer[track] = setTimeout(() => saveSubs(track), 500);
+    renderScriptSave();
+  }
+  function flushSubs() { for (const t of ['default', 'extended']) if (subEdits[t].size) saveSubs(t); }
+  async function saveSubs(track) {
+    clearTimeout(subTimer[track]);
+    if (subBusy[track]) { subAgain[track] = true; return; }
+    if (!subEdits[track].size) return;
+    subBusy[track] = true; renderScriptSave();
+    const key = track === 'extended' ? 'subtitlesExtended' : 'subtitles';
+    const url = track === 'extended' ? '/api/subtitles?track=extended' : '/api/subtitles';
+    const body = () => ({ note: (show[key] && show[key].note) || undefined, subtitles: subsOf(track) });
+    const sent = new Map(subEdits[track]);
+    writing++; epoch++;
+    try {
+      let r = await putFile(key, url, body());
+      if (r.status === 409) {
+        // written elsewhere since this page read it: read it again and lay this page's lines over it
+        const fresh = await (await fetch('/api/show')).json();
+        show[key] = fresh[key];
+        readFiles(fresh, [key]);
+        const t = subsOf(track);
+        for (const [ik, text] of subEdits[track]) {
+          const [id, k] = ik.split('\t');
+          const m = t[id] || (t[id] = {});
+          if (text) m[k] = text; else delete m[k];
+          if (!Object.keys(m).length) delete t[id];
+        }
+        if (revs && fresh.revs) revs[key] = fresh.revs[key];
+        r = await putFile(key, url, body());
+        if (r.ok) setStatus(`${fileName(key)} had changed elsewhere — read again, and these lines written over it`);
+      }
+      if (r.ok) {
+        for (const [ik, text] of sent) if (subEdits[track].get(ik) === text) subEdits[track].delete(ik);
+        subSaved = new Date(); subError = '';
+      } else subError = (r.j && r.j.error) || ('HTTP ' + r.status);
+    } catch (e) { subError = 'the organizer did not answer'; }
+    finally { writing--; epoch++; subBusy[track] = false; }
+    renderScriptSave();
+    if (subAgain[track]) { subAgain[track] = false; saveSubs(track); }
+    else if (subError && subEdits[track].size) subTimer[track] = setTimeout(() => saveSubs(track), 3000);
+  }
+
+  // ---------- the Subtitles tab: the whole talk as one script ----------
+  //
+  // Every state of the running order is a line of one document, under its slide, chapter and
+  // moment — the extended track by default, the default track, or the two side by side. The line
+  // the show is on is marked and kept in view, so clicking through the presentation walks down the
+  // script; a line being edited when the show moves on hands the caret to the next one. Edits go
+  // through setLine above, so each is in the file and on the wall a moment after it is typed.
+  let scriptTrack = 'extended';
+  try { const t = localStorage.getItem('organizer-script-track'); if (['extended', 'default', 'both'].includes(t)) scriptTrack = t; } catch (e) {}
+  // what side by side compares: either track, and the voice-over script as delivered
+  let scriptCompare = new Set(['extended', 'default']);
+  try { const c = JSON.parse(localStorage.getItem('organizer-script-compare') || 'null'); if (Array.isArray(c) && c.some(x => x === 'extended' || x === 'default')) scriptCompare = new Set(c); } catch (e) {}
+  let scriptFollow = true;
+  let scriptSig = '';            // the running order, state counts and track the document was built for
+  let scriptLiveKey = null;      // 'id-LETTER' of the line the show is on
+  let scriptStale = false;       // a rebuild waiting for the field being typed in to be left
+  let scriptScrollDue = false;   // a scroll to the live line waiting for the same
+  let voiceTextsAt = 0;
+  const voiceTexts = { default: {}, extended: {} };   // 'id-LETTER' -> the text its voice was rendered from
+  const scriptPlayer = new Audio(); let scriptPlaying = null;
+  const scriptVisible = () => document.body.classList.contains('view-subtitles');
+  const tracksShown = () => scriptTrack === 'both' ? ['extended', 'default'].filter(t => scriptCompare.has(t)) : [scriptTrack];
+  const scriptShown = () => scriptTrack === 'both' && scriptCompare.has('script');
+  const voicedIn = tr => (show && show.voice && show.voice[tr]) || {};
+  const letterIndex = k => { let n = 0; for (const ch of k) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; };
+  function scriptTyping() {
+    const a = document.activeElement;
+    return !!(a && a.closest && a.closest('#scriptDoc') && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && a.classList.contains('fbin'))));
+  }
+  function scriptSignature() {
+    return scriptTrack + '|' + [...scriptCompare].sort().join('+') + '|' + playing().map(id => id + ':' + ((info(id) || {}).steps || 1)).join(',');
+  }
+
+  function renderScript() {
+    if (!show || !order || !scriptVisible()) return;
+    if (scriptTyping()) { scriptStale = true; return; }
+    scriptStale = false;
+    const doc = $('#scriptDoc'), scroller = $('#script'), keep = scroller.scrollTop;
+    doc.innerHTML = '';
+    const cols = tracksShown();
+    doc.classList.toggle('both', scriptTrack === 'both');
+    doc.classList.toggle('md', scriptShown());
+    doc.style.setProperty('--cols', cols.length);
+    doc.style.setProperty('--trackfr', cols.length + 'fr');
+    document.querySelectorAll('#scriptTracks button').forEach(b => b.classList.toggle('on', b.dataset.track === scriptTrack));
+    $('#scriptCompare').hidden = scriptTrack !== 'both';
+    document.querySelectorAll('#scriptCompare button').forEach(b => {
+      b.classList.toggle('on', scriptCompare.has(b.dataset.col));
+      // a track has to stay: the script alone has no states to edit
+      b.disabled = b.dataset.col !== 'script' && scriptCompare.has(b.dataset.col) && cols.length === 1;
+    });
+    if (scriptTrack === 'both') {
+      const label = { extended: 'extended — the talk as given', default: 'default — the script on the states' };
+      const h = document.createElement('div'); h.className = 'colhead';
+      const tr = document.createElement('div'); tr.className = 'tracks';
+      tr.appendChild(document.createElement('span'));
+      cols.forEach(c => { const sp = document.createElement('span'); sp.textContent = label[c]; tr.appendChild(sp); });
+      h.appendChild(tr);
+      if (scriptShown()) { const sp = document.createElement('span'); sp.textContent = 'WN-Voice over.md — as delivered'; h.appendChild(sp); }
+      doc.appendChild(h);
+    }
+    bookTimes = draaiboekTimes();
+    let chapter = 0, any = false;
+    const walk = (list) => {
+      for (const e of list) {
+        if (e.group) {
+          if (!flatten(e.entries).some(x => x.on && byId[x.id])) continue;
+          const h = document.createElement('div');
+          if (e.moment) { h.className = 'sm'; h.textContent = e.title; }
+          else if (!e.sub) { chapter++; h.className = 'sc'; const n = document.createElement('span'); n.className = 'n'; n.textContent = chapter; h.append(n, e.title); }
+          else { h.className = 'sx'; h.textContent = e.title; }
+          const t = !e.sub && bookTimes.get((e.moment ? 'moment|' : 'chapter|') + e.title);
+          if (t && t.start != null) h.appendChild(sectionWhen(t, e));
+          doc.appendChild(h);
+          if (t && t.course) {
+            const [g, clear] = t.course;
+            const c = document.createElement('div'); c.className = 'gang';
+            c.textContent = `${hhmm(g.start)} ${g.title.split(':')[0].trim()}${g.minutes ? ` (${g.minutes} min)` : ''}` +
+              (clear && clear.start != null ? ` · ${hhmm(clear.start)} uithalen${clear.minutes ? ` (${clear.minutes} min)` : ''}` : '');
+            if (g.what) c.title = g.what;
+            doc.appendChild(c);
+          }
+          walk(e.entries);
+        } else if (e.on && byId[e.id]) { doc.appendChild(scriptSlide(e.id)); any = true; }
+      }
+    };
+    walk(order);
+    if (!any) { const p = document.createElement('div'); p.id = 'scriptEmpty'; p.textContent = 'Nothing in the running order yet.'; doc.appendChild(p); }
+    scriptSig = scriptSignature();
+    doc.style.setProperty('--barh', $('#scriptBar').offsetHeight + 'px');
+    if (!CSS.supports('field-sizing', 'content')) {
+      // grown in two passes, so the whole document is laid out twice rather than once a line
+      const tas = [...doc.querySelectorAll('textarea')];
+      tas.forEach(t => t.style.height = 'auto');
+      const hs = tas.map(t => t.scrollHeight + 2);
+      tas.forEach((t, i) => t.style.height = hs[i] + 'px');
+    }
+    scroller.scrollTop = keep;
+    if (!voiceTextsAt) loadVoiceTexts();
+    renderScriptCount(); renderScriptSave(); renderScriptTodo();
+    renderScriptLive(true);
+  }
+
+  // ---------- the draaiboek's times ----------
+  //
+  // The Show tab of the production's draaiboek, read by the organizer (/api/draaiboek, Draaiboek.kt)
+  // and laid on this order here: a chapter by its number ("Hoofdstuk 2"), a course — a moment that
+  // opens on StudioBuik's wall — by its place among the courses ("Gang 3", with the "Uithalen" after
+  // it), and the other moments by the rows named below. tools/subtitle_notes_pdf.py does the same for
+  // the printed sheets (section_times); the two are kept to one rule.
+  const BOOK_ROWS = { Arrival: [/^Ontvangst/, /^Loop door/], Opening: [/^Opening/], Questions: [/Cases/], Exit: [/^Afsluitwoord/, /^Uitloop/] };
+  let book = null, bookTimes = new Map(), bookSig = '';
+  const hhmm = m => m == null ? '' : `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  function draaiboekTimes() {
+    const out = new Map();
+    if (!book || !book.found || !order) return out;
+    const parts = book.parts || [];
+    const span = rows => {
+      const st = rows.map(r => r.start).filter(x => x != null), en = rows.map(r => r.end).filter(x => x != null);
+      return { start: st.length ? Math.min(...st) : null, end: en.length ? Math.max(...en) : null, rows };
+    };
+    const tops = order.filter(e => e.group && !e.sub);
+    tops.filter(e => !e.moment).forEach((e, i) => {
+      const rows = parts.filter(r => new RegExp(`^Hoofdstuk\\s*${i + 1}\\b`).test(r.title));
+      if (rows.length) out.set('chapter|' + e.title, span(rows));
+    });
+    tops.filter(e => e.moment && flatten(e.entries).some(x => x.id.startsWith('studiobuik-'))).forEach((e, i) => {
+      const at = parts.findIndex(r => new RegExp(`^Gang\\s*${i + 1}\\b`).test(r.title));
+      if (at < 0) return;
+      const next = parts[at + 1], clear = next && /^uithalen/i.test(next.title) ? next : null;
+      out.set('moment|' + e.title, Object.assign(span(clear ? [parts[at], clear] : [parts[at]]), { course: [parts[at], clear] }));
+    });
+    for (const [name, pats] of Object.entries(BOOK_ROWS)) {
+      const rows = parts.filter(r => pats.some(p => p.test(r.title)));
+      if (rows.length && tops.some(e => e.moment && e.title === name)) out.set('moment|' + name, span(rows));
+    }
+    return out;
+  }
+  /** How long a section's lines take to say on the track shown first: the voice where rendered, else the reading pace. */
+  function sectionSeconds(e) {
+    const tr = tracksShown()[0], t = subsOf(tr), voiced = voicedIn(tr);
+    let secs = 0;
+    for (const x of flatten(e.entries)) {
+      if (!x.on || !byId[x.id]) continue;
+      const steps = Math.max(1, (info(x.id) || {}).steps || 1);
+      for (let s = 0; s < steps; s++) {
+        const k = STATE(s), text = ((t[x.id] || {})[k] || '').trim();
+        if (!text) continue;
+        secs += voiced[x.id + '-' + k] || text.length / 15;
+      }
+    }
+    return secs;
+  }
+  function sectionWhen(t, e) {
+    const w = document.createElement('span'); w.className = 'when';
+    w.append(hhmm(t.start) + (t.end != null ? ' – ' + hhmm(t.end) : ''));
+    const slot = t.end != null ? t.end - t.start : null;
+    if (slot) { const s = document.createElement('span'); s.className = 'slot'; s.textContent = ` · ${slot} min`; w.appendChild(s); }
+    const secs = t.course ? 0 : sectionSeconds(e);
+    if (secs > 0) {
+      const s = document.createElement('span');
+      const over = slot && secs > slot * 60;
+      s.className = 'said' + (over ? ' over' : '');
+      s.textContent = ` · ${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, '0')} gesproken`;
+      s.title = `How long the ${tracksShown()[0]} lines here take to say: the rendered voice where there is one, else 15 characters a second.` +
+        (over ? ' Longer than the draaiboek gives this part.' : '');
+      w.appendChild(s);
+    }
+    w.title = t.rows.map(r => `${hhmm(r.start)}${r.end != null ? '–' + hhmm(r.end) : ''}  ${r.title}`).join('\n');
+    return w;
+  }
+  async function loadBook() {
+    try {
+      const r = await fetch('/api/draaiboek', { cache: 'no-store' });
+      if (!r.ok) return;
+      const b = await r.json(), sig = JSON.stringify(b);
+      if (sig === bookSig) return;
+      book = b; bookSig = sig;
+      const el = $('#scriptBook');
+      el.classList.toggle('warn', !b.found);
+      el.textContent = b.found ? `draaiboek: ${b.tab}` : 'no draaiboek';
+      el.title = b.found ? `Times from ${b.file}, tab “${b.tab}”${b.day ? ' — ' + b.day : ''}: read again every 15 seconds`
+                         : `${b.error || 'not found'} — set SLIDES_DRAAIBOEK in .env`;
+      bookTimes = draaiboekTimes();
+      renderScript();
+    } catch (e) { /* an organizer started before it served the draaiboek: no times, nothing else lost */ }
+  }
+  setInterval(() => { if (scriptVisible()) loadBook(); }, 15000);
+
+  function scriptSlide(id) {
+    const c = info(id);
+    const box = document.createElement('div'); box.className = 'sl'; box.dataset.id = id;
+    const head = document.createElement('div'); head.className = 'sh';
+    const t = document.createElement('span'); t.className = 't'; t.textContent = c.title || c.name || id;
+    head.appendChild(t);
+    const vo = (scriptTrack === 'default' ? voiceover : voiceoverExt)[id];
+    if (vo && vo.heading && vo.heading.trim().toLowerCase() !== (c.title || '').trim().toLowerCase()) {
+      const vh = document.createElement('span'); vh.className = 'vh'; vh.textContent = vo.heading;
+      if (vo.note) vh.title = vo.note;
+      head.appendChild(vh);
+    }
+    const code = document.createElement('code'); code.textContent = id; head.appendChild(code);
+    if (c.wide) { const tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = c.kind === 'scene' ? 'scene' : 'wall'; head.appendChild(tg); }
+    if (tracksShown().includes('default') && subDrafts.has(id)) {
+      const tg = document.createElement('span'); tg.className = 'tag draft'; tg.textContent = 'draft';
+      tg.title = 'Not in the voice-over script: the default track\'s lines here are a draft, to read through with the speaker';
+      head.appendChild(tg);
+    }
+    const go = document.createElement('button'); go.className = 'ghost go'; go.tabIndex = -1; go.textContent = 'go';
+    go.title = 'Put the show on this slide'; go.addEventListener('click', () => scriptGo(id, 0));
+    head.appendChild(go);
+    box.appendChild(head);
+    const steps = Math.max(1, c.steps || 1);
+    // a letter a track still carries past the slide's states is shown, dimmed, rather than hidden
+    let n = steps;
+    for (const tr of tracksShown()) for (const k of Object.keys(subsOf(tr)[id] || {})) if (/^[A-Z]+$/.test(k)) n = Math.max(n, letterIndex(k) + 1);
+    const body = document.createElement('div'); body.className = 'sb';
+    const lines = document.createElement('div'); lines.className = 'lines';
+    for (let s = 0; s < n; s++) lines.appendChild(scriptLine(id, s, s >= steps));
+    body.appendChild(lines);
+    if (scriptShown()) body.appendChild(scriptPassage(id));
+    box.appendChild(body);
+    return box;
+  }
+
+  function scriptLine(id, s, beyond) {
+    const k = STATE(s), key = id + '-' + k;
+    const row = document.createElement('div'); row.className = 'ln' + (beyond ? ' beyond' : '');
+    row.dataset.key = key; row.dataset.id = id; row.dataset.step = s;
+    const lt = document.createElement('button'); lt.className = 'lt'; lt.tabIndex = -1; lt.textContent = k;
+    lt.disabled = beyond;
+    lt.title = beyond ? 'Past this slide\'s states: kept in the file, never reached' : (s === 0 ? 'As the slide arrives' : 'Click ' + s) + ' — click to put the show here';
+    lt.addEventListener('click', () => scriptGo(id, s));
+    row.appendChild(lt);
+    for (const tr of tracksShown()) {
+      const cell = document.createElement('div'); cell.className = 'cell'; cell.dataset.track = tr;
+      const ta = document.createElement('textarea'); ta.rows = 1; ta.spellcheck = true; ta.lang = 'nl'; ta.dataset.track = tr;
+      ta.value = (subsOf(tr)[id] || {})[k] || '';
+      ta.placeholder = '—';
+      ta.addEventListener('input', () => {
+        setLine(tr, id, k, ta.value);
+        if (!CSS.supports('field-sizing', 'content')) grow(ta);
+        paintScriptMeta(cell); paintFeedback(cell); renderScriptCount(); renderScriptTodo();
+      });
+      ta.addEventListener('blur', flushSubs);
+      ta.addEventListener('keydown', (ev) => {
+        // a line is a paragraph: ⏎ goes on to the next line, ⇧⏎ back to the one before
+        if (ev.key !== 'Enter' || ev.metaKey || ev.ctrlKey || ev.altKey || ev.isComposing) return;
+        ev.preventDefault();
+        const all = [...document.querySelectorAll(`#scriptDoc textarea[data-track="${tr}"]`)];
+        const to = all[all.indexOf(ta) + (ev.shiftKey ? -1 : 1)];
+        if (to) { to.focus(); to.setSelectionRange(to.value.length, to.value.length); to.closest('.ln').scrollIntoView({ block: 'nearest' }); }
+      });
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const fbb = document.createElement('button'); fbb.className = 'fbb'; fbb.tabIndex = -1;
+      fbb.title = 'Feedback on this line, to improve it with later';
+      fbb.addEventListener('click', () => { cell._adding = true; paintFeedback(cell); });
+      const main = document.createElement('div'); main.className = 'main';
+      main.append(ta, meta, fbb);
+      const notes = document.createElement('div'); notes.className = 'lfb';
+      const list = document.createElement('div'); list.className = 'notes';
+      notes.appendChild(list);
+      cell.append(main, notes);
+      row.appendChild(cell);
+      paintScriptMeta(cell); paintFeedback(cell);
+    }
+    return row;
+  }
+
+  /**
+   * The passage of WN-Voice over.md this slide's default lines were placed from, as delivered —
+   * markdown stripped, nothing reworded — beside all of the slide's lines, since the script is
+   * written a slide at a time rather than a state at a time. Read only: it is the source.
+   */
+  function scriptPassage(id) {
+    const v = voiceover[id], text = ((v && v.text) || '').trim();
+    const p = document.createElement('div'); p.className = 'mdp' + (text ? '' : ' none');
+    if (!text) { p.textContent = subDrafts.has(id) ? 'Not in the script — the default lines are a draft.' : 'Not in the script.'; return p; }
+    if (v.heading) { const h = document.createElement('span'); h.className = 'h'; h.textContent = v.heading; p.appendChild(h); }
+    p.append(text);
+    if (v.unplaced && v.unplaced.length) p.title = 'In the script and on no state:\n' + v.unplaced.join('\n');
+    return p;
+  }
+
+  /** Under a line: its rendered voice, and whether that voice still says what is written. */
+  function paintScriptMeta(cell) {
+    const meta = cell.querySelector('.meta'), ta = cell.querySelector('textarea');
+    const tr = cell.dataset.track, key = cell.closest('.ln').dataset.key;
+    const voiced = voicedIn(tr), sec = voiced[key], text = (ta.value || '').trim();
+    meta.innerHTML = '';
+    meta.classList.toggle('off', !Object.keys(voiced).length);
+    cell.classList.toggle('needvoice', needsVoice(tr, key, ta.value));
+    if (!Object.keys(voiced).length) return;
+    if (sec) {
+      const b = document.createElement('button'); b.tabIndex = -1;
+      b.textContent = (scriptPlaying === tr + '/' + key ? '■ ' : '▶ ') + sec.toFixed(1) + 's';
+      b.title = 'Play the rendered voice for this line';
+      b.addEventListener('click', () => scriptPlay(tr, key, sec));
+      meta.appendChild(b);
+      const was = voiceTexts[tr][key];
+      if (was !== undefined && was.trim() !== text) {
+        const w = document.createElement('span'); w.className = 'stale';
+        w.textContent = text ? '♪ older text' : '♪ line removed';
+        w.title = `The voice was rendered from:\n“${was}”\n\nThe wall shows the new line at once; the voice says the old one until it is rendered again:\n` +
+          `tools/voiceover_render.py --engine piper --voice data/sounds/voice/piper/nl_BE-rdh-medium.onnx --track ${tr} --only ${cell.closest('.ln').dataset.id}`;
+        meta.appendChild(w);
+      }
+      if (((show.voice && show.voice.flagged) || []).includes(`${tr}/${key}`)) {
+        const f = document.createElement('span'); f.className = 'stale'; f.textContent = '⚠ check';
+        f.title = 'The best of its renders still did not read back cleanly: listen, and reword or re-render it';
+        meta.appendChild(f);
+      }
+    } else if (text) {
+      const n = document.createElement('span'); n.className = 'none'; n.textContent = '♪ not rendered';
+      n.title = 'No voice rendered for this line yet: with the voice on, the state is held for its reading time and nothing is said. Render it:\n' +
+        `tools/voiceover_render.py --engine piper --voice data/sounds/voice/piper/nl_BE-rdh-medium.onnx --track ${tr} --only ${cell.closest('.ln').dataset.id}`;
+      meta.appendChild(n);
+    }
+  }
+  function scriptPlay(tr, key, sec) {
+    const id = tr + '/' + key;
+    if (scriptPlaying === id) { scriptPlayer.pause(); scriptPlaying = null; }
+    else { scriptPlayer.src = `/voice/${tr}/${encodeURIComponent(key)}.wav?v=${sec}`; scriptPlaying = id; scriptPlayer.play().catch(() => { scriptPlaying = null; repaintScriptMeta(); }); }
+    repaintScriptMeta();
+  }
+  scriptPlayer.addEventListener('ended', () => { scriptPlaying = null; repaintScriptMeta(); });
+  function repaintScriptMeta() { document.querySelectorAll('#scriptDoc .cell').forEach(paintScriptMeta); }
+
+  // ---------- feedback on a line ----------
+  //
+  // A note against one line of one track, to improve the line with later: the day, the line as it
+  // read when written, and a tick once acted on. Kept in its own file (show-subtitle-feedback.json,
+  // SubtitleFeedback.kt), never in the track, so a note never reaches the wall. Written the moment a
+  // note is added, ticked or removed; the operations since the last save are kept, so a file another
+  // tab wrote meanwhile is read again and they are laid over it.
+  const fbOps = [];
+  let fbBusy = false, fbAgain = false, fbTimer = null, fbError = '';
+  const fbPending = () => fbOps.length > 0 || fbBusy;
+  const feedbackOf = (tr, key) => (((subFeedback.lines || {})[tr] || {})[key]) || [];
+  function fbApply(obj, op) {
+    obj.lines = obj.lines || {};
+    const t = obj.lines[op.track] = obj.lines[op.track] || {};
+    const list = t[op.key] = t[op.key] || [];
+    if (op.type === 'add') { if (!list.some(n => n.id === op.note.id)) list.push(Object.assign({}, op.note)); }
+    else {
+      const i = list.findIndex(n => n.id === op.id);
+      if (i >= 0 && op.type === 'del') list.splice(i, 1);
+      else if (i >= 0 && op.type === 'edit') { list[i].text = op.text; list[i].edited = op.at; }
+      else if (i >= 0) { if (op.done) list[i].done = true; else delete list[i].done; }
+    }
+    if (!list.length) delete t[op.key];
+    if (!Object.keys(t).length) delete obj.lines[op.track];
+  }
+  function fbDo(op) {
+    fbApply(subFeedback, op); fbOps.push(op);
+    clearTimeout(fbTimer); fbTimer = setTimeout(saveFeedback, 150);
+    renderScriptTodo(); renderScriptSave();
+  }
+  async function saveFeedback() {
+    if (fbBusy) { fbAgain = true; return; }
+    if (!fbOps.length) return;
+    fbBusy = true; renderScriptSave();
+    const sent = fbOps.length;
+    writing++; epoch++;
+    try {
+      let r = await putFile('subtitleFeedback', '/api/subtitle-feedback', subFeedback);
+      if (r.status === 409) {
+        // written elsewhere since: read it again and lay this page's notes over it
+        const fresh = await (await fetch('/api/show')).json();
+        const base = JSON.parse(JSON.stringify(fresh.subtitleFeedback || {}));
+        fbOps.forEach(op => fbApply(base, op));
+        subFeedback = base; show.subtitleFeedback = fresh.subtitleFeedback;
+        if (revs && fresh.revs) revs.subtitleFeedback = fresh.revs.subtitleFeedback;
+        r = await putFile('subtitleFeedback', '/api/subtitle-feedback', subFeedback);
+        repaintFeedback();
+      }
+      if (r.ok) { fbOps.splice(0, sent); fbError = ''; }
+      else fbError = (r.j && r.j.error) || ('HTTP ' + r.status);
+    } catch (e) { fbError = 'the organizer did not answer'; }
+    finally { writing--; epoch++; fbBusy = false; }
+    renderScriptSave(); renderScriptTodo();
+    if (fbAgain || fbOps.length) { fbAgain = false; setTimeout(saveFeedback, fbError ? 3000 : 0); }
+  }
+  const fbDate = at => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(at || ''); return m ? `${+m[3]} ${['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][+m[2] - 1]}` : ''; };
+  function paintFeedback(cell) {
+    const tr = cell.dataset.track, row = cell.closest('.ln'), key = row.dataset.key;
+    const list = feedbackOf(tr, key), box = cell.querySelector('.lfb'), btn = cell.querySelector('.fbb');
+    const open = list.filter(n => !n.done).length;
+    btn.textContent = list.length ? (open ? `✎ ${open}` : '✎ ✓') : '✎';
+    btn.classList.toggle('has', list.length > 0); btn.classList.toggle('open', open > 0);
+    btn.title = list.length ? `${list.length} note${list.length === 1 ? '' : 's'} on this line, ${open} open — click to add one` : 'Feedback on this line, to improve it with later';
+    const now = (cell.querySelector('textarea').value || '').trim();
+    // the notes are painted again — unless one is being changed, whose field is left where it is,
+    // as the field a new note is being written in always is
+    const shown = box.querySelector('.notes');
+    if (!shown.contains(document.activeElement)) shown.innerHTML = '';
+    for (const n of shown.childElementCount ? [] : list) {
+      const d = document.createElement('div'); d.className = 'note' + (n.done ? ' done' : '');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!n.done; cb.tabIndex = -1;
+      cb.title = n.done ? 'Done — untick to open it again' : 'Tick once the line has been improved';
+      cb.addEventListener('change', () => { fbDo({ type: 'set', track: tr, key, id: n.id, done: cb.checked }); paintFeedback(cell); });
+      const t = document.createElement('span'); t.className = 't'; t.textContent = n.text;
+      t.title = 'Click to change this note' + (n.edited ? ` (changed ${fbDate(n.edited)})` : '');
+      // click the note to change its words: ⏎ or leaving the field keeps them, esc puts them back
+      t.addEventListener('click', () => {
+        const ed = document.createElement('input'); ed.className = 'fbin edit'; ed.value = n.text;
+        let settled = false;
+        const keep = () => {
+          if (settled) return; settled = true;
+          const text = ed.value.trim();
+          if (text && text !== n.text) fbDo({ type: 'edit', track: tr, key, id: n.id, text, at: new Date().toISOString().slice(0, 10) });
+          ed.blur(); paintFeedback(cell);
+        };
+        ed.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); keep(); }
+          else if (ev.key === 'Escape') { ev.preventDefault(); settled = true; ed.blur(); paintFeedback(cell); }
+        });
+        ed.addEventListener('blur', () => { if (ed.isConnected) keep(); });
+        t.replaceWith(ed); ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length);
+      });
+      d.append(cb, t);
+      if (n.line != null && n.line.trim() !== now) {
+        const c = document.createElement('span'); c.className = 'changed'; c.textContent = 'line changed since';
+        c.title = `When this note was written the line read:\n“${n.line}”`;
+        d.appendChild(c);
+      }
+      const dt = document.createElement('span'); dt.className = 'd'; dt.textContent = fbDate(n.at); d.appendChild(dt);
+      const x = document.createElement('button'); x.textContent = '×'; x.tabIndex = -1; x.title = 'Remove this note';
+      x.addEventListener('click', () => { fbDo({ type: 'del', track: tr, key, id: n.id }); paintFeedback(cell); });
+      d.appendChild(x);
+      shown.appendChild(d);
+    }
+    const open_ = box.querySelector('input.adder');
+    if (!cell._adding && open_) open_.remove();
+    if (cell._adding && !open_) {
+      const inp = document.createElement('input'); inp.className = 'fbin adder';
+      inp.placeholder = 'Feedback on this line — ⏎ saves, esc cancels';
+      const commit = () => {
+        if (!cell._adding) return;
+        const text = inp.value.trim();
+        cell._adding = false;
+        if (text) fbDo({ type: 'add', track: tr, key, note: { id: Math.random().toString(36).slice(2, 10), text,
+          at: new Date().toISOString().slice(0, 10), line: (cell.querySelector('textarea').value || '').trim() } });
+        paintFeedback(cell);
+      };
+      inp.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); commit(); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); cell._adding = false; paintFeedback(cell); }
+      });
+      // leaving the field with words in it keeps them; an empty field just closes. A field
+      // taken out of the page by a rebuild is not a field left: it says nothing then.
+      inp.addEventListener('blur', () => { if (inp.isConnected) commit(); });
+      box.appendChild(inp);
+      requestAnimationFrame(() => inp.focus());
+    }
+  }
+  function repaintFeedback() { document.querySelectorAll('#scriptDoc .cell').forEach(paintFeedback); }
+
+  /** Whether a line's voice is missing or says other words than the line: the voice is rendered off the text. */
+  function needsVoice(tr, key, value) {
+    const voiced = voicedIn(tr); if (!Object.keys(voiced).length) return false;
+    const text = (value || '').trim(), was = voiceTexts[tr][key];
+    if (!voiced[key]) return !!text;
+    return was !== undefined && was.trim() !== text;
+  }
+  /** The bar's two to-do counts, each a button to the next line it counts. */
+  function renderScriptTodo() {
+    if (!show || !scriptVisible()) return;
+    let voice = 0, fb = 0;
+    document.querySelectorAll('#scriptDoc .cell').forEach(c => {
+      if (c.classList.contains('needvoice')) voice++;
+      fb += feedbackOf(c.dataset.track, c.closest('.ln').dataset.key).filter(n => !n.done).length;
+    });
+    const v = $('#scriptVoiceTodo'), f = $('#scriptFbTodo');
+    v.hidden = !voice; v.textContent = `♪ ${voice} to render ▸`;
+    f.hidden = !fb; f.textContent = `✎ ${fb} open ▸`;
+  }
+  /** The next line after the one in the middle of the view that [test] picks, in view and flashed. */
+  function scriptJump(test) {
+    const rows = [...document.querySelectorAll('#scriptDoc .ln')];
+    const mid = $('#script').getBoundingClientRect().top + $('#script').clientHeight / 2;
+    let from = rows.findIndex(r => r.getBoundingClientRect().top > mid + 4);
+    if (from < 0) from = 0;
+    const order = rows.slice(from).concat(rows.slice(0, from));
+    const hit = order.find(test);
+    if (!hit) return;
+    hit.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    hit.classList.remove('flash'); void hit.offsetWidth; hit.classList.add('flash');
+  }
+  $('#scriptVoiceTodo').addEventListener('click', () => scriptJump(r => !!r.querySelector('.cell.needvoice')));
+  $('#scriptFbTodo').addEventListener('click', () => scriptJump(r => [...r.querySelectorAll('.cell')].some(c =>
+    feedbackOf(c.dataset.track, r.dataset.key).some(n => !n.done))));
+
+  // ---------- autoplay ----------
+  //
+  // On the extended track with subtitles or the voice on, the show presents itself: each state's
+  // line said, then a click by itself. Off, it says the line and holds the state for a click.
+  // The running show's own word, or the launcher's for the next start.
+  let autoplayOn = true;
+  function renderAutoplay(s) {
+    const p = s && s.presentation;
+    if (p && !p.live) { if (p.autoplay !== undefined) autoplayOn = !!p.autoplay; }
+    else if (s && s.autoplay !== undefined) autoplayOn = !!s.autoplay;
+    const b = $('#scriptAutoplay');
+    b.textContent = autoplayOn ? 'autoplay' : 'wait for click';
+    b.classList.toggle('primary', autoplayOn);
+  }
+  $('#scriptAutoplay').addEventListener('click', async () => {
+    autoplayOn = !autoplayOn; renderAutoplay(null);
+    await post('/api/autoplay', { on: autoplayOn });
+  });
+
+  /** The texts each voice was rendered from, off the tracks' manifests. */
+  async function loadVoiceTexts() {
+    if (!show) return;
+    voiceTextsAt = Date.now();
+    for (const tr of ['extended', 'default']) {
+      if (!Object.keys(voicedIn(tr)).length) { voiceTexts[tr] = {}; continue; }
+      try {
+        const r = await fetch(`/voice/${tr}/manifest.json`, { cache: 'no-store' });
+        if (!r.ok) continue;
+        const m = await r.json(), o = {};
+        for (const [k, v] of Object.entries(m || {})) if (v && typeof v.text === 'string') o[k] = v.text;
+        voiceTexts[tr] = o;
+      } catch (e) { /* an organizer started before it served the manifest: no marks, nothing else lost */ }
+    }
+    if (scriptVisible()) { repaintScriptMeta(); renderScriptCount(); renderScriptTodo(); }
+  }
+
+  function renderScriptCount() {
+    if (!show) return;
+    const ids = playing();
+    const parts = tracksShown().map(tr => {
+      const t = subsOf(tr), voiced = voicedIn(tr);
+      let lines = 0, chars = 0, secs = 0, stale = 0;
+      for (const id of ids) {
+        const steps = Math.max(1, (info(id) || {}).steps || 1);
+        for (let s = 0; s < steps; s++) {
+          const k = STATE(s), text = ((t[id] || {})[k] || '').trim(), key = id + '-' + k;
+          if (text) { lines++; chars += text.length; }
+          if (voiced[key]) { secs += voiced[key]; const was = voiceTexts[tr][key]; if (was !== undefined && was.trim() !== text) stale++; }
+        }
+      }
+      const minutes = Math.round((secs || chars / 15) / 60);
+      return `${scriptTrack === 'both' ? tr + ': ' : ''}${lines} lines · about ${minutes} min ${secs ? 'spoken' : 'at a reading pace'}`;
+    });
+    $('#scriptCount').textContent = parts.join('  ·  ');
+  }
+
+  function renderScriptSave() {
+    const el = $('#scriptSave'); if (!el) return;
+    const busy = subBusy.default || subBusy.extended || fbBusy, waiting = subEdits.default.size + subEdits.extended.size + fbOps.length;
+    el.classList.toggle('busy', !!(busy || waiting) && !subError && !fbError);
+    el.classList.toggle('warn', !!(subError || fbError));
+    el.textContent = subError || fbError ? `not saved: ${subError || fbError} — trying again`
+      : busy ? 'saving…'
+      : waiting ? 'typing…'
+      : subSaved ? `saved ${subSaved.toTimeString().slice(0, 8)} · on the wall` : 'every line is saved as you type';
+  }
+
+  /** The line the show is on: marked, kept in view, and handed the caret if the last one had it. */
+  function renderScriptLive(force) {
+    if (!scriptVisible() || !show) return;
+    if (scriptSig !== scriptSignature()) { if (!scriptTyping()) return renderScript(); scriptStale = true; }
+    // the wall's own switches, mirrored from the top bar's so the two cannot disagree
+    for (const [mine, theirs] of [['#scriptWall', '#subBtn'], ['#scriptVoice', '#voiceBtn']]) {
+      $(mine).textContent = $(theirs).textContent; $(mine).classList.toggle('primary', $(theirs).classList.contains('primary'));
+    }
+    const st = $('#scriptShowTrack');
+    st.innerHTML = '';
+    st.append('the show says: ' + subTrack);
+    if (scriptTrack !== 'both' && scriptTrack !== subTrack) {
+      const b = document.createElement('button'); b.className = 'ghost'; b.textContent = 'say ' + scriptTrack;
+      b.title = 'Switch the show to the track this script shows';
+      b.addEventListener('click', () => { const sel = $('#subTrack'); sel.value = scriptTrack; sel.dispatchEvent(new Event('change')); });
+      st.append(' ', b);
+    }
+    const on = liveOK && lastState && lastState.id ? lastState.id + '-' + STATE(lastState.step || 0) : null;
+    if (on === scriptLiveKey && !force) return;
+    const was = scriptLiveKey; scriptLiveKey = on;
+    const rows = [...document.querySelectorAll('#scriptDoc .ln')];
+    const at = rows.findIndex(r => r.dataset.key === on);
+    rows.forEach((r, i) => { r.classList.toggle('live', i === at); r.classList.toggle('said', at >= 0 && i < at); });
+    document.querySelectorAll('#scriptDoc .sl').forEach(b => b.classList.toggle('live', !!lastState && b.dataset.id === (on && lastState.id)));
+    if (at < 0) return;
+    // editing the line that was on the wall, the caret goes down with the show
+    const a = document.activeElement;
+    const from = a && a.tagName === 'TEXTAREA' && a.closest('.ln');
+    if (!force && was && from && from.dataset.key === was) {
+      const to = rows[at].querySelector(`textarea[data-track="${a.dataset.track}"]`) || rows[at].querySelector('textarea');
+      if (to) { to.focus({ preventScroll: true }); to.setSelectionRange(to.value.length, to.value.length); }
+    }
+    if (!scriptFollow) return;
+    if (scriptTyping() && document.activeElement.closest('.ln') !== rows[at]) { scriptScrollDue = true; return; }
+    scriptScrollDue = false;
+    rows[at].scrollIntoView({ block: 'center', behavior: force ? 'auto' : 'smooth' });
+  }
+  function scriptGo(id, step) {
+    if (!liveOK) { setStatus('no show running to steer — start the presentation first', true); return; }
+    post('/api/go', { id, step });
+  }
+  // A rebuild or a scroll held back while a line was typed in happens once the field is left.
+  $('#scriptDoc').addEventListener('focusout', () => setTimeout(() => {
+    if (scriptTyping()) return;
+    if (scriptStale) renderScript();
+    else if (scriptScrollDue) renderScriptLive(true);
+  }, 0));
+
+  function scriptKey(ev) {
+    const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(ev.target.tagName);
+    // A presenter clicker sends Page Down and Page Up: they click the show even mid-sentence, and
+    // its play button's F5 would reload the page under the lines being written.
+    if (ev.key === 'PageDown' || ev.key === 'PageUp') { ev.preventDefault(); click(ev.key === 'PageDown' ? 1 : -1); return; }
+    if (ev.key === 'F5') { ev.preventDefault(); return; }
+    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') { ev.preventDefault(); flushSubs(); return; }
+    if (inField) { if (ev.key === 'Escape') ev.target.blur(); return; }
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    switch (ev.key) {
+      case 'ArrowRight': ev.preventDefault(); click(1); break;
+      case 'ArrowLeft': ev.preventDefault(); click(-1); break;
+      case 'f': $('#scriptFollow').click(); break;
+      case 'Enter': {
+        // into the line on the wall
+        const ta = document.querySelector('#scriptDoc .ln.live textarea');
+        if (ta) { ev.preventDefault(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        break;
+      }
+    }
+  }
+
+  document.querySelectorAll('#scriptTracks button').forEach(b => b.addEventListener('click', () => {
+    scriptTrack = b.dataset.track;
+    try { localStorage.setItem('organizer-script-track', scriptTrack); } catch (e) {}
+    flushSubs();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    renderScript();
+  }));
+  document.querySelectorAll('#scriptCompare button').forEach(b => b.addEventListener('click', () => {
+    const c = b.dataset.col;
+    if (scriptCompare.has(c)) scriptCompare.delete(c); else scriptCompare.add(c);
+    if (!['extended', 'default'].some(t => scriptCompare.has(t))) scriptCompare.add(c === 'extended' ? 'default' : 'extended');
+    try { localStorage.setItem('organizer-script-compare', JSON.stringify([...scriptCompare])); } catch (e) {}
+    flushSubs();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    renderScript();
+  }));
+  $('#scriptFollow').addEventListener('click', () => {
+    scriptFollow = !scriptFollow;
+    $('#scriptFollow').textContent = scriptFollow ? 'follow: on' : 'follow: off';
+    $('#scriptFollow').classList.toggle('primary', scriptFollow);
+    if (scriptFollow) renderScriptLive(true);
+  });
+  $('#scriptFollow').classList.add('primary');
+  $('#scriptBack').addEventListener('click', () => click(-1));
+  $('#scriptFwd').addEventListener('click', () => click(1));
+  $('#scriptWall').addEventListener('click', () => $('#subBtn').click());
+  $('#scriptVoice').addEventListener('click', () => $('#voiceBtn').click());
+  window.addEventListener('subtitles-view', () => { scriptSig = ''; renderScript(); loadVoiceTexts(); loadBook(); });
+  // the column heads stand under the bar, whose height changes as it wraps
+  window.addEventListener('resize', () => { if (scriptVisible()) $('#scriptDoc').style.setProperty('--barh', $('#scriptBar').offsetHeight + 'px'); });
+
   document.addEventListener('keydown', (ev) => {
+    if (scriptVisible()) return scriptKey(ev);
     const tag = ev.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
       if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') { ev.preventDefault(); save(); }
@@ -2220,15 +3526,16 @@
     // select all — archived the selected slide, ⌘X skipped it and ⌘F turned following off.
     if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
     // They are the Show tab's: on the Sketches tab they acted on a slide nobody could see.
-    if (document.body.classList.contains('view-sketches')) return;
+    if (document.body.classList.contains('view-sketches') || document.body.classList.contains('view-projection')) return;
     if ($('#picker').classList.contains('on')) { if (ev.key === 'Escape') closePicker(); return; }
     const ids = visible().map(e => e.id).filter(id => info(id));
     const i = ids.indexOf(selected);
     switch (ev.key) {
       case 'ArrowDown': ev.preventDefault(); if (i < ids.length - 1) select(ids[i + 1], true); break;
       case 'ArrowUp': ev.preventDefault(); if (i > 0) select(ids[i - 1], true); break;
-      case 'ArrowRight': ev.preventDefault(); click(1); break;
-      case 'ArrowLeft': ev.preventDefault(); click(-1); break;
+      // A presenter clicker's forward and back (the Logitech R400 sends Page Down and Page Up).
+      case 'ArrowRight': case 'PageDown': ev.preventDefault(); click(1); break;
+      case 'ArrowLeft': case 'PageUp': ev.preventDefault(); click(-1); break;
       case 'r': replay(); break;
       case 'x': toggleOn(); break;
       case 'a': toggleArchive(); break;
@@ -2239,9 +3546,293 @@
       case 'Backspace': case 'Delete': if (selected && isModule(selected)) { ev.preventDefault(); removeModule(selected); } break;
     }
   });
-  window.addEventListener('beforeunload', (ev) => { if (dirty) { ev.preventDefault(); ev.returnValue = ''; } });
+  window.addEventListener('beforeunload', (ev) => {
+    if (subPending('default') || subPending('extended')) flushSubs();
+    if (fbOps.length) saveFeedback();
+    if (dirty || subPending('default') || subPending('extended') || fbPending()) { ev.preventDefault(); ev.returnValue = ''; }
+  });
 
   boot();
+})();
+
+// ---------- the Projection tab ----------
+//
+// The two projectors on site and where the wall's two 1920×1080 halves stand on them. A half's place
+// and scale move the running show at once — sent as they change, saved when let go — while a
+// projector's resolution and the desktop place are the window's, so they are set before the start
+// and greyed out while a presentation runs. See Projectors.kt.
+(() => {
+  const $ = (q) => document.querySelector(q);
+  const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const PRESETS = [[1920, 1080], [1920, 1200], [2560, 1440], [2560, 1600], [3840, 2160], [1280, 720], [1280, 800], [1400, 1050], [1024, 768]];
+  // Projectors by name: choosing one sets its native resolution and stands the half on it pixel for
+  // pixel, centred — the setup that wastes nothing — and keeps the name in the setup.
+  const MODELS = [
+    { name: 'Epson EB-G7905U', width: 1920, height: 1200,
+      note: 'Epson EB-G7905U: native WUXGA, 1920 × 1200 (16:10). Set this display to 1920 × 1200 in System Settings › Displays, and the projector to show the signal unscaled with overscan off, so a pixel is a pixel. The 1920 × 1080 half then stands whole with 60 px of black above and below — nudge y to move it up or down on the screen.' },
+    { name: 'Vivitek 1080p', width: 1920, height: 1080,
+      note: 'Vivitek at 1920 × 1080: the basic setup. The half fills the projector exactly, pixel for pixel, with nothing to spare — the wall as it always was. Set this display to 1920 × 1080 in System Settings › Displays, and the projector to show the signal unscaled with overscan off, or its edges are cut.' }
+  ];
+  const modelOf = (p) => MODELS.find((m) => m.name === p.model && m.width === p.width && m.height === p.height);
+  /** [p] as projector [m], the half pixel for pixel in its middle. */
+  function useModel(p, m) {
+    const h = half();
+    p.model = m.name; p.width = m.width; p.height = m.height;
+    p.scale = Math.min(1, m.width / h.w, m.height / h.h);
+    p.x = round((m.width - h.w * p.scale) / 2); p.y = round((m.height - h.h * p.scale) / 2);
+  }
+  const SIDES = ['left', 'right'];
+  let setup = null;      // { left: {width,height,x,y,scale}, right: {...}, desktop: {x,y} }
+  let live = false;
+  let canvas = { width: 3840, height: 1080 };
+  let displays = null;
+  let liveId = null;
+  let sel = 'left';
+  let timer = null;
+  let saveTimer = null;
+  let loaded = false;
+
+  const half = () => ({ w: canvas.width / 2, h: canvas.height });
+  const round = (v, d = 0) => { const f = 10 ** d; return Math.round(v * f) / f; };
+
+  async function load() {
+    try {
+      const r = await fetch('/api/projection?displays=1');
+      if (r.status === 404) {
+        $('#projState').textContent = 'this organizer was started before the Projection tab existed — restart it (OrganizerKt) to use the tab';
+        return;
+      }
+      const st = await r.json();
+      live = !!st.live;
+      canvas = st.canvas || canvas;
+      setup = JSON.parse(JSON.stringify(live ? st.shown : st.saved));
+      displays = st.displays || [];
+      $('#projOutlines').checked = !!st.outlines;
+      $('#projOutlines').disabled = !live;
+      document.querySelectorAll('#projModels button').forEach((b) => { b.disabled = live; });
+      try { liveId = (await (await fetch('/api/state')).json()).id || null; } catch (e) { liveId = null; }
+      loaded = true;
+      render();
+    } catch (e) {
+      $('#projState').textContent = 'could not read the projection setup';
+    }
+  }
+
+  /** Sends the setup: at once to the running wall, and with `save` into the file for the next start. */
+  function send(save) {
+    return post('/api/projection', { left: setup.left, right: setup.right, desktop: setup.desktop, save: !!save });
+  }
+  /**
+   * A change: on the wall within a frame or two while a show runs, and saved once it settles. A drag
+   * moves its own element and leaves the stage standing, since rebuilding it would drop the pointer.
+   */
+  function changed(stage = true) {
+    if (stage) render(); else renderCards();
+    if (live && !timer) timer = setTimeout(() => { timer = null; send(false); }, 40);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { send(true).then(() => note('saved')); }, 400);
+  }
+  function note(text) {
+    const s = $('#projState'); const was = s.textContent;
+    s.textContent = was.replace(/ · saved$/, '') + ' · ' + text;
+  }
+
+  function fits(side) {
+    const p = setup[side], h = half();
+    const w = h.w * p.scale, hh = h.h * p.scale;
+    const out = [];
+    if (p.x < 0 || p.y < 0 || p.x + w > p.width + 0.01 || p.y + hh > p.height + 0.01) out.push('runs off the projector: part of the half is cut');
+    return { w, h: hh, spare: [p.width - w - p.x, p.height - hh - p.y], warn: out };
+  }
+
+  function render() {
+    if (!setup) return;
+    $('#projState').textContent = live
+      ? 'presentation running — the halves move on the wall as you change them; resolutions and the desktop place apply at the next start'
+      : 'no presentation running — saved for the next start';
+    $('#projState').classList.toggle('live', live);
+    renderStage();
+    renderCards();
+  }
+
+  function renderStage() {
+    const stage = $('#projStage');
+    const W = setup.left.width + setup.right.width, H = Math.max(setup.left.height, setup.right.height);
+    const k = stage.clientWidth / W;
+    stage.style.height = Math.round(H * k) + 'px';
+    stage.innerHTML = '';
+    SIDES.forEach((side, i) => {
+      const p = setup[side], h = half();
+      const frame = document.createElement('div'); frame.className = 'proj';
+      const fx = i === 0 ? 0 : setup.left.width;
+      Object.assign(frame.style, { left: fx * k + 'px', top: 0, width: p.width * k + 'px', height: p.height * k + 'px' });
+      frame.innerHTML = `<span class="lbl">${side} projector · ${modelOf(p) ? modelOf(p).name + ' · ' : ''}${p.width}×${p.height}</span>`;
+      const el = document.createElement('div'); el.className = 'half' + (sel === side ? ' sel' : '');
+      Object.assign(el.style, { left: p.x * k + 'px', top: p.y * k + 'px', width: h.w * p.scale * k + 'px', height: h.h * p.scale * k + 'px' });
+      if (liveId) { el.style.backgroundImage = `url("/previews/${liveId}-1.png")`; el.style.backgroundPosition = i === 0 ? '0% 0' : '100% 0'; }
+      el.innerHTML = `<span class="lbl">${side} half · ${round(h.w * p.scale)}×${round(h.h * p.scale)} at ${round(p.x)}, ${round(p.y)}</span>`;
+      el.addEventListener('pointerdown', (ev) => drag(ev, side, el, k));
+      frame.appendChild(el);
+      stage.appendChild(frame);
+    });
+  }
+
+  function drag(ev, side, el, k) {
+    ev.preventDefault();
+    sel = side;
+    const p = setup[side], x0 = p.x, y0 = p.y, sx = ev.clientX, sy = ev.clientY;
+    el.setPointerCapture(ev.pointerId);
+    el.classList.add('dragging');
+    el.parentNode.parentNode.querySelectorAll('.half').forEach((h) => h.classList.toggle('sel', h === el));
+    const move = (e) => {
+      p.x = Math.round(x0 + (e.clientX - sx) / k);
+      p.y = Math.round(y0 + (e.clientY - sy) / k);
+      el.style.left = p.x * k + 'px'; el.style.top = p.y * k + 'px';
+      el.querySelector('.lbl').textContent = `${side} half · ${round(half().w * p.scale)}×${round(half().h * p.scale)} at ${p.x}, ${p.y}`;
+      changed(false);
+    };
+    const up = () => { el.removeEventListener('pointermove', move); render(); };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up, { once: true });
+    el.addEventListener('pointercancel', up, { once: true });
+    renderCards();
+  }
+
+
+  function numberField(value, step, onChange, disabled) {
+    const i = document.createElement('input'); i.type = 'number'; i.step = step; i.value = value; i.disabled = !!disabled;
+    i.addEventListener('change', () => { const v = parseFloat(i.value); if (Number.isFinite(v)) onChange(v); });
+    i.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') i.blur(); });
+    return i;
+  }
+  function row(label, ...kids) {
+    const r = document.createElement('div'); r.className = 'row';
+    const k = document.createElement('span'); k.className = 'k'; k.textContent = label; r.appendChild(k);
+    kids.forEach((c) => r.appendChild(typeof c === 'string' ? Object.assign(document.createElement('span'), { textContent: c }) : c));
+    return r;
+  }
+  function button(text, title, on) {
+    const b = document.createElement('button'); b.textContent = text; b.title = title;
+    b.addEventListener('click', () => { on(); changed(); });
+    return b;
+  }
+
+  function renderCards() {
+    const cols = $('#projCols');
+    cols.innerHTML = '';
+    SIDES.forEach((side) => {
+      const p = setup[side], h = half(), f = fits(side);
+      const card = document.createElement('div'); card.className = 'projCard' + (sel === side ? ' sel' : '');
+      card.addEventListener('pointerdown', () => { if (sel !== side) { sel = side; renderStage(); card.parentNode.querySelectorAll('.projCard').forEach((c) => c.classList.toggle('sel', c === card)); } });
+      card.innerHTML = `<h3>${side === 'left' ? 'Left' : 'Right'} projector</h3>`;
+      // Its resolution: a preset or the numbers, fixed while a show runs.
+      const preset = document.createElement('select'); preset.disabled = live;
+      preset.innerHTML = '<optgroup label="projector">' + MODELS.map((m, i) => `<option value="m:${i}">${m.name} — ${m.width} × ${m.height}</option>`).join('') + '</optgroup>' +
+        '<optgroup label="resolution">' + PRESETS.map(([w, hh]) => `<option value="${w}x${hh}">${w} × ${hh}</option>`).join('') + '</optgroup>' +
+        '<option value="">other</option>';
+      const m = modelOf(p);
+      preset.value = m ? `m:${MODELS.indexOf(m)}` : PRESETS.some(([w, hh]) => w === p.width && hh === p.height) ? `${p.width}x${p.height}` : '';
+      preset.addEventListener('change', () => {
+        if (!preset.value) return;
+        if (preset.value.startsWith('m:')) useModel(p, MODELS[+preset.value.slice(2)]);
+        else { const [w, hh] = preset.value.split('x').map(Number); p.width = w; p.height = hh; p.model = null; }
+        changed();
+      });
+      card.appendChild(row('resolution', preset,
+        numberField(p.width, 1, (v) => { p.width = Math.round(v); p.model = null; changed(); }, live), '×',
+        numberField(p.height, 1, (v) => { p.height = Math.round(v); p.model = null; changed(); }, live)));
+      // Where the half stands on it, and how large: live.
+      card.appendChild(row('half at', numberField(round(p.x), 1, (v) => { p.x = v; changed(); }), numberField(round(p.y), 1, (v) => { p.y = v; changed(); })));
+      card.appendChild(row('scale', numberField(round(p.scale, 4), 0.001, (v) => { p.scale = Math.min(8, Math.max(0.1, v)); changed(); }),
+        `${round(f.w)} × ${round(f.h)} px`));
+      card.appendChild(row('',
+        button('1:1 at the corner', 'The half pixel for pixel, at the projector\'s top left', () => { p.x = 0; p.y = 0; p.scale = 1; }),
+        button('centre', 'The half in the middle of the projector, at its scale', () => { p.x = round((p.width - h.w * p.scale) / 2); p.y = round((p.height - h.h * p.scale) / 2); }),
+        button('fit', 'The half as large as the projector allows, whole and centred', () => { p.scale = round(Math.min(p.width / h.w, p.height / h.h), 4); p.x = round((p.width - h.w * p.scale) / 2); p.y = round((p.height - h.h * p.scale) / 2); })));
+      const n = document.createElement('div'); n.className = 'note' + (f.warn.length ? ' warn' : '');
+      n.textContent = f.warn.length ? f.warn.join('; ')
+        : `black on the wall: ${round(p.x)} px left, ${round(f.spare[0])} right, ${round(p.y)} above, ${round(f.spare[1])} below`;
+      card.appendChild(n);
+      if (m) card.appendChild(Object.assign(document.createElement('div'), { className: 'note', textContent: m.note }));
+      if (live) card.appendChild(Object.assign(document.createElement('div'), { className: 'note', textContent: 'The resolution is the window\'s: stop the presentation to change it.' }));
+      cols.appendChild(card);
+    });
+    cols.appendChild(desktopCard());
+  }
+
+  function desktopCard() {
+    const card = document.createElement('div'); card.className = 'projCard';
+    card.innerHTML = '<h3>On the desktop</h3>';
+    const d = setup.desktop || (setup.desktop = { x: null, y: null });
+    const field = (key) => {
+      const i = document.createElement('input'); i.type = 'number'; i.step = 1; i.placeholder = 'auto'; i.disabled = live;
+      i.value = d[key] ?? '';
+      i.addEventListener('change', () => { const v = i.value.trim() === '' ? null : Math.round(parseFloat(i.value)); d[key] = Number.isFinite(v) ? v : null; changed(); });
+      i.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') i.blur(); });
+      return i;
+    };
+    card.appendChild(row('window at', field('x'), field('y')));
+    card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
+      textContent: 'Where the left projector\'s top left corner is on the desktop, in points, when the presentation starts with projection on. Empty is the rightmost two displays, top aligned.' }));
+    const list = document.createElement('div'); list.className = 'displays';
+    (displays || []).forEach((s) => {
+      list.appendChild(Object.assign(document.createElement('div'), {
+        textContent: `${s.name} — ${s.width}×${s.height} at ${s.x}, ${s.y}${s.scale > 1 ? ` · @${s.scale}x` : ''}` }));
+    });
+    if (!displays || !displays.length) list.textContent = 'no displays found (this reads macOS)';
+    card.appendChild(row('displays', list));
+    const two = (displays || []).slice(-2);
+    const use = document.createElement('button'); use.textContent = 'use the two rightmost';
+    use.disabled = live || two.length < 2;
+    use.title = 'Take the two rightmost displays as the projectors: their sizes, and the left one\'s place on the desktop';
+    use.addEventListener('click', () => {
+      setup.left.width = Math.round(two[0].width); setup.left.height = Math.round(two[0].height);
+      setup.right.width = Math.round(two[1].width); setup.right.height = Math.round(two[1].height);
+      d.x = Math.round(two[0].x); d.y = Math.round(two[0].y);
+      changed();
+    });
+    const again = document.createElement('button'); again.className = 'ghost'; again.textContent = 'detect again';
+    again.addEventListener('click', load);
+    card.appendChild(row('', use, again));
+    const warn = [];
+    if (two.length === 2 && Math.round(two[0].y) !== Math.round(two[1].y)) warn.push('The two rightmost displays are not top aligned: line them up in System Settings › Displays.');
+    // What macOS is sending against what the setup expects: a mismatch is the likeliest fault on site.
+    if (two.length === 2) SIDES.forEach((side, i) => {
+      const p = setup[side], s = two[i];
+      if (Math.round(s.width) !== p.width || Math.round(s.height) !== p.height)
+        warn.push(`${s.name} is at ${Math.round(s.width)} × ${Math.round(s.height)} in macOS, but the ${side} projector is set to ${p.width} × ${p.height}: set the display's resolution in System Settings › Displays, or change the setup.`);
+    });
+    if (two.some((s) => s.scale > 1)) warn.push('A display is in a scaled (Retina) mode: its size here is in points, not pixels.');
+    warn.push('The window spans both projectors only with “Displays have separate Spaces” off (System Settings › Desktop & Dock).');
+    warn.forEach((t, i) => card.appendChild(Object.assign(document.createElement('div'), { className: 'note' + (i < warn.length - 1 ? ' warn' : ''), textContent: t })));
+    return card;
+  }
+
+  // The arrows nudge the selected half a pixel, ten with shift — on this tab only.
+  document.addEventListener('keydown', (ev) => {
+    if (!document.body.classList.contains('view-projection') || !setup) return;
+    const tag = ev.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const step = ev.shiftKey ? 10 : 1, p = setup[sel];
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[ev.key];
+    if (!d) return;
+    ev.preventDefault();
+    p.x += d[0]; p.y += d[1];
+    changed();
+  });
+
+  $('#projOutlines').addEventListener('change', (ev) => post('/api/projection', { outlines: ev.target.checked }));
+  $('#projReload').addEventListener('click', load);
+  // A button a model, for a wall of two alike: both projectors set in one click.
+  MODELS.forEach((m) => {
+    const b = document.createElement('button');
+    b.textContent = `both ${m.name}`;
+    b.title = `Both projectors are ${m.name}: ${m.width} × ${m.height} each, each half pixel for pixel in the middle. Applies at the next start`;
+    b.addEventListener('click', () => { if (!setup || live) return; SIDES.forEach((side) => useModel(setup[side], m)); changed(); });
+    $('#projModels').appendChild(b);
+  });
+  window.addEventListener('resize', () => { if (loaded && !$('#projection').hidden) renderStage(); });
+  window.addEventListener('projection-view', load);
 })();
 
 // ---------- the Sketches tab ----------
@@ -2312,10 +3903,16 @@
 
   function view(v) {
     document.body.classList.toggle('view-sketches', v === 'sketches');
+    document.body.classList.toggle('view-projection', v === 'projection');
+    document.body.classList.toggle('view-subtitles', v === 'subtitles');
     $('#sketches').hidden = v !== 'sketches';
+    $('#projection').hidden = v !== 'projection';
+    $('#script').hidden = v !== 'subtitles';
     for (const t of document.querySelectorAll('#tabs .tab')) t.classList.toggle('on', t.dataset.view === v);
     try { localStorage.setItem('organizer-view', v); } catch (e) {}
     if (v === 'sketches') load();
+    if (v === 'projection') window.dispatchEvent(new Event('projection-view'));
+    if (v === 'subtitles') window.dispatchEvent(new Event('subtitles-view'));
   }
 
   for (const t of document.querySelectorAll('#tabs .tab')) t.addEventListener('click', () => view(t.dataset.view));
@@ -2324,7 +3921,7 @@
   $('#sketchFilter').addEventListener('keydown', (e) => e.stopPropagation());
   let asked = new URLSearchParams(location.search).get('view');
   if (!asked) { try { asked = localStorage.getItem('organizer-view'); } catch (e) {} }
-  view(asked === 'sketches' ? 'sketches' : 'show');
+  view(['sketches', 'projection', 'subtitles'].includes(asked) ? asked : 'show');
 })();
 </script>
 </body>

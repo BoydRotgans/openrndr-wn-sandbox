@@ -245,7 +245,8 @@ fun loadObjMesh(
     for ((faceIndex, corners) in faces.withIndex()) {
         val p = corners.map { positions[it.first] }
         val faceNormal = faceNormals[faceIndex] ?: continue
-        val rgb = faceColor(faceIndex, faceNormal).let { Vector3(it.r, it.g, it.b) }
+        // In linear light, as the drawer hands a fill to a shader; the raw hex numbers came out lifted.
+        val rgb = faceColor(faceIndex, faceNormal).toLinear().let { Vector3(it.r, it.g, it.b) }
         val ring = corners.size
 
         // Two corners of the polygon are joined by a real edge only when they are next to

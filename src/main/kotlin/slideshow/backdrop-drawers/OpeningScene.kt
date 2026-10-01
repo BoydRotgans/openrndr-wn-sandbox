@@ -177,7 +177,7 @@ class OpeningScene(
      * two-colour drawing. The maker's name is deliberately left out of it — it is not a fact
      * about this piece and has nothing to announce.
      */
-    private val highlight: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val highlight: ColorRGBa = slideshow.Palette.RED,
     /** Seconds that beat takes: out to black, up to [highlight], back to [ink]. */
     private val pulse: Double = 1.4,
     /** How the scene arrives. A cut; a fade here is composed on the whole wall. */
@@ -191,6 +191,9 @@ class OpeningScene(
 ) : Backdrop() {
 
     override val background: ColorRGBa get() = paper
+
+    /** The first thing on the wall is simply there: its own pen is the arrival, so no front uncovers it. */
+    override val buildsIn get() = false
 
     /** One element, with its outline resampled into equally spaced points and what it is. */
     private class Drawn(

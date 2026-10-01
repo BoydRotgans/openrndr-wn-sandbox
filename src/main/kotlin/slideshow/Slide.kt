@@ -131,6 +131,63 @@ abstract class Slide : MidiTimed {
     open val sound: Sound? get() = null
 
     /**
+     * A sound for the way *into* this slide, or null: played beside the state's own cue, whether or
+     * not a cue sheet speaks for the slide, and only when the show comes to it **forward** or opens
+     * on it — stepping back into it from the slide after is not arriving. It belongs to the slide
+     * like any cue: with a fade out it is let go as the show leaves. The course transitions' sample
+     * is one: heard once, as the dinner hands back to the talk, and not again on a step back.
+     */
+    open val leadIn: Sound? get() = null
+
+    /**
+     * Every sound this slide fires on **its own clock** rather than on a click — a wall that turns over
+     * by itself, marking each turn. Declared so they are loaded before the first frame; [cuesBetween]
+     * says when each falls due.
+     */
+    open val clockCues: List<Sound> get() = emptyList()
+
+    /**
+     * The [clockCues] that fall due after frame [from] and up to and including [until] of this slide's
+     * own frame count — the driver asks for each stretch of frames once, as it passes, so a draw that
+     * skips frames still sounds every turn exactly once, and a filmed run logs each on its own frame.
+     */
+    open fun cuesBetween(from: Int, until: Int): List<Sound> = emptyList()
+
+    /**
+     * Whether the playlist of the moment this slide stands in plays under it (see
+     * `ShowBuilder.music`). True for every wall; false for one that takes the room *out* of its
+     * moment, which lets the playlist go rather than carrying it on.
+     */
+    open val momentMusic: Boolean get() = true
+
+    /**
+     * Frames over which what the slide before sounded is let go as this one arrives, or null for
+     * each sound's own fade out. A slide that wants the room to quiet slowly says how slowly.
+     */
+    open val outgoingFade: Int? get() = null
+
+    /**
+     * Whether this slide carries on from the one before it — draws it, or goes on from where it
+     * stood — so that a filmed run may not be cut into pieces just before it (see `Pieces`).
+     */
+    open val carriesOn: Boolean get() = false
+
+    /**
+     * Whether this slide takes the stage through the show's [WallBuild] when it arrives going forward,
+     * over [Settings.backdropBuild] — rather than simply being there. Every [Backdrop] does; a wall that
+     * has to be the very picture the one before it left — the programme after the name tag, a course
+     * transition after its course — says false. Only a wide slide is ever built.
+     */
+    open val buildsIn: Boolean get() = false
+
+    /**
+     * The seconds a hands-off run holds this slide once it has settled, where the deck's reading
+     * time is wrong for it; null for the deck's own ([Settings.hold], or [Settings.holdWide] for a
+     * wall of one picture). A slide that times itself to the second says so.
+     */
+    open val holdAfterSettle: Double? get() = null
+
+    /**
      * The cue click [step] makes as it lands, or null for a silent click.
      *
      * The counterpart to [sound] for a slide that is *built* rather than simply arrived at:
@@ -176,6 +233,26 @@ abstract class Slide : MidiTimed {
      * Left null it reads "reveal" going forward and "build down" going back.
      */
     open fun stepName(step: Int): String? = null
+
+    /**
+     * The deck has just left [previous] for this slide, after it had stood [stood] frames on click [leftOn], and
+     * this slide opens on click [opensOn]. A no-op for nearly every slide; it is for one that carries on from the
+     * slide before it — the catalogue's grid picks the ring up at the turn it had reached, which only the deck
+     * knows. Called on every move between two slides, never by a preview; an export calls it only where it runs
+     * on into the next slide ([runsInto]). It may note what it is told and nothing more: what is drawn when is
+     * still [draw]'s, off its [Stage].
+     */
+    open fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int) {}
+
+    /**
+     * The slide an export of this one runs on into, one click further: that slide's opening state, settled and
+     * held, is filmed and scored as the last state of this one. Null, the default, exports the slide alone.
+     *
+     * It is for a move that is heard as the end of one slide and drawn as the arrival of the next: the
+     * catalogue's sheet pouring into the webtool's button is the webtool's state A, and a clip of the grid
+     * stopping short of it gives the sound design nothing to cut that move against. See [exportRun].
+     */
+    open val runsInto: Slide? get() = null
 
     /** Runs once at startup, for everything that would otherwise load on the click. */
     open fun load(program: Program) {}

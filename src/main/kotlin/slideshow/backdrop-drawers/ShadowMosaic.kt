@@ -4,6 +4,7 @@ import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.color.Linearity
 import org.openrndr.draw.ColorBuffer
+import org.openrndr.draw.ColorFormat
 import org.openrndr.draw.ColorType
 import org.openrndr.draw.DepthFormat
 import org.openrndr.draw.DepthTestPass
@@ -235,6 +236,7 @@ class ShadowMosaic(
     private val midiWindow: Double = 60.0
 ) : Backdrop() {
 
+    override val background: ColorRGBa get() = paper
     override val wide get() = wall
     override val kind get() = if (wall) "backdrop" else "slide"
     override val steps get() = clicks
@@ -490,7 +492,8 @@ class ShadowMosaic(
     }
 
     override fun load(program: Program) {
-        fun buffer() = renderTarget(wallWidth.toInt(), wallHeight.toInt()) { colorBuffer(type = ColorType.FLOAT32) }
+        // Reach and coverage, the two channels the passes read and write — see LongShadowV3's field.
+        fun buffer() = renderTarget(wallWidth.toInt(), wallHeight.toInt()) { colorBuffer(format = ColorFormat.RG, type = ColorType.FLOAT32) }
         plan = renderTarget(wallWidth.toInt(), wallHeight.toInt()) {
             colorBuffer(type = ColorType.FLOAT32)
             depthBuffer()

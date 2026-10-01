@@ -86,9 +86,9 @@ fun main() = application {
         fun number(key: String, default: Double) = Env[key]?.toDoubleOrNull() ?: default
         val file = File(Env["EXTRUDE_SVG"] ?: "data/titles/v5/title01-test3.svg")
         val paper = ColorRGBa.fromHex(Env["EXTRUDE_PAPER"] ?: "000000")
-        val face = ColorRGBa.fromHex(Env["EXTRUDE_FACE"] ?: "4674D6")
-        val light = ColorRGBa.fromHex(Env["EXTRUDE_LIGHT"] ?: "2A55A8")
-        val dark = ColorRGBa.fromHex(Env["EXTRUDE_DARK"] ?: "0B2451")
+        val face = ColorRGBa.fromHex(Env["EXTRUDE_FACE"] ?: slideshow.Brand.blueHex)
+        val light = ColorRGBa.fromHex(Env["EXTRUDE_LIGHT"] ?: "022F66")
+        val dark = ColorRGBa.fromHex(Env["EXTRUDE_DARK"] ?: "011936")
         // How deep the pieces stand at full extrusion, in the drawing's own pixels.
         val depth = number("EXTRUDE_DEPTH", 90.0)
         // When the extrusion starts, how long one piece takes, and how long from the first piece

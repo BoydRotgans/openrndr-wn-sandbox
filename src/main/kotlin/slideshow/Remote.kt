@@ -48,6 +48,7 @@ import java.util.concurrent.Executors
  *     PUT  /api/modules          a modules file's contents     save the slides to build
  *     PUT  /api/intents          an intents file's contents    save the intended update per slide
  *     PUT  /api/feedback         a feedback file's contents    save the notes written against slides
+ *     PUT  /api/meeting          a meeting tasks file          save what a meeting asked, agreed per task
  *     PUT  /api/midi             a midi file's contents        save which slides are wanted as MIDI
  *     PUT  /api/subtitles        a subtitles file's contents   save what is said over each state
  *                                ?track=extended               … of the extended track
@@ -55,6 +56,13 @@ import java.util.concurrent.Executors
  *     POST /api/subtitle-track   { "track": "extended" }       which track is read; extended presents
  *     POST /api/voice-mode       { "on": true }?               the rendered voice spoken or not
  *     POST /api/mix              { "layer": "voice", "gain": 0.3 }  one track of the sound's level
+ *     POST /api/colours          { "red": "FF0000" }, "blue", "save": true
+ *                                                              show a house colour on the wall at once;
+ *                                                              with save, keep it for the next start
+ *     GET  /api/projection       ?displays=1                   the two projectors, and the desktop's displays
+ *     POST /api/projection       { "left": {...}, "right": {...}, "desktop": {...}, "outlines": true, "save": true }
+ *                                                              move the halves on the wall at once; with
+ *                                                              save, keep the setup for the next start
  *     GET  /api/voice                                          the states rendered as speech, per track
  *     POST /api/subtitle-cards   { "text": "..." }             the cards a line comes out as, timed
  *     POST /api/export                                         write every ticked slide's clip and score
@@ -101,6 +109,13 @@ class Remote(
     private val subtitlesFile: File = File("show-subtitles.json"),
     /** The extended track's file — see [SubtitleTrack]. */
     private val subtitlesExtendedFile: File = File("show-subtitles-extended.json"),
+    /** The meeting tasks — see [MeetingTasks]. */
+    private val meetingFile: File = File("show-meeting-tasks.json"),
+    /** The production's draaiboek and its Show tab, read for the evening's times — see [Draaiboek]. Null has none. */
+    private val draaiboekFile: File? = null,
+    /** Notes written against a subtitle line — see [SubtitleFeedback]. */
+    private val subtitleFeedbackFile: File = File("show-subtitle-feedback.json"),
+    private val draaiboekTab: String? = null,
     /** Where the tracks' voices are rendered, `<track>/<id>-<LETTER>.wav` — see [VoiceTrack]. Null has none. */
     private val voiceDir: File? = null,
     /** Open the page in a browser once it is up (on a Mac). */
@@ -128,6 +143,9 @@ class Remote(
     data class Grid(val on: Boolean?) : Command
     /** The show's sound muted or not; null flips it. See [Speakers.muted]. */
     data class Mute(val on: Boolean?) : Command
+
+    /** Practice mode on or off — whether the clicker's special buttons work; null flips it. See [Settings.practice]. */
+    data class Practice(val on: Boolean?) : Command
     /** Subtitle mode on or off; null flips it. See [Subtitles]. */
     data class Subtitle(val on: Boolean?) : Command
     /** Say these lines from now on — a save from the page, played at once — on [track]. */
@@ -136,6 +154,8 @@ class Remote(
     data class Track(val track: SubtitleTrack) : Command
     /** The voice spoken or not; null flips it. See [VoiceTrack]. */
     data class Voice(val on: Boolean?) : Command
+    /** Whether the presented run clicks on by itself once a state's line is said, or waits for a click. Null switches it. */
+    data class Autoplay(val on: Boolean?) : Command
     /** One track of the sound at this gain. See [Layer]. */
     data class Mix(val layer: Layer, val gain: Double) : Command
     /**
@@ -162,10 +182,12 @@ class Remote(
         val concrete: Boolean = false, val hasConcrete: Boolean = false,
         val grid: Boolean = false,
         val muted: Boolean = false, val hasSound: Boolean = false,
+        val practice: Boolean = false,
         val subtitles: Boolean = false,
         val subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
         val voice: Boolean = false,
-        val mix: Map<Layer, Double> = emptyMap()
+        val mix: Map<Layer, Double> = emptyMap(),
+        val autoplay: Boolean = true
     )
 
     val commands = ConcurrentLinkedQueue<Command>()
@@ -250,6 +272,21 @@ class Remote(
         .also { if (it.total > 0) println("feedback: ${it.open} open of ${it.total} notes, off ${feedbackFile.path}") }
         private set
 
+    /**
+     * The meeting tasks, as last read or saved. Like the feedback it carries no behaviour and is
+     * saved the moment a task is decided. See [MeetingTasks].
+     */
+    @Volatile
+    var meeting: MeetingTasks = MeetingTasks.readOrEmpty(meetingFile)
+        .also { if (it.total > 0) println("meeting: ${it.open} open of ${it.total} tasks, off ${meetingFile.path}") }
+        private set
+
+    /** Notes on subtitle lines, as last read or saved. See [SubtitleFeedback]. */
+    @Volatile
+    var subtitleFeedback: SubtitleFeedback = SubtitleFeedback.readOrEmpty(subtitleFeedbackFile)
+        .also { if (it.total > 0) println("subtitle feedback: ${it.open} open of ${it.total}, off ${subtitleFeedbackFile.path}") }
+        private set
+
     /** The draw loop's word that [next] is now what plays. */
     fun arranged(next: Show) {
         show = next
@@ -265,7 +302,8 @@ class Remote(
         get() = mapOf(
             "order" to orderFile, "modules" to modulesFile, "intents" to intentsFile,
             "subtitles" to subtitlesFile, "subtitlesExtended" to subtitlesExtendedFile,
-            "feedback" to feedbackFile, "midi" to midiFile
+            "feedback" to feedbackFile, "midi" to midiFile, "meeting" to meetingFile,
+            "subtitleFeedback" to subtitleFeedbackFile
         )
 
     /**
@@ -378,6 +416,11 @@ class Remote(
                     p.muted = on ?: !p.muted
                     if (!p.live) return exchange.json(200, presentationJson(p))
                 }
+                if (path == "/api/practice" && method == "POST") {
+                    val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
+                    p.practice = on ?: !p.practice
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
                 if (path == "/api/subtitle-mode" && method == "POST") {
                     val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
                     p.subtitles = on ?: !p.subtitles
@@ -394,6 +437,11 @@ class Remote(
                 if (path == "/api/voice-mode" && method == "POST") {
                     val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
                     p.voice = on ?: !p.voice
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
+                if (path == "/api/autoplay" && method == "POST") {
+                    val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
+                    p.autoplay = on ?: !p.autoplay
                     if (!p.live) return exchange.json(200, presentationJson(p))
                 }
                 if (path == "/api/subtitle-track" && method == "POST") {
@@ -431,6 +479,10 @@ class Remote(
                     commands += Mute(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
                 }
+                path == "/api/practice" && method == "POST" -> {
+                    commands += Practice(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
+                    exchange.json(202, ok())
+                }
                 path == "/api/subtitle-mode" && method == "POST" -> {
                     commands += Subtitle(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
@@ -445,6 +497,38 @@ class Remote(
                 path == "/api/voice-mode" && method == "POST" -> {
                     commands += Voice(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
+                }
+                path == "/api/autoplay" && method == "POST" -> {
+                    commands += Autoplay(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
+                    exchange.json(202, ok())
+                }
+                path == "/api/projection" && method == "GET" ->
+                    exchange.json(200, projectionJson(exchange.query("displays") == "1"))
+                path == "/api/projection" && method == "POST" -> {
+                    // Where the halves stand moves the running show at once — ProjectorSplit reads
+                    // Projectors every frame, nothing of the deck is touched — and with `save` the whole
+                    // setup is written for the next start, which is when the projectors' sizes and their
+                    // place on the desktop take effect. Under the launcher with no show this only saves.
+                    val b = exchange.body()
+                    b["outlines"]?.jsonPrimitive?.booleanOrNull?.let { Projectors.outlines = it }
+                    val next = Projectors.parse(b, Projectors.shown ?: Projectors.read(Projectors.started ?: Projectors.plain(catalogue.settings.width, catalogue.settings.height)))
+                    if (presentation == null) Projectors.shown = next
+                    if (b["save"]?.jsonPrimitive?.booleanOrNull == true) Projectors.save(next)
+                    exchange.json(200, projectionJson(false))
+                }
+                path == "/api/colours" && method == "POST" -> {
+                    // Shown at once — the draw loop reads Brand every frame, nothing of the deck is
+                    // touched — and, with `save`, written for the next start, the colour not named
+                    // left as the file has it. Under the launcher with no show this only saves.
+                    val b = exchange.body()
+                    val red = Brand.normalise(b["red"]?.jsonPrimitive?.contentOrNull)
+                    val blue = Brand.normalise(b["blue"]?.jsonPrimitive?.contentOrNull)
+                    if (red == null && blue == null) exchange.json(400, error("colours needs a red or a blue, six hex digits"))
+                    else {
+                        Brand.show(red, blue)
+                        if (b["save"]?.jsonPrimitive?.booleanOrNull == true) Brand.save(red, blue)
+                        exchange.json(200, coloursJson())
+                    }
                 }
                 path == "/api/subtitle-track" && method == "POST" -> {
                     commands += Track(SubtitleTrack.of(exchange.body()["track"]?.jsonPrimitive?.contentOrNull))
@@ -547,6 +631,31 @@ class Remote(
                     println("organizer: saved ${feedbackFile.path} (${kept.open} open of ${kept.total} notes)")
                     exchange.json(200, buildJsonObject { put("saved", feedbackFile.path); put("open", kept.open); put("rev", revOf(feedbackFile)) })
                 }
+                path == "/api/meeting" && method == "PUT" -> {
+                    if (refused(exchange, "meeting")) return
+                    val text = exchange.bytes().decodeToString()
+                    val next = runCatching { MeetingTasks.parse(text) }.getOrElse {
+                        exchange.json(400, error("not a meeting tasks file: ${it.message}"))
+                        return
+                    }
+                    val kept = meeting.mergedWith(next)
+                    kept.write(meetingFile)
+                    meeting = kept
+                    println("organizer: saved ${meetingFile.path} (${kept.open} open of ${kept.total} tasks)")
+                    exchange.json(200, buildJsonObject { put("saved", meetingFile.path); put("open", kept.open); put("rev", revOf(meetingFile)) })
+                }
+                path == "/api/subtitle-feedback" && method == "PUT" -> {
+                    if (refused(exchange, "subtitleFeedback")) return
+                    val next = runCatching { SubtitleFeedback.parse(exchange.bytes().decodeToString()) }.getOrElse {
+                        exchange.json(400, error("not a subtitle feedback file: ${it.message}"))
+                        return
+                    }
+                    val kept = subtitleFeedback.mergedWith(next)
+                    kept.write(subtitleFeedbackFile)
+                    subtitleFeedback = kept
+                    println("organizer: saved ${subtitleFeedbackFile.path} (${kept.open} open of ${kept.total})")
+                    exchange.json(200, buildJsonObject { put("saved", subtitleFeedbackFile.path); put("open", kept.open); put("rev", revOf(subtitleFeedbackFile)) })
+                }
                 path == "/api/midi" && method == "PUT" -> {
                     if (refused(exchange, "midi")) return
                     val text = exchange.bytes().decodeToString()
@@ -581,11 +690,14 @@ class Remote(
                 // What has been rendered as speech, per track — polled by the page while the
                 // renderer runs, so a line appears with a play button the moment it is written.
                 path == "/api/voice" && method == "GET" -> exchange.json(200, voiceJson())
+                path == "/api/draaiboek" && method == "GET" -> exchange.json(200, Draaiboek.json(draaiboekFile, draaiboekTab))
                 path.startsWith("/voice/") && method == "GET" -> {
                     val name = path.removePrefix("/voice/")
                     val file = voiceDir?.let { File(it, name) }
                     if (!VOICE_NAME.matches(name) || file == null || !file.isFile) exchange.send(404, ByteArray(0), "text/plain")
-                    else exchange.send(200, file.readBytes(), "audio/wav", cache = false)
+                    // A track's manifest carries the text each line was rendered from, so the page can
+                    // tell a line edited since its voice was made.
+                    else exchange.send(200, file.readBytes(), if (name.endsWith(".json")) "application/json" else "audio/wav", cache = false)
                 }
                 path.startsWith("/sketch-previews/") && method == "GET" -> {
                     val file = Sketches.preview(path.removePrefix("/sketch-previews/"))
@@ -656,6 +768,10 @@ class Remote(
             put("subtitleCps", pace.cps)
             put("feedbackFile", feedbackFile.path)
             put("feedback", feedback.toJson())
+            put("meetingFile", meetingFile.path)
+            put("meeting", meeting.toJson())
+            put("subtitleFeedbackFile", subtitleFeedbackFile.path)
+            put("subtitleFeedback", subtitleFeedback.toJson())
             put("midiFile", midiFile.path)
             put("midiDir", midiDir.path)
             put("midi", midi.toJson())
@@ -732,14 +848,47 @@ class Remote(
             put("index", s.index); put("id", s.id); put("step", s.step); put("steps", s.steps)
             put("frame", s.frame); put("previewsLeft", s.previewsLeft); put("previewStamp", s.previewStamp)
             put("concrete", s.concrete); put("hasConcrete", s.hasConcrete); put("grid", s.grid)
-            put("muted", s.muted); put("hasSound", s.hasSound); put("subtitles", s.subtitles)
-            put("subtitleTrack", s.subtitleTrack.key); put("voice", s.voice)
+            put("muted", s.muted); put("hasSound", s.hasSound); put("practice", s.practice); put("subtitles", s.subtitles)
+            put("subtitleTrack", s.subtitleTrack.key); put("voice", s.voice); put("autoplay", s.autoplay)
             put("mix", buildJsonObject { s.mix.forEach { (l, g) -> put(l.key, g) } })
             put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
             put("exportFrame", exportFrame); put("exportFrames", exportFrames)
             put("revs", revs())
+            put("colours", coloursJson())
             presentation?.let { put("presentation", presentationJson(it)) }
         }
+    }
+
+    /**
+     * The house colours: what the wall shows now, what the running slides were built in, and what the
+     * file holds for the next start. Read off [Brand] in whichever process answers — the show's, or
+     * the launcher's with no show, where all three are the file's.
+     */
+    private fun projectionJson(displays: Boolean) = buildJsonObject {
+        val saved = Projectors.read(Projectors.started ?: Projectors.plain(catalogue.settings.width, catalogue.settings.height))
+        // The window's own sizes while a show answers; the halves where the wall has them now.
+        val started = Projectors.started
+        put("live", presentation == null && started != null)
+        put("saved", Projectors.json(saved))
+        put("shown", Projectors.json(started?.placedAs(Projectors.shown ?: started) ?: saved))
+        started?.let { put("started", Projectors.json(it)) }
+        put("outlines", Projectors.outlines)
+        put("canvas", buildJsonObject { put("width", catalogue.settings.width); put("height", catalogue.settings.height) })
+        put("file", Projectors.file.path)
+        if (displays) put("displays", Projectors.displays())
+    }
+
+    private fun coloursJson() = buildJsonObject {
+        val (savedRed, savedBlue) = Brand.saved()
+        val built = presentation == null
+        put("red", Brand.shownRedHex ?: if (built) Brand.redHex else savedRed)
+        put("blue", Brand.shownBlueHex ?: if (built) Brand.blueHex else savedBlue)
+        put("builtRed", if (built) Brand.redHex else savedRed)
+        put("builtBlue", if (built) Brand.blueHex else savedBlue)
+        put("savedRed", savedRed); put("savedBlue", savedBlue)
+        // WN's own red and blue, which the page's reset buttons go back to.
+        put("defaultRed", Brand.DEFAULT_RED); put("defaultBlue", Brand.DEFAULT_BLUE)
+        put("file", Brand.file.path)
     }
 
     // ------------------------------------------------------------------------------ //
@@ -747,8 +896,8 @@ class Remote(
 
     private fun presentationJson(p: Presentation) = buildJsonObject {
         put("running", p.running); put("starting", p.starting); put("live", p.live)
-        put("projection", p.projection); put("muted", p.muted); put("subtitles", p.subtitles)
-        put("subtitleTrack", p.subtitleTrack.key); put("voice", p.voice)
+        put("projection", p.projection); put("muted", p.muted); put("practice", p.practice); put("subtitles", p.subtitles)
+        put("subtitleTrack", p.subtitleTrack.key); put("voice", p.voice); put("autoplay", p.autoplay)
         put("mix", buildJsonObject { p.mix.forEach { (l, g) -> put(l.key, g) } })
     }
 
@@ -809,6 +958,8 @@ class Remote(
         modules = if (modulesFile.isFile) runCatching { Modules.read(modulesFile) }.getOrDefault(Modules.EMPTY) else Modules.EMPTY
         intents = if (intentsFile.isFile) runCatching { Intents.read(intentsFile) }.getOrDefault(Intents.EMPTY) else Intents.EMPTY
         feedback = if (feedbackFile.isFile) runCatching { Feedback.read(feedbackFile) }.getOrDefault(Feedback.EMPTY) else Feedback.EMPTY
+        meeting = MeetingTasks.readOrEmpty(meetingFile)
+        subtitleFeedback = SubtitleFeedback.readOrEmpty(subtitleFeedbackFile)
         subtitles = Subtitles.readOrEmpty(subtitlesFile.path)
         subtitlesExtended = Subtitles.readOrEmpty(subtitlesExtendedFile.path)
         midi = if (midiFile.isFile) runCatching { MidiWanted.read(midiFile) }.getOrDefault(MidiWanted.EMPTY) else MidiWanted.EMPTY
@@ -863,7 +1014,7 @@ class Remote(
         )
 
         private val PREVIEW_NAME = Regex("^[a-z0-9-]+-[0-2]\\.png$")
-        private val VOICE_NAME = Regex("^(default|extended)/[a-z0-9-]+-[A-Z]{1,2}\\.wav$")
+        private val VOICE_NAME = Regex("^(default|extended)/([a-z0-9-]+-[A-Z]{1,2}\\.wav|manifest\\.json)$")
         private val REFERENCE_NAME = Regex("^[0-9]+-[0-9]+-(wall\\.jpg|pane\\.png)$")
 
         /** One of the three frames a preview shows: the click it stands on, the frame, and its caption. */

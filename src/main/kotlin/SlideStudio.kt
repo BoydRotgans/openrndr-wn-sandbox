@@ -3,6 +3,8 @@ import org.openrndr.KEY_ARROW_LEFT
 import org.openrndr.KEY_ARROW_RIGHT
 import org.openrndr.KEY_ARROW_UP
 import org.openrndr.KEY_ESCAPE
+import org.openrndr.KEY_PAGE_DOWN
+import org.openrndr.KEY_PAGE_UP
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.DepthFormat
@@ -274,8 +276,9 @@ fun main() = application {
             // The slide asks first, so a control of its own can share a letter with the studio's.
             if (event.key != KEY_ESCAPE && slides[index].key(event.name)) return@listen
             when {
-                event.key == KEY_ARROW_RIGHT -> deck.next()
-                event.key == KEY_ARROW_LEFT -> deck.back()
+                // The presenter clicker's forward and back, as in the show.
+                event.key == KEY_ARROW_RIGHT || event.key == KEY_PAGE_DOWN -> deck.next()
+                event.key == KEY_ARROW_LEFT || event.key == KEY_PAGE_UP -> deck.back()
                 event.key == KEY_ARROW_DOWN -> goToSlide(index + 1)
                 event.key == KEY_ARROW_UP -> goToSlide(index - 1)
                 event.key == KEY_ESCAPE -> application.exit()

@@ -148,6 +148,50 @@ fun clipFrames(slide: Slide, hold: Double, clicks: List<Int>, lastNote: Int): In
 }
 
 /**
+ * What an export of a slide films and scores: the slides the clip passes through, the frames the clicks land
+ * on, the tracks, and how many frames the clip runs.
+ */
+class ExportRun(val slides: List<Slide>, val clicks: List<Int>, val tracks: List<MidiTrack>, val frames: Int) {
+    val notes: Int get() = tracks.sumOf { it.notes.size }
+}
+
+/**
+ * [slide] as an export has it: clicked at the pace a filmed run gives it ([midiClicks]) where [clicked], or its
+ * opening state alone; and, clicked, one click more into [Slide.runsInto] where it has one, whose opening state
+ * then settles and is held.
+ *
+ * **The click into the next slide lands where a filmed run would take it**: this slide's last state played out
+ * and held, which is [clipFrames] of it, so the clip is the show's own run across the cut. The next slide's notes
+ * are its own score of its opening state moved on to that frame, on lanes of their own after this slide's; its
+ * arrival goes on this slide's `states` lane, a semitone a state on from the last, so the lane still counts the
+ * states the clip shows.
+ */
+fun exportRun(slide: Slide, hold: Double, base: Int = 48, offset: Double = 0.0, clicked: Boolean = true): ExportRun {
+    val clicks = if (clicked) midiClicks(slide, hold) else emptyList()
+    val tracks = midiTracksOf(slide, base, offset, clicks)
+    fun lastOf(s: Slide, c: List<Int>) = s.arrivals(c).maxOfOrNull { it.start + it.length } ?: 0
+    val own = clipFrames(slide, hold, clicks, lastOf(slide, clicks))
+    val next = slide.runsInto?.takeIf { clicked } ?: return ExportRun(listOf(slide), clicks, tracks, own)
+    val merged = tracks.toMutableList()
+    val states = merged.indexOfFirst { it.name == STATES_LANE }
+    for (t in midiTracksOf(next, base, offset + seconds(own))) {
+        if (t.notes.isEmpty()) continue
+        if (t.name == STATES_LANE && states >= 0) {
+            val channel = melodicChannels[states % melodicChannels.size]
+            merged[states] = merged[states].copy(notes = merged[states].notes +
+                    t.notes.map { it.copy(pitch = it.pitch + slide.steps, channel = channel) })
+        } else {
+            val channel = melodicChannels[merged.size % melodicChannels.size]
+            merged += t.copy(notes = t.notes.map { it.copy(channel = channel) })
+        }
+    }
+    return ExportRun(listOf(slide, next), clicks + own, merged, own + clipFrames(next, hold, emptyList(), lastOf(next, emptyList())))
+}
+
+/** The lane a slide's own states are scored on, by the name the drawers give it. */
+private const val STATES_LANE = "states"
+
+/**
  * [slide]'s build as MIDI lanes: a track and a channel a lane, pitch [base] plus [Arrival.index],
  * and [offset] seconds added to everything so the file can be dropped onto a film's timeline
  * where the slide arrives. [clicks] is the frame each click lands on, for a slide whose build

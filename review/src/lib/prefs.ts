@@ -6,6 +6,7 @@ const MUTED = 'wn-review.muted'
 const TRACK = 'wn-review.track'
 const VOICE_TRACK = 'wn-review.voiceTrack'
 const KEY = 'wn-review.key'
+const PRACTICE_KEY = 'wn-practice.key'
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -33,6 +34,9 @@ export const prefs = {
   setLoop: (on: boolean) => write(LOOP, on),
   getKey: () => read<string>(KEY, ''),
   setKey: (k: string) => write(KEY, k),
+  /** The practice page's own key, kept apart so it never stands in for the review's. */
+  getPracticeKey: () => read<string>(PRACTICE_KEY, ''),
+  setPracticeKey: (k: string) => write(PRACTICE_KEY, k),
   getMuted: () => read<boolean>(MUTED, false),
   setMuted: (on: boolean) => write(MUTED, on),
   /** Which soundtrack was last chosen: `film` is the one in the video. */

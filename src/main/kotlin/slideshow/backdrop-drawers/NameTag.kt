@@ -58,6 +58,8 @@ class NameTag(
 ) : Backdrop() {
 
     override val name = "Name tag"
+    /** The speaker's own card builds itself as they are named, and the programme cuts on from it invisibly. */
+    override val buildsIn get() = false
 
     private val ink = ColorRGBa.WHITE
     private lateinit var face: FontImageMap

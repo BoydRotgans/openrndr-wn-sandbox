@@ -38,10 +38,12 @@ interface CommentRow {
   y?: number | null
   assignees?: string[] | null
   parent_id?: string | null
+  clip?: string | null
+  clip_file?: string | null
 }
 
-/** The kinds that belong to the voice-over panel rather than to the thread. */
-const VOICE_KINDS = ['voiceover', 'voiceover_extended', 'voiceover_note', 'voiceover_extended_note'] as const
+/** The kinds besides a plain comment: the voice-over panel's, and a sound's status in the audio timeline. */
+const KINDS = ['voiceover', 'voiceover_extended', 'voiceover_note', 'voiceover_extended_note', 'audio_status', 'audio_gain'] as const
 
 const toRelease = (r: ReleaseRow): Release => ({
   id: r.id,
@@ -56,7 +58,7 @@ const toRelease = (r: ReleaseRow): Release => ({
 
 const toComment = (c: CommentRow): Comment => ({
   id: c.id,
-  kind: (VOICE_KINDS as readonly string[]).includes(c.kind ?? '') ? (c.kind as Comment['kind']) : 'comment',
+  kind: (KINDS as readonly string[]).includes(c.kind ?? '') ? (c.kind as Comment['kind']) : 'comment',
   topic: c.topic === 'audio' ? 'audio' : 'visual',
   releaseId: c.release_id,
   slideId: c.slide_id,
@@ -73,6 +75,8 @@ const toComment = (c: CommentRow): Comment => ({
   y: c.y ?? null,
   assignees: c.assignees ?? [],
   parentId: c.parent_id ?? null,
+  clip: c.clip ?? null,
+  clipFile: c.clip_file ?? null,
 })
 
 export class SupabaseStore implements Store {
@@ -161,7 +165,12 @@ export class SupabaseStore implements Store {
   async addComment(c: Omit<Comment, 'id' | 'createdAt' | 'done' | 'doneBy' | 'doneAt'>): Promise<Comment> {
     const { data, error } = await this.client
       .from('comments')
-      .insert({ release_id: c.releaseId, kind: c.kind, topic: c.topic, slide_id: c.slideId, state_key: c.stateKey, author: c.author, body: c.body, at: c.at ?? null, x: c.x ?? null, y: c.y ?? null, assignees: c.assignees ?? [], parent_id: c.parentId ?? null })
+      .insert({
+        release_id: c.releaseId, kind: c.kind, topic: c.topic, slide_id: c.slideId, state_key: c.stateKey, author: c.author, body: c.body,
+        at: c.at ?? null, x: c.x ?? null, y: c.y ?? null, assignees: c.assignees ?? [], parent_id: c.parentId ?? null,
+        // only when set: a project that has not run the clip columns in yet still takes every other comment
+        ...(c.clip ? { clip: c.clip, clip_file: c.clipFile ?? null } : {}),
+      })
       .select()
       .single()
     if (error) throw error

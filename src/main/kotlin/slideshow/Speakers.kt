@@ -24,6 +24,7 @@ import org.lwjgl.openal.AL10.alSourcePlay
 import org.lwjgl.openal.AL10.alSourceStop
 import org.lwjgl.openal.AL10.alSourcef
 import org.lwjgl.openal.AL10.alSourcei
+import org.lwjgl.openal.AL11.AL_SAMPLE_OFFSET
 import org.lwjgl.openal.ALC
 import org.lwjgl.openal.ALC10.ALC_DEVICE_SPECIFIER
 import org.lwjgl.openal.ALC10.alcCloseDevice
@@ -32,6 +33,7 @@ import org.lwjgl.openal.ALC10.alcDestroyContext
 import org.lwjgl.openal.ALC10.alcGetString
 import org.lwjgl.openal.ALC10.alcMakeContextCurrent
 import org.lwjgl.openal.ALC10.alcOpenDevice
+import org.lwjgl.system.MemoryUtil
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -111,6 +113,17 @@ class Speakers(
 
     /** Where each held source's gain stands, so a fade can start from wherever it got to. */
     private val level = mutableMapOf<String, Double>()
+
+    /** The held files that pick up where they stopped ([Sound.resume]): the playlists. */
+    private val resuming = mutableSetOf<String>()
+
+    /** Where each of those last stopped, in samples into its buffer, for the next play to start from. */
+    private val resumeAt = mutableMapOf<String, Int>()
+
+    /** Notes where a resuming source has got to, as it is stopped. */
+    private fun noteWhere(key: String, source: Int) {
+        if (key in resuming) resumeAt[key] = alGetSourcei(source, AL_SAMPLE_OFFSET)
+    }
 
     // --- the mix: a gain per layer, on top of each sound's own ----------------------------- //
     //
@@ -210,6 +223,10 @@ class Speakers(
                 .getOrNull() ?: continue
             val buffer = alGenBuffers()
             alBufferData(buffer, pcm.format, pcm.data, pcm.rate)
+            // OpenAL keeps a copy of its own, so the decoded one goes now rather than whenever a
+            // collection gets round to it: a course playlist is 200 to 280 MB of it.
+            val size = pcm.data.capacity().toLong()
+            MemoryUtil.memFree(pcm.data)
             if (alGetError() != AL_NO_ERROR) {
                 alDeleteBuffers(buffer)
                 println("sound: ${sound.file.name} would not buffer — silent")
@@ -219,12 +236,13 @@ class Speakers(
             // is stopped and dropped, so the next play binds the new — never deleted while bound.
             buffers.put(sound.file.path, buffer)?.let { old ->
                 held.remove(sound.file.path)?.let { src -> alSourceStop(src); alDeleteSources(src) }
+                resumeAt.remove(sound.file.path)    // a place in the old file means nothing in the new
                 alDeleteBuffers(old)
             }
             stamps[sound.file.path] = sound.file.lastModified()
             // per file, because the sheet is 44.1k and the ambience bed is 48k
             length += pcm.frames.toDouble() / pcm.rate
-            bytes += pcm.data.capacity().toLong()
+            bytes += size
             if (levelled && sound.levelled) println(
                 "  %-28s %5.1f dB -> %+5.1f dB".format(
                     sound.file.name, 20.0 * log10(pcm.rms.coerceAtLeast(1e-9)),
@@ -282,6 +300,7 @@ class Speakers(
                 }
             }
             heldLayer[key] = sound.layer
+            if (sound.resume) resuming += key else resuming -= key
             // A voice said again — a click back, a replay — starts from its first word rather
             // than carrying on from wherever it had got to, which is what a bed does.
             if (restart) alSourceStop(source)
@@ -294,7 +313,11 @@ class Speakers(
             }
             // Come up from where it stands, so the first frame of a fade is not a full-gain blip.
             alSourcef(source, AL_GAIN, ((level[key] ?: from) * mixOf(sound.layer)).toFloat())
-            if (alGetSourcei(source, AL_SOURCE_STATE) != AL_PLAYING) alSourcePlay(source)
+            if (alGetSourcei(source, AL_SOURCE_STATE) != AL_PLAYING) {
+                // A playlist coming back after it faded out goes on from where it stopped.
+                if (sound.resume) resumeAt[key]?.let { alSourcei(source, AL_SAMPLE_OFFSET, it) }
+                alSourcePlay(source)
+            }
             alGetError().takeIf { it != AL_NO_ERROR }?.let { println("sound: ${sound.file.name} would not play (AL error $it)") }
             return
         }
@@ -328,6 +351,7 @@ class Speakers(
         if (sound.fadeOut <= 0) {
             fading.remove(key)
             level[key] = 0.0
+            noteWhere(key, source)
             alSourceStop(source)
             return
         }
@@ -357,6 +381,7 @@ class Speakers(
                     // freed, is one per voice line over a whole talk — 142 of them, beside the
                     // design's own — and OpenAL Soft stops handing out sources at 256, after which
                     // a cue plays on nothing and says so to nobody. A later play makes a new one.
+                    noteWhere(key, source)
                     alSourceStop(source)
                     alDeleteSources(source)
                     held.remove(key)
@@ -458,9 +483,12 @@ class Speakers(
         val read = level(file, levelled)
 
         // pass two — scale in float, then quantise
-        val data = ByteBuffer.allocateDirect((read.frames * read.channels * 2).toInt()).order(ByteOrder.nativeOrder())
-        val shorts = data.asShortBuffer()
-        read.each { v -> if (shorts.hasRemaining()) shorts.put((v * Short.MAX_VALUE).toInt().toShort()) }
+        // Off the native heap and freed by [load] once OpenAL has its copy — see there.
+        val data = MemoryUtil.memAlloc((read.frames * read.channels * 2).toInt()).order(ByteOrder.nativeOrder())
+        runCatching {
+            val shorts = data.asShortBuffer()
+            read.each { v -> if (shorts.hasRemaining()) shorts.put((v * Short.MAX_VALUE).toInt().toShort()) }
+        }.onFailure { MemoryUtil.memFree(data); throw it }
 
         return Pcm(
             data = data,

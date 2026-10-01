@@ -64,6 +64,8 @@ class Programme(
 ) : Backdrop() {
 
     override val name = "Programme"
+    /** A list read a click at a time, with a build of its own. */
+    override val buildsIn get() = false
     private val chapters = entries.indices.filter { entries[it].chapter }
     override val steps get() = chapters.size + 2
 
@@ -144,7 +146,10 @@ class Programme(
                 if (e.chapter) {
                     number++
                     val baseline = y + rowH * 0.5 + h * CHAPTER_SIZE * 0.34
-                    drawer.fill = accent.opacify(built * dim)
+                    // Dimmed, the number goes to the quiet grey rather than a darker red: the red is the
+                    // chapter forward, and there is no second red (28 September).
+                    val away = ((1.0 - dim) / (1.0 - DIM)).coerceIn(0.0, 1.0)
+                    drawer.fill = accent.mix(quiet, away).opacify(built * dim)
                     drawer.setLine(number.toString(), bold, Vector2(x, baseline), h * CHAPTER_SIZE, SIZE)
                     drawer.fill = ink.opacify(built * dim)
                     drawer.setLine(e.label, bold, Vector2(x + pane * NUMBER_W, baseline), h * CHAPTER_SIZE, SIZE)

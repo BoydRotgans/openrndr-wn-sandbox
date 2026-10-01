@@ -133,10 +133,10 @@ fun org.openrndr.Program.assembleCourse(): (Drawer, Double) -> Unit {
     // A step toward the top of the frame, on the ground: away from the camera.
     val away = Vector2(-1.0, -1.0).normalized
 
-    val accent = ColorRGBa.fromHex(key("ACCENT") ?: "FF0000")
-    val palette = (key("PALETTE") ?: "F5F7FA,FF0000,1E3A72,0A0A0F").split(",").map { ColorRGBa.fromHex(it.trim()) }
+    val accent = ColorRGBa.fromHex(key("ACCENT") ?: slideshow.Brand.redHex)
+    val palette = (key("PALETTE") ?: "F5F7FA,${slideshow.Brand.redHex},${slideshow.Brand.blueHex},0A0A0F").split(",").map { ColorRGBa.fromHex(it.trim()) }
     val white = palette.getOrElse(0) { ColorRGBa.WHITE }; val red = palette.getOrElse(1) { accent }
-    val navy = palette.getOrElse(2) { ColorRGBa.BLUE }; val black = palette.getOrElse(3) { ColorRGBa.BLACK }
+    val navy = palette.getOrElse(2) { slideshow.Palette.BLUE }; val black = palette.getOrElse(3) { ColorRGBa.BLACK }
     val sunAngle = number("SUN_ANGLE", if (graphic) 15.0 else 120.0)
     val sunElevation = number("SUN_ELEVATION", if (graphic) 20.0 else 34.0)
     val look = if (graphic) SiteCity.Look(

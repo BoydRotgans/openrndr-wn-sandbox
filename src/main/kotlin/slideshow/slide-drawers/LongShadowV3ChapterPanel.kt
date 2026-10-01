@@ -31,7 +31,12 @@ class LongShadowV3ChapterPanel(
     val section: Section,
     private val shadow: LongShadowV3,
     private val svg: File? = null,
-    override val sound: Sound? = null
+    override val sound: Sound? = null,
+    /**
+     * When the field starts to leave, where something else decides it: the [ChapterOpening] this card
+     * is the first pane of hands over the second its click came on. Null keeps the card's own schedule.
+     */
+    private val leave: () -> Double? = { null }
 ) : Slide() {
 
     override val name get() = section.chapter.ifBlank { "Panel" }
@@ -52,5 +57,5 @@ class LongShadowV3ChapterPanel(
     override val settle: Int get() = slideshow.frames(shadow.settled(svg, section.chapter))
 
     override fun draw(drawer: Drawer, stage: Stage) =
-        shadow.draw(drawer, stage.bounds, section.chapter, stage.frame, svg = svg, pane = 0)
+        shadow.draw(drawer, stage.bounds, section.chapter, stage.frame, svg = svg, pane = 0, leave = leave())
 }

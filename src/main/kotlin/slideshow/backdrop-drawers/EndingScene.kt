@@ -29,6 +29,9 @@ import slideshow.frames
  * The code is generated at load from [url] and drawn as squares, white on black, with its own
  * quiet zone; it grows from its middle once the words are up. Everything builds on the wall's
  * own clock and then holds. Sentence, action and address are the show's.
+ *
+ * [qr] false leaves the code off the wall (meeting of 30 September: "take away the qr code from the
+ * screen"), and the right pane is then the action and the address alone, centred as one stack.
  */
 class EndingScene(
     private val sentence: String,
@@ -39,7 +42,9 @@ class EndingScene(
     private val ink: ColorRGBa = Palette.onBlack.ink,
     private val accent: ColorRGBa = Palette.onBlack.accent,
     override val background: ColorRGBa = Palette.onBlack.paper,
-    override val sound: Sound? = null
+    override val sound: Sound? = null,
+    /** Whether the QR code stands between the action and the address. */
+    private val qr: Boolean = true
 ) : Backdrop() {
 
     override val name = "Ending"
@@ -52,7 +57,7 @@ class EndingScene(
     override fun load(program: Program) {
         bold = program.loadFont(boldPath, SIZE, TYPE_CHARACTERS, contentScale = 1.0)
         text = program.loadFont(textPath, SIZE, TYPE_CHARACTERS, contentScale = 1.0)
-        modules = runCatching {
+        modules = if (!qr) emptyArray() else runCatching {
             val m = QRCodeWriter().encode(url, BarcodeFormat.QR_CODE, 0, 0, mapOf(
                 EncodeHintType.MARGIN to 0, EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M
             ))
@@ -82,14 +87,16 @@ class EndingScene(
         // code. A line is placed by its baseline; its ink starts a cap height above it.
         val cx = pane * 1.5
         val actionLines = text.wrapped(action, (pane * ACTION_W) * SIZE / (h * ACTION))
-        val outer = h * CODE * (1.0 + 2.0 * QUIET)
+        // With no code the action and the address close up to one gap between them.
+        val outer = if (qr) h * CODE * (1.0 + 2.0 * QUIET) else 0.0
+        val gapBelow = if (qr) h * GAP_BELOW else 0.0
         val stack = CAP * h * ACTION + (actionLines.size - 1) * h * ACTION_LEAD +
-            h * GAP_ABOVE + outer + h * GAP_BELOW + CAP * h * URL
+            h * GAP_ABOVE + outer + gapBelow + CAP * h * URL
         val top = (h - stack) / 2.0
         val firstBaseline = top + CAP * h * ACTION
         val codeTop = firstBaseline + (actionLines.size - 1) * h * ACTION_LEAD + h * GAP_ABOVE
         val cy = codeTop + outer / 2.0
-        val urlBaseline = codeTop + outer + h * GAP_BELOW + CAP * h * URL
+        val urlBaseline = codeTop + outer + gapBelow + CAP * h * URL
 
         // The code, growing from its middle.
         val side = h * CODE * shown

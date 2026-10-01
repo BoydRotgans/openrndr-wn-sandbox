@@ -42,12 +42,14 @@ fun main() {
             "SLIDES_STILLS" to "false"
         ),
         onStopped = { remote.reload() },
-        projectionEnvironment = { projectionEnvironment(settings.width) },
+        projectionEnvironment = { projectionEnvironment(settings.width, settings.height) },
         projection = Env.boolean("SLIDES_PROJECTION"),
         muted = settings.muted,
+        practice = settings.practice,
         subtitles = settings.subtitleMode,
         subtitleTrack = settings.subtitleTrack,
-        voice = settings.voiceOn
+        voice = settings.voiceOn,
+        autoplay = settings.autoplay
     ).also { p -> settings.levels.forEach { (layer, gain) -> p.mix[layer] = gain } }
     remote = Remote(
         declared, File(settings.order ?: "show-order.json"), settings.organizerPort, File("build/previews"),
@@ -57,6 +59,10 @@ fun main() {
         File(settings.midi ?: "show-midi.json"),
         subtitlesFile = File(settings.subtitles ?: "show-subtitles.json"),
         subtitlesExtendedFile = File(settings.subtitlesExtended ?: "show-subtitles-extended.json"),
+        meetingFile = File(settings.meeting ?: "show-meeting-tasks.json"),
+        draaiboekFile = settings.draaiboek?.let { File(it) },
+        draaiboekTab = settings.draaiboekTab,
+        subtitleFeedbackFile = File(settings.subtitleFeedback ?: "show-subtitle-feedback.json"),
         voiceDir = settings.voice?.let { File(it) },
         open = settings.organizerOpen,
         presentation = presentation
@@ -85,13 +91,15 @@ private fun showCommand(): List<String> {
  * The show on the wall: undecorated, at 1:1 and placed across the projectors — the keys the
  * show already reads for that, see `SLIDES_UNDECORATED` in `.env.example`.
  *
- * `SLIDES_PROJECTION_X/_Y` say where, in screen points. With X left empty the projectors are
- * taken to be the rightmost displays, top aligned: the right edge of the whole desktop less the
- * canvas width, read off Finder, which is where a wall plugged in beside a laptop ends up.
+ * Where, in screen points: the desktop place set in the Projection tab (see [slideshow.Projectors]),
+ * else `SLIDES_PROJECTION_X/_Y`. With neither the projectors are taken to be the rightmost displays,
+ * top aligned: the right edge of the whole desktop less the two projectors' width, read off Finder,
+ * which is where a wall plugged in beside a laptop ends up.
  */
-private fun projectionEnvironment(canvasWidth: Int): Map<String, String> {
-    val x = Env["SLIDES_PROJECTION_X"]?.toIntOrNull() ?: desktopRight()?.let { it - canvasWidth } ?: 0
-    val y = Env["SLIDES_PROJECTION_Y"]?.toIntOrNull() ?: 0
+private fun projectionEnvironment(canvasWidth: Int, canvasHeight: Int): Map<String, String> {
+    val setup = slideshow.Projectors.read(slideshow.Projectors.plain(canvasWidth, canvasHeight))
+    val x = setup.desktopX ?: Env["SLIDES_PROJECTION_X"]?.toIntOrNull() ?: desktopRight()?.let { it - setup.width } ?: 0
+    val y = setup.desktopY ?: Env["SLIDES_PROJECTION_Y"]?.toIntOrNull() ?: 0
     return mapOf(
         "SLIDES_UNDECORATED" to "true",
         "SLIDES_WINDOW_SCALE" to "1.0",

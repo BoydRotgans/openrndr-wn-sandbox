@@ -31,12 +31,16 @@ class Presentation(
     @Volatile var projection: Boolean = false,
     /** Whether the show starts muted: the page's sound button, kept across starts. */
     @Volatile var muted: Boolean = false,
+    /** Whether the clicker's special buttons work: the page's practice mode button, kept across starts. */
+    @Volatile var practice: Boolean = false,
     /** Whether the show starts in subtitle mode: the page's subtitles button, kept across starts. */
     @Volatile var subtitles: Boolean = false,
     /** Which subtitle track the show starts on: the page's voice-over selector, kept across starts. */
     @Volatile var subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
     /** Whether the show starts with the voice spoken: the page's voice button, kept across starts. */
     @Volatile var voice: Boolean = false,
+    /** Whether the presented run clicks on by itself or waits for a click: the page's autoplay button, kept across starts. */
+    @Volatile var autoplay: Boolean = true,
     /** The mix the show starts at: the page's faders, kept across starts. See [Layer]. */
     val mix: MutableMap<Layer, Double> = java.util.concurrent.ConcurrentHashMap(Layer.entries.associateWith { 1.0 })
 ) {
@@ -61,7 +65,7 @@ class Presentation(
         val child = ProcessBuilder(command)
             .directory(workingDir)
             .redirectErrorStream(true)
-            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + ("SLIDES_SUBTITLE_MODE" to "$subtitles") + ("SLIDES_SUBTITLE_TRACK" to subtitleTrack.key) + ("SLIDES_VOICE_ON" to "$voice") + mix.entries.associate { (l, g) -> "SLIDES_MIX_${l.name}" to "$g" } + extra) }
+            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + ("SLIDES_PRACTICE" to "$practice") + ("SLIDES_SUBTITLE_MODE" to "$subtitles") + ("SLIDES_SUBTITLE_TRACK" to subtitleTrack.key) + ("SLIDES_VOICE_ON" to "$voice") + ("SLIDES_AUTOPLAY" to "$autoplay") + mix.entries.associate { (l, g) -> "SLIDES_MIX_${l.name}" to "$g" } + extra) }
             .start()
         process = child
         println("presentation: starting" + if (projection) " on the projectors (${placed["SLIDES_WINDOW_X"]}, ${placed["SLIDES_WINDOW_Y"]})" else " in a window")
@@ -89,6 +93,7 @@ class Presentation(
     /** Stops the show, and anything it started — OPENRNDR may have restarted itself as a child. */
     fun stop() {
         val child = process ?: return
+        println("presentation: asked to stop")
         child.descendants().forEach { it.destroy() }
         child.destroy()
     }

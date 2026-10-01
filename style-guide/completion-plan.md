@@ -12,7 +12,7 @@ slides, and an ending nobody has briefed yet.
 
 ## Decide first
 1. **Title placement** — centred at the top (most slides) or top-left with a paragraph (the new ladder). See `visual.md`.
-2. **Blue on slides** — the bright Figma pair (`#3D5AE0`, `#4674D6`) as now, with navy kept for walls?
+2. ~~**Blue on slides**~~ — decided 28 September: one blue, `#023F88`, everywhere, with the red `#FF0000`.
 3. **Block city in chapter 4** — does `demontabel-in-de-stad` replace the two block-city backdrops there, or join them?
 4. **The ending** — what is the call to action: website, QR code, contact, an invitation?
 

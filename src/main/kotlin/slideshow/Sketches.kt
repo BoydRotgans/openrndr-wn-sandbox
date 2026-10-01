@@ -155,6 +155,15 @@ object Sketches {
         return paragraph.joinToString(" ").replace("**", "").replace("`", "").trim()
     }
 
+    /**
+     * Whether a sketch fills both projectors: its picture is wider than [WIDE], the same test the
+     * organizer's Sketches tab uses to give a card two columns. No picture yet, and it is not counted.
+     */
+    fun fillsTheWall(sketch: String): Boolean = aspectOf(File(PREVIEWS, "$sketch.png"))?.let { it > WIDE } ?: false
+
+    /** Wider than this, a picture is the whole wall rather than one projector. */
+    const val WIDE = 2.2
+
     private val PREVIEWS = File("sketch-previews")
     private val NAME = Regex("[A-Za-z0-9_-]+\\.png")
 }

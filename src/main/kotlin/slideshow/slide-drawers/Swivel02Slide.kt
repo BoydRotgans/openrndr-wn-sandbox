@@ -91,9 +91,9 @@ class Swivel02Slide(
     /** A block a click, centred and close up, rather than a looping train. */
     private val clicked: Boolean = false,
     /** Faces turned towards the front — the ones the copy is set on. */
-    private val front: ColorRGBa = ColorRGBa.fromHex("ED1C24"),
+    private val front: ColorRGBa = slideshow.Palette.RED,
     /** Faces turned aside, so a slab has an edge without a line drawn on it. */
-    private val side: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
+    private val side: ColorRGBa = slideshow.Palette.BLUE,
     private val ink: ColorRGBa = ColorRGBa.WHITE,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     /** World units across the pane. The sketch framed this scene 1440 wide. */

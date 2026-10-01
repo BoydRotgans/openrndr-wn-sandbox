@@ -427,7 +427,7 @@ class SiteCity(
         pieces: List<Piece> = emptyList(),
         /** The pieces' grey, the colour a piece takes while it is not yet in place, and its edges. */
         pieceTone: Double = 0.9,
-        accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+        accent: ColorRGBa = slideshow.Palette.RED,
         edgeDark: Double = 0.35,
         edgeWidth: Double = 1.5,
         /** Flat colour for the pieces instead of the greys: set in, and on its way; null keeps the greys. */

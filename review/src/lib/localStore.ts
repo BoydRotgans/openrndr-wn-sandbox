@@ -82,7 +82,7 @@ export class LocalStore implements Store {
   }
 
   async listComments(): Promise<Comment[]> {
-    return read<Comment[]>(COMMENTS, []).map((c) => ({ ...c, kind: c.kind ?? 'comment', topic: c.topic ?? 'visual', assignees: c.assignees ?? [], parentId: c.parentId ?? null }))
+    return read<Comment[]>(COMMENTS, []).map((c) => ({ ...c, kind: c.kind ?? 'comment', topic: c.topic ?? 'visual', assignees: c.assignees ?? [], parentId: c.parentId ?? null, clip: c.clip ?? null, clipFile: c.clipFile ?? null }))
   }
 
   async addComment(c: Omit<Comment, 'id' | 'createdAt' | 'done' | 'doneBy' | 'doneAt'>): Promise<Comment> {

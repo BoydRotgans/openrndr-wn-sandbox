@@ -22,4 +22,6 @@ package slideshow
 abstract class Backdrop : Slide() {
     override val wide get() = true
     override val kind get() = "backdrop"
+    /** Every backdrop takes the stage slowly and alike — see [WallBuild] — unless it says otherwise. */
+    override val buildsIn get() = true
 }

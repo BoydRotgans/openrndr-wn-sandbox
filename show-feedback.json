@@ -5,6 +5,11 @@
         "text": "the glove graphic should look similar to the grid lines we used in the \"esg-social-governance (Crowd)\" slide 20. \nbut instead of people it's made of objects.",
         "done": true,
         "at": "2026-09-16"
+      },
+      {
+        "text": "blue needs to be more bright here",
+        "done": true,
+        "at": "2026-09-28"
       }
     ],
     "het-programma": [
@@ -53,6 +58,11 @@
         "text": "all slides with black should have a bit of the dark grey concrete blending texture, the same ground as the chapter card on the left, to make them coherent. Done globally in the concrete overlay, not per slide.",
         "done": true,
         "at": "2026-09-18"
+      },
+      {
+        "text": "blue needs to be more bright here",
+        "done": true,
+        "at": "2026-09-28"
       }
     ],
     "hoe-bouw-je-een-wereld": [
@@ -95,6 +105,11 @@
         "text": "chapter titles: the tile colours look a bit plain / flattened out; correct this.",
         "done": true,
         "at": "2026-09-18"
+      },
+      {
+        "text": "make these scenes chapter title render in two clicks",
+        "done": true,
+        "at": "2026-09-28"
       }
     ],
     "everything-a-build-answers-to": [
@@ -102,6 +117,11 @@
         "text": "when revealing the first two can you place it more central vertically to reveal the label. do one left and then one right. an then all",
         "done": true,
         "at": "2026-09-16"
+      },
+      {
+        "text": "blue needs to be more bright here",
+        "done": true,
+        "at": "2026-09-28"
       }
     ],
     "de-cijfers": [
@@ -128,6 +148,11 @@
         "text": "the arrow state 2-21; is not a full arrow check the frame; and fix it",
         "done": true,
         "at": "2026-09-16"
+      },
+      {
+        "text": "in the globe can you make all people blue?",
+        "done": true,
+        "at": "2026-09-28"
       }
     ],
     "ending": [
@@ -135,6 +160,27 @@
         "text": "can you better layout this spacing; the qr code and text on top with link below is a bit off",
         "done": true,
         "at": "2026-09-18"
+      }
+    ],
+    "sketch-climb": [
+      {
+        "text": "these scene needs a slow build up to reveal it's dinner moment",
+        "done": true,
+        "at": "2026-09-28"
+      }
+    ],
+    "verborgen-verhaal": [
+      {
+        "text": "of this first slide; make sure the lines are better placed; not really fan of that there is now; it a bit to mch overlapping",
+        "done": true,
+        "at": "2026-09-28"
+      }
+    ],
+    "case-studies": [
+      {
+        "text": "these need the same sounds as the other \"project highlight\" scenes.",
+        "done": true,
+        "at": "2026-09-28"
       }
     ]
   }

@@ -1,0 +1,54 @@
+{
+ "about": "The gain the audio timeline review gave each sound design cue, per state (<slide-id>-<LETTER>), in dB against the file as delivered. Written by the review site; read by the show through SLIDES_GAINS and applied as each cue is fired.",
+ "written": "2026-09-30T06:24:37.912Z",
+ "design": {
+  "domino-effect-A": {
+   "db": 0,
+   "file": "P2-13-domino-effect-A.wav",
+   "by": "Boyd",
+   "at": "2026-09-28T09:45:26.543781+00:00"
+  },
+  "everything-a-build-answers-to-E": {
+   "db": -3,
+   "file": "P1-05-everything-a-build-answers-to-E.wav",
+   "by": "Boyd",
+   "at": "2026-09-29T14:27:34.89058+00:00"
+  },
+  "het-programma-A": {
+   "db": 0,
+   "file": "00-01-het-programma-A.wav",
+   "by": "Jurre",
+   "at": "2026-09-28T10:04:49.273901+00:00"
+  },
+  "het-programma-B": {
+   "db": 0,
+   "file": "00-01-het-programma-B.wav",
+   "by": "Jurre",
+   "at": "2026-09-28T10:04:52.256725+00:00"
+  },
+  "het-programma-C": {
+   "db": 0,
+   "file": "00-01-het-programma-C.wav",
+   "by": "Boyd",
+   "at": "2026-09-29T07:59:40.681594+00:00"
+  },
+  "recyclage-A": {
+   "db": -11,
+   "file": "P3-21-recyclage-A.wav",
+   "by": "Jurre",
+   "at": "2026-09-28T15:18:02.476504+00:00"
+  },
+  "verduurzamen-van-beton-C": {
+   "db": 0,
+   "file": "P3-13-verduurzamen-van-beton-C.wav",
+   "by": "Jurre",
+   "at": "2026-09-29T08:08:23.208114+00:00"
+  },
+  "who-is-speaking-A": {
+   "db": 0,
+   "file": "00-00-who-is-speaking-A.wav",
+   "by": "Jurre",
+   "at": "2026-09-28T14:31:48.933106+00:00"
+  }
+ }
+}

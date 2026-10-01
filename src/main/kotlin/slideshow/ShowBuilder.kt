@@ -153,6 +153,16 @@ class ShowBuilder internal constructor() {
     }
 
     /**
+     * The playlist under the walls of one [moment] of the evening — "Aperitif", "First course" — by
+     * the name the order file gives it. It plays under every wall the moment holds, whatever wall
+     * that is, and carries on unbroken from one to the next; a wall's own bed gives way to it. Give
+     * it a fade out, or it cannot be let go. Null takes the moment's music away.
+     */
+    fun music(moment: String, bed: Sound?) {
+        settings = settings.copy(momentMusic = if (bed == null) settings.momentMusic - moment else settings.momentMusic + (moment to bed))
+    }
+
+    /**
      * A cue sheet read off a folder, placing its sounds by the state each file names.
      *
      * It speaks for the slides it names and nothing else, so a sheet covering one chapter leaves
@@ -160,6 +170,16 @@ class ShowBuilder internal constructor() {
      */
     fun cueSheet(sheet: CueSheet?) {
         settings = settings.copy(cueSheet = sheet)
+    }
+
+    /** The review's gains per state, applied as each sound-design cue is fired. See [ReviewGains]. */
+    fun gains(gains: ReviewGains?) {
+        settings = settings.copy(gains = gains)
+    }
+
+    /** How a backdrop takes the stage, over [seconds] — the same for every one. See [WallBuild]. */
+    fun wallBuild(build: WallBuild?, seconds: Double) {
+        settings = settings.copy(wallBuild = build, backdropBuild = seconds)
     }
 
     /** Open with the debug view up; `d` toggles it either way. */

@@ -19,7 +19,7 @@ import slideshow.Stage
 class RevealSlide : Slide() {
     override val name = "Reveal"
     override val steps = 3
-    override val background = ColorRGBa.fromHex("E4572E")
+    override val background = slideshow.Palette.RED
 
     private val ink = ColorRGBa.fromHex("101010")
 

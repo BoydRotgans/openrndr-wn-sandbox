@@ -53,8 +53,8 @@ class PlainScene(
     private val folder: File,
     /** How many pieces each column stacks. Columns take the pieces in turn and repeat. */
     private val values: List<Int> = listOf(3, 5, 8, 4, 9, 6, 2, 7, 10, 5, 3, 8, 6, 4, 9),
-    private val from: ColorRGBa = ColorRGBa.fromHex("FF0000"),
-    private val to: ColorRGBa = ColorRGBa.fromHex("1E3A72"),
+    private val from: ColorRGBa = slideshow.Palette.RED,
+    private val to: ColorRGBa = slideshow.Palette.BLUE,
     private val ink: ColorRGBa = ColorRGBa.WHITE,
     /** Seconds for red to blue and back. */
     period: Double = 8.0,

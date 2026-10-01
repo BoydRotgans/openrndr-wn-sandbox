@@ -106,10 +106,10 @@ class GlobeSlide(
      */
     private val sheet: File? = null,
     /** The flat disc, where there is no sheet. */
-    private val disc: ColorRGBa = ColorRGBa.fromHex("3D5AE0"),
+    private val disc: ColorRGBa = slideshow.Palette.BLUE,
     /** A piece standing on the globe, and one with a line of the grid running through it. */
     private val piece: ColorRGBa = ColorRGBa.WHITE,
-    private val grid: ColorRGBa = ColorRGBa.fromHex("2E5BFF"),
+    private val grid: ColorRGBa = slideshow.Palette.BLUE,
     private val ink: ColorRGBa = ColorRGBa.WHITE,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     /** Seconds a word, averaged — `pace * (fill - opening)` is the whole build. */

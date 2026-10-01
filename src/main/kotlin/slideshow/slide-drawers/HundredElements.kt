@@ -36,7 +36,7 @@ import kotlin.random.Random
 class HundredElements(
     private val sheet: File,
     private val boldPath: String = "data/fonts/default.otf",
-    private val ink: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val ink: ColorRGBa = slideshow.Palette.RED,
     private val seed: Int = 3,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val stepFrames: Int = frames(1.4),

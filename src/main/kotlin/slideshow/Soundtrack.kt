@@ -110,7 +110,7 @@ object Soundtrack {
             for (cue in log) {
                 val s = cue.sound
                 out.println(
-                    "${cue.frame}\t${if (cue.release) "release" else "play"}\t${s.gain}\t${s.loop}\t${s.fadeIn}\t${s.fadeOut}\t${s.file.path}\t${s.levelled}\t${s.layer.key}"
+                    "${cue.frame}\t${if (cue.release) "release" else "play"}\t${s.gain}\t${s.loop}\t${s.fadeIn}\t${s.fadeOut}\t${s.file.path}\t${s.levelled}\t${s.layer.key}\t${s.resume}"
                 )
             }
         }
@@ -136,7 +136,8 @@ object Soundtrack {
                 frame = t[0].toIntOrNull() ?: return@mapNotNull null,
                 sound = Sound(File(t[6]), t[2].toDouble(), t[3].toBoolean(), t[4].toInt(), t[5].toInt(),
                     levelled = t.getOrNull(7)?.toBooleanStrictOrNull() ?: false,
-                    layer = Layer.of(t.getOrNull(8)) ?: Layer.DESIGN),
+                    layer = Layer.of(t.getOrNull(8)) ?: Layer.DESIGN,
+                    resume = t.getOrNull(9)?.toBooleanStrictOrNull() ?: false),
                 release = t[1] == "release"
             )
         }
@@ -151,7 +152,9 @@ object Soundtrack {
     private class Track(val samples: FloatArray, val channels: Int, val rate: Int) {
         val length: Int get() = samples.size / channels
         /** How many deck frames it runs for, played once. */
-        val frames: Int get() = ceil(length.toDouble() / rate * FPS).toInt()
+        val frames: Int get() = framesFrom(0)
+        /** How many deck frames it runs for, played once from sample [offset]. */
+        fun framesFrom(offset: Int): Int = ceil((length - offset).coerceAtLeast(0).toDouble() / rate * FPS).toInt()
     }
 
     /** A gain ramp as a function of the frame — [Speakers]' own, so a fade is the same length here. */
@@ -168,7 +171,9 @@ object Soundtrack {
      */
     private class Segment(
         val track: Track, val start: Int, val end: Int, val loop: Boolean,
-        val gains: DoubleArray?, val flat: Double, val mix: Double = 1.0
+        val gains: DoubleArray?, val flat: Double, val mix: Double = 1.0,
+        /** Where in the track it starts, in samples: past 0 only for a playlist picking up where it stopped. */
+        val offset: Int = 0
     )
 
     /**
@@ -199,23 +204,34 @@ object Soundtrack {
 
         val segments = mutableListOf<Segment>()
 
+        /** Where each resuming file stopped, in its own samples — [Speakers]' `resumeAt`. */
+        val resumeAt = HashMap<String, Int>()
+
         /** A sustained cue's one voice, in the state [Speakers] keeps for its held sources. */
         class Voice(val track: Track, val sound: Sound) {
             var level: Double? = null
             var fade: Ramp? = null
             var since = -1
+            var offset = 0
             var gains: DoubleArray? = null
             val playing: Boolean get() = since >= 0
 
             fun start(frame: Int) {
                 if (playing) return
                 since = frame
+                offset = if (sound.resume) resumeAt[sound.file.path] ?: 0 else 0
                 gains = DoubleArray(frames)
             }
 
             fun stop(frame: Int) {
                 if (!playing) return
-                segments += Segment(track, since, frame, sound.loop, gains, 0.0, levels[sound.layer] ?: 1.0)
+                segments += Segment(track, since, frame, sound.loop, gains, 0.0, levels[sound.layer] ?: 1.0, offset)
+                if (sound.resume) {
+                    // where the room's source stood as it was stopped: as far on as it played, round the loop
+                    val at = offset + ((frame - since).toLong() * track.rate / FPS).toInt()
+                    resumeAt[sound.file.path] = if (sound.loop && track.length > 0) at % track.length
+                        else if (at < track.length) at else 0
+                }
                 since = -1
                 gains = null
             }
@@ -236,7 +252,7 @@ object Soundtrack {
             }
             // a source that does not loop runs out by itself, and a later play restarts it
             for (voice in voices.values) {
-                if (voice.playing && !voice.sound.loop && frame - voice.since >= voice.track.frames) voice.stop(frame)
+                if (voice.playing && !voice.sound.loop && frame - voice.since >= voice.track.framesFrom(voice.offset)) voice.stop(frame)
             }
 
             for (cue in byFrame[frame].orEmpty()) {
@@ -296,7 +312,7 @@ object Soundtrack {
             val samples = s.track.samples
 
             for (n in first until last) {
-                var p = (n - first) * step
+                var p = s.offset + (n - first) * step
                 if (s.loop) p %= length else if (p >= length - 1) break
                 val i0 = floor(p).toInt()
                 val i1 = if (i0 + 1 < length) i0 + 1 else if (s.loop) 0 else i0

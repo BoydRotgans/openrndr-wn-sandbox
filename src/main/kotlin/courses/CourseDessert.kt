@@ -33,11 +33,11 @@ fun org.openrndr.Program.dessertCourse(): (Drawer, Double) -> Unit {
     val inset = Env["DESSERT_INSET"]?.toDoubleOrNull() ?: 0.55
     val ao = Env["DESSERT_AO"]?.toDoubleOrNull() ?: 0.5
     val iso = Math.toDegrees(atan(1.0 / sqrt(2.0)))
-    val red = ColorRGBa.fromHex("C8141E")
+    val red = slideshow.Palette.RED
     val look = SiteCity.Look(
         tower = 150.0, flat = -1.0,
         paints = listOf(SiteCity.Paint(roof = ColorRGBa.fromHex("FFFFFF"), side = ColorRGBa.fromHex("EEF0F4"), shade = red, back = ColorRGBa.fromHex("C9CED8"))),
-        groundLit = ColorRGBa.fromHex("1E3A72"),
+        groundLit = slideshow.Palette.BLUE,
         groundShade = red,
         ao = ao, aoReach = 70.0, inset = inset, heightPower = 2.0, proportional = true
     )

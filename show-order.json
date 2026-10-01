@@ -9,14 +9,10 @@
     {
       "moment": "Opening",
       "slides": [
+        "director-is-speaking",
         "who-is-speaking",
-        "het-programma"
-      ]
-    },
-    {
-      "moment": "Aperitif",
-      "slides": [
-        "sketch-flow-v2-on-the-mosaic-grid"
+        "het-programma",
+        "course-transition-to-chapter-1"
       ]
     },
     {
@@ -36,7 +32,9 @@
     {
       "moment": "Opening course",
       "slides": [
-        "shadow-mosaic"
+        "studiobuik-voorgerecht",
+        "sketch-flow-v2-out-of-a-concrete-block",
+        "course-transition-to-chapter-2"
       ]
     },
     {
@@ -56,7 +54,9 @@
     {
       "moment": "First course",
       "slides": [
-        "sketch-climb"
+        "studiobuik-eerste-gang",
+        "shadow-mosaic",
+        "course-transition-to-chapter-3"
       ]
     },
     {
@@ -64,6 +64,7 @@
       "slides": [
         "we-gieten-kennis",
         "co2-impact-van-beton",
+        "de-fasen-a-b-en-c",
         "levenscyclus-van-betonproducten",
         "levenscyclusanalyse",
         "verduurzamen-van-beton",
@@ -75,7 +76,11 @@
     },
     {
       "moment": "Second course",
-      "slides": []
+      "slides": [
+        "studiobuik-tweede-gang",
+        "sketch-climb",
+        "course-transition-to-chapter-4"
+      ]
     },
     {
       "chapter": "The Circle: een nieuwe manier van denken",
@@ -85,10 +90,16 @@
         "100-elementen",
         "gebouw-uit-de-webtool",
         "reductie-carbon-footprint",
-        "demontabel-in-de-stad",
         "the-circle-en-esg",
         "projecthighlight-4",
         "kernboodschap-4"
+      ]
+    },
+    {
+      "moment": "Third course",
+      "slides": [
+        "studiobuik-derde-gang",
+        "sketch-kit-two-screens-quiet"
       ]
     },
     {
@@ -99,17 +110,23 @@
     },
     {
       "moment": "Dessert",
-      "slides": []
+      "slides": [
+        "studiobuik-dessert"
+      ]
     },
     {
       "moment": "Exit",
       "slides": [
-        "ending"
+        "ending",
+        "sketch-kit-two-screens-wn-landscape-jump-cuts"
       ]
-    },
-    "sketch-climb-view-2-from-below"
+    }
   ],
   "archive": [
+    "to-scale",
+    "gebouw-uit-de-webtool-lijnen",
+    "the-circle-in-elementen-grijs",
+    "100-elementen-silhouetten",
     "block-city-plain",
     "block-city-outline",
     "block-city-cubes",
@@ -119,6 +136,7 @@
     "assemble-solid",
     "assemble-row",
     "assemble-row-glass",
+    "demontabel-in-de-stad",
     "demontabel-in-de-stad-blokken",
     "demontabel-in-de-stad-stad",
     "block-city",
@@ -131,7 +149,6 @@
     "de-sectoren",
     "gallery",
     "shadows",
-    "plain",
     "sketch-aperitif",
     "sketch-opening-course",
     "sketch-first-course",
@@ -150,8 +167,37 @@
     "shadow-mosaic-close",
     "stad-in-opbouw",
     "welcome",
+    "sketch-flow-v2-on-the-mosaic-grid",
     "sketch-flow-v2-built-from-the-right",
     "sketch-climb-view-3-level",
-    "sketch-stack-panels-in-a-row"
+    "sketch-stack-panels-in-a-row",
+    "sketch-assemble",
+    "sketch-assemble-catalogue-on-the-floor",
+    "sketch-assemble-street-floating-and-falling",
+    "sketch-assemble-street-graphic-the-wall",
+    "sketch-assemble-street-grey-the-wall",
+    "sketch-kit-draft-2",
+    "sketch-kit-draft-2-photograph",
+    "sketch-kit-draft-2-photograph-2",
+    "sketch-kit-draft-2-photograph-3",
+    "sketch-kit-draft-2-photograph-4",
+    "sketch-kit-grey",
+    "sketch-kit-on-a-flat-grid-in-colour",
+    "sketch-kit-building",
+    "sketch-climb-view-2-from-below",
+    "sketch-kit",
+    "sketch-kit-two-screens",
+    "sketch-kit-two-screens-w-and-n",
+    "sketch-kit-two-screens-wn-from-the-pictures",
+    "sketch-kit-two-screens-wn-slow-and-in-step",
+    "sketch-kit-two-screens-wn-close-up",
+    "sketch-kit-two-screens-wn-close-up-settling",
+    "sketch-kit-two-screens-wn-landscape",
+    "sketch-kit-two-screens-wn-landscape-going-round",
+    "sketch-kit-two-screens-wn-landscape-slow-round",
+    "sketch-kit-two-screens-wn-landscape-cutting-in",
+    "sketch-flow-v2-out-of-a-concrete-block-slots-tra",
+    "sketch-kit-two-screens-wn-landscape-swinging-bac",
+    "plain"
   ]
 }

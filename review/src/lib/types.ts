@@ -71,6 +71,17 @@ export type CommentKind =
   /** A remark about a line rather than a change to it — it stands under the line, and takes replies. */
   | 'voiceover_note'
   | 'voiceover_extended_note'
+  /**
+   * Where a sound in the audio timeline stands: `body` is a [ClipStatus], `clip` the slot. The
+   * latest row for a slot is its status, across releases — a status follows the sound, not the film.
+   */
+  | 'audio_status'
+  /**
+   * The level a sound-design cue should be played at, in dB against the file as delivered: `body` is
+   * the number, `clip` the slot. The latest row for a slot is its gain, and `show-gains.json` carries
+   * it into the next filmed release.
+   */
+  | 'audio_gain'
 /** What a comment is about: the picture, or the sound and voice under it. */
 export type CommentTopic = 'visual' | 'audio'
 
@@ -96,6 +107,80 @@ export interface Comment {
   assignees?: string[]
   /** A reply: the note it answers. */
   parentId?: string | null
+  /**
+   * The sound in the audio timeline a note or a status is about, as its slot: `design:<state>` or
+   * `voice:<state>` for a state's cue or line — so a note on a missing cue carries over to the file
+   * that fills it — and `music:<file>` for a bed. Null on everything written in the review.
+   */
+  clip?: string | null
+  /** The file name the slot held when this was written, so a note keeps saying which file it meant. */
+  clipFile?: string | null
+}
+
+/** Where a sound stands in the audio review. */
+export type ClipStatus = 'undone' | 'needs-work' | 'done'
+
+/** The three layers the show mixes, which are the three audio tracks of the timeline. */
+export type AudioLayer = 'voice' | 'design' | 'music'
+
+/** One file the film played, measured by tools/release_audio.py. */
+export interface AudioFileInfo {
+  name: string
+  dir: string
+  duration?: number
+  channels?: number
+  sampleRate?: number
+  /** The loudest sample, in dB below full scale. */
+  peakDb?: number
+  /** Integrated loudness (EBU R128), in LUFS; absent where the file is too short or quiet to gate. */
+  lufs?: number | null
+  /** Seconds of silence (under `silenceDb`) before the first sound, and after the last. */
+  head?: number
+  tail?: number
+  silent?: boolean
+  /** Peaks a second in `peaks`: base64 of one byte each, 0..255 over `floorDb` dB. */
+  peakRate?: number
+  peaks?: string
+  /** The copy the page plays, relative to the release folder. */
+  audio?: string
+  hash?: string
+  /** The cue log named it and it was not on disk when the release was built. */
+  absent?: boolean
+}
+
+/** One play of one file, placed in the film by the rules the soundtrack is rendered with. */
+export interface AudioClipInfo {
+  layer: AudioLayer
+  /** The file as the cue log names it — the key into `files`. */
+  file: string
+  slot: string
+  /** The state it was fired on. */
+  state: string
+  start: number
+  end: number
+  frame: number
+  /** When the slide let go of it, if it faded out rather than running out. */
+  released: number | null
+  gain: number
+  loop: boolean
+  /** Seconds into the file it starts at: past 0 only for a playlist picking up where it stopped. */
+  offset?: number
+  /** In frames of the film. */
+  fadeIn: number
+  fadeOut: number
+}
+
+/** A release's `audio.json`. */
+export interface AudioDoc {
+  version: number
+  source: string
+  fps: number
+  frames: number
+  mix: Record<string, number>
+  floorDb: number
+  silenceDb: number
+  files: Record<string, AudioFileInfo>
+  clips: AudioClipInfo[]
 }
 
 export interface NewReleaseInput {

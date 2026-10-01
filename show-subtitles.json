@@ -14,7 +14,7 @@
       "everything-a-build-answers-to": {
         "heading": "Object met opbouwende tekst labels",
         "text": "Achter al die gebouwen zit een netwerk van beslissingen: Op welke locatie, welke materialen we kiezen, hoe we produceren, hoe we transporteren.\nNote: kunnen we die vier labels in die volgorde laten zien? Locatie, Materiaal, productie, transport",
-        "note": "Uit het script: \"kunnen we die vier labels in die volgorde laten zien? Locatie, Materiaal, productie, transport\" — gedaan: vier clicks, in die volgorde."
+        "note": "Uit het script: \"kunnen we die vier labels in die volgorde laten zien? Locatie, Materiaal, productie, transport\" — gedaan, in die volgorde: Locatie komt meteen met de slide, de andere drie een click elk."
       },
       "the-globe": {
         "heading": "Globe met tekst labels",
@@ -26,12 +26,13 @@
       },
       "de-cijfers": {
         "heading": "Key numbers",
-        "text": "Verticale integratie als een manier om verantwoordelijkheid niet uit te besteden, maar zelf op te nemen."
+        "text": "Verticale integratie als een manier om verantwoordelijkheid niet uit te besteden, maar zelf op te nemen.",
+        "note": "Aangevuld na de meeting van 30 september: F, wat een werf is."
       },
       "de-fabrieken": {
         "heading": "Locatiekaart",
         "text": "??",
-        "note": "Het script heeft hier nog \"??\": geen ondertitel tot de tekst er is."
+        "note": "Het script heeft bij de locatiekaart geen tekst. Aangevuld na de meeting van 30 september: I, de zes landen."
       },
       "esg-is-geen-checklist": {
         "heading": "H2 · Waardekader en verantwoordelijkheid",
@@ -58,7 +59,7 @@
       "geen-compensatie": {
         "heading": "Certificaat",
         "text": "In plaats van ons te richten op CO₂-neutrale certificeringen op basis van compensatie van emissies, legt Willy Naessens de nadruk op daadwerkelijke emissiereducties door maatregelen zoals de elektrificatie van transport en apparatuur.\nDuurzaamheid heeft bovendien een domino-effect: het gebruik van duurzame materialen maakt het gemakkelijker om complete gebouwen als duurzaam te classificeren.",
-        "note": "De domino-zin uit deze sectie staat op de volgende slide, Domino-effect."
+        "note": "Aangevuld na de meeting van 30 september: B, waarom we niet compenseren."
       },
       "domino-effect": {
         "heading": "Certificaat",
@@ -66,15 +67,18 @@
       },
       "esg-social-governance": {
         "heading": "Social · Governance",
-        "text": "Opleiding, veiligheid en werkzekerheid vormen de basis, en hoe de groep ook nadenkt over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving.\nGovernance\nTransparante rapportering, externe audits, certificering en lange-termijnrelaties met partners als de structuur achter de waarden."
+        "text": "Opleiding, veiligheid en werkzekerheid vormen de basis, en hoe de groep ook nadenkt over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving.\nGovernance\nTransparante rapportering, externe audits, certificering en lange-termijnrelaties met partners als de structuur achter de waarden.",
+        "note": "Social tot en met C, Governance vanaf de pijl (D). Aangevuld na de meeting van 30 september: A, Willy's eigen woorden; de eerste zin van D; E."
       },
       "we-gieten-kennis": {
         "heading": "H3 · Beton: ruggengraat en transitie",
-        "text": "We gieten niet alleen beton.\nWe gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
+        "text": "We gieten niet alleen beton.\nWe gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter.",
+        "note": "Aangevuld na de meeting van 30 september: A, wat transitie betekent, en de brug naar het voorgerecht."
       },
       "co2-impact-van-beton": {
         "heading": "CO2 impact beton",
-        "text": "Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal."
+        "text": "Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal.",
+        "note": "Aangevuld na de meeting van 30 september: B en C. Tot negen procent voor cement en beton samen (Scientific American); cement alleen zo'n acht."
       },
       "levenscyclus-van-betonproducten": {
         "heading": "Levenscyclus",
@@ -83,7 +87,8 @@
       },
       "levenscyclusanalyse": {
         "heading": "Bij database betonmengsels",
-        "text": "Levenscyclus analyse laat objectief toe om verduurzaming van betonproducten in kaart te brengen."
+        "text": "Levenscyclus analyse laat objectief toe om verduurzaming van betonproducten in kaart te brengen.",
+        "note": "Aangevuld na de meeting van 30 september: E."
       },
       "verduurzamen-van-beton": {
         "heading": "Verduurzamen beton",
@@ -92,11 +97,13 @@
       },
       "verborgen-verhaal": {
         "heading": "Onderzoek om CO2 van betonsamenstellingen…",
-        "text": "Elk element – van gevelpaneel tot gewelf – heeft een “verborgen verhaal”: hoeveel CO₂ belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn."
+        "text": "Elk element – van gevelpaneel tot gewelf – heeft een “verborgen verhaal”: hoeveel CO₂ belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn.",
+        "note": "Aangevuld na de meeting van 30 september: B, met de basis van de dertig procent (het mengsel van 2024)."
       },
       "recyclage": {
         "heading": "Recyclage",
-        "text": "Reststromen kunnen weer grondstof worden:\npuin dat ter plaatse wordt gebroken,\ngezeefd\nen opnieuw ingezet, waardoor zowel de herkomst als de kwaliteit controleerbaar blijven en extra transport wordt vermeden."
+        "text": "Reststromen kunnen weer grondstof worden:\npuin dat ter plaatse wordt gebroken,\ngezeefd\nen opnieuw ingezet, waardoor zowel de herkomst als de kwaliteit controleerbaar blijven en extra transport wordt vermeden.",
+        "note": "Aangevuld na de meeting van 30 september: E; wat Erik precies bedoelde, is te bevestigen."
       },
       "we-bouwen-vandaag": {
         "heading": "H4 · The Circle: Een nieuwe manier van denken",
@@ -112,7 +119,8 @@
       },
       "gebouw-uit-de-webtool": {
         "heading": "Circle logo (de lijst)",
-        "text": "The Circle is een concept dat laat zien hoe een gebouw méér kan zijn dan een optelsom van materialen.\nThe Circle gaat uit van vaste betonelementen, een modulair stramien en een digitale ontwerptool. Het ontwerp past zich automatisch aan aan de noden van het project, terwijl materiaalgebruik en CO₂-impact meteen worden mee berekend.\n100 elementen met vaste afmetingen (geen maat-ontwerp)\nModulair bouwen in stramien van 12 op 24 m\nGeneratie van 3D model via webtool\nAutomatische generatie van plannen\nAutomatische generatie van CO2 in het gebouw ook voorzien\nDemontabel bouwen\nHergebruik van de bouwstenen is mogelijk\nBouwstenen kunnen op voorraad gemaakt worden"
+        "text": "The Circle is een concept dat laat zien hoe een gebouw méér kan zijn dan een optelsom van materialen.\nThe Circle gaat uit van vaste betonelementen, een modulair stramien en een digitale ontwerptool. Het ontwerp past zich automatisch aan aan de noden van het project, terwijl materiaalgebruik en CO₂-impact meteen worden mee berekend.\n100 elementen met vaste afmetingen (geen maat-ontwerp)\nModulair bouwen in stramien van 12 op 24 m\nGeneratie van 3D model via webtool\nAutomatische generatie van plannen\nAutomatische generatie van CO2 in het gebouw ook voorzien\nDemontabel bouwen\nHergebruik van de bouwstenen is mogelijk\nBouwstenen kunnen op voorraad gemaakt worden",
+        "note": "Aangevuld na de meeting van 30 september: C, binnen twee uur zoals Willy Naessens het zelf schrijft; F volgt het label."
       },
       "reductie-carbon-footprint": {
         "heading": "Reductie carbon footprint",
@@ -124,38 +132,54 @@
       },
       "the-circle-en-esg": {
         "heading": "ESG",
-        "text": "The Circle verbindt expliciet met de ESG-principes:\nEnvironment: minder materiaal, lagere CO₂-voetafdruk, hergebruik.\nSocial: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe functies, noden en generaties.\nGovernance: systematiek, meetbaarheid en herhaalbaarheid in ontwerp en uitvoering."
+        "text": "The Circle verbindt expliciet met de ESG-principes:\nEnvironment: minder materiaal, lagere CO₂-voetafdruk, hergebruik.\nSocial: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe functies, noden en generaties.\nGovernance: systematiek, meetbaarheid en herhaalbaarheid in ontwerp en uitvoering.",
+        "note": "Aangevuld na de meeting van 30 september: C, governance als verantwoord bestuur."
+      },
+      "who-is-speaking": {
+        "note": "De directeur heet eerst welkom; Erik neemt het daarna over."
+      },
+      "projecthighlight-1": {
+        "note": "Vraag en oplossing, een foto elk (meeting van 30 september). De vraag is Eriks voorbeeld; te bevestigen met Jos."
+      },
+      "de-fasen-a-b-en-c": {
+        "note": "Nieuwe dia na de meeting van 30 september: wat de letters op de levenscyclus betekenen.",
+        "heading": "A, B en C · de fasen van een levenscyclus"
+      },
+      "case-studies": {
+        "note": "Een klik per project sinds 30 september; Erik loopt ze door."
       }
     }
   },
   "drafts": [
-    "who-is-speaking",
-    "het-programma",
-    "projecthighlight-1",
-    "kernboodschap-1",
-    "projecthighlight-2",
-    "kernboodschap-2",
-    "projecthighlight-3",
-    "kernboodschap-3",
-    "projecthighlight-4",
-    "kernboodschap-4",
     "case-studies",
-    "ending"
+    "de-fasen-a-b-en-c",
+    "ending",
+    "het-programma",
+    "kernboodschap-1",
+    "kernboodschap-2",
+    "kernboodschap-3",
+    "kernboodschap-4",
+    "projecthighlight-1",
+    "projecthighlight-2",
+    "projecthighlight-3",
+    "projecthighlight-4",
+    "who-is-speaking"
   ],
   "subtitles": {
     "who-is-speaking": {
-      "A": "Goedenavond, en van harte welkom. Mijn naam is Erik Koremans, Chief Commercial and Sustainability Officer bij Willy Naessens Nederland. Fijn dat u er vanavond bij bent."
+      "A": "Dank u wel. Mijn naam is Erik Koremans, Chief Commercial and Sustainability Officer bij Willy Naessens Nederland. Fijn dat u er vanavond bij bent."
     },
     "het-programma": {
       "A": "Vanavond vertellen we ons verhaal in vier delen, geserveerd tussen de gangen door.",
-      "B": "Eerst de wereld van bouwen: hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst niet te belasten?",
+      "B": "Eerst de wereld van bouwen: hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?",
       "C": "Dan ons waardekader: ESG als de manier waarop we elke dag beslissen hoe we bouwen, leveren, investeren en verbeteren.",
       "D": "Daarna beton: de ruggengraat van ons werk, en een materiaal in transitie.",
-      "E": "En tot slot The Circle: een nieuwe manier van denken, bouwen met het oog op wie na ons komt.",
-      "F": "Aan het einde is er ruimte voor uw vragen. Maar eerst: de wereld van bouwen."
+      "E": "En tot slot The Circle: een nieuwe manier van denken en doen, bouwen met het oog op wie na ons komt.",
+      "F": "Na het vierde deel volgt nog een gang, daarna een aantal projecten en het dessert, met ruimte voor uw vragen.",
+      "G": "Maar eerst het eten. Ik geef graag het woord aan Else de Bruin van StudioBuik."
     },
     "hoe-bouw-je-een-wereld": {
-      "A": "Hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst niet te belasten?"
+      "B": "Hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?"
     },
     "the-catalogue-city": {
       "A": "Onze samenleving leunt op structuren die we vanzelfsprekend vinden.",
@@ -176,16 +200,18 @@
       "J": "Als opdrachtgever koop je rechtstreeks bij de fabriek, waardoor je maximale zekerheid hebt over planning, budget en kwaliteit."
     },
     "de-cijfers": {
-      "A": "Verticale integratie als een manier om verantwoordelijkheid niet uit te besteden, maar zelf op te nemen."
+      "A": "Verticale integratie als een manier om verantwoordelijkheid niet uit te besteden, maar zelf op te nemen.",
+      "F": "Een werf, zo noemen we in België een bouwproject."
     },
     "projecthighlight-1": {
-      "A": "Van Cranenbroek in Budel: een hal die rust op onze kolommen."
+      "A": "Van Cranenbroek in Budel. Waar lag de klant wakker van? Continuïteit, en ruimte om te groeien.",
+      "B": "Ons antwoord: een hal die rust op onze kolommen, gebouwd in vierendertig weken."
     },
     "kernboodschap-1": {
-      "A": "We hebben gekeken naar de organisatie achter het bouwen. Na deze gang stellen we de volgende vraag: hoe beoordelen we de keuzes die we maken?"
+      "A": "We hebben gekeken naar de organisatie achter het bouwen. Een vraag voor aan tafel: waar ligt u wakker van? Bij ons begint elk element met gieten. Ik geef het woord aan Else de Bruin van StudioBuik."
     },
     "esg-is-geen-checklist": {
-      "A": "ESG is geen checklist, maar de systemische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren."
+      "B": "ESG is geen checklist, maar de systemische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren."
     },
     "esg-beoordelingskader": {
       "A": "Verantwoordelijkheid: niet als abstract begrip, maar als dagelijkse praktijk.",
@@ -203,7 +229,7 @@
     },
     "geen-compensatie": {
       "A": "In plaats van ons te richten op CO₂-neutrale certificeringen op basis van compensatie van emissies,",
-      "B": "legt Willy Naessens de nadruk op daadwerkelijke emissiereducties door maatregelen zoals de elektrificatie van transport en apparatuur."
+      "B": "legt Willy Naessens de nadruk op daadwerkelijke emissiereducties door maatregelen zoals de elektrificatie van transport en apparatuur. Want compenseren kost geld: het is een boete die we onszelf opleggen."
     },
     "domino-effect": {
       "A": "Duurzaamheid heeft bovendien een domino-effect:",
@@ -212,28 +238,34 @@
       "D": "als duurzaam te classificeren."
     },
     "esg-social-governance": {
-      "A": "Opleiding, veiligheid en werkzekerheid vormen de basis,",
-      "B": "en hoe de groep ook nadenkt over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving.",
-      "C": "Transparante rapportering, externe audits, certificering en lange-termijnrelaties met partners als de structuur achter de waarden."
+      "A": "‘Niet het vastgoed, niet de machines, maar de mensen zijn mijn grootste kapitaal’, zei Willy Naessens altijd.",
+      "B": "Opleiding, veiligheid en werkzekerheid vormen de basis,",
+      "C": "en hoe de groep ook nadenkt over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving.",
+      "D": "Ons bestuur is er altijd op gericht dat de mens centraal staat. Transparante rapportering, externe audits, certificering en lange-termijnrelaties met partners als de structuur achter de waarden.",
+      "E": "Zo staan we, als mensen en als bedrijf, in verbondenheid met het geheel."
     },
     "projecthighlight-2": {
       "A": "VGP Park in Nijmegen: een dak dat zijn eigen groene stroom opwekt."
     },
     "kernboodschap-2": {
-      "A": "We hebben besproken hoe we keuzes beoordelen. Na deze gang kijken we waar die keuzes concreet worden: in het materiaal en de levenscyclus van beton."
+      "A": "We hebben besproken hoe we keuzes beoordelen. Een vraag voor aan tafel: welke keuze van vandaag telt over twintig jaar nog? Ik geef het woord aan Else de Bruin, voor de eerste gang."
     },
     "we-gieten-kennis": {
-      "A": "We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
+      "A": "Transitie betekent voor ons: ons product voortdurend beter maken. Bij het voorgerecht zag u het al: we gieten.",
+      "B": "We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
     },
     "co2-impact-van-beton": {
-      "A": "Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal."
+      "A": "Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal.",
+      "B": "Wereldwijd is de productie van beton verantwoordelijk voor tot negen procent van de CO₂-uitstoot.",
+      "C": "In Nederland is dat één komma negen procent. We kunnen niet zonder beton, en daarom maken we het zo duurzaam mogelijk."
     },
     "levenscyclus-van-betonproducten": {
       "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt.",
       "F": "Beton als materiaal in transitie, niet als statisch gegeven."
     },
     "levenscyclusanalyse": {
-      "A": "Levenscyclus analyse laat objectief toe om verduurzaming van betonproducten in kaart te brengen."
+      "A": "Levenscyclus analyse laat objectief toe om verduurzaming van betonproducten in kaart te brengen.",
+      "E": "Die informatie over materialen en mengsels leveren we mee met elk gebouw."
     },
     "verduurzamen-van-beton": {
       "A": "De Willy Naessens Group benaderd beton op drie niveaus: Op samenstelling: minder cement, lagere klinker, nieuwe bindmiddelen, zelfs beton zonder cement.",
@@ -241,22 +273,25 @@
       "C": "Op meting: via Life cycle analyse wordt de CO₂-voetafdruk van betonproducten precies in kaart gebracht, product per product."
     },
     "verborgen-verhaal": {
-      "A": "Elk element – van gevelpaneel tot gewelf – heeft een “verborgen verhaal”: hoeveel CO₂ belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn."
+      "A": "Elk element – van gevelpaneel tot gewelf – heeft een “verborgen verhaal”: hoeveel CO₂ belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn.",
+      "B": "In de betonsamenstelling van gevelelementen tot dertig procent minder CO₂ ten opzichte van 2024: een ander bindmiddel, andere toeslagmaterialen, dezelfde kwaliteit."
     },
     "recyclage": {
       "A": "Reststromen kunnen weer grondstof worden:",
       "B": "puin dat ter plaatse wordt gebroken,",
       "C": "gezeefd",
-      "D": "en opnieuw ingezet, waardoor zowel de herkomst als de kwaliteit controleerbaar blijven en extra transport wordt vermeden."
+      "D": "en opnieuw ingezet, waardoor zowel de herkomst als de kwaliteit controleerbaar blijven en extra transport wordt vermeden.",
+      "E": "Ook ons eigen productieafval gaat zo terug de kringloop in."
     },
     "projecthighlight-3": {
-      "A": "Kivits in Ridderkerk: een koelopslag met beton als ruggengraat."
+      "A": "Kivits in Ridderkerk, voor WDP: een koelopslag met beton als ruggengraat. Het moest snel, en dankzij onze verticale integratie stond het er binnen een jaar.",
+      "B": "Beton houdt de temperatuur stabiel en is klimaatadaptief: bestand tegen hittestress, met lagere en stabielere energiekosten."
     },
     "kernboodschap-3": {
-      "A": "We hebben gekeken naar beton en zijn onderdelen. Straks brengen we die onderdelen samen in het verhaal van The Circle."
+      "A": "We hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer. Een vraag voor aan tafel: wat gebeurt er met uw gebouw na zijn eerste leven? Ik geef het woord aan Else de Bruin, voor de tweede gang."
     },
     "we-bouwen-vandaag": {
-      "A": "We bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke balk, elke plaat is niet alleen een drager van lasten, maar ook een drager van verantwoordelijkheid, kansen en toekomst."
+      "B": "We bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke balk, elke plaat is niet alleen een drager van lasten, maar ook een drager van verantwoordelijkheid, kansen en toekomst."
     },
     "the-circle-in-elementen": {
       "A": "The Circle is een concept dat laat zien hoe een gebouw méér kan zijn dan een optelsom van materialen."
@@ -266,12 +301,12 @@
       "B": "100 elementen met vaste afmetingen (geen maat-ontwerp). Modulair bouwen in stramien van 12 op 24 m."
     },
     "gebouw-uit-de-webtool": {
-      "B": "Generatie van 3D model via webtool.",
-      "C": "Automatische generatie van plannen.",
-      "D": "Automatische generatie van CO₂ in het gebouw ook voorzien.",
-      "E": "Demontabel bouwen.",
-      "F": "Hergebruik van de bouwstenen is mogelijk.",
-      "G": "Bouwstenen kunnen op voorraad gemaakt worden."
+      "C": "Generatie van 3D model via webtool: binnen twee uur een ontwerp, met een indicatie van de kosten.",
+      "D": "Automatische generatie van plannen.",
+      "E": "Automatische generatie van CO₂ in het gebouw ook voorzien.",
+      "F": "Demontabel en herbruikbaar bouwen.",
+      "G": "Hergebruik van de bouwstenen is mogelijk.",
+      "H": "Bouwstenen kunnen op voorraad gemaakt worden."
     },
     "reductie-carbon-footprint": {
       "A": "In plaats van lineair bouwen (ontwerpen – produceren – bouwen – afbreken), wordt een circulaire gedachte geschetst:"
@@ -283,19 +318,27 @@
     "the-circle-en-esg": {
       "A": "The Circle verbindt expliciet met de ESG-principes: Environment: minder materiaal, lagere CO₂-voetafdruk, hergebruik.",
       "B": "Social: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe functies, noden en generaties.",
-      "C": "Governance: systematiek, meetbaarheid en herhaalbaarheid in ontwerp en uitvoering."
+      "C": "Governance: verantwoord bestuur. Als bestuur neemt u ESG mee in uw keuzes, en bouwt u verantwoord voor de toekomst: meetbaar en herhaalbaar."
     },
     "projecthighlight-4": {
       "A": "Intervest in Herstal: het eerste Circle-gebouw dat we verkochten."
     },
     "kernboodschap-4": {
-      "A": "Laten we dit nu naast concrete projecten leggen. Welke vragen roept dit op voor uw eigen praktijk?"
+      "A": "Eén keten, verantwoorde keuzes, kennis van beton en circulair bouwen: dat is de toegevoegde waarde van Willy Naessens. Een vraag voor aan tafel: met wie bouwt u verder? Ik geef het woord aan Else de Bruin, voor de derde gang."
     },
     "case-studies": {
-      "A": "Een aantal van die projecten, telkens met de foto's links en de tekeningen rechts."
+      "A": "Een aantal van die projecten, telkens met de foto's links en de tekeningen rechts. Met onze verticale integratie bouwen we altijd binnen planning, binnen budget en met kwaliteit."
     },
     "ending": {
-      "A": "We bouwen vandaag, met het oog op wie na ons komt. Dank u wel voor uw aandacht, en nog een fijne avond."
+      "A": "We bouwen vandaag, met het oog op wie na ons komt. Zullen we samen verder bouwen aan de toekomst? Dank u wel voor uw aandacht, en nog een fijne avond."
+    },
+    "de-fabrieken": {
+      "I": "We bouwen in zes landen: België, onze thuisbasis, Nederland, Frankrijk, Luxemburg, Denemarken en de bredere Scandinavische regio, en Zweden."
+    },
+    "de-fasen-a-b-en-c": {
+      "A": "A: van grondstof tot gebouw, de productie en de bouw.",
+      "B": "B: het gebruik.",
+      "C": "C: het einde van de levensduur."
     }
   }
 }

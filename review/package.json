@@ -7,15 +7,18 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "publish-release": "node scripts/publish-release.mjs"
+    "publish-release": "node scripts/publish-release.mjs",
+    "pull-gains": "node scripts/pull-gains.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
+    "@vercel/functions": "^3.9.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tus-js-client": "^4.1.0"
   },
   "devDependencies": {
+    "@types/node": "22",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

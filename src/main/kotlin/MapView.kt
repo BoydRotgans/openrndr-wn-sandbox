@@ -206,7 +206,7 @@ private fun colourFor(functions: List<String>): ColorRGBa {
 
 private val LEGEND = linkedMapOf(
     "woonfunctie" to ColorRGBa.fromHex("#8A8377"),
-    "winkelfunctie" to ColorRGBa.fromHex("#FF0000"),
+    "winkelfunctie" to slideshow.Palette.RED,
     "kantoorfunctie" to ColorRGBa.fromHex("#5E00FF"),
     "bijeenkomstfunctie" to ColorRGBa.fromHex("#FF8A00"),
     "logiesfunctie" to ColorRGBa.fromHex("#00A3A3"),

@@ -21,13 +21,14 @@ import org.openrndr.shape.Rectangle
  */
 class DebugOverlay(private val font: FontImageMap?) {
 
-    fun draw(drawer: Drawer, deck: Deck, stage: Stage, width: Int, height: Int, fps: Double, paused: Boolean) {
+    /** [painted] is how many of the [fps] draws a second painted the wall afresh; the rest showed the last. */
+    fun draw(drawer: Drawer, deck: Deck, stage: Stage, width: Int, height: Int, fps: Double, paused: Boolean, painted: Double = fps) {
         drawer.isolated {
             drawer.stroke = null
             drawer.shadeStyle = null
             font?.let { drawer.fontMap = it }
 
-            panel(drawer, state(deck, stage, fps, paused), PADDING)
+            panel(drawer, state(deck, stage, fps, paused, painted), PADDING)
 
             // The deck's timings, at the other end of the frame. Dropped on a window too
             // narrow to hold both rather than overlapping the live readout.
@@ -40,7 +41,7 @@ class DebugOverlay(private val font: FontImageMap?) {
     }
 
     /** Where the show stands this frame, and how long what it is doing takes. */
-    private fun state(deck: Deck, stage: Stage, fps: Double, paused: Boolean) = buildList {
+    private fun state(deck: Deck, stage: Stage, fps: Double, paused: Boolean, painted: Double) = buildList {
         val place = deck.outline[deck.index]
 
         // where this slide sits in the running order, when it is under a chapter at all
@@ -70,8 +71,8 @@ class DebugOverlay(private val font: FontImageMap?) {
         )
 
         add(
-            "frame %d   %.0f fps%s".format(
-                stage.frame, fps,
+            "frame %d   %.0f fps, %.0f painted%s".format(
+                stage.frame, fps, painted,
                 if (paused) "   PAUSED" else ""
             )
         )

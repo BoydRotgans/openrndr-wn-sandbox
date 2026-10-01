@@ -51,7 +51,7 @@ class DisassemblyCity(
     /** How high a piece rises between roofs, in lattice units. */
     private val lift: Double = 3.0,
     private val seed: Int = 11,
-    private val accent: ColorRGBa = ColorRGBa.fromHex("FF0000"),
+    private val accent: ColorRGBa = slideshow.Palette.RED,
     override val stepFrames: Int = frames(1.5),
     override val sound: Sound? = null,
     override val stepCues: List<Sound> = emptyList()

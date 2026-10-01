@@ -88,6 +88,24 @@ data class Settings(
      * programme, at six states) would otherwise take the ordinary [hold] on every one of them.
      */
     val holdBackdrop: Double = 15.0,
+    /**
+     * Seconds every backdrop takes to come up through [wallBuild] as it arrives, the same for all of them
+     * so each wall of the evening takes the stage slowly and alike; 0 puts every backdrop straight up. A
+     * hands-off run holds a building backdrop at least this long before it reads the wall.
+     */
+    val backdropBuild: Double = 0.0,
+    /** How a backdrop comes up — see [WallBuild]. None, and every backdrop is simply there. */
+    val wallBuild: WallBuild? = null,
+    /** Seconds the clicker's screen button is held before the show goes back to its start — see [HoldRestart]. */
+    val holdRestart: Double = 3.0,
+    /** Seconds within which a second press of the clicker's play button opens the overview — see [SlideOverview]. */
+    val overviewDouble: Double = 0.6,
+    /**
+     * Practice mode: whether the clicker's screen and play buttons do anything — the restart ring and the
+     * overview. Off, they are dead, so a wrong press in front of the room changes nothing; forward and back
+     * work either way. The organizer's `practice mode` button switches it on a running show.
+     */
+    val practice: Boolean = false,
     val record: Boolean = false,
     val fps: Int = FPS,
     val duration: Double? = null,
@@ -117,9 +135,15 @@ data class Settings(
      * Whether OPENRNDR finishes the GPU after every outline of a shape it fills — its workaround for
      * an artifact under ANGLE on a Mac (`DrawerConfiguration.waitForFinish`), on by default there. The
      * show runs native GL, not ANGLE, and a filled letter with a counter in it then stalls the frame
-     * for nothing. Null is off on a filmed run and a bench, and OPENRNDR's own default otherwise.
+     * for nothing. Null is off — in a watched show as on a filmed run, which was checked byte-identical.
      */
     val waitForFinish: Boolean? = null,
+    /**
+     * Whether OPENRNDR's own `glFinish` on every render-target switch is kept. Off by default: it
+     * makes the CPU wait for the GPU at every `isolatedWithTarget`, which on native GL buys nothing.
+     * See [UnbindFinish].
+     */
+    val finishOnUnbind: Boolean = false,
 
     /**
      * Whether the deck makes any sound at all — the cues a slide or a chapter card declares.
@@ -219,6 +243,12 @@ data class Settings(
      */
     val voiceOn: Boolean = false,
     /**
+     * Whether the presented run — subtitles or the voice on, on the extended track — clicks on by
+     * itself once each state's line has been said, or plays the state's line and waits for a click.
+     * The organizer's autoplay button switches it while the show runs; kept across starts.
+     */
+    val autoplay: Boolean = true,
+    /**
      * The mix: a gain per track of the sound — voice, design, music — see [Layer]. All three play
      * at once; this is how loud each is, and 0 mutes one. The organizer's `mix` panel moves them
      * live, and a filmed run's soundtrack is made at the mix it was played at.
@@ -236,6 +266,24 @@ data class Settings(
      * never reads it. Null, or no file there, starts an empty one on the first note.
      */
     val feedback: String? = null,
+
+    /**
+     * The meeting tasks: what a meeting asked of each slide, read off its transcript as tasks,
+     * each one agreed, adjusted or dropped in the organizer — see [MeetingTasks]. Like the
+     * feedback it carries no behaviour and the deck never reads it.
+     */
+    val meeting: String? = null,
+
+    /**
+     * The production's draaiboek, an .xlsx, and the tab of it that is the evening's clock (empty:
+     * the first tab whose name starts with "Show"). Read only, for the times the organizer's
+     * Subtitles tab sets against each section — see [Draaiboek].
+     */
+    val draaiboek: String? = null,
+    val draaiboekTab: String? = null,
+
+    /** Notes written against subtitle lines in the organizer's Subtitles tab — see [SubtitleFeedback]. */
+    val subtitleFeedback: String? = null,
 
     /**
      * The file saying which slides are wanted as MIDI — ticked in the organizer, written as
@@ -260,6 +308,13 @@ data class Settings(
     val slideBed: Sound? = null,
 
     /**
+     * The playlist of each moment of the evening, by the moment's name in the order file — the bed
+     * under every wall that stands in it, carried unbroken from one wall of the moment to the next.
+     * A wall's own bed gives way to it. See [ShowBuilder.music].
+     */
+    val momentMusic: Map<String, Sound> = emptyMap(),
+
+    /**
      * A sound design delivered as a folder named against the show — one wav per state of one
      * slide, placed by the file's own name rather than by anything stated here. Null is a show
      * whose cues are all declared in `Slideshow.kt`. See [CueSheet], and [ShowBuilder.cueSheet].
@@ -268,6 +323,13 @@ data class Settings(
      * different thing entirely, and the reason this one says sheet.
      */
     val cueSheet: CueSheet? = null,
+
+    /**
+     * The gain the audio timeline review gave each sound-design cue, per state, laid over whatever
+     * the sheet or the slide says — `show-gains.json`. Null plays every cue as delivered. See
+     * [ReviewGains], and [ShowBuilder.gains].
+     */
+    val gains: ReviewGains? = null,
 
     /**
      * A concrete texture laid over the whole finished frame, as if the show were projected onto

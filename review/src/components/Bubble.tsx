@@ -110,6 +110,7 @@ export default function Bubble({ c, mine, onDone, onEdit, onDelete, pinLabel, on
       </div>
       {c.kind === 'voiceover' && <div className="bubble-kind">voice-over update</div>}
       {c.kind === 'voiceover_extended' && <div className="bubble-kind">extended voice-over update</div>}
+      {c.clip && <div className="clip-chip" title="Written in the audio timeline review">♪ {c.clipFile ?? c.clip.slice(c.clip.indexOf(':') + 1)}</div>}
       {c.assignees && c.assignees.length > 0 && (
         <div className="assignees">{c.assignees.map((a) => <span key={a} className="assignee" style={{ color: colourOf(a), background: `${colourOf(a)}18` }}>→ {a}</span>)}</div>
       )}
