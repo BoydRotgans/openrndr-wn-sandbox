@@ -155,7 +155,9 @@ travel as they are. The site's own **Export CSV** is the human-readable copy.
 
 `/practice` is the show for the client to rehearse on, on its own link: the film large, a click at
 a time, with room for their own speaker notes. Nothing of the review is on it, and **no voice-over
-and no subtitles are ever offered there**.
+is ever heard there and no subtitles are burned into its film**. Since 2 October the subtitles are on
+it as text: above the speaker notes, the line said over the click on screen (the extended track, the
+standard one where a click has no extended line), only where there is one.
 
 - **Volgende** / **Vorige** (→ ←, space, or a presenter clicker's Page Down / Page Up — those work
   even while typing a note) play the next or previous click from its start, and the film then holds
@@ -188,7 +190,8 @@ says which version it is ("Versie 29 september 2026").
 `folder` is under `public/releases/`. `audio` is the only sound the page may play: the key of one of
 the manifest's extra soundtracks (the no-voice mix, played over the muted film), or `film` for a cut
 whose own soundtrack has no voice. Anything else and the page is silent. The voice-over lines in a
-manifest are dropped as it is read.
+manifest are never played; they are read as text for the subtitle above the notes (`Cut.lines`), so a
+practice cut is built with its subtitles in the manifest.
 
 **A practice cut is a film of its own, because the review films carry the subtitles in the
 picture.** Until the first one exists the page plays the 28 September review film with its no-voice
@@ -204,7 +207,7 @@ SLIDES_VIDEO=video/wn-experience_<date>-clean.mp4 SLIDES_MIX_LAYERS=voice=0 SLID
     ./gradlew run -Popenrndr.application=MixSoundtrackKt
 python3 tools/release_build.py --video video/wn-experience_<date>-clean-novoice.mp4 \
     --states video/wn-experience_<date>-clean.states --name "Rehearsal <date>" --slug <date> \
-    --created <date> --out review/public/releases/practice --subtitles none --subtitles-extended none \
+    --created <date> --out review/public/releases/practice \
     --no-waveform --no-audio-timeline --width 2560 --crf 33
 ```
 

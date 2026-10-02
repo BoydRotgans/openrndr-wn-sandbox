@@ -58,8 +58,8 @@
    "start": 50.933,
    "end": 76.4,
    "thumb": "thumbs/who-is-speaking-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Dank u wel. Mijn naam is Erik Koremans, Chief Commercial and Sustainability Officer bij Willy Naessens Nederland. Fijn dat u er vanavond bij bent.",
+   "voiceoverExtended": "Dank u wel. Mijn naam is Erik Koremans, Chief Commercial and Sustainability Officer bij Willy Naessens Nederland. Fijn dat u er vanavond bij bent. Vanavond nemen we u mee in de manier waarop wij naar bouwen kijken: wat we maken, waarom we het zo maken, en waar we naartoe willen."
   },
   {
    "key": "het-programma-A",
@@ -74,8 +74,8 @@
    "start": 76.4,
    "end": 91.4,
    "thumb": "thumbs/het-programma-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Vanavond vertellen we ons verhaal in vier delen, geserveerd tussen de gangen door.",
+   "voiceoverExtended": "Het programma van vanavond ziet u hier rechts. We vertellen ons verhaal in vier delen, geserveerd tussen de gangen door: een hoofdstuk, een gang, een hoofdstuk, een gang."
   },
   {
    "key": "het-programma-B",
@@ -90,8 +90,8 @@
    "start": 91.4,
    "end": 106.4,
    "thumb": "thumbs/het-programma-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Eerst de wereld van bouwen: hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?",
+   "voiceoverExtended": "Het eerste deel gaat over de wereld van bouwen. De vraag die daar centraal staat: hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?"
   },
   {
    "key": "het-programma-C",
@@ -106,8 +106,8 @@
    "start": 106.4,
    "end": 121.4,
    "thumb": "thumbs/het-programma-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Dan ons waardekader: ESG als de manier waarop we elke dag beslissen hoe we bouwen, leveren, investeren en verbeteren.",
+   "voiceoverExtended": "Het tweede deel is ons waardekader. ESG is voor ons geen checklist, maar de systematische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren."
   },
   {
    "key": "het-programma-D",
@@ -122,8 +122,8 @@
    "start": 121.4,
    "end": 136.4,
    "thumb": "thumbs/het-programma-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Daarna beton: de ruggengraat van ons werk, en een materiaal in transitie.",
+   "voiceoverExtended": "Het derde deel gaat over beton: de ruggengraat van ons werk, en een materiaal in transitie. We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
   },
   {
    "key": "het-programma-E",
@@ -138,8 +138,8 @@
    "start": 136.4,
    "end": 151.4,
    "thumb": "thumbs/het-programma-E.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "En tot slot The Circle: een nieuwe manier van denken en doen, bouwen met het oog op wie na ons komt.",
+   "voiceoverExtended": "En het vierde deel is The Circle: een nieuwe manier van denken en doen. Bouwen vandaag, met het oog op wie na ons komt."
   },
   {
    "key": "het-programma-F",
@@ -154,8 +154,8 @@
    "start": 151.4,
    "end": 166.4,
    "thumb": "thumbs/het-programma-F.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Na het vierde deel volgt nog een gang, daarna een aantal projecten en het dessert, met ruimte voor uw vragen.",
+   "voiceoverExtended": "Na het vierde deel volgt nog een gang, daarna een aantal projecten, en tot slot het dessert. Zo ziet de avond eruit."
   },
   {
    "key": "het-programma-G",
@@ -170,8 +170,8 @@
    "start": 166.4,
    "end": 181.4,
    "thumb": "thumbs/het-programma-G.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Maar eerst het eten. Ik geef graag het woord aan Else de Bruin van StudioBuik.",
+   "voiceoverExtended": "Maar eerst het eten. Ik geef graag het woord aan Else de Bruin van StudioBuik, die u vertelt wat er vanavond op tafel komt. Daarna beginnen we met het eerste hoofdstuk: de wereld van bouwen."
   },
   {
    "key": "course-transition-to-chapter-1-A",
@@ -203,7 +203,7 @@
    "end": 222.967,
    "thumb": "thumbs/hoe-bouw-je-een-wereld-A.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Hoofdstuk één: de wereld van bouwen. Ik begin met de vraag die boven alles hangt wat we vanavond bespreken."
   },
   {
    "key": "hoe-bouw-je-een-wereld-B",
@@ -218,8 +218,8 @@
    "start": 222.967,
    "end": 232.2,
    "thumb": "thumbs/hoe-bouw-je-een-wereld-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?",
+   "voiceoverExtended": "Hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?"
   },
   {
    "key": "the-catalogue-city-A",
@@ -234,8 +234,8 @@
    "start": 232.2,
    "end": 246.0,
    "thumb": "thumbs/the-catalogue-city-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Onze samenleving leunt op structuren die we vanzelfsprekend vinden.",
+   "voiceoverExtended": "Neem een stad als Den Bosch, van boven gezien. Elk gebouw is opgebouwd uit elementen: een stad als een catalogus van onderdelen. Onze samenleving leunt op structuren die we vanzelfsprekend vinden."
   },
   {
    "key": "the-catalogue-city-B",
@@ -250,8 +250,8 @@
    "start": 246.0,
    "end": 261.5,
    "thumb": "thumbs/the-catalogue-city-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Scholen, logistieke centra, voedingsbedrijven, zwembaden, distributiehubs.",
+   "voiceoverExtended": "We komen dichterbij. Scholen, logistieke centra, voedingsbedrijven, zwembaden, distributiehubs. Achter elk daarvan zit een gebouw, en achter elk gebouw zitten onderdelen als deze."
   },
   {
    "key": "the-catalogue-city-C",
@@ -267,7 +267,7 @@
    "end": 269.1,
    "thumb": "thumbs/the-catalogue-city-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En als we blijven inzoomen, blijft er één element over. Eén onderdeel. Laten we daar even bij stilstaan."
   },
   {
    "key": "everything-a-build-answers-to-A",
@@ -282,8 +282,8 @@
    "start": 269.1,
    "end": 277.667,
    "thumb": "thumbs/everything-a-build-answers-to-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Achter al die gebouwen zit een netwerk van beslissingen:",
+   "voiceoverExtended": "Want achter al die gebouwen zit een netwerk van beslissingen. Neem dit ene element. Op welke locatie bouwen we?"
   },
   {
    "key": "everything-a-build-answers-to-B",
@@ -298,8 +298,8 @@
    "start": 277.667,
    "end": 282.367,
    "thumb": "thumbs/everything-a-build-answers-to-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Op welke locatie,",
+   "voiceoverExtended": "Welke materialen kiezen we?"
   },
   {
    "key": "everything-a-build-answers-to-C",
@@ -314,8 +314,8 @@
    "start": 282.367,
    "end": 287.067,
    "thumb": "thumbs/everything-a-build-answers-to-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "welke materialen we kiezen,",
+   "voiceoverExtended": "Hoe produceren we?"
   },
   {
    "key": "everything-a-build-answers-to-D",
@@ -330,8 +330,8 @@
    "start": 287.067,
    "end": 291.767,
    "thumb": "thumbs/everything-a-build-answers-to-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "hoe we produceren,",
+   "voiceoverExtended": "En hoe transporteren we?"
   },
   {
    "key": "everything-a-build-answers-to-E",
@@ -346,8 +346,8 @@
    "start": 291.767,
    "end": 306.9,
    "thumb": "thumbs/everything-a-build-answers-to-E.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "hoe we transporteren.",
+   "voiceoverExtended": "En dat zijn er nog maar vier. Bodem, vergunningen, netcongestie, arbeidsmarkt, stikstof, financiering: een gebouw beantwoordt aan tientallen factoren tegelijk. Elk van deze lijnen is een keuze die iemand moet maken."
   },
   {
    "key": "the-globe-A",
@@ -362,8 +362,8 @@
    "start": 306.9,
    "end": 321.033,
    "thumb": "thumbs/the-globe-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Elke keuze draagt gewicht – letterlijk en figuurlijk – voor mens en planeet.",
+   "voiceoverExtended": "En elke keuze draagt gewicht, letterlijk en figuurlijk, voor mens en planeet. Alles wat u hier rond de bol ziet draaien, komt uiteindelijk terug in de wereld waarin we bouwen. Dat is de verantwoordelijkheid die bij dit vak hoort."
   },
   {
    "key": "verticale-integratie-A",
@@ -378,8 +378,8 @@
    "start": 321.033,
    "end": 332.333,
    "thumb": "thumbs/verticale-integratie-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "De Willy Naessens Group is een speler die niet alleen bouwt, maar een hele keten beheert: van ontwerp en fundering tot prefab, transport, montage en beheer.",
+   "voiceoverExtended": "Hoe gaan wij daarmee om? De Willy Naessens Group is een speler die niet alleen bouwt, maar een hele keten beheert. Het begint bij een eigen ontwerp- en engineeringafdeling."
   },
   {
    "key": "verticale-integratie-B",
@@ -395,7 +395,7 @@
    "end": 337.733,
    "thumb": "thumbs/verticale-integratie-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Eigen prefabricatie: de elementen komen uit onze eigen fabrieken."
   },
   {
    "key": "verticale-integratie-C",
@@ -411,7 +411,7 @@
    "end": 341.767,
    "thumb": "thumbs/verticale-integratie-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Eigen grond- en omgevingswerken."
   },
   {
    "key": "verticale-integratie-D",
@@ -427,7 +427,7 @@
    "end": 346.0,
    "thumb": "thumbs/verticale-integratie-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Eigen funderingsploegen en eigen paalmachines."
   },
   {
    "key": "verticale-integratie-E",
@@ -443,7 +443,7 @@
    "end": 350.033,
    "thumb": "thumbs/verticale-integratie-E.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Eigen transport, van de fabriek naar de werf."
   },
   {
    "key": "verticale-integratie-F",
@@ -459,7 +459,7 @@
    "end": 354.767,
    "thumb": "thumbs/verticale-integratie-F.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Eigen montageploegen, die het gebouw ter plaatse opbouwen."
   },
   {
    "key": "verticale-integratie-G",
@@ -475,7 +475,7 @@
    "end": 358.833,
    "thumb": "thumbs/verticale-integratie-G.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Een eigen dakdichtingsbedrijf."
   },
   {
    "key": "verticale-integratie-H",
@@ -491,7 +491,7 @@
    "end": 363.433,
    "thumb": "thumbs/verticale-integratie-H.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Een eigen alu-schrijn- en glasbedrijf, voor de gevels."
   },
   {
    "key": "verticale-integratie-I",
@@ -507,7 +507,7 @@
    "end": 367.5,
    "thumb": "thumbs/verticale-integratie-I.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Een eigen technische afdeling."
   },
   {
    "key": "verticale-integratie-J",
@@ -522,8 +522,8 @@
    "start": 367.5,
    "end": 383.533,
    "thumb": "thumbs/verticale-integratie-J.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Als opdrachtgever koop je rechtstreeks bij de fabriek, waardoor je maximale zekerheid hebt over planning, budget en kwaliteit.",
+   "voiceoverExtended": "En eigen beheer en after sales. Van ontwerp en fundering tot prefab, transport, montage en beheer. Als opdrachtgever koopt u rechtstreeks bij de fabriek, en dat geeft maximale zekerheid over planning, budget en kwaliteit."
   },
   {
    "key": "de-cijfers-A",
@@ -538,8 +538,8 @@
    "start": 383.533,
    "end": 395.9,
    "thumb": "thumbs/de-cijfers-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Verticale integratie als een manier om verantwoordelijkheid niet uit te besteden, maar zelf op te nemen.",
+   "voiceoverExtended": "Verticale integratie is voor ons een manier om verantwoordelijkheid niet uit te besteden, maar zelf op te nemen. Een paar cijfers om dat tastbaar te maken. Eerst Willy Naessens Nederland."
   },
   {
    "key": "de-cijfers-B",
@@ -555,7 +555,7 @@
    "end": 400.4,
    "thumb": "thumbs/de-cijfers-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Dertig projecten per jaar."
   },
   {
    "key": "de-cijfers-C",
@@ -571,7 +571,7 @@
    "end": 404.9,
    "thumb": "thumbs/de-cijfers-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Vijfentachtig medewerkers."
   },
   {
    "key": "de-cijfers-D",
@@ -587,7 +587,7 @@
    "end": 409.6,
    "thumb": "thumbs/de-cijfers-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Ongeveer honderdvijftig miljoen euro omzet per jaar."
   },
   {
    "key": "de-cijfers-E",
@@ -603,7 +603,7 @@
    "end": 414.1,
    "thumb": "thumbs/de-cijfers-E.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En dan de groep als geheel, in het rood."
   },
   {
    "key": "de-cijfers-F",
@@ -618,8 +618,8 @@
    "start": 414.1,
    "end": 421.0,
    "thumb": "thumbs/de-cijfers-F.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Een werf, zo noemen we in België een bouwproject.",
+   "voiceoverExtended": "Tweehonderdvijftig werven per jaar. Een werf, zo noemen we in België een bouwproject."
   },
   {
    "key": "de-cijfers-G",
@@ -635,7 +635,7 @@
    "end": 425.5,
    "thumb": "thumbs/de-cijfers-G.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Eén komma twee miljard euro omzet per jaar."
   },
   {
    "key": "de-cijfers-H",
@@ -651,7 +651,7 @@
    "end": 430.0,
    "thumb": "thumbs/de-cijfers-H.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Tweeduizend zevenhonderdvijftig medewerkers."
   },
   {
    "key": "de-cijfers-I",
@@ -667,7 +667,7 @@
    "end": 438.367,
    "thumb": "thumbs/de-cijfers-I.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En meer dan negenduizend referenties. Dat is de schaal waarop we werken, en de schaal waarop onze keuzes doorwegen."
   },
   {
    "key": "de-fabrieken-A",
@@ -683,7 +683,7 @@
    "end": 451.3,
    "thumb": "thumbs/de-fabrieken-A.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Waar gebeurt dat allemaal? Dit is de kaart van de groep: elke rode stip is een fabriek. Dertien productiesites in België, Nederland en Frankrijk, en de rest van Europa eromheen."
   },
   {
    "key": "de-fabrieken-B",
@@ -699,7 +699,7 @@
    "end": 457.733,
    "thumb": "thumbs/de-fabrieken-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Laten we er één uitlichten. We zoomen in op een van onze fabrieken: Seveton."
   },
   {
    "key": "de-fabrieken-C",
@@ -715,7 +715,7 @@
    "end": 463.233,
    "thumb": "thumbs/de-fabrieken-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Seveton."
   },
   {
    "key": "de-fabrieken-D",
@@ -731,7 +731,7 @@
    "end": 473.633,
    "thumb": "thumbs/de-fabrieken-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "De naam vertelt zijn eigen verhaal: Sem, Veerle en Beton. Willy Naessens is een familiebedrijf, en dat ziet u tot in de naam van deze fabriek terug."
   },
   {
    "key": "de-fabrieken-E",
@@ -747,7 +747,7 @@
    "end": 482.067,
    "thumb": "thumbs/de-fabrieken-E.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En vlak daarnaast een tak die geen fabriek is, maar wel onmisbaar: Transwinaton, ons eigen transportbedrijf."
   },
   {
    "key": "de-fabrieken-F",
@@ -763,7 +763,7 @@
    "end": 487.567,
    "thumb": "thumbs/de-fabrieken-F.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Transwinaton."
   },
   {
    "key": "de-fabrieken-G",
@@ -779,7 +779,7 @@
    "end": 496.6,
    "thumb": "thumbs/de-fabrieken-G.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Transport, Willy Naessens, beton. Ook het vervoer van onze elementen houden we in eigen hand. U zag het net al in de keten."
   },
   {
    "key": "de-fabrieken-H",
@@ -795,7 +795,7 @@
    "end": 502.7,
    "thumb": "thumbs/de-fabrieken-H.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Zo ligt het netwerk erbij: fabrieken, transport, en de werven daaromheen."
   },
   {
    "key": "de-fabrieken-I",
@@ -810,8 +810,8 @@
    "start": 502.7,
    "end": 517.833,
    "thumb": "thumbs/de-fabrieken-I.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We bouwen in zes landen: België, onze thuisbasis, Nederland, Frankrijk, Luxemburg, Denemarken, Zweden en de bredere Scandinavische regio.",
+   "voiceoverExtended": "En dit is waar we bouwen: België, onze thuisbasis, Nederland, Frankrijk, Luxemburg, Denemarken, Zweden en de bredere Scandinavische regio. Zes landen. Dat brengt me bij een concreet project."
   },
   {
    "key": "projecthighlight-1-A",
@@ -826,8 +826,8 @@
    "start": 517.833,
    "end": 526.5,
    "thumb": "thumbs/projecthighlight-1-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Van Cranenbroek in Budel. Waar lag de klant wakker van? Continuïteit, en ruimte om te groeien.",
+   "voiceoverExtended": "Van Cranenbroek in Budel. Waar lag de klant wakker van? Continuïteit voor zijn organisatie, en ruimte om te groeien."
   },
   {
    "key": "projecthighlight-1-B",
@@ -842,8 +842,8 @@
    "start": 526.5,
    "end": 540.5,
    "thumb": "thumbs/projecthighlight-1-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Ons antwoord: een hal die rust op onze kolommen, gebouwd in vierendertig weken.",
+   "voiceoverExtended": "Ons antwoord: een afhaalmagazijn met kantoor van ruim dertienduizend vierkante meter, in vierendertig weken gebouwd, op onze eigen kolommen. Alles wat we tot nu toe hebben besproken komt hier samen in één gebouw."
   },
   {
    "key": "kernboodschap-1-A",
@@ -858,8 +858,8 @@
    "start": 540.5,
    "end": 559.033,
    "thumb": "thumbs/kernboodschap-1-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We hebben gekeken naar de organisatie achter het bouwen. Een vraag voor aan tafel: waar ligt u wakker van? Bij ons begint elk element met gieten. Ik geef het woord aan Else de Bruin van StudioBuik.",
+   "voiceoverExtended": "Om mee te nemen uit dit eerste deel: we hebben gekeken naar de organisatie achter het bouwen. Een vraag voor aan tafel: waar ligt u wakker van? Bij ons begint elk element met gieten, en dat ziet u zo terug op uw bord. Ik geef het woord aan Else de Bruin van StudioBuik, voor het voorgerecht."
   },
   {
    "key": "studiobuik-voorgerecht-A",
@@ -923,7 +923,7 @@
    "end": 675.8,
    "thumb": "thumbs/esg-is-geen-checklist-A.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Welkom terug. Hoofdstuk twee: waardekader en verantwoordelijkheid. Voor de gang stelde ik de vraag hoe we onze keuzes beoordelen. Het antwoord begint hier."
   },
   {
    "key": "esg-is-geen-checklist-B",
@@ -938,8 +938,8 @@
    "start": 675.8,
    "end": 685.567,
    "thumb": "thumbs/esg-is-geen-checklist-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "ESG is geen checklist, maar de systemische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren.",
+   "voiceoverExtended": "ESG is geen checklist, maar de systematische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren."
   },
   {
    "key": "esg-beoordelingskader-A",
@@ -954,8 +954,8 @@
    "start": 685.567,
    "end": 701.1,
    "thumb": "thumbs/esg-beoordelingskader-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Verantwoordelijkheid: niet als abstract begrip, maar als dagelijkse praktijk.",
+   "voiceoverExtended": "Verantwoordelijkheid: niet als abstract begrip, maar als dagelijkse praktijk. ESG is een beoordelingskader met drie pijlers. De eerste is Environmental: onze impact op het milieu. Klimaat, energie, materialen."
   },
   {
    "key": "esg-beoordelingskader-B",
@@ -970,8 +970,8 @@
    "start": 701.1,
    "end": 711.1,
    "thumb": "thumbs/esg-beoordelingskader-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Drie pijlers: Environment, Social, Governance – niet als modewoorden, maar als kompas.",
+   "voiceoverExtended": "De tweede is Social: maatschappelijke verantwoordelijkheid. Arbeidsomstandigheden, veiligheid, diversiteit, de omgeving waarin we werken."
   },
   {
    "key": "esg-beoordelingskader-C",
@@ -986,8 +986,8 @@
    "start": 711.1,
    "end": 718.833,
    "thumb": "thumbs/esg-beoordelingskader-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Het is een beoordelingskader waarmee bedrijven worden geëvalueerd op drie pijlers: milieu-impact (Environmental), maatschappelijke verantwoordelijkheid (Social) en goed bestuur (Governance). ESG helpt organisaties inzicht te geven in hun duurzaamheidsprestaties en niet-financiële risico’s.",
+   "voiceoverExtended": "De derde is Governance: goed bestuur. Ethisch ondernemen, transparantie, risicobeheer."
   },
   {
    "key": "esg-beoordelingskader-D",
@@ -1002,8 +1002,8 @@
    "start": 718.833,
    "end": 747.333,
    "thumb": "thumbs/esg-beoordelingskader-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "De betekenis van ESG gaat dus verder dan alleen duurzaamheid. Het omvat onder andere klimaatimpact, arbeidsomstandigheden, diversiteit, ethisch ondernemen, transparantie en risicobeheer. Steeds vaker gebruiken investeerders, toezichthouders en klanten ESG-criteria om te bepalen hoe toekomstbestendig en verantwoord een organisatie opereert. Voor bedrijven betekent ESG concreet dat zij niet alleen financieel rendement moeten nastreven, maar ook rekening moeten houden met hun impact op mens, milieu en governance-structuren.",
+   "voiceoverExtended": "En de drie grijpen in elkaar. ESG geeft inzicht in duurzaamheidsprestaties en niet-financiële risico's, en steeds vaker gebruiken investeerders, toezichthouders en klanten precies deze criteria om te bepalen hoe toekomstbestendig een organisatie is. Voor ons betekent het concreet: niet alleen financieel rendement, maar ook onze impact op mens, milieu en bestuur. Drie pijlers, niet als modewoorden, maar als kompas."
   },
   {
    "key": "co2-prestatieladder-A",
@@ -1018,8 +1018,8 @@
    "start": 747.333,
    "end": 769.6,
    "thumb": "thumbs/co2-prestatieladder-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "CO₂ uitstoot is voor WN niet alleen een getal, maar een instelling: elke liter brandstof, elke kilowattuur, elke gereden kilometer vertaalt zich in impact – en dus ook in kansen om te verbeteren. Daarvoor is het doel te stijgen op de CO₂ prestatieladder. Die bestaat uit meerdere treden.",
+   "voiceoverExtended": "We beginnen bij Environment. CO₂-uitstoot is voor ons niet alleen een getal, maar een instelling: elke liter brandstof, elke kilowattuur, elke gereden kilometer vertaalt zich in impact, en dus ook in kansen om te verbeteren. Daarvoor is de CO₂-prestatieladder ons instrument. Tot 2025 had die vijf treden."
   },
   {
    "key": "co2-prestatieladder-B",
@@ -1034,8 +1034,8 @@
    "start": 769.6,
    "end": 775.767,
    "thumb": "thumbs/co2-prestatieladder-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Willy Naessens was in 2025 op trede 3 gecertificeerd.",
+   "voiceoverExtended": "Willy Naessens was in 2025 gecertificeerd op trede drie."
   },
   {
    "key": "co2-prestatieladder-C",
@@ -1050,8 +1050,8 @@
    "start": 775.767,
    "end": 782.733,
    "thumb": "thumbs/co2-prestatieladder-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "In 2026 zijn de eerste drie treden samengevoegd",
+   "voiceoverExtended": "In 2026 is de ladder herzien: de eerste drie treden zijn samengevoegd."
   },
   {
    "key": "co2-prestatieladder-D",
@@ -1066,8 +1066,8 @@
    "start": 782.733,
    "end": 801.333,
    "thumb": "thumbs/co2-prestatieladder-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "en is WN nu gecertificeerd op trede 1. Trede 1: CO₂-reductie in de eigen organisatie. Footprint opstellen, energiemanagement, reductiedoelen, interne communicatie. (Gas in gebouwen, brandstof in eigen voertuigen/machines) én uitstoot door ingekochte energie (stroom, warmte, koeling).",
+   "voiceoverExtended": "Samen vormen ze de nieuwe trede één: CO₂-reductie in de eigen organisatie. Een footprint opstellen, energiemanagement, reductiedoelen, interne communicatie. Het gas in onze gebouwen, de brandstof in onze voertuigen en machines, én de uitstoot van de energie die we inkopen."
   },
   {
    "key": "co2-prestatieladder-E",
@@ -1082,8 +1082,8 @@
    "start": 801.333,
    "end": 822.433,
    "thumb": "thumbs/co2-prestatieladder-E.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Trede 2: CO₂-reductie in de keten. Klimaattransitieplan, productie van ingekochte materialen, diensten, transport door derden, woon-werkverkeer, zakenreizen, etc. Trede 3: CO₂-reductie naar nul in 2050. Alle uitstoot waar het bedrijf invloed op heeft. Gericht op aantoonbare effecten van maatregelen binnen organisatie en keten, structurele investeringen, een voortrekkersrol in de sector en transparante rapportage over voortgang.",
+   "voiceoverExtended": "Daarboven trede twee: CO₂-reductie in de keten. Een klimaattransitieplan, de productie van ingekochte materialen, transport door derden, woon-werkverkeer. En trede drie: CO₂-reductie naar nul in 2050, met een voortrekkersrol in de sector en transparante rapportage over de voortgang."
   },
   {
    "key": "co2-prestatieladder-F",
@@ -1098,8 +1098,8 @@
    "start": 822.433,
    "end": 831.567,
    "thumb": "thumbs/co2-prestatieladder-F.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We werken nu eraan om trede 2 te halen, met als doel trede 3 en nul CO₂ uitstoot in 2050.",
+   "voiceoverExtended": "Op de nieuwe ladder staat Willy Naessens op trede één. Dezelfde positie, geen stap terug. We werken nu aan trede twee."
   },
   {
    "key": "co2-behaald-A",
@@ -1115,7 +1115,7 @@
    "end": 843.633,
    "thumb": "thumbs/co2-behaald-A.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "De cijfers daarachter. Links ziet u onze CO₂-uitstoot per geïndexeerde omzet, van 2020 tot 2024: zesentwintig procent minder."
   },
   {
    "key": "co2-behaald-B",
@@ -1131,7 +1131,7 @@
    "end": 848.633,
    "thumb": "thumbs/co2-behaald-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "De lijn erover is de doelstelling, en de staven blijven eronder."
   },
   {
    "key": "co2-behaald-C",
@@ -1147,7 +1147,7 @@
    "end": 860.467,
    "thumb": "thumbs/co2-behaald-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Rechts onze eigen productie van groene stroom: vijf komma twee gigawattuur in 2024, en voor 2026 is ongeveer een gigawattuur meer voorzien."
   },
   {
    "key": "co2-behaald-D",
@@ -1163,7 +1163,7 @@
    "end": 882.233,
    "thumb": "thumbs/co2-behaald-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En de maatregelen daaronder. Al onze betonfabrieken hebben het CSC Silver-statuut. Ze draaien op opgevangen regenwater, en zand en grind uit het spoelwater worden gerecupereerd. Sinds 2022 kopen we groene stroom voor wat we niet zelf opwekken, en op de werf werken we met elektrische aansluitingen, met een batterij voor de pieken."
   },
   {
    "key": "geen-compensatie-A",
@@ -1178,8 +1178,8 @@
    "start": 882.233,
    "end": 896.0,
    "thumb": "thumbs/geen-compensatie-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "In plaats van ons te richten op CO₂-neutrale certificeringen op basis van compensatie van emissies,",
+   "voiceoverExtended": "Wat we bewust niet doen, is compenseren. Compenseren kost geld: eigenlijk leggen we onszelf daarmee een boete op, en daar willen we vanaf. Dus leggen we de nadruk op daadwerkelijke emissiereducties."
   },
   {
    "key": "geen-compensatie-B",
@@ -1194,8 +1194,8 @@
    "start": 896.0,
    "end": 904.467,
    "thumb": "thumbs/geen-compensatie-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "legt Willy Naessens de nadruk op daadwerkelijke emissiereducties door maatregelen zoals de elektrificatie van transport en apparatuur. Want compenseren kost geld: het is een boete die we onszelf opleggen.",
+   "voiceoverExtended": "Het certificaat mag weg. Wat blijft, is de maatregel zelf. Niet compenseren. Reduceren."
   },
   {
    "key": "geen-compensatie-C",
@@ -1211,7 +1211,7 @@
    "end": 908.867,
    "thumb": "thumbs/geen-compensatie-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Elektrische kranen."
   },
   {
    "key": "geen-compensatie-D",
@@ -1227,7 +1227,7 @@
    "end": 913.267,
    "thumb": "thumbs/geen-compensatie-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Elektrische vrachtwagens."
   },
   {
    "key": "geen-compensatie-E",
@@ -1243,7 +1243,7 @@
    "end": 925.4,
    "thumb": "thumbs/geen-compensatie-E.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Elektrische bussen, elektrisch woon-werkverkeer, het opwekken van eigen groene stroom en het opslaan ervan in batterijen. Elektrificatie van transport en apparatuur, stap voor stap."
   },
   {
    "key": "domino-effect-A",
@@ -1258,8 +1258,8 @@
    "start": 925.4,
    "end": 936.467,
    "thumb": "thumbs/domino-effect-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Duurzaamheid heeft bovendien een domino-effect:",
+   "voiceoverExtended": "Duurzaamheid heeft bovendien een domino-effect. Herinnert u zich de boom van daarnet, alles waaraan een gebouw beantwoordt? Zet in het midden een duurzaam element."
   },
   {
    "key": "domino-effect-B",
@@ -1274,8 +1274,8 @@
    "start": 936.467,
    "end": 941.167,
    "thumb": "thumbs/domino-effect-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "het gebruik van duurzame materialen",
+   "voiceoverExtended": "Dan wordt het gebouw eromheen makkelijker duurzaam."
   },
   {
    "key": "domino-effect-C",
@@ -1290,8 +1290,8 @@
    "start": 941.167,
    "end": 952.133,
    "thumb": "thumbs/domino-effect-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "maakt het gemakkelijker om complete gebouwen",
+   "voiceoverExtended": "En de straat, en de wijk, en de stad. Het gebruik van duurzame materialen maakt het gemakkelijker om complete gebouwen als duurzaam te classificeren."
   },
   {
    "key": "domino-effect-D",
@@ -1306,8 +1306,8 @@
    "start": 952.133,
    "end": 958.733,
    "thumb": "thumbs/domino-effect-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "als duurzaam te classificeren.",
+   "voiceoverExtended": "Eén woord, opgebouwd uit onze eigen elementen: duurzaam."
   },
   {
    "key": "esg-social-governance-A",
@@ -1322,8 +1322,8 @@
    "start": 958.733,
    "end": 970.233,
    "thumb": "thumbs/esg-social-governance-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "‘Niet het vastgoed, niet de machines, maar de mensen zijn mijn grootste kapitaal’, zei Willy Naessens altijd.",
+   "voiceoverExtended": "Dan de tweede pijler, Social. Het begint bij één mens. ‘Niet het vastgoed, niet de machines, maar de mensen zijn mijn grootste kapitaal’, zei Willy Naessens altijd."
   },
   {
    "key": "esg-social-governance-B",
@@ -1338,8 +1338,8 @@
    "start": 970.233,
    "end": 978.667,
    "thumb": "thumbs/esg-social-governance-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Opleiding, veiligheid en werkzekerheid vormen de basis,",
+   "voiceoverExtended": "En de groep om die mens heen: onze medewerkers. Opleiding, veiligheid en werkzekerheid vormen de basis."
   },
   {
    "key": "esg-social-governance-C",
@@ -1354,8 +1354,8 @@
    "start": 978.667,
    "end": 988.733,
    "thumb": "thumbs/esg-social-governance-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "en hoe de groep ook nadenkt over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving.",
+   "voiceoverExtended": "Tussen die mensen lopen lijnen. Zo denkt de groep ook na over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving."
   },
   {
    "key": "esg-social-governance-D",
@@ -1370,8 +1370,8 @@
    "start": 988.733,
    "end": 1007.333,
    "thumb": "thumbs/esg-social-governance-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Ons bestuur is er altijd op gericht dat de mens centraal staat. Transparante rapportering, externe audits, certificering en lange-termijnrelaties met partners als de structuur achter de waarden.",
+   "voiceoverExtended": "De derde pijler, Governance. Ons bestuur is er altijd op gericht dat de mens centraal staat: mensen zijn ons belangrijkste kapitaal. Transparante rapportering, externe audits, certificering en langetermijnrelaties met partners: dat is de structuur achter de waarden."
   },
   {
    "key": "esg-social-governance-E",
@@ -1386,8 +1386,8 @@
    "start": 1007.333,
    "end": 1019.967,
    "thumb": "thumbs/esg-social-governance-E.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Zo staan we, als mensen en als bedrijf, in verbondenheid met het geheel.",
+   "voiceoverExtended": "En samen vormen ze een wereld, opgebouwd uit mensen, in verbondenheid met het geheel. Dat is ESG voor ons: geen afvinklijst, maar de mensen en het bestuur achter elke keuze."
   },
   {
    "key": "projecthighlight-2-A",
@@ -1402,8 +1402,8 @@
    "start": 1019.967,
    "end": 1030.767,
    "thumb": "thumbs/projecthighlight-2-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "VGP Park in Nijmegen: een dak dat zijn eigen groene stroom opwekt.",
+   "voiceoverExtended": "Een project waar dit samenkomt: VGP Park Nijmegen, gebouw B en C. Een logistiek park van ruim honderddertigduizend vierkante meter."
   },
   {
    "key": "projecthighlight-2-B",
@@ -1419,7 +1419,7 @@
    "end": 1037.767,
    "thumb": "thumbs/projecthighlight-2-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Gebouwd in honderdvier weken, voor VGP Group."
   },
   {
    "key": "projecthighlight-2-C",
@@ -1435,7 +1435,7 @@
    "end": 1046.3,
    "thumb": "thumbs/projecthighlight-2-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En het dak: vol zonnepanelen. Een gebouw dat zijn eigen groene stroom opwekt. Environment, in de praktijk."
   },
   {
    "key": "kernboodschap-2-A",
@@ -1450,8 +1450,8 @@
    "start": 1046.3,
    "end": 1059.067,
    "thumb": "thumbs/kernboodschap-2-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We hebben besproken hoe we keuzes beoordelen. Een vraag voor aan tafel: welke keuze van vandaag telt over twintig jaar nog? Ik geef het woord aan Else de Bruin, voor de eerste gang.",
+   "voiceoverExtended": "Om mee te nemen: we hebben besproken hoe we keuzes beoordelen. Een vraag voor aan tafel: welke keuze van vandaag telt over twintig jaar nog? Ik geef het woord aan Else de Bruin, voor de eerste gang."
   },
   {
    "key": "studiobuik-eerste-gang-A",
@@ -1514,8 +1514,8 @@
    "start": 1156.233,
    "end": 1165.267,
    "thumb": "thumbs/we-gieten-kennis-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Transitie betekent voor ons: ons product voortdurend beter maken. Bij het voorgerecht zag u het al: we gieten.",
+   "voiceoverExtended": "Hoofdstuk drie: beton, ruggengraat en transitie. Transitie betekent voor ons: ons product voortdurend beter maken."
   },
   {
    "key": "we-gieten-kennis-B",
@@ -1530,8 +1530,8 @@
    "start": 1165.267,
    "end": 1176.033,
    "thumb": "thumbs/we-gieten-kennis-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter.",
+   "voiceoverExtended": "Bij het voorgerecht zag u het al: we gieten. Maar we gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
   },
   {
    "key": "co2-impact-van-beton-A",
@@ -1546,8 +1546,8 @@
    "start": 1176.033,
    "end": 1195.533,
    "thumb": "thumbs/co2-impact-van-beton-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal.",
+   "voiceoverExtended": "We weten dat de productie van beton vervuilend is. Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal. In beton is cement veruit het grootste deel: ongeveer tachtig procent van de CO₂-uitstoot van het materiaal. De rode band in deze kolom."
   },
   {
    "key": "co2-impact-van-beton-B",
@@ -1562,8 +1562,8 @@
    "start": 1195.533,
    "end": 1202.067,
    "thumb": "thumbs/co2-impact-van-beton-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Wereldwijd is de productie van beton verantwoordelijk voor tot negen procent van de CO₂-uitstoot.",
+   "voiceoverExtended": "Wereldwijd is beton verantwoordelijk voor tot negen procent van de CO₂-uitstoot."
   },
   {
    "key": "co2-impact-van-beton-C",
@@ -1578,8 +1578,8 @@
    "start": 1202.067,
    "end": 1214.9,
    "thumb": "thumbs/co2-impact-van-beton-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "In Nederland is dat één komma negen procent. We kunnen niet zonder beton, en daarom maken we het zo duurzaam mogelijk.",
+   "voiceoverExtended": "In Nederland is dat één komma negen procent. Tegelijk is de bouwbehoefte zo groot dat we niet zonder beton kunnen. Dus zetten wij ons in om wat we in beton bouwen zo duurzaam mogelijk te produceren."
   },
   {
    "key": "de-fasen-a-b-en-c-A",
@@ -1594,8 +1594,8 @@
    "start": 1214.9,
    "end": 1225.1,
    "thumb": "thumbs/de-fasen-a-b-en-c-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "A: van grondstof tot gebouw, de productie en de bouw.",
+   "voiceoverExtended": "Eerst drie letters, die u zo op elk vak terugziet. Volg de weg van een betonelement: A is alles van grondstof tot gebouw, de productie en de bouw."
   },
   {
    "key": "de-fasen-a-b-en-c-B",
@@ -1610,8 +1610,8 @@
    "start": 1225.1,
    "end": 1232.867,
    "thumb": "thumbs/de-fasen-a-b-en-c-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "B: het gebruik.",
+   "voiceoverExtended": "Dan B, het langste stuk van de weg: het gebruik. Tientallen jaren onderhoud, reparatie en verbouwing."
   },
   {
    "key": "de-fasen-a-b-en-c-C",
@@ -1626,8 +1626,8 @@
    "start": 1232.867,
    "end": 1241.933,
    "thumb": "thumbs/de-fasen-a-b-en-c-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "C: het einde van de levensduur. Daar loopt de weg dood.",
+   "voiceoverExtended": "En C is het einde van de levensduur: sloop, transport, afvalverwerking en verwijdering. Daar loopt de weg dood."
   },
   {
    "key": "levenscyclus-van-betonproducten-A",
@@ -1642,8 +1642,8 @@
    "start": 1241.933,
    "end": 1257.2,
    "thumb": "thumbs/levenscyclus-van-betonproducten-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt.",
+   "voiceoverExtended": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt. Hier is de hele levenscyclus van een betonproduct. Eerst de productfase: grondstofwinning, transport naar de fabriek, productie."
   },
   {
    "key": "levenscyclus-van-betonproducten-B",
@@ -1659,7 +1659,7 @@
    "end": 1262.667,
    "thumb": "thumbs/levenscyclus-van-betonproducten-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Dan de bouwfase: transport naar de bouwplaats, en montage."
   },
   {
    "key": "levenscyclus-van-betonproducten-C",
@@ -1675,7 +1675,7 @@
    "end": 1270.333,
    "thumb": "thumbs/levenscyclus-van-betonproducten-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "De gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing. Tientallen jaren."
   },
   {
    "key": "levenscyclus-van-betonproducten-D",
@@ -1691,7 +1691,7 @@
    "end": 1280.133,
    "thumb": "thumbs/levenscyclus-van-betonproducten-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En dan het einde van de levensduur: sloop, transport, afvalverwerking, verwijdering. Zo gaat het nu. Lineair."
   },
   {
    "key": "levenscyclus-van-betonproducten-E",
@@ -1707,7 +1707,7 @@
    "end": 1289.867,
    "thumb": "thumbs/levenscyclus-van-betonproducten-E.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Wij vervangen die laatste kolom. In plaats van sloop komt The Circle: vier stappen, met in elk vak een echt element uit onze catalogus."
   },
   {
    "key": "levenscyclus-van-betonproducten-F",
@@ -1722,8 +1722,8 @@
    "start": 1289.867,
    "end": 1294.167,
    "thumb": "thumbs/levenscyclus-van-betonproducten-F.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Beton als materiaal in transitie, niet als statisch gegeven.",
+   "voiceoverExtended": "Elementen demonteren, in plaats van slopen."
   },
   {
    "key": "levenscyclus-van-betonproducten-G",
@@ -1739,7 +1739,7 @@
    "end": 1298.467,
    "thumb": "thumbs/levenscyclus-van-betonproducten-G.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Transport."
   },
   {
    "key": "levenscyclus-van-betonproducten-H",
@@ -1755,7 +1755,7 @@
    "end": 1302.767,
    "thumb": "thumbs/levenscyclus-van-betonproducten-H.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Opslag."
   },
   {
    "key": "levenscyclus-van-betonproducten-I",
@@ -1771,7 +1771,7 @@
    "end": 1309.633,
    "thumb": "thumbs/levenscyclus-van-betonproducten-I.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En opnieuw gebruiken. Beton als materiaal in transitie, niet als statisch gegeven."
   },
   {
    "key": "levenscyclusanalyse-A",
@@ -1786,8 +1786,8 @@
    "start": 1309.633,
    "end": 1320.433,
    "thumb": "thumbs/levenscyclusanalyse-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Levenscyclus analyse laat objectief toe om verduurzaming van betonproducten in kaart te brengen.",
+   "voiceoverExtended": "Hoe weten we wat een element werkelijk kost aan CO₂? Met een levenscyclusanalyse. Aan de ene kant een database van alle aangekochte materialen."
   },
   {
    "key": "levenscyclusanalyse-B",
@@ -1803,7 +1803,7 @@
    "end": 1327.567,
    "thumb": "thumbs/levenscyclusanalyse-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Aan de andere kant een database van onze betonmengsels: elke samenstelling, elk bindmiddel."
   },
   {
    "key": "levenscyclusanalyse-C",
@@ -1819,7 +1819,7 @@
    "end": 1331.867,
    "thumb": "thumbs/levenscyclusanalyse-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Die twee brengen we samen in de analyse."
   },
   {
    "key": "levenscyclusanalyse-D",
@@ -1835,7 +1835,7 @@
    "end": 1340.2,
    "thumb": "thumbs/levenscyclusanalyse-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En dat maakt mogelijk wat vroeger een schatting was: de materiaalgebonden CO₂-uitstoot, product per product."
   },
   {
    "key": "levenscyclusanalyse-E",
@@ -1850,8 +1850,8 @@
    "start": 1340.2,
    "end": 1352.467,
    "thumb": "thumbs/levenscyclusanalyse-E.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Die informatie over materialen en mengsels leveren we mee met elk gebouw.",
+   "voiceoverExtended": "Levenscyclusanalyse laat objectief toe om de verduurzaming van betonproducten in kaart te brengen. En die informatie, over de materialen en de mengsels, leveren we mee met elk gebouw."
   },
   {
    "key": "verduurzamen-van-beton-A",
@@ -1866,8 +1866,8 @@
    "start": 1352.467,
    "end": 1369.867,
    "thumb": "thumbs/verduurzamen-van-beton-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "De Willy Naessens Group benaderd beton op drie niveaus: Op samenstelling: minder cement, lagere klinker, nieuwe bindmiddelen, zelfs beton zonder cement.",
+   "voiceoverExtended": "De Willy Naessens Group benadert beton op drie niveaus. Ten eerste op samenstelling: minder cement, lagere klinker, nieuwe bindmiddelen, zelfs beton zonder cement. De wolk die u ziet mengen is precies dat: verschillende samenstellingen die in elkaar overgaan."
   },
   {
    "key": "verduurzamen-van-beton-B",
@@ -1882,8 +1882,8 @@
    "start": 1369.867,
    "end": 1386.7,
    "thumb": "thumbs/verduurzamen-van-beton-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Op productie: aandacht voor water, energie en grondstoffen, nul-loos processes, hergebruik van granulaten.",
+   "voiceoverExtended": "Ten tweede op productie: aandacht voor water, energie en grondstoffen, processen zonder verlies, hergebruik van granulaten. De kringloop die u ziet is die van kalk. Branden, blussen, mengen, verharden. CO₂ gaat eruit, en komt er weer in."
   },
   {
    "key": "verduurzamen-van-beton-C",
@@ -1898,8 +1898,8 @@
    "start": 1386.7,
    "end": 1400.6,
    "thumb": "thumbs/verduurzamen-van-beton-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Op meting: via Life cycle analyse wordt de CO₂-voetafdruk van betonproducten precies in kaart gebracht, product per product.",
+   "voiceoverExtended": "En ten derde op meting: via de levenscyclusanalyse wordt de CO₂-voetafdruk van betonproducten precies in kaart gebracht, product per product. De staven laten zien hoe die voetafdruk stap voor stap daalt."
   },
   {
    "key": "verborgen-verhaal-A",
@@ -1914,8 +1914,8 @@
    "start": 1400.6,
    "end": 1417.333,
    "thumb": "thumbs/verborgen-verhaal-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Elk element – van gevelpaneel tot gewelf – heeft een “verborgen verhaal”: hoeveel CO₂ belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn.",
+   "voiceoverExtended": "Elk element, van gevelpaneel tot gewelf, heeft een verborgen verhaal: hoeveel CO₂ erin belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn. Dit is zo'n element, met zijn gegevens uit het register en de drie hefbomen eromheen."
   },
   {
    "key": "verborgen-verhaal-B",
@@ -1930,8 +1930,8 @@
    "start": 1417.333,
    "end": 1440.1,
    "thumb": "thumbs/verborgen-verhaal-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "In de betonsamenstelling van gevelelementen tot dertig procent minder CO₂ ten opzichte van 2024: een ander bindmiddel, andere toeslagmaterialen, dezelfde kwaliteit.",
+   "voiceoverExtended": "In de betonsamenstelling van gevelelementen haalden we tot dertig procent CO₂ weg, ten opzichte van het mengsel van 2024. Door na te denken over slimme mengsels, met een ander bindmiddel en andere toeslagmaterialen, leveren we dezelfde kwaliteit met minder CO₂. Dat mengsel hebben we jarenlang ontwikkeld met onze betontechnologen."
   },
   {
    "key": "verborgen-verhaal-C",
@@ -1947,7 +1947,7 @@
    "end": 1445.067,
    "thumb": "thumbs/verborgen-verhaal-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "In gewelven, de vloerplaten, vijftien procent."
   },
   {
    "key": "verborgen-verhaal-D",
@@ -1963,7 +1963,7 @@
    "end": 1456.233,
    "thumb": "thumbs/verborgen-verhaal-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En in gewapend beton, zoals deze balk, twintig procent. Elk van die reducties volgen we via de levenscyclusanalyse. Geen belofte, maar een meting."
   },
   {
    "key": "recyclage-A",
@@ -1978,8 +1978,8 @@
    "start": 1456.233,
    "end": 1464.9,
    "thumb": "thumbs/recyclage-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Reststromen kunnen weer grondstof worden:",
+   "voiceoverExtended": "En aan het einde van een leven? Reststromen kunnen weer grondstof worden. Dit is een wandelement uit onze catalogus."
   },
   {
    "key": "recyclage-B",
@@ -1994,8 +1994,8 @@
    "start": 1464.9,
    "end": 1469.6,
    "thumb": "thumbs/recyclage-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "puin dat ter plaatse wordt gebroken,",
+   "voiceoverExtended": "Het komt naar beneden."
   },
   {
    "key": "recyclage-C",
@@ -2010,8 +2010,8 @@
    "start": 1469.6,
    "end": 1474.3,
    "thumb": "thumbs/recyclage-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "gezeefd",
+   "voiceoverExtended": "Het puin wordt ter plaatse gebroken."
   },
   {
    "key": "recyclage-D",
@@ -2026,8 +2026,8 @@
    "start": 1474.3,
    "end": 1479.0,
    "thumb": "thumbs/recyclage-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "en opnieuw ingezet, waardoor zowel de herkomst als de kwaliteit controleerbaar blijven en extra transport wordt vermeden.",
+   "voiceoverExtended": "Gezeefd."
   },
   {
    "key": "recyclage-E",
@@ -2042,8 +2042,8 @@
    "start": 1479.0,
    "end": 1492.533,
    "thumb": "thumbs/recyclage-E.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Ook ons eigen productieafval gaat zo terug de kringloop in.",
+   "voiceoverExtended": "En opnieuw ingezet, in een nieuw element. Zo blijven zowel de herkomst als de kwaliteit controleerbaar, en wordt extra transport vermeden. Ook ons eigen productieafval gaat zo terug de kringloop in."
   },
   {
    "key": "projecthighlight-3-A",
@@ -2058,8 +2058,8 @@
    "start": 1492.533,
    "end": 1510.9,
    "thumb": "thumbs/projecthighlight-3-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Kivits in Ridderkerk, voor WDP: een koelopslag met beton als ruggengraat. Het moest snel, en dankzij onze verticale integratie stond het er binnen een jaar.",
+   "voiceoverExtended": "Een project waar beton letterlijk de ruggengraat is: Kivits in Ridderkerk, voor WDP. De vraag: het moest snel. Een koelopslag van vierendertigduizend vierkante meter met dertig koelcellen, gebouwd in tweeënvijftig weken, dankzij onze verticale integratie."
   },
   {
    "key": "projecthighlight-3-B",
@@ -2074,8 +2074,8 @@
    "start": 1510.9,
    "end": 1533.467,
    "thumb": "thumbs/projecthighlight-3-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Beton houdt de temperatuur stabiel en is klimaatadaptief: bestand tegen hittestress, met lagere en stabielere energiekosten.",
+   "voiceoverExtended": "Koelen vraagt massa, en daar is beton bij uitstek geschikt voor: het accumulerend vermogen houdt de temperatuur stabiel. Dat geldt voor voedsel, maar ook voor pharma en defensie. Twee jaar lang hebben we een stalen en een betonnen gebouw gemonitord: in beton waren de energiekosten lager en stabieler. En beton is klimaatadaptief, bestand tegen hittestress."
   },
   {
    "key": "kernboodschap-3-A",
@@ -2090,8 +2090,8 @@
    "start": 1533.467,
    "end": 1549.567,
    "thumb": "thumbs/kernboodschap-3-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer. Een vraag voor aan tafel: wat gebeurt er met uw gebouw na zijn eerste leven? Ik geef het woord aan Else de Bruin, voor de tweede gang.",
+   "voiceoverExtended": "Om mee te nemen: we hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer. Een vraag voor aan tafel: wat gebeurt er met uw gebouw na zijn eerste leven? Ik geef het woord aan Else de Bruin, voor de tweede gang."
   },
   {
    "key": "studiobuik-tweede-gang-A",
@@ -2155,7 +2155,7 @@
    "end": 1702.6,
    "thumb": "thumbs/we-bouwen-vandaag-A.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Hoofdstuk vier: The Circle, een nieuwe manier van denken."
   },
   {
    "key": "we-bouwen-vandaag-B",
@@ -2170,8 +2170,8 @@
    "start": 1702.6,
    "end": 1715.367,
    "thumb": "thumbs/we-bouwen-vandaag-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke balk, elke plaat is niet alleen een drager van lasten, maar ook een drager van verantwoordelijkheid, kansen en toekomst.",
+   "voiceoverExtended": "We bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke balk, elke plaat is niet alleen een drager van lasten, maar ook een drager van verantwoordelijkheid, kansen en toekomst."
   },
   {
    "key": "the-circle-in-elementen-A",
@@ -2186,8 +2186,8 @@
    "start": 1715.367,
    "end": 1730.333,
    "thumb": "thumbs/the-circle-in-elementen-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "The Circle is een concept dat laat zien hoe een gebouw méér kan zijn dan een optelsom van materialen.",
+   "voiceoverExtended": "The Circle is een concept dat laat zien hoe een gebouw méér kan zijn dan een optelsom van materialen. Wat u ziet landen zijn onze elementen, stuk voor stuk, langs de lijn van ons eigen merkteken. Een cirkel, gemaakt van de onderdelen zelf."
   },
   {
    "key": "100-elementen-A",
@@ -2202,8 +2202,8 @@
    "start": 1730.333,
    "end": 1745.067,
    "thumb": "thumbs/100-elementen-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "The Circle gaat uit van vaste betonelementen, een modulair stramien en een digitale ontwerptool. Het ontwerp past zich automatisch aan aan de noden van het project, terwijl materiaalgebruik en CO₂-impact meteen worden mee berekend.",
+   "voiceoverExtended": "The Circle gaat uit van vaste betonelementen, een modulair stramien en een digitale ontwerptool. Dit zijn ze: honderd elementen met vaste afmetingen, geen maatontwerp, op een stramien van twaalf bij vierentwintig meter."
   },
   {
    "key": "gebouw-uit-de-webtool-A",
@@ -2219,7 +2219,7 @@
    "end": 1751.733,
    "thumb": "thumbs/gebouw-uit-de-webtool-A.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Zo begint een nieuw gebouw, rechtstreeks in onze webtool."
   },
   {
    "key": "gebouw-uit-de-webtool-B",
@@ -2235,7 +2235,7 @@
    "end": 1757.933,
    "thumb": "thumbs/gebouw-uit-de-webtool-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Eén klik, en alle bouwstenen van The Circle liggen klaar."
   },
   {
    "key": "gebouw-uit-de-webtool-C",
@@ -2250,8 +2250,8 @@
    "start": 1757.933,
    "end": 1766.633,
    "thumb": "thumbs/gebouw-uit-de-webtool-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Generatie van 3D model via webtool: binnen twee uur een ontwerp, met een indicatie van de kosten.",
+   "voiceoverExtended": "Een 3D-model uit de webtool: binnen twee uur een ontwerp, met een indicatie van de kosten. Dat bespaart tijd."
   },
   {
    "key": "gebouw-uit-de-webtool-D",
@@ -2266,8 +2266,8 @@
    "start": 1766.633,
    "end": 1772.033,
    "thumb": "thumbs/gebouw-uit-de-webtool-D.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Automatische generatie van plannen.",
+   "voiceoverExtended": "De plannen worden automatisch gegenereerd."
   },
   {
    "key": "gebouw-uit-de-webtool-E",
@@ -2282,8 +2282,8 @@
    "start": 1772.033,
    "end": 1780.3,
    "thumb": "thumbs/gebouw-uit-de-webtool-E.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Automatische generatie van CO₂ in het gebouw ook voorzien.",
+   "voiceoverExtended": "En de CO₂ van het hele gebouw wordt meteen meeberekend. Materiaalgebruik en impact, in één beweging."
   },
   {
    "key": "gebouw-uit-de-webtool-F",
@@ -2298,8 +2298,8 @@
    "start": 1780.3,
    "end": 1785.7,
    "thumb": "thumbs/gebouw-uit-de-webtool-F.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Demontabel en herbruikbaar bouwen.",
+   "voiceoverExtended": "Het gebouw is demontabel, en de bouwstenen zijn herbruikbaar."
   },
   {
    "key": "gebouw-uit-de-webtool-G",
@@ -2314,8 +2314,8 @@
    "start": 1785.7,
    "end": 1791.1,
    "thumb": "thumbs/gebouw-uit-de-webtool-G.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Hergebruik van de bouwstenen is mogelijk.",
+   "voiceoverExtended": "De bouwstenen kunnen hergebruikt worden."
   },
   {
    "key": "gebouw-uit-de-webtool-H",
@@ -2330,8 +2330,8 @@
    "start": 1791.1,
    "end": 1796.767,
    "thumb": "thumbs/gebouw-uit-de-webtool-H.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Bouwstenen kunnen op voorraad gemaakt worden.",
+   "voiceoverExtended": "En ze kunnen op voorraad gemaakt worden, nog voor er een opdrachtgever is."
   },
   {
    "key": "gebouw-uit-de-webtool-I",
@@ -2347,7 +2347,7 @@
    "end": 1803.2,
    "thumb": "thumbs/gebouw-uit-de-webtool-I.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En samen vormen ze opnieuw één gebouw: The Circle."
   },
   {
    "key": "reductie-carbon-footprint-A",
@@ -2362,8 +2362,8 @@
    "start": 1803.2,
    "end": 1821.433,
    "thumb": "thumbs/reductie-carbon-footprint-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "In plaats van lineair bouwen (ontwerpen – produceren – bouwen – afbreken), wordt een circulaire gedachte geschetst:",
+   "voiceoverExtended": "Wat betekent dat voor de voetafdruk? Links het gewone proces: grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats, montage. In plaats van lineair bouwen, ontwerpen, produceren, bouwen, afbreken, schetsen we een circulaire gedachte."
   },
   {
    "key": "reductie-carbon-footprint-B",
@@ -2379,7 +2379,7 @@
    "end": 1826.533,
    "thumb": "thumbs/reductie-carbon-footprint-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Rechts hetzelfde proces, voor een gebouw uit hergebruikte bouwstenen."
   },
   {
    "key": "reductie-carbon-footprint-C",
@@ -2395,7 +2395,7 @@
    "end": 1836.7,
    "thumb": "thumbs/reductie-carbon-footprint-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "De eerste drie stappen vervallen: geen nieuwe grondstoffen, geen transport naar de fabriek, geen productie. Dat is tachtig procent van de voetafdruk."
   },
   {
    "key": "reductie-carbon-footprint-D",
@@ -2411,7 +2411,7 @@
    "end": 1844.4,
    "thumb": "thumbs/reductie-carbon-footprint-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "In hun plaats komt één stap: het demonteren van de bouwblokken. Wat overblijft is twintig procent."
   },
   {
    "key": "the-circle-en-esg-A",
@@ -2426,8 +2426,8 @@
    "start": 1844.4,
    "end": 1855.267,
    "thumb": "thumbs/the-circle-en-esg-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "The Circle verbindt expliciet met de ESG-principes: Environment: minder materiaal, lagere CO₂-voetafdruk, hergebruik.",
+   "voiceoverExtended": "The Circle verbindt expliciet met de ESG-principes van hoofdstuk twee. Environment: minder materiaal, hergebruik, een lagere CO₂-voetafdruk."
   },
   {
    "key": "the-circle-en-esg-B",
@@ -2442,8 +2442,8 @@
    "start": 1855.267,
    "end": 1863.267,
    "thumb": "thumbs/the-circle-en-esg-B.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Social: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe functies, noden en generaties.",
+   "voiceoverExtended": "Social: toekomstbestendige gebouwen die zich kunnen aanpassen aan nieuwe functies, nieuwe noden en nieuwe generaties."
   },
   {
    "key": "the-circle-en-esg-C",
@@ -2458,8 +2458,8 @@
    "start": 1863.267,
    "end": 1875.267,
    "thumb": "thumbs/the-circle-en-esg-C.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Governance: verantwoord bestuur. Als bestuur neemt u ESG mee in uw keuzes, en bouwt u verantwoord voor de toekomst: meetbaar en herhaalbaar.",
+   "voiceoverExtended": "Governance: als bestuur van een grote organisatie neemt u ESG mee in uw keuzes. Met The Circle bouwt u verantwoord voor de toekomst, meetbaar en herhaalbaar."
   },
   {
    "key": "the-circle-en-esg-D",
@@ -2475,7 +2475,7 @@
    "end": 1880.567,
    "thumb": "thumbs/the-circle-en-esg-D.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Drie pijlers. Dezelfde als aan het begin van de avond."
   },
   {
    "key": "the-circle-en-esg-E",
@@ -2491,7 +2491,7 @@
    "end": 1884.867,
    "thumb": "thumbs/the-circle-en-esg-E.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En ze sluiten in elkaar. Dat is The Circle."
   },
   {
    "key": "projecthighlight-4-A",
@@ -2506,8 +2506,8 @@
    "start": 1884.867,
    "end": 1893.9,
    "thumb": "thumbs/projecthighlight-4-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Intervest in Herstal: het eerste Circle-gebouw dat we verkochten.",
+   "voiceoverExtended": "Het eerste Circle-gebouw dat we verkochten: Intervest in Herstal. Vier loodsen, samen veertigduizend vierkante meter."
   },
   {
    "key": "projecthighlight-4-B",
@@ -2523,7 +2523,7 @@
    "end": 1900.9,
    "thumb": "thumbs/projecthighlight-4-B.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "Binnen: de vaste elementen, het stramien, de techniek."
   },
   {
    "key": "projecthighlight-4-C",
@@ -2539,7 +2539,7 @@
    "end": 1908.567,
    "thumb": "thumbs/projecthighlight-4-C.jpg",
    "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceoverExtended": "En buiten: een gebouw dat er staat om ooit weer uit elkaar te gaan. Dat is geen zwakte, maar zijn waarde."
   },
   {
    "key": "kernboodschap-4-A",
@@ -2554,8 +2554,8 @@
    "start": 1908.567,
    "end": 1926.8,
    "thumb": "thumbs/kernboodschap-4-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Eén keten, verantwoorde keuzes, kennis van beton en circulair bouwen: dat is de toegevoegde waarde van Willy Naessens. Een vraag voor aan tafel: met wie bouwt u verder? Ik geef het woord aan Else de Bruin, voor de derde gang.",
+   "voiceoverExtended": "Om mee te nemen uit deze avond: één keten, verantwoorde keuzes, kennis van beton en circulair bouwen. Dat is de toegevoegde waarde van Willy Naessens. Een vraag voor aan tafel: met wie bouwt u verder? Ik geef het woord aan Else de Bruin, voor de derde gang."
   },
   {
    "key": "studiobuik-derde-gang-A",
@@ -2602,8 +2602,8 @@
    "start": 1990.367,
    "end": 2005.467,
    "thumb": "thumbs/case-studies-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "Een aantal van die projecten, telkens met de foto's links en de tekeningen rechts. Met onze verticale integratie bouwen we altijd binnen planning, binnen budget en met kwaliteit.",
+   "voiceoverExtended": "Tot slot een aantal projecten, telkens de foto's links en de tekeningen rechts. Bij elk ervan ziet u onze toegevoegde waarde terug: met onze verticale integratie bouwen we altijd binnen planning, binnen budget en met kwaliteit."
   },
   {
    "key": "case-studies-B",
@@ -2858,8 +2858,8 @@
    "start": 2130.033,
    "end": 2167.033,
    "thumb": "thumbs/ending-A.jpg",
-   "voiceover": "",
-   "voiceoverExtended": ""
+   "voiceover": "We bouwen vandaag, met het oog op wie na ons komt. Zullen we samen verder bouwen aan de toekomst? Dank u wel voor uw aandacht, en nog een fijne avond.",
+   "voiceoverExtended": "We bouwen vandaag, met het oog op wie na ons komt. Zullen we samen verder bouwen aan de toekomst? Dank u wel voor uw aandacht, en nog een fijne avond."
   },
   {
    "key": "sketch-kit-two-screens-wn-landscape-jump-cuts-A",

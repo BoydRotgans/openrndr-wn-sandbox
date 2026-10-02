@@ -289,6 +289,16 @@ export default function Practice() {
         </div>
 
         <div className="p-lower">
+          <div className="p-left">
+          {cut.lines[state.key] && (
+            <section className="p-line">
+              <header>
+                <h2>{t.line}</h2>
+                <p>{t.lineHint}</p>
+              </header>
+              <p className="p-line-text">{cut.lines[state.key]}</p>
+            </section>
+          )}
           <section className="p-notes">
             <header>
               <div>
@@ -312,6 +322,7 @@ export default function Practice() {
               </button>
             </footer>
           </section>
+          </div>
 
           <aside className="p-upnext">
             <h2>{t.upNext}</h2>

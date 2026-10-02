@@ -14,6 +14,10 @@ import type { Manifest, StateInfo } from '../lib/types'
  * the voice-over), played with the film muted; or `film`, for a cut whose own soundtrack has no voice
  * in it. Left out, or naming a track the manifest does not have, the page is silent — the voice-over
  * must never reach this page.
+ *
+ * **The subtitles come as text, beside the film rather than in it** (asked 2 October): [Cut.lines] is
+ * what is said over each click, the extended track where a click has a line there and the standard one
+ * otherwise, set above the speaker notes. The film stays a clean cut; nothing is heard.
  */
 export interface Cut {
   slug: string
@@ -28,6 +32,8 @@ export interface Cut {
   fps: number
   duration: number
   states: StateInfo[]
+  /** What is said over each click, by its key: the extended line, else the standard one; none where silent. */
+  lines: Record<string, string>
 }
 
 interface CutEntry {
@@ -59,8 +65,12 @@ export async function loadCut(): Promise<Cut | null> {
     thumbBase: `${folder}/`,
     fps: m.fps,
     duration: m.duration,
-    // what the film says is not this page's to show: the lines are dropped as the cut is read
+    // The lines are kept apart from the states, for the text above the notes; nothing is played.
     states: m.states.map(({ voiceover: _v, voiceoverExtended: _x, ...s }) => s),
+    lines: Object.fromEntries(m.states.flatMap((s) => {
+      const line = (s.voiceoverExtended || s.voiceover || '').trim()
+      return line ? [[s.key, line]] : []
+    })),
   }
 }
 

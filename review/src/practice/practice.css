@@ -188,6 +188,13 @@ kbd {
 .p-notes, .p-upnext {
   display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; min-height: 0;
 }
+.p-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
+.p-left .p-notes { flex: 1; }
+.p-line { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 16px; }
+.p-line header { margin-bottom: 8px; }
+.p-line h2 { margin: 0; font-size: 15px; font-weight: 650; }
+.p-line header p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+.p-line-text { margin: 0; font-size: 18px; line-height: 1.55; color: var(--text); }
 .p-notes header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px 8px; }
 .p-notes h2, .p-upnext h2 { margin: 0; font-size: 15px; font-weight: 650; }
 .p-notes header p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
