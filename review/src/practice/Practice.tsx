@@ -5,31 +5,12 @@ import { copy, sectionName, slideTitle, type Lang } from './copy'
 import { deckOf, loadCut, thumbFrame, thumbUrl, type Cut, type Deck } from './deck'
 import { Notes, type SaveState } from './notes'
 import { practiceLink } from '../lib/access'
+import { cardAt, cards as cardsOf } from './subtitles'
 
 const LANG = 'wn-practice.lang'
 const MUTED = 'wn-practice.muted'
 const SUBS = 'wn-practice.subtitles'
 
-/**
- * When each word of a click's line comes in, in film seconds: word by word at the show's own subtitle
- * pace — its reading pace of 15 characters a second, with the last word landing at 80% of the card, so
- * about three words a second — from a breath after the click starts. A click shorter than its line at
- * that pace has the words come faster, so the line is always whole before the click stands still.
- */
-const LINE_LEAD = 0.4
-const LINE_PACE = 15 / 0.8
-const LINE_TAIL = 1.2
-const LINE_FADE = 0.2
-function wordTimes(words: string[], start: number, end: number): number[] {
-  const total = words.reduce((n, w) => n + w.length + 1, 0)
-  const span = Math.min(total / LINE_PACE, Math.max(0.5, end - start - LINE_LEAD - LINE_TAIL))
-  let before = 0
-  return words.map((w) => {
-    const at = start + LINE_LEAD + span * (before / Math.max(1, total))
-    before += w.length + 1
-    return at
-  })
-}
 
 function remembered<T>(key: string, fallback: T): T {
   try {
@@ -228,11 +209,10 @@ export default function Practice() {
   const title = slideTitle(t, slide.title, moment)
   const sectionLabel = moment ? t.moments[slide.section.name] ?? slide.section.name : `${t.chapter(slide.section.number)} · ${sectionName(slide.section.name)}`
   const progress = Math.max(0, Math.min(1, (time - state.start) / Math.max(0.001, state.end - state.start)))
-  // The line said over this click, word by word in step with the film; whole while the click stands still.
+  // The line said over this click, as the show sets it on the wall: card by card, word by word, in step
+  // with the film. Waiting for a click to start shows nothing; a click held still keeps its last card.
   const line = cut.lines[state.key] ?? ''
-  const lineWords = line ? line.split(/\s+/).filter(Boolean) : []
-  const lineTimes = wordTimes(lineWords, state.start, state.end)
-  const lineAt = phase === 'waiting' ? state.start : time
+  const card = subs && line ? cardAt(cardsOf(line), phase === 'waiting' ? -1 : time - state.start) : null
   const held = phase === 'held'
   const last = current === states.length - 1
   const save: SaveState = notes.state
@@ -282,6 +262,26 @@ export default function Practice() {
                 </button>
               </div>
             )}
+            {card && (
+              // At the foot of the slide's half of the film, where the show sets its subtitles. Every word
+              // of the card is laid out from its first frame, those not yet said invisible, so nothing reflows.
+              <div className="film-subtitle" aria-live="off">
+                <div className="film-subtitle-card">
+                  {(() => {
+                    let k = 0
+                    return card.lines.map((l, j) => (
+                      <div key={j}>
+                        {l.split(' ').filter(Boolean).map((w, i, ws) => {
+                          const at = card.words[k++] ?? card.at
+                          const o = Math.max(0, Math.min(1, (time - state.start - at) / 0.2))
+                          return <span key={i} style={{ opacity: phase === 'idle' || phase === 'held' ? 1 : o }}>{w}{i < ws.length - 1 ? ' ' : ''}</span>
+                        })}
+                      </div>
+                    ))
+                  })()}
+                </div>
+              </div>
+            )}
             {phase === 'waiting' && <div className="film-spinner" aria-label={t.loading} />}
             {phase === 'paused' && (
               <div className="film-paused" aria-label={t.paused}>
@@ -326,23 +326,6 @@ export default function Practice() {
         </div>
 
         <div className="p-lower">
-          <div className="p-left">
-          {subs && line && (
-            <section className="p-line">
-              <header>
-                <h2>{t.line}</h2>
-                <p>{t.lineHint}</p>
-              </header>
-              {/* Every word laid out from the start, those not yet said invisible, so the line never reflows. */}
-              <p className="p-line-text">
-                {lineWords.map((w, i) => (
-                  <span key={i} style={{ opacity: Math.max(0, Math.min(1, (lineAt - lineTimes[i]) / LINE_FADE)) }}>
-                    {w}{i < lineWords.length - 1 ? ' ' : ''}
-                  </span>
-                ))}
-              </p>
-            </section>
-          )}
           <section className="p-notes">
             <header>
               <div>
@@ -366,7 +349,6 @@ export default function Practice() {
               </button>
             </footer>
           </section>
-          </div>
 
           <aside className="p-upnext">
             <h2>{t.upNext}</h2>

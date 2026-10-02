@@ -102,6 +102,17 @@ kbd {
   .film { width: min(100%, calc(68vh * 32 / 9)); }
 }
 .film video { width: 100%; height: 100%; display: block; object-fit: contain; }
+/* The subtitle, at the foot of the right half — the slide's projector, where the show sets it — sized to
+   the film so a line of 42 characters takes most of that half at any width. */
+.film { container-type: inline-size; }
+.film-subtitle {
+  position: absolute; left: 50%; right: 0; bottom: 6%; display: flex; justify-content: center;
+  pointer-events: none; padding: 0 3%;
+}
+.film-subtitle-card {
+  background: rgba(0, 0, 0, 0.74); color: #fff; border-radius: 4px; padding: 0.28em 0.6em 0.32em;
+  font-size: clamp(11px, 1.75cqw, 30px); line-height: 1.35; font-weight: 500; text-align: center;
+}
 .film-veil {
   position: absolute; inset: 0; display: grid; place-items: center;
   background: radial-gradient(ellipse at center, rgba(0,0,0,0.25), rgba(0,0,0,0.6));
@@ -188,13 +199,6 @@ kbd {
 .p-notes, .p-upnext {
   display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; min-height: 0;
 }
-.p-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
-.p-left .p-notes { flex: 1; }
-.p-line { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 16px; }
-.p-line header { margin-bottom: 8px; }
-.p-line h2 { margin: 0; font-size: 15px; font-weight: 650; }
-.p-line header p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
-.p-line-text { margin: 0; font-size: 18px; line-height: 1.55; color: var(--text); }
 .ghost.icon.off { color: var(--faint); }
 .p-notes header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px 8px; }
 .p-notes h2, .p-upnext h2 { margin: 0; font-size: 15px; font-weight: 650; }
