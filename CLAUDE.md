@@ -1404,8 +1404,8 @@ rehearsal film at 3840, at the review site's thumbnail moment. The states come f
 `/api/show` when it is up, so a state the film has and the show has since dropped is left out, and a
 slide the film lacks is drawn from its organizer preview. The tree's six-state letters are gone from both
 files since 1 October, so the tool's re-lettering no longer fires. **Since 1 October it reads the film's own
-`.states` log** (the default is the clean film of that day, `video/wn-experience_2026-10-01-clean.mp4`, filmed
-after the meeting of 30 September), and caches its frames per film so a new film never reuses another's pictures.
+`.states` log** (the default is the latest clean film, `video/wn-experience_2026-10-02-clean.mp4`, the rehearsal
+cut of Release 2 October; it was the 1 October one, filmed after the meeting of 30 September), and caches its frames per film so a new film never reuses another's pictures.
 The default sheet is the script word for word with the meeting's additions kept short; the extended sheet is the
 talk as given. **The sheet is a plain script** (1 October, asked for as "recht toe recht aan"): the evening's
 moments and chapters, each slide named in a few plain words (`TITLES` in the tool, or its heading up to the

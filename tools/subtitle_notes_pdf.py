@@ -652,7 +652,7 @@ def to_pdf(markup, out, workdir):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--film", default=os.path.join(ROOT, "video/wn-experience_2026-10-01-clean.mp4"))
+    ap.add_argument("--film", default=os.path.join(ROOT, "video/wn-experience_2026-10-02-clean.mp4"))
     ap.add_argument("--cut", default=None, help="defaults to the .states log beside the film")
     ap.add_argument("--show", default="http://localhost:8765/api/show")
     ap.add_argument("--order", default=os.path.join(ROOT, "show-order.json"))
