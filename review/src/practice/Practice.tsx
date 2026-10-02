@@ -348,6 +348,10 @@ export default function Practice() {
 function Head({ t, lang, onLang, created, children }: { t: (typeof copy)['nl']; lang: Lang; onLang(l: Lang): void; created?: string; children?: ReactNode }) {
   // the cut's own date, read as a calendar day wherever the page is opened
   const day = created ? new Date(`${created}T12:00:00`).toLocaleDateString(t.locale, { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+  // The tab carries the version too, so a bookmark or a row of tabs says which cut is open.
+  useEffect(() => {
+    document.title = day ? `${t.version(day)} · ${t.brand}` : `${t.tag} · ${t.brand}`
+  }, [day, t])
   return (
     <header className="p-head">
       <div className="p-brand">
