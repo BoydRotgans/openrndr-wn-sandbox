@@ -1,0 +1,1328 @@
+{
+  "note": "What a meeting asked of each slide, read off its transcript as tasks: agreed (approved), adjusted or dropped in the organizer's meeting section, and new ones added there. Saved the moment a task is decided; the deck never reads it. See MeetingTasks.kt.",
+  "meetings": {
+    "2026-09-30": {
+      "title": "Meeting 30 september",
+      "transcript": "meetings/meeting-30-sep.md",
+      "tasks": "meetings/meeting-30-sep-todo.md"
+    }
+  },
+  "slides": {
+    "opening-scene": {
+      "said": [
+        {
+          "text": "Guests find their seats to this wall and its music, about a quarter of an hour. Erik: it shouldn't take long.",
+          "at": "13:35–14:18"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-01",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "Arrival times as said: guests in the reception room 17:30–18:00, seated at 18:00, a quarter of an hour to walk through to the hall; hosts there at 17:00.",
+          "status": "dropped",
+          "at": "09:08–11:19",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-02",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "Ask StudioBuik for printed cards or plates for the four bitterballen (cement, water, sand, gravel), handed out with the amuse in the reception room, so the story starts there.",
+          "status": "dropped",
+          "at": "08:35–13:32",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "het-programma": {
+      "said": [
+        {
+          "text": "Els (StudioBuik) introduces herself after Erik has named the four chapters, says what they were asked ('breng de toegevoegde waarde tot uitdrukking in een gerecht'), and each course then links back to Erik's text. Her close: '…in de beleving van de toegevoegde waarde van Willy Naessens'. Short.",
+          "at": "00:19–04:57, 14:43–15:11"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-03",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Fill in Els's name and role on the guest name tag on the last click; it still reads [Naam] / [Functie]. Get her surname and role.",
+          "status": "approved",
+          "where": "Slideshow.kt:1176",
+          "decided": "2026-10-01",
+          "doneNote": "Her name is in: the tag reads 'Else de Bruin' of StudioBuik, and the subtitles hand over to her by that name (both tracks, voice rendered again). Her role is still '[Functie]'."
+        },
+        {
+          "id": "m0930-04",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Bring the programme list in line with the new evening: drop 'Aperitief' after 'Opening' (the amuse is now served in the reception room), add the course after chapter 4, and make chapter 4 '…een nieuwe manier van denken en doen' — Erik wants that phrase 'al vanaf het begin', in this introduction too.",
+          "status": "approved",
+          "at": "05:43, 1:09:40",
+          "where": "Slideshow.kt:1157",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Programme: 'Aperitief' gone after the opening, 'Derde gang' added after chapter 4, chapter 4 reads '…denken en doen'. The chapter's own card keeps its title, since its rename was dropped."
+        },
+        {
+          "id": "m0930-05",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Subtitle line B gets 'nauwelijks nog te belasten', line E '…een nieuwe manier van denken en doen' (both tracks).",
+          "status": "approved",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "het-programma B and E updated on both subtitle tracks."
+        },
+        {
+          "id": "m0930-06",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Line F promises 'ruimte voor uw vragen', but Erik said there is no interactive part at the cases. Decide which is true.",
+          "status": "dropped",
+          "at": "1:15:33",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-07",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "Brief Els: she introduces herself and StudioBuik, says what they were asked, and for each course explains the plate in light of what Erik just said and how they chose it — 'nothing more, nothing less'. Who writes her text is open.",
+          "status": "dropped",
+          "at": "04:00, 35:14, 36:48",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "add-muphmgzu",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "before each \"backdrop scene, there needs to be a silent moment\" for StudioBuik to explain the next course. integrate that before all courses.",
+          "status": "approved",
+          "added": "2026-10-01",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "A silent StudioBuik wall opens every course moment (voorgerecht, eerste, tweede, derde gang, dessert): the course and its idea in the name tag's layout, no music; the click after it is the course wall with its playlist. See CourseIntro."
+        }
+      ]
+    },
+    "sketch-flow-v2-out-of-a-concrete-block": {
+      "said": [
+        {
+          "text": "With the aperitif served beforehand, 'deze gaat er dus uit'. Roma likes it; Boyd suggested moving it to the voorgerecht. Erik: these elements are a mix of what all the factories make, so it shouldn't be presented as The Circle.",
+          "at": "15:17–16:13"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-08",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Take it out of the Aperitif moment: either it becomes the opening course's wall (before, or instead of, shadow-mosaic), or it goes on the shelf.",
+          "status": "approved",
+          "at": "15:31",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Out of the Aperitif moment; it is now the opening course's wall."
+        },
+        {
+          "id": "m0930-09",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "With the wall gone, the moment holds only the transition into chapter 1. Rename it to suit, and rename music(\"Aperitif\", …) with it — the music is keyed on the moment's name.",
+          "status": "approved",
+          "where": "Slideshow.kt:1048",
+          "note": "shift all backdrops one further;",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "All course walls shifted one moment on: flow → opening course, shadow mosaic → first course, climb → second course, kit → the new third course. The Aperitif moment is gone and its transition follows the programme in the Opening; music('Aperitif') went with it."
+        }
+      ]
+    },
+    "course-transition-to-chapter-1": {
+      "said": [
+        {
+          "text": "On the click the music stops, the lights go down and the wall waits for Erik. On the click into chapter 1: 'gaat het niet goed… ik zie dat er wat dingen misgaan'.",
+          "at": "17:01–17:45"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-10",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Reproduce the click from the transition into the chapter 1 opening (film the two slides with SLIDES_START / SLIDES_UNTIL) and fix what goes wrong. The rest of the transition was received fine.",
+          "status": "dropped",
+          "at": "17:28",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "hoe-bouw-je-een-wereld": {
+      "said": [
+        {
+          "text": "On 'licht genoeg om de toekomst niet te belasten', Anouk: 'Belasten doe je altijd.' Erik agreed and read it as 'nauwelijks nog te belasten'; Roma repeated it. Boyd is still adjusting the audio.",
+          "at": "19:02–19:31"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-11",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Change the opening question to '…maar licht genoeg is om de toekomst nauwelijks nog te belasten?'. It is chapterMessages[0], read by the programme and this wall; update the subtitle lines that say it (het-programma B, hoe-bouw-je-een-wereld B, both tracks), render the voice again and check the line breaks. Agreed in the room — confirm the exact words with Erik.",
+          "status": "approved",
+          "reading": true,
+          "at": "19:07–19:31",
+          "where": "Slideshow.kt:869",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The question now reads '…nauwelijks nog te belasten?' on the opening wall and in the programme (chapterMessages[0]), in both subtitle tracks, and the voice is rendered again."
+        },
+        {
+          "id": "m0930-12",
+          "meeting": "2026-09-30",
+          "kind": "sound",
+          "text": "Finish the audio on this opening.",
+          "status": "dropped",
+          "at": "19:02",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "the-catalogue-city": {
+      "said": [
+        {
+          "text": "Boyd: the zoom ends on one element 'uit een catalogus van honderd. Dit refereert misschien al te veel naar The Circle.' Erik will look at it.",
+          "at": "19:51–20:19"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-13",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Decide with Erik whether chapter 1 already mentions the catalogue of a hundred. Say 'één element' here, and keep '100 elementen' for chapter 4, where The Circle is introduced.",
+          "status": "approved",
+          "reading": true,
+          "at": "20:14",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The extended line on the last state says 'één element' and no longer 'uit een catalogus van honderd'."
+        }
+      ]
+    },
+    "everything-a-build-answers-to": {
+      "said": [
+        {
+          "text": "Erik read his text over it. Roma would like to time it, 'maar daar zijn we nog te vroeg voor'.",
+          "at": "21:06–22:21"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-14",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "A pre-rehearsal together, from the link to the presentation.",
+          "status": "dropped",
+          "at": "22:21",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-15",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "Plan the timing rehearsal once Erik's text is settled. His text leads and the additions get written into it first. The general rehearsal in the hall is already in the run sheet twice, once dry and once with audio.",
+          "status": "dropped",
+          "at": "23:35, 23:53, 07:39",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "verticale-integratie": {
+      "said": [
+        {
+          "text": "Erik's text: design and engineering, 13 factories, own groundworks, foundations, transport and assembly, 'koop je rechtstreeks in bij de fabriek'. Add 'eigen beheer en after sales'. 'Volgens mij hebben we ook eigen grond' — to check with Jos.",
+          "at": "22:40–24:26"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-16",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Change the last box, 'Eigen after sales', to 'Eigen beheer en after sales'. A rename, so the states and sound cues stay the same.",
+          "status": "approved",
+          "at": "24:13",
+          "where": "Slideshow.kt:1285",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The box reads 'Eigen beheer en after sales'; the voice line J follows."
+        },
+        {
+          "id": "m0930-17",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "Ask Jos whether the group has 'eigen grond': land it owns to build on. That would be an eleventh box, and a box is a click, so the sound design would need a cue for the new state. If the existing 'Eigen grond- en omgevingswerken' already covers it, nothing changes.",
+          "status": "dropped",
+          "reading": true,
+          "at": "24:26",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "de-cijfers": {
+      "said": [
+        {
+          "text": "Netherlands: 25 to 30 projects a year, ± 150 million turnover. 'Werven' is the Belgian word for projects; Erik explains it himself, with the containers that read 'nog een werf'. On 9.000: 'een teken meer dan'. Erik floated 10.000, Roma says 9.000 is checked, and Erik settled on 'meer dan 9.000'.",
+          "at": "25:28–27:16"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-18",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "'9.000 referenties' becomes '> 9.000 referenties'. The deck's typeface has the '>'; write 'Meer dan 9.000' if the sign reads poorly on the slab.",
+          "status": "approved",
+          "at": "26:44–27:16",
+          "where": "Slideshow.kt:1316",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The slab reads '> 9.000 referenties' (Kerncijfers: '+ 9000 referenties')."
+        },
+        {
+          "id": "m0930-19",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik explains 'werf' (a building project, in Belgian) when '250 werven' comes up.",
+          "status": "approved",
+          "at": "26:00",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended line F: 'Een werf, zo noemen we in België een bouwproject.'"
+        },
+        {
+          "id": "m0930-20",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "'30 projecten per jaar' against the 25–30 said in the room: keep it, or make it '± 30'?",
+          "status": "approved",
+          "at": "25:28",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Kept at 30: the Kerncijfers document says '+30 projecten per jaar'; '25 à 30' is in none of the files."
+        },
+        {
+          "id": "m0930-21",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "Jeroen, only if Erik still wants 10.000; Roma considers 9.000 settled.",
+          "status": "dropped",
+          "at": "27:09",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "de-fabrieken": {
+      "said": [
+        {
+          "text": "'Voor toekomstige presentaties is dit fantastisch.' Seveton and Transwinaton read apart. Erik: after the factories, light up the six countries Willy Naessens builds in: Netherlands, Belgium, France, Luxembourg, Denmark and Sweden. Denmark is supplied by ship, but a ship doesn't fit here (Anouk).",
+          "at": "27:22–29:27"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-22",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Add a last state with the six countries lit (NLD BEL FRA LUX DNK SWE), the factory dots still on them. The overview frames about 1050 km around the Belgian cluster, which doesn't reach Sweden, so it needs a wider camera. A new state means a new cue letter (I) in the sound design.",
+          "status": "approved",
+          "reading": true,
+          "at": "28:17–29:27",
+          "note": "yes here i want you to expand the map even it more to overview the full overview of all countries connected. highlight \"Landen doorzetten:\n•\tBelgië (de thuisbasis)\n•\tNederland\n•\tFrankrijk\n•\tLuxemburg\n•\tDenemarken (en de bredere Scandinavische regio)\n•\tZweden\"",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "A ninth state on the map: it pulls out until all of Sweden is in, and the six countries take the house blue, each named, België as de thuisbasis and Denemarken with the wider Scandinavian region. The counted grid now grows to cover every shot. See MapCountries."
+        },
+        {
+          "id": "m0930-23",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik names the six countries over it.",
+          "status": "approved",
+          "at": "28:26",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended line I names the six countries; H no longer bridges to the project, I does."
+        }
+      ]
+    },
+    "projecthighlight-1": {
+      "said": [
+        {
+          "text": "Every chapter has one project. Erik: 'Waar lag de klant hier wakker van, en waar hebben we hem mee geholpen?' — from Jos. Anouk: the question on the first photo, the solution on the second. Erik's example: 'Ik lig wakker van dat ik mijn organisatie continuïteit wil bieden, en dat ik wil groeien.'",
+          "at": "29:42–31:39"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-24",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "Jos: what the client lay awake over and how Willy Naessens solved it. 'Dat moet Jos wel echt zeker weten.'",
+          "status": "dropped",
+          "at": "30:05, 31:10",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-25",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Give the highlight a line per state: the question on the first photo, the solution on the second — the line under the project name changing on the click, rather than more text on the photo. The same for all four highlights; VGP and Intervest have three photos, so decide which carries what.",
+          "status": "dropped",
+          "reading": true,
+          "at": "31:29",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-26",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik tells the question, then the solution; the subtitle lines follow, one a photo. Draft question: continuity and growth for the organisation (Erik's own example) — confirm with Jos.",
+          "status": "approved",
+          "at": "30:58",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended lines A and B: the question (continuity and growth, Erik's example) on the first photo, the solution (13.250 m², 34 weeks, on our columns) on the second. Draft — to confirm with Jos."
+        }
+      ]
+    },
+    "kernboodschap-1": {
+      "said": [
+        {
+          "text": "Boyd proposed a question to take to the table, something to talk about over the voorgerecht: 'Waar lig jij wakker van?' — everyone liked it, 'compacter' if possible. Then StudioBuik: 'een fantastische overgang'. No photo of the dish: food photographs badly, keep the transition.",
+          "at": "31:45–33:08"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-27",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Turn the takeaway into the bridge to the course, ending on the question: shorter, ending on 'Een vraag voor aan tafel: waar ligt u wakker van?'. The talk says 'u' and the room said 'jij' — Erik's call. It echoes the highlight just before it.",
+          "status": "approved",
+          "reading": true,
+          "at": "32:11–32:24",
+          "where": "Slideshow.kt:1338",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Takeaway 1: '…Een vraag voor aan tafel: waar ligt u wakker van?' (u, Erik's call to change)."
+        },
+        {
+          "id": "m0930-28",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik says it and hands over to Els.",
+          "status": "approved",
+          "at": "32:28",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The extended line ends handing over to Els for the voorgerecht."
+        },
+        {
+          "id": "m0930-29",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Not asked, worth proposing: the same device could close every chapter, a question for each course.",
+          "status": "approved",
+          "reading": true,
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Every takeaway now ends on a table question: 2 'welke keuze van vandaag telt over twintig jaar nog?', 3 'wat gebeurt er met uw gebouw na zijn eerste leven?', 4 'met wie bouwt u verder?'. Drafts for Erik."
+        }
+      ]
+    },
+    "shadow-mosaic": {
+      "said": [
+        {
+          "text": "The music: 'niet meer zo zwaar, je wordt hier blij van'. 'Bouwen we hier omhoog?' — abstract, and that's fine. Els introduces the voorgerecht over this wall, and the music comes up on a click once she's done. Course 1 is 'gieten': tomato bouillon poured at the table, with a bavette.",
+          "at": "33:20–37:19"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-30",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Every course opens with Els: give this course wall a quiet first state while she introduces the dish, and bring the dinner music up on the click once she has finished. One mechanism on the course moments, rather than a fix per wall.",
+          "status": "approved",
+          "reading": true,
+          "at": "34:55–35:09",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Done by the silent StudioBuik wall before the course: the flow wall now stands here and the playlist starts on it, after Els."
+        },
+        {
+          "id": "m0930-31",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik puts 'gieten' into his chapter 1 text so the dish answers it — or Els tells how concrete is made herself.",
+          "status": "approved",
+          "at": "35:56, 36:37",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "kernboodschap-1 (extended): 'Bij ons begint elk element met gieten, en dat ziet u zo terug op uw bord.'"
+        },
+        {
+          "id": "m0930-32",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "Meat only in this course (the bavette). Wine: 'niet moeilijk doen, moet gewoon goed zijn'.",
+          "status": "dropped",
+          "at": "37:05, 38:58",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-33",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Option: the aperitif's wall (flow out of a concrete block) as this course's wall.",
+          "status": "approved",
+          "at": "15:31",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The flow wall is the opening course's wall."
+        }
+      ]
+    },
+    "esg-is-geen-checklist": {
+      "said": [
+        {
+          "text": "Erik: ESG has always been anchored in the organisation; what is new is the name.",
+          "at": "39:15"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-34",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "That line: ESG was always there in how the group works; it is the name that is new.",
+          "status": "open",
+          "at": "39:32"
+        }
+      ]
+    },
+    "co2-prestatieladder": {
+      "said": [
+        {
+          "text": "Boyd shows the 2025 ladder, then the new one. Erik needs the story with him; Boyd will check it's in the text.",
+          "at": "39:57–41:19"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-35",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Check that Erik's own text carries the ladder: trede 3 in 2025, the three treden merged in 2026 so Willy Naessens is on trede 1, and working towards trede 2.",
+          "status": "dropped",
+          "at": "41:14",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "co2-behaald": {
+      "said": [
+        {
+          "text": "Erik: since 2020 the group has bought companies, so emissions rose in absolute terms and fell relative to turnover. The CO₂ figures are to be fact-checked by Roma and Erik.",
+          "at": "40:36–42:44"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-36",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "Erik and Roma: the figures. They are placeholders read off the client's chart — CO₂ per indexed turnover 2020–24 and its target, and green power 2024–26.",
+          "status": "approved",
+          "at": "42:08–42:28",
+          "where": "Slideshow.kt:1392",
+          "note": "can you check the original presentation files in \"fact-check-folder\"",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The client's own figures, off the data table under the chart in 'Duurzaam Algemeen' slide 24: CO₂e per indexed turnover 26,41 · 27,63 · 20,05 · 19,13 · 19,49 (−26%), target 26,41 → 23,77. Green power: 5,2 GWh in 2024 and ca. +1 GWh foreseen for 2026 (slide 26) — the 2025 bar was invented and is gone."
+        },
+        {
+          "id": "m0930-37",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "The absolute-against-relative point; it is why the chart is per indexed turnover.",
+          "status": "open",
+          "at": "40:36"
+        }
+      ]
+    },
+    "geen-compensatie": {
+      "said": [
+        {
+          "text": "Erik: offsetting costs money, 'een boete die we onszelf opleggen' that we want to be rid of, so we reduce.",
+          "at": "41:40"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-38",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "That line.",
+          "status": "approved",
+          "at": "41:40",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended line A: compensating costs money, a fine we impose on ourselves, so we reduce."
+        }
+      ]
+    },
+    "domino-effect": {
+      "said": [
+        {
+          "text": "'Dit is zo sterk, Boyd.' No change asked.",
+          "at": "43:44"
+        }
+      ],
+      "tasks": []
+    },
+    "esg-social-governance": {
+      "said": [
+        {
+          "text": "The family business. Willy's own line, which Erik wants in: 'Niet het vastgoed, niet de machines, maar de mensen zijn mijn grootste kapitaal.' His birthday on 14 February, when every employee got a present. 'Governance' stands over the slide while the words are still about social; keep it on social and make governance the next click, the third pillar.",
+          "at": "44:01–47:03"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-39",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The per-state titles are Social, Social, Governance, Governance, Governance, but the third state (the lines between the people) is still social in the voice-over. Make them Social, Social, Social, Governance, Governance, so governance arrives with the arrow and the one out in front.",
+          "status": "approved",
+          "at": "45:15–46:41",
+          "where": "Crowd.kt:103",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Titles are Social, Social, Social, Governance, Governance."
+        },
+        {
+          "id": "m0930-40",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Willy's quote as text on the second state (the group around the one), attributed to Willy Naessens — or only spoken. Ask Erik.",
+          "status": "dropped",
+          "reading": true,
+          "at": "44:01",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-41",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "On the arrow: 'Ons bestuur is er altijd op gericht dat de mens centraal staat…'; on the last state, the globe of people: 'in verbondenheid met het totaal'; the 14 February story Erik tells himself.",
+          "status": "approved",
+          "at": "44:53, 47:03",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended D carries 'Ons bestuur is er altijd op gericht dat de mens centraal staat'; E 'in verbondenheid met het geheel'. The 14 February story stays Erik's."
+        }
+      ]
+    },
+    "projecthighlight-2": {
+      "said": [
+        {
+          "text": "VGP owns the park and is always looking for users, so it was built in phases for five different tenants. Check the number of tenants. 'Ga je die vraag ook niet vergeten?'",
+          "at": "47:41–49:16"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-42",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "Roma: the number of tenants and phases.",
+          "status": "open",
+          "at": "48:35, 49:16"
+        },
+        {
+          "id": "m0930-43",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The question and the solution, as on highlight 1. Question: a park that can be let to whoever comes; solution: five buildings for five users.",
+          "status": "open",
+          "reading": true,
+          "at": "47:46–48:23"
+        }
+      ]
+    },
+    "kernboodschap-2": {
+      "said": [
+        {
+          "text": "Read as it stands. Course 2 is 'ontkisten': opened at the table, with cheese grated over.",
+          "at": "49:27–50:19"
+        }
+      ],
+      "tasks": []
+    },
+    "sketch-climb": {
+      "said": [
+        {
+          "text": "Erik: 'Zou je dat in de originele Willy Naessens-kleuren willen?' Boyd: 'Ik heb het blauw hier iets lichter gezet.' Anouk: people with epilepsy can't take this. With the room lights on it reads less intense.",
+          "at": "50:46–51:32"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-44",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The house blue is set to 4297FF in show-colours.json, lighter than Willy Naessens' 023F88 — and that one setting colours every blue in the show. Erik asked for the original: set it back to 023F88 in the organizer's colours. If the lighter blue was chosen because the navy goes dark on the projectors, raise that with Erik.",
+          "status": "approved",
+          "at": "50:46–50:53",
+          "where": "show-colours.json",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "House blue set back to 023F88 in show-colours.json — every blue in the show, the climb included."
+        },
+        {
+          "id": "m0930-45",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Check the wall for flashing: no more than three large changes in brightness a second (WCAG 2.3.1). Measure the clip; slow it down or lower the contrast if it crosses the line, or note that it's been checked.",
+          "status": "dropped",
+          "at": "51:01",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-46",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Every course opens with Els: give this course wall a quiet first state while she introduces the dish, and bring the dinner music up on the click once she has finished. One mechanism on the course moments, rather than a fix per wall.",
+          "status": "approved",
+          "reading": true,
+          "at": "34:55–35:09",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Done by the silent StudioBuik wall; the climb is now the second course's wall."
+        }
+      ]
+    },
+    "course-transition-to-chapter-3": {
+      "said": [
+        {
+          "text": "The playlist of ten tracks, checked by Roma and liked. No change asked.",
+          "at": "51:48–52:06"
+        }
+      ],
+      "tasks": []
+    },
+    "we-gieten-kennis": {
+      "said": [
+        {
+          "text": "'Ruggengraat' was questioned and stays. 'Transitie' means improving the product. The quote calls back to the pouring in the voorgerecht. Not for the evening: Erik's work on recovering cement from old concrete is still confidential.",
+          "at": "52:19–55:11"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-47",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik says what 'transitie' means (improving our product) and makes the callback to the voorgerecht: 'zoals u net zag, gieten we niet alleen beton…'.",
+          "status": "approved",
+          "at": "53:08–53:45",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended A: 'Transitie betekent voor ons: ons product voortdurend beter maken.' B calls back to the pouring at the voorgerecht."
+        }
+      ]
+    },
+    "co2-impact-van-beton": {
+      "said": [
+        {
+          "text": "No 'reality check' that undercuts us: 'Dan halen we onszelf onderuit.' Erik: producing concrete causes 9% of global CO₂; the slide says 7, so fact-check it. His order: the fact, the need (we can't build without concrete), the answer (as sustainably as possible).",
+          "at": "55:16–56:40"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-48",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "9% against 7%, with a source. The slide carries figures that must agree: the first state's caption ('cementindustrie 5 tot 8%') and the second ('Wereldwijd: 7%'). Commonly cited: about 7–8% for cement, 8–9% for concrete as a whole — say which the slide shows.",
+          "status": "approved",
+          "reading": true,
+          "at": "56:21–56:33",
+          "where": "Slideshow.kt:1630",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "9% holds for cement and concrete together: 'as much as 9 percent of all human CO2 emissions' (Scientific American); cement alone about 8% (WRI, WEF). The first state's caption now says cement 'zo'n 8%'. None of the client's files states a figure."
+        },
+        {
+          "id": "m0930-49",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The second state's band and label become the checked figure.",
+          "status": "approved",
+          "at": "56:31",
+          "where": "Slideshow.kt:1636",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The band reads 'Wereldwijd: tot 9% aandeel CO₂-uitstoot door beton'."
+        },
+        {
+          "id": "m0930-50",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik's order rather than a confession: the fact, that we can't build without concrete, and the answer — as sustainably as possible. The extended track opens with 'Laten we eerlijk zijn over het materiaal' and says 'zeven procent'; both follow.",
+          "status": "approved",
+          "at": "55:27–56:40",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended A opens on the fact rather than 'Laten we eerlijk zijn'; B says 'tot negen procent'; C closes on the need and the answer."
+        }
+      ]
+    },
+    "levenscyclus-van-betonproducten": {
+      "said": [
+        {
+          "text": "Erik: say briefly what A, B and C stand for. Roma: 'dit vind ik zo moeilijk'.",
+          "at": "57:21–58:11"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-51",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "One sentence where the codes first appear: these are the phases a life cycle analysis uses — A the product and its construction, B its use, C its end of life.",
+          "status": "approved",
+          "at": "57:21",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "On the new A·B·C slide: a sentence a letter."
+        },
+        {
+          "id": "m0930-52",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Option: let the phase names lead and set the codes (A1-A3 and so on) smaller, or add that key under the columns — the codes are what make it look hard.",
+          "status": "approved",
+          "reading": true,
+          "at": "57:29",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Answered by the A·B·C slide just before the life cycle, rather than shrinking the codes on it."
+        },
+        {
+          "id": "add-mupirrdi",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "maybe we should think of a slide that explains ABC etc",
+          "status": "approved",
+          "added": "2026-10-01",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "New slide 'De fasen A, B en C' before the life cycle: A, B and C a click each, read off the life cycle's own phases. See LifeCycleKey."
+        }
+      ]
+    },
+    "levenscyclusanalyse": {
+      "said": [
+        {
+          "text": "Erik: this is what Willy Naessens delivers with a building — the information on materials and mixes.",
+          "at": "58:48"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-53",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "That line: the client gets the information on the materials and mixes with the building.",
+          "status": "approved",
+          "at": "58:48",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended E: '…die informatie, over de materialen en de mengsels, leveren we mee met elk gebouw.'"
+        }
+      ]
+    },
+    "verborgen-verhaal": {
+      "said": [
+        {
+          "text": "On the wall: 30% less CO₂ through a different binder and different aggregates, 'ten opzichte van vorig jaar' — important, but it mustn't sound like 30% a year. The mix was developed over several years with concrete technologists and has been used since last year.",
+          "at": "59:34–1:00:48"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-54",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Give the −30% its baseline: '–30% CO₂ in gevelelementen' with 'sinds 2025, t.o.v. het vorige mengsel' under it — since when and against what, not 'per jaar'.",
+          "status": "approved",
+          "reading": true,
+          "at": "59:45–1:00:48",
+          "where": "Slideshow.kt:1709",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Under the subject: 't.o.v. het mengsel van 2024' — the Volvo deck says the reduction is 'with respect to 2024'."
+        },
+        {
+          "id": "m0930-55",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik's sentence: smart mixes, a different binder and different aggregates, the same quality, developed over years and used since last year. Say the 30% in one place only — he also says it on co2-impact-van-beton.",
+          "status": "approved",
+          "at": "1:00:14",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended B: up to 30% against the 2024 mix, smart mixes, other binder and aggregates, same quality, years with the concrete technologists."
+        }
+      ]
+    },
+    "recyclage": {
+      "said": [
+        {
+          "text": "How to pronounce it. Erik: we also do this with our own waste — 'staat dat ook in het script?'",
+          "at": "1:01:06–1:01:54"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-56",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Add that Willy Naessens recycles its own waste too. The word after 'eigen afval van de' is unclear in the recording — probably the factory; confirm what Erik means.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:01:46",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended E: 'Ook ons eigen productieafval gaat zo terug de kringloop in.' Draft — what Erik meant is unclear in the recording."
+        },
+        {
+          "id": "m0930-57",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Not asked: 'recyclage' is Flemish; a Dutch room says 'recycling'. Erik's call for the title.",
+          "status": "open",
+          "reading": true,
+          "at": "1:01:06"
+        }
+      ]
+    },
+    "projecthighlight-3": {
+      "said": [
+        {
+          "text": "WDP must be on it. Erik: cold storage is made for concrete — its thermal mass keeps the temperature stable; the same goes for pharma and defence. A study ran a steel and a concrete building for two years: concrete's energy costs were lower and steadier. Climate-adaptive building goes after this. Roma: the client needed it fast; many buildings delivered within a year, only possible through vertical integration.",
+          "at": "1:02:02–1:04:19, 1:08:58, 1:16:51"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-58",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Add WDP: 'WDP · Kivits', or the line 'Ridderkerk · koelopslag voor WDP'. The case studies already name WDP as client.",
+          "status": "approved",
+          "at": "1:02:02–1:02:24",
+          "where": "Slideshow.kt:1754",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The line reads 'Ridderkerk · koelopslag voor WDP'."
+        },
+        {
+          "id": "m0930-59",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Thermal mass and the sectors it suits; the energy study; climate-adaptive, heat-stress-resistant building; and the question and solution — it had to be fast, delivered within a year (52 weeks) through vertical integration.",
+          "status": "approved",
+          "at": "1:02:30–1:04:19, 1:08:17",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended A and B: speed through vertical integration, thermal mass, food, pharma, defence, the two-year steel/concrete comparison, climate-adaptive. The energy study is Erik's; it is in none of the files."
+        },
+        {
+          "id": "m0930-60",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "Jos: find the steel-against-concrete energy study (the factsheet left out earlier) and the other points he raised.",
+          "status": "dropped",
+          "at": "1:03:59–1:04:19",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "kernboodschap-3": {
+      "said": [
+        {
+          "text": "Erik: 'We hebben nagedacht over het verduurzamen van ons product, maar ook over hoe we het circulair maken. Nog duurzamer dus.'",
+          "at": "1:04:53"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-61",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Replace the takeaway's sentence with that link into The Circle. Draft: 'We hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer.' Confirm the wording with Erik.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:04:53",
+          "where": "Slideshow.kt:1759",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Takeaway 3: 'We hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer.' plus the table question."
+        }
+      ]
+    },
+    "sketch-kit-two-screens-quiet": {
+      "said": [
+        {
+          "text": "Course 3, 'drogen en uitharden': a different plate for each guest, together a circle on the table.",
+          "at": "1:06:19"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-62",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Every course opens with Els: give this course wall a quiet first state while she introduces the dish, and bring the dinner music up on the click once she has finished. One mechanism on the course moments, rather than a fix per wall.",
+          "status": "approved",
+          "reading": true,
+          "at": "34:55–35:09",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Done by the silent StudioBuik wall; this wall now stands in the new third course."
+        }
+      ]
+    },
+    "we-bouwen-vandaag": {
+      "said": [
+        {
+          "text": "The title becomes 'The Circle: een nieuwe manier van denken en doen', from the programme on. The quote is long but good. The music should sound toward the future — 'future proof… zodat het geluid opengaat, zodat iets in elkaar valt'; Boyd: 'het geluid van de opbouw'.",
+          "at": "1:07:30–1:10:15"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-63",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Rename chapter 4 in Slideshow.kt, the programme entry, and show-order.json — which finds chapters by title, so renamed in one place only the chapter loses its card. Check the longer title still sets well on the opening wall.",
+          "status": "dropped",
+          "at": "1:09:30–1:09:50",
+          "where": "Slideshow.kt:1770",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-64",
+          "meeting": "2026-09-30",
+          "kind": "sound",
+          "text": "A brief for chapter 4's opening cue (we-bouwen-vandaag-A), and perhaps the transition into it: forward-looking, opening up, things clicking into place — the sound of assembly.",
+          "status": "dropped",
+          "at": "1:07:30–1:08:12",
+          "decided": "2026-10-01"
+        }
+      ]
+    },
+    "the-circle-in-elementen": {
+      "said": [
+        {
+          "text": "'In het Willy Naessens-logo, fantastisch.' Boyd: there are still a few round elements in it; Roma noticed them too.",
+          "at": "1:10:26–1:10:35"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-65",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Decide on the round pieces: they are fixings and inserts rather than building elements, and read as discs. Take them out of the ring and the grid (circleCatalogue), or keep them; check the count still fits '100 elementen'.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:10:32",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "13 round pieces left out of the ring and the grid (rods, lifting eyes, ball-head anchors, piles, void formers, one column shoe): 102 pieces stand."
+        }
+      ]
+    },
+    "gebouw-uit-de-webtool": {
+      "said": [
+        {
+          "text": "'Start a new circle', as in Willy Naessens' online demo. Erik: a design within four hours with a cost indication, which saves time. Erik on 'demontabel en herbruikbaar bouwen' (unclear in the recording).",
+          "at": "1:11:01–1:11:51"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-66",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "The one-hour design and the cost indication, and that it saves time.",
+          "status": "open",
+          "at": "1:11:26",
+          "original": "The four-hour design and the cost indication, and that it saves time."
+        },
+        {
+          "id": "m0930-67",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The label 'Demontabel bouwen' becomes 'Demontabel en herbruikbaar bouwen' — a rename; merging it with 'Bouwstenen hergebruikt' would drop a state and shift the cue letters. Confirm with Erik.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:11:51",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The label reads 'Demontabel en herbruikbaar bouwen'."
+        },
+        {
+          "id": "m0930-68",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Option: 'Ontwerp en kostenindicatie binnen 4 uur' as the first label.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:11:26",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The first label reads 'Ontwerp en kostenindicatie binnen 2 uur' — the client's own wording ('binnen 2 uur', aanvullingen.txt and the jubileum script), not 4 or 1."
+        }
+      ]
+    },
+    "reductie-carbon-footprint": {
+      "said": [
+        {
+          "text": "'En dat je daarmee in de toekomst een bouwproces overslaat' — it's in the text. No change asked.",
+          "at": "1:12:34–1:12:44"
+        }
+      ],
+      "tasks": []
+    },
+    "the-circle-en-esg": {
+      "said": [
+        {
+          "text": "Boyd: governance is about how a company is run, and this one reads as building. Erik: relate it to responsible governance — the choices CEOs make, 'er zitten CEO's in de zaal'. The words: 'verantwoord bouwen' and 'toekomst'.",
+          "at": "1:13:06–1:14:23"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-69",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Governance's notes read 'Systematiek / Meetbaarheid / Herhaalbaarheid'. Draft: 'Verantwoord bestuur', 'Verantwoord bouwen voor de toekomst', 'Meetbaar en herhaalbaar'.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:13:20–1:14:23",
+          "where": "Slideshow.kt:1994",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Governance's notes: 'Verantwoord bestuur', 'Verantwoord bouwen voor de toekomst', 'Meetbaar en herhaalbaar'."
+        },
+        {
+          "id": "m0930-70",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Line C: as the board of a large organisation you take ESG into your choices, and with The Circle you build responsibly for the future.",
+          "status": "approved",
+          "at": "1:13:55",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended C: as the board you take ESG into your choices, and with The Circle build responsibly for the future."
+        }
+      ]
+    },
+    "projecthighlight-4": {
+      "said": [
+        {
+          "text": "At the cases: the first Circle sold, with the concept launched in 2024.",
+          "at": "1:15:12–1:15:21"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-71",
+          "meeting": "2026-09-30",
+          "kind": "check",
+          "text": "Jos: the question and the solution for Intervest, as for highlight 1.",
+          "status": "dropped",
+          "decided": "2026-10-01"
+        },
+        {
+          "id": "m0930-72",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The question and the solution as a line per photo, as on highlight 1.",
+          "status": "open",
+          "reading": true
+        }
+      ]
+    },
+    "kernboodschap-4": {
+      "said": [
+        {
+          "text": "After The Circle a short summary of the story, then a course 'in de vorm van een cirkel', then the cases and an introduction to dessert. Erik wants no interactive part.",
+          "at": "1:06:08, 1:14:32, 1:16:04, 1:15:33"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-73",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The takeaway asks 'Welke vragen roept dit op voor uw eigen praktijk?', which invites questions that aren't planned. Make it the short summary — the four added values in a sentence — and the handover to the course. A draft for Erik.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:14:32, 1:16:04",
+          "where": "Slideshow.kt:2011",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Takeaway 4 is the summary — one chain, responsible choices, knowledge of concrete, circular building — and the table question."
+        },
+        {
+          "id": "m0930-74",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Add a moment after this one for the fourth course, with a course wall (and its quiet state for Els) and a playlist. The order goes straight from chapter 4 to the cases now.",
+          "status": "approved",
+          "at": "1:06:08, 1:16:04",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "A 'Third course' moment after chapter 4: the silent StudioBuik wall, then the kit wall, with the main-course playlist."
+        },
+        {
+          "id": "m0930-75",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "Get the course names from StudioBuik's menu so the programme, the moments and the menu use the same words — the room lost count at 1:05:33.",
+          "status": "approved",
+          "at": "1:05:33–1:06:19",
+          "decided": "2026-10-01",
+          "doneNote": "The programme and the moments use Voorgerecht, Eerste, Tweede and Derde gang for now; StudioBuik's menu names are still to come."
+        }
+      ]
+    },
+    "case-studies": {
+      "said": [
+        {
+          "text": "Erik wants to close on the Panattoni showcase. The cases refer back to the four added values: 'binnen planning, binnen budget, met kwaliteit'. Ridderkerk carries the speed story. No interactive part.",
+          "at": "1:15:35–1:16:51"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-76",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Put Panattoni Almelo last; it is now first.",
+          "status": "open",
+          "at": "1:15:43",
+          "where": "Slideshow.kt:2491"
+        },
+        {
+          "id": "m0930-77",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The wall turns over on its own every 6 s; if Erik talks through the cases it won't wait for him. Go back to a click per view while he speaks, or slow the cycle.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:16:27",
+          "where": "Slideshow.kt:2539",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "A click a view (cycle off), so the wall waits for Erik."
+        },
+        {
+          "id": "m0930-78",
+          "meeting": "2026-09-30",
+          "kind": "script",
+          "text": "Erik's close: 'Met de verticale integratie bouwen wij altijd binnen planning, binnen budget, met kwaliteit', tying each case to the added values.",
+          "status": "approved",
+          "at": "1:15:43–1:16:27",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Extended A carries the close: 'met onze verticale integratie bouwen we altijd binnen planning, binnen budget en met kwaliteit'."
+        },
+        {
+          "id": "m0930-79",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "The moment is called 'Questions' and the programme says 'Vragen'. Rename both if there are none.",
+          "status": "open",
+          "at": "1:15:33"
+        },
+        {
+          "id": "m0930-80",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Dessert: the Dessert moment is empty in the order. It needs a wall, with its quiet state for Els; the playlist already exists.",
+          "status": "approved",
+          "at": "1:16:04",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "Dessert: the silent StudioBuik wall, then the Plain wall, with the dessert playlist."
+        }
+      ]
+    },
+    "ending": {
+      "said": [
+        {
+          "text": "Not 'Ontdek The Circle', and not 'ontdek' or 'beleef' either — they've done that all evening; 'spread the word'. Candidates: 'Laten we in gesprek gaan' and 'Zullen we samen verder bouwen aan de toekomst?', which pairs with 'We bouwen vandaag, met het oog op wie na ons komt'. The QR code: a summary to download and a landing page with a form to book a meeting. A gift box with a personal card. Decide fast.",
+          "at": "1:17:46–1:23:15"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "m0930-81",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Keep the sentence; set the action once it is decided. Proposed: 'Zullen we samen verder bouwen aan de toekomst?', the question answering the sentence above it.",
+          "status": "approved",
+          "reading": true,
+          "at": "1:18:51–1:21:25",
+          "where": "Slideshow.kt:2559",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The action reads 'Zullen we samen verder bouwen aan de toekomst?'."
+        },
+        {
+          "id": "m0930-82",
+          "meeting": "2026-09-30",
+          "kind": "wall",
+          "text": "Point the QR code at the landing page once it exists (SLIDES_ENDING_URL); it now points at willynaessens.nl.",
+          "status": "approved",
+          "at": "1:18:23–1:20:59",
+          "note": "take away the qr code form the screen",
+          "decided": "2026-10-01",
+          "done": "2026-10-01",
+          "doneNote": "The QR code is off the wall; the action and the address stand alone. The address still points at willynaessens.nl until there is a landing page."
+        },
+        {
+          "id": "m0930-83",
+          "meeting": "2026-09-30",
+          "kind": "event",
+          "text": "Roma and Willy Naessens: the landing page with its form (Flexmail) and download, a brochure of the presentation, and the gift box with a personal card. All three left to think about, with a decision wanted tomorrow.",
+          "status": "dropped",
+          "at": "1:20:30–1:23:15",
+          "decided": "2026-10-01"
+        }
+      ]
+    }
+  }
+}

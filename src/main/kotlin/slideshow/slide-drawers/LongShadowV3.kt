@@ -2,6 +2,7 @@ package slideshow.drawers
 
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
+import org.openrndr.color.Linearity
 import org.openrndr.draw.ColorBuffer
 import org.openrndr.draw.ColorFormat
 import org.openrndr.draw.ColorType
@@ -82,6 +83,19 @@ class LongShadowV3(
     val ink: ColorRGBa = ColorRGBa.fromHex("FFFFFF"),
     val paper: ColorRGBa = ColorRGBa.fromHex("000000"),
     val shade: ColorRGBa = slideshow.Palette.BLUE,
+    /**
+     * What a roof's tone is mixed up from toward [ink]: the paper, unless the ground is a colour. On
+     * a blue ground the grey blocks would otherwise come out blue-grey, so the show states black.
+     */
+    val roofBase: ColorRGBa = paper,
+    /**
+     * What the shadow turns to once the title stands alone — every element of the field in the floor —
+     * over [shadeTurn] seconds, eased; null keeps [shade] throughout. The show keeps the shadow dark
+     * while the blocks stand, where depth needs it darker than the ground, and lets the title's own
+     * long shadow come up to the house blue after (asked 2 October).
+     */
+    val shadeAfter: ColorRGBa? = null,
+    private val shadeTurn: Double = 6.0,
     /** Pane pixels kept clear round the title, a forced line count, and the line height. */
     private val margin: Double = 160.0,
     private val lines: Int? = null,
@@ -456,7 +470,7 @@ class LongShadowV3(
      * chapter opening waits for its click; see `ChapterOpening`.
      */
     fun draw(drawer: Drawer, bounds: Rectangle, text: String, frame: Int, plate0: Plate? = null, svg: File? = null,
-             pane: Int? = null, rise: ((Int) -> Double)? = null, leave: Double? = null) {
+             pane: Int? = null, rise: ((Int) -> Double)? = null, leave: Double? = null, ground: Double = 1.0) {
         // With reveal, a drawn title in an svg is the final type when one is given and readable.
         // With no svg the title is the chapter's own words, set in the face as outlines.
         val drawn = if (fieldOrder == "reveal") svg?.let { svgTitle(it) } ?: typeTitle(text) else null
@@ -510,8 +524,23 @@ class LongShadowV3(
             val fade = ((seconds(frame) - (done - gridFadeTime)) / gridFadeTime.coerceAtLeast(0.01)).coerceIn(0.0, 1.0)
             val left = 1.0 - fade * fade * (3.0 - 2.0 * fade)
             val ruled = (fieldOrder == "build" && buildOfBlocks) || fieldOrder == "reveal"
-            compose(drawer, bounds, field, reach, span, shown, Vector2(cw, ch), if (ruled) gridLine * left else 0.0)
+            compose(drawer, bounds, field, reach, span, shown, Vector2(cw, ch), if (ruled) gridLine * left else 0.0, ground,
+                shadeAt(drawn, quoted, seconds(frame), leave))
         }
+    }
+
+    /** The shadow's colour at [time]: [shade], turning to [shadeAfter] once the field is all in the floor. */
+    private fun shadeAt(title: Title?, quoted: Title?, time: Double, leave: Double?): ColorRGBa {
+        val after = shadeAfter ?: return shade
+        if (title == null) return shade
+        val alone = planFor(null, title, quoted, leave).settleFrom
+        val x = ((time - alone) / shadeTurn.coerceAtLeast(0.01)).coerceIn(0.0, 1.0)
+        if (x <= 0.0) return shade
+        if (x >= 1.0) return after
+        val e = x * x * x * (x * (6.0 * x - 15.0) + 10.0)
+        val a = shade.toLinear()
+        val b = after.toLinear()
+        return ColorRGBa(a.r + (b.r - a.r) * e, a.g + (b.g - a.g) * e, a.b + (b.b - a.b) * e, 1.0, Linearity.LINEAR)
     }
 
     /**
@@ -611,16 +640,24 @@ class LongShadowV3(
      * of the finished card into [bounds].
      */
     private fun compose(drawer: Drawer, bounds: Rectangle, field: ColorBuffer, reach: Double, span: Double,
-                        shown: Rectangle, cell: Vector2, gridLine: Double) {
+                        shown: Rectangle, cell: Vector2, gridLine: Double, ground: Double = 1.0, shadeNow: ColorRGBa = shade) {
+        // [ground] is how much light the ground and its shadows have, in linear light: 0 lays them
+        // black, which is how a course transition brings the blue up under blocks already rising.
+        fun lit(c: ColorRGBa) = if (ground >= 1.0) c else c.toLinear().let {
+            val g = ground.coerceIn(0.0, 1.0)
+            ColorRGBa(it.r * g, it.g * g, it.b * g, it.alpha, Linearity.LINEAR)
+        }
+        val paperNow = lit(paper)
         drawer.isolatedWithTarget(card) {
             drawer.ortho(card)
-            drawer.clear(paper)
+            drawer.clear(paperNow)
             lay.parameter("field", field)
             lay.parameter("plan", mask.colorBuffer(0))
             lay.parameter("reach", reach)
-            lay.parameter("paper", paper)
+            lay.parameter("paper", paperNow)
+            lay.parameter("roofBase", roofBase)
             lay.parameter("ink", ink)
-            lay.parameter("shade", shade)
+            lay.parameter("shade", lit(shadeNow))
             lay.parameter("cell", cell)
             lay.parameter("pane", Vector2(wallWide, HIGH))
             lay.parameter("gridInShadow", gridInShadow)
@@ -2056,7 +2093,7 @@ class LongShadowV3(
             float cov = m.g;
             float h = cov > 0.001 ? m.r / cov : 0.0;
             float tone = cov > 0.001 ? m.b / cov : 0.0;
-            vec3 roof = mix(p_paper.rgb, p_ink.rgb, clamp(tone, 0.0, 1.0));
+            vec3 roof = mix(p_roofBase.rgb, p_ink.rgb, clamp(tone, 0.0, 1.0));
             float ground = f.g * smoothstep(-0.5, 0.5, f.r);
             float over = f.g * smoothstep(0.5, 1.5, f.r - h * p_reach);
             // The window's grid ruled on the ground: a line a pixel wide at every cell edge.

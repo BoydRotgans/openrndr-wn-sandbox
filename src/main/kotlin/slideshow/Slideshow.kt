@@ -663,13 +663,34 @@ fun longShadowV3Effect(detail: Double = 1.0, overlaid: Boolean = true, quote: Wa
         detail = detail,
         revealFill = Env["SLIDES_CARD_V3_FILL"]?.toDoubleOrNull() ?: 0.0,
         revealAt = Env["SLIDES_CARD_V3_AT"]?.toDoubleOrNull() ?: 1.0,
-        paper = if (overlaid) slideshow.Palette.BLACK else null,
+        paper = if (overlaid) cardV3Paper else null,
         groundGrain = !overlaid,
+        shade = if (overlaid) cardV3Shade else null,
+        roofBase = if (overlaid) slideshow.Palette.BLACK else null,
+        shadeAfter = if (overlaid) Env["SLIDES_CARD_V3_SHADE_AFTER"]?.let { ColorRGBa.fromHex(it) } else null,
+        shadeTurn = Env["SLIDES_CARD_V3_SHADE_TURN"]?.toDoubleOrNull() ?: 6.0,
         quote = quote,
         quoteAfter = Env["SLIDES_CHAPTER_WALL_QUOTE_AFTER"]?.toDoubleOrNull() ?: 0.8,
         quoteSpread = Env["SLIDES_CHAPTER_WALL_QUOTE_SPREAD"]?.toDoubleOrNull() ?: 3.0
     )
 }
+
+/**
+ * The ground the v3 card and the chapter opening stand on in the show, `SLIDES_CARD_V3_PAPER`: black
+ * when empty, like every slide. The shadow is `LONGSHADOW_SHADE` at `SLIDES_CARD_V3_SHADOW` of its
+ * brightness, so it is shaded from the house blue rather than stated beside it.
+ *
+ * **The shadow has to be the darkest thing on the wall** (feedback of 2 October). On black it cannot
+ * be: the concrete lifts black to a dark grey, and the blue shadow came out 2.4 times as bright as the
+ * sunlit ground beside it, so the field read as flat blue and the few patches of sunlit ground by the
+ * rising letters read as dark grey shadows in the wrong place. So the ground is the blue and the
+ * shadow a deep navy shaded from it, with the roofs still mixed up from black ([LongShadowV3.roofBase]),
+ * so the blocks stay concrete grey.
+ */
+val cardV3Paper: ColorRGBa get() = Env["SLIDES_CARD_V3_PAPER"]?.let { ColorRGBa.fromHex(it) } ?: slideshow.Palette.BLACK
+val cardV3Shade: ColorRGBa
+    get() = ColorRGBa.fromHex(Env["LONGSHADOW_V3_SHADE"] ?: Env["LONGSHADOW_V2_SHADE"] ?: Env["LONGSHADOW_SHADE"] ?: slideshow.Brand.blueHex)
+        .shade(Env["SLIDES_CARD_V3_SHADOW"]?.toDoubleOrNull() ?: 1.0)
 
 /** The chapter's own words in Rockwell unless a drawn title is named in `SLIDES_CARD_V3_SVG` ({n} the chapter). */
 fun cardV3Svg(section: slideshow.Section): File? = (Env["SLIDES_CARD_V3_SVG"] ?: "none")
@@ -1441,12 +1462,14 @@ val show = slideshow {
                     "in impact \u2014 en dus ook in kansen om te verbeteren."
         )
         // The numbers behind the ladder: two bar charts, a click each, and the measures under
-        // them. See CarbonCharts.
+        // them. Brought in line with the client's frame 2-08 on 2 October: its title, its
+        // labels, all nine bullets and the 2025 bar. See CarbonCharts.
         slide(
             CarbonCharts(
-                title = "ESG Environmental \u2014 CO\u2082-prestatieladder",
+                title = "ESG Environmental",
+                titleAfter = "CO\u2082-prestatieladder",
                 left = BarChart(
-                    heading = "26% minder CO\u2082 behaald (ge\u00EFndexeerde omzet)",
+                    heading = "26% minder CO\u2082 behaald\n(ge\u00EFndexeerde omzet)",
                     years = listOf("2020", "2021", "2022", "2023", "2024"),
                     // The client's own figures: ton CO₂e per million euro of indexed turnover, Build-Concrete-
                     // Pools, off the data table under the chart on slide 24 of "Willy Naessens Duurzaam
@@ -1454,28 +1477,35 @@ val show = slideshow {
                     values = listOf(26.41, 27.63, 20.05, 19.13, 19.49),
                     max = 30.0, step = 5.0,
                     target = listOf(26.41, 25.75, 25.09, 24.43, 23.77),
-                    targetLabel = listOf("Doelstelling CO\u2082 per", "ge\u00EFndexeerde omzet"),
-                    reachedLabel = listOf("Behaalde CO\u2082-reductie", "per ge\u00EFndexeerde omzet"),
-                    // Three a chart at most; the rest is in the notes for the speaker.
+                    targetLabel = listOf("Doelstelling CO\u2082 per ge\u00EFndexeerde", "omzet"),
+                    reachedLabel = listOf("Behaalde CO\u2082-reductie per", "ge\u00EFndexeerde omzet"),
                     bullets = listOf(
-                        "Alle betonfabrieken hebben het CSC Silver-statuut.",
+                        "Alle betonfabrieken hebben het CSC Silver-statuut (zorgvuldige bedrijfsvoering op " +
+                                "het gebied van management, milieu en sociale aspecten).",
                         "Fabrieken draaien op opgevangen regenwater.",
-                        "Zand en grind uit het spoelwater worden gerecupereerd."
-                    )
+                        "Zand en grind van het spoelwater worden gerecupereerd.",
+                        "Water met \u2018fijn materiaal\u2019 wordt in suspensie gehouden en hergebruikt."
+                    ),
+                    measure = 0.3875
                 ),
                 right = BarChart(
                     heading = "Eigen productie groene stroom",
-                    // The deck's two figures and nothing between them: 5,2 GWh produced in 2024, and about
-                    // 1 GWh more foreseen for 2026 (slide 26). The 2025 bar that stood here was invented.
-                    years = listOf("2024", "2026"),
-                    values = listOf(5.2, 6.2),
-                    max = 7.0, step = 1.0,
-                    reachedLabel = listOf("5,2 GWh in 2024,", "ca. 6,2 GWh", "voorzien in 2026"),   // three lines: two ran to the pane's edge
+                    // 5,2 GWh in 2024 and about 1 GWh more foreseen for 2026 are the deck's (slide 26 of
+                    // Duurzaam Algemeen). PLACEHOLDER: 2025 has no figure in the client's sources; 5,57 is
+                    // read off the bar in the client's frame 2-08, which this slide follows.
+                    years = listOf("2024", "2025", "2026"),
+                    values = listOf(5.2, 5.57, 6.2),
+                    max = 6.0, step = 1.0,
+                    reachedLabel = listOf("6,2 GWh eigen productie van", "groene stroom"),
+                    unit = "GWh groene stroom productie",
                     bullets = listOf(
                         "1 GWh meer eigen productie voorzien voor 2026",
-                        "Sinds 2022 groene stroom voor wat we niet zelf produceren",
-                        "Elektrische aansluitingen op de werf, met batterij voor pieken"
-                    )
+                        "Uitgebreide monitoring stroomgebruik",
+                        "Sinds 2022 overstap naar groene stroom die we niet zelf produceren",
+                        "Meer elektrische aansluitingen op de werf, met batterij voor pieken",
+                        "100% elektrische kraan"
+                    ),
+                    measure = 0.46
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
@@ -1486,11 +1516,8 @@ val show = slideshow {
             notes = "De cijfers achter de ladder. Click 1: de doelstelling erover; click 2: eigen " +
                     "groene stroom; click 3: de maatregelen. Figures off the client's deck (Duurzaam " +
                     "Algemeen, slides 24 and 26): CO\u2082e per ge\u00EFndexeerde omzet 26,41 \u2192 19,49, \u221226%; " +
-                    "5,2 GWh groene stroom in 2024, ca. 1 GWh meer voorzien voor 2026. " +
-                    "Voor de spreker, niet op de muur: het CSC Silver-statuut staat voor zorgvuldige " +
-                    "bedrijfsvoering op management, milieu en sociale aspecten; water met fijn " +
-                    "materiaal wordt in suspensie gehouden en hergebruikt; uitgebreide monitoring van " +
-                    "het stroomgebruik; een 100% elektrische kraan."
+                    "5,2 GWh groene stroom in 2024, ca. 1 GWh meer voorzien voor 2026. De 2025-staaf " +
+                    "(ca. 5,6 GWh) komt uit het frame 2-08 van de klant en heeft geen bron: te checken door WN."
         )
         // Not compensation but reduction: the certificate alone, the measures either side of
         // it, then the certificate gone and the measures closing up. The machines are drawn as

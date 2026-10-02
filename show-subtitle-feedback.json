@@ -6,7 +6,35 @@
           "id": "rri1vv91",
           "text": "\"Elk gebouw dat u ziet is opgebouwd uit onze eigen elementen, een stad als catalogus. \" dit is meer een voorbeeld van een stad, niet perse eigen elementen dus benoem dat anders.",
           "at": "2026-10-01",
-          "line": "Dit is Den Bosch, van boven gezien. Elk gebouw dat u ziet is opgebouwd uit onze eigen elementen, een stad als catalogus. Onze samenleving leunt op structuren die we vanzelfsprekend vinden."
+          "line": "Dit is Den Bosch, van boven gezien. Elk gebouw dat u ziet is opgebouwd uit onze eigen elementen, een stad als catalogus. Onze samenleving leunt op structuren die we vanzelfsprekend vinden.",
+          "done": true
+        }
+      ],
+      "de-fabrieken-D": [
+        {
+          "id": "26jsuqsc",
+          "text": "ipv zitten mensen een plek en materiaal, benoem dat het een familie bedrijf is.",
+          "at": "2026-10-02",
+          "line": "De naam vertelt zijn eigen verhaal: Sem, Veerle en Beton. Achter elke fabriek in de groep zitten mensen, een plek en één materiaal.",
+          "done": true
+        }
+      ],
+      "de-fabrieken-I": [
+        {
+          "id": "w3bbpmwj",
+          "text": "\"bredere Scandinavische regio, en Zweden.\" zweden is al de scandinavische regio; dus begin daarmee en zeg dan en beredere scandinavische regio.",
+          "at": "2026-10-02",
+          "line": "En dit is waar we bouwen: België, onze thuisbasis, Nederland, Frankrijk, Luxemburg, Denemarken en de bredere Scandinavische regio, en Zweden. Zes landen. Dat brengt me bij een concreet project.",
+          "done": true
+        }
+      ],
+      "co2-prestatieladder-F": [
+        {
+          "id": "4gvbvz7y",
+          "text": "\" met als doel trede drie en nul CO₂-uitstoot in 2050.\" laat deze laatse zin weg.",
+          "at": "2026-10-02",
+          "line": "Op de nieuwe ladder staat Willy Naessens op trede één. Dezelfde positie, geen stap terug. We werken nu aan trede twee, met als doel trede drie en nul CO₂-uitstoot in 2050.",
+          "done": true
         }
       ]
     }

@@ -1,6 +1,6 @@
 {
  "about": "The gain the audio timeline review gave each sound design cue, per state (<slide-id>-<LETTER>), in dB against the file as delivered. Written by the review site; read by the show through SLIDES_GAINS and applied as each cue is fired.",
- "written": "2026-09-30T06:24:37.912Z",
+ "written": "2026-10-02T10:59:27.669Z",
  "design": {
   "domino-effect-A": {
    "db": 0,

@@ -181,6 +181,21 @@ class CourseTransition(
         (0..frames(fade)).map { seconds(it) }.firstOrNull { seen(it) <= dark } ?: fade
     }
 
+    /**
+     * How much light the chapter's ground has at [t], in linear light. On a black ground, full from the
+     * first block: the shadows are the opening's from the start and hold until the title stands alone
+     * (fading them in read as the shadow drifting to blue before its time, 2 October). On a coloured
+     * ground, none until the course wall has gone dark, then eased up as seen to full by the time the
+     * last block has risen, so the ground comes up as one under the build rather than a cell at a time.
+     */
+    private fun groundLight(t: Double): Double {
+        val p = opening.background
+        if (p.r <= 0.0 && p.g <= 0.0 && p.b <= 0.0) return 1.0
+        val until = (duration - rest).coerceAtLeast(fade + 0.1)
+        val x = ((t - fade) / (until - fade)).coerceIn(0.0, 1.0)
+        return (x * x * x * (x * (6.0 * x - 15.0) + 10.0)).pow(2.2)
+    }
+
     /** How far the build has got at [t] seconds, 0 to 1: the sample's loudness from [buildFrom] blended with an even pace. */
     private fun progress(t: Double): Double {
         val end = duration - rise - rest
@@ -241,7 +256,7 @@ class CourseTransition(
             if (under != null) drawUnder(drawer, stage, light, listOf(stage.bounds))
         } else {
             // The chapter's field, as far as it has come, with the ground bare where nothing has risen yet.
-            opening.drawBuilding(drawer, stage.bounds) { risen(it, t) }
+            opening.drawBuilding(drawer, stage.bounds, groundLight(t)) { risen(it, t) }
 
             // What is left of the course wall, in the cells whose block has not started: each is its
             // leaf of the grid, so the cells taken and not taken tile the wall exactly.
@@ -251,6 +266,8 @@ class CourseTransition(
                 val leaf = cells[i].offsetEdges(MosaicCells.GAP / 2.0)
                 Rectangle(stage.bounds.x + leaf.x * sx, stage.bounds.y + leaf.y * sy, leaf.width * sx, leaf.height * sy)
             }
+            // Once the wall has faded out there is nothing left to cover: the ground under it is black
+            // then, or on a coloured ground still dark and coming up everywhere at once (see [groundLight]).
             if (left.isNotEmpty() && under != null && light > 0.0) drawUnder(drawer, stage, light, left)
         }
 

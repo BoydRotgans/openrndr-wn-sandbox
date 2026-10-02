@@ -70,10 +70,12 @@ fun Drawer.axis(
     var v = 0.0
     while (v <= max + 1e-9) {
         val y = box.y + box.height * (1.0 - v / max)
-        stroke = ink.opacify(alpha)
-        strokeWeight = 2.0
-        lineSegment(Vector2(box.x - tick, y), Vector2(box.x, y))
-        stroke = null
+        if (tick > 0.0) {
+            stroke = ink.opacify(alpha)
+            strokeWeight = 2.0
+            lineSegment(Vector2(box.x - tick, y), Vector2(box.x, y))
+            stroke = null
+        }
         fill = ink.opacify(alpha)
         setLine(format(v), face, Vector2(box.x - tick - gap, y + size * 0.34), size, em, align = 1.0)
         v += step
@@ -81,17 +83,43 @@ fun Drawer.axis(
 }
 
 /**
+ * A dotted rule across [box] at every [step] from 0 to [max], running [over] past either side —
+ * the gridlines a spreadsheet chart draws behind its bars, so draw it before them. One pixel
+ * high, [dash] on and [dash] off.
+ */
+fun Drawer.dottedGrid(box: Rectangle, max: Double, step: Double, ink: ColorRGBa, over: Double = 0.0, dash: Double = 3.0, alpha: Double = 1.0) {
+    if (alpha <= 0.0) return
+    val runs = mutableListOf<Vector2>()
+    var v = 0.0
+    while (v <= max + 1e-9) {
+        val y = box.y + box.height * (1.0 - v / max)
+        var x = box.x - over
+        while (x < box.x + box.width + over) {
+            runs += Vector2(x, y)
+            runs += Vector2(minOf(x + dash, box.x + box.width + over), y)
+            x += dash * 2.0
+        }
+        v += step
+    }
+    stroke = ink.opacify(alpha)
+    strokeWeight = 1.0
+    lineSegments(runs)
+    stroke = null
+}
+
+/**
  * A label on a leader: the line grows from the words toward [to] on [alpha], the words fading up
  * on the same number. [lines] are set one under another from [at], ranged by [align]; the leader
- * leaves the words from the side facing [to].
+ * leaves the words from the side facing [to]. Centred on [at] by default; [hang] puts the first
+ * line on the leader and the rest under it, the way a spreadsheet chart sets a data label.
  */
 fun Drawer.leaderLabel(
     lines: List<String>, at: Vector2, to: Vector2, face: FontImageMap, size: Double, em: Double,
-    ink: ColorRGBa, leading: Double, alpha: Double, align: Double = 0.0, gap: Double = 10.0
+    ink: ColorRGBa, leading: Double, alpha: Double, align: Double = 0.0, gap: Double = 10.0, hang: Boolean = false
 ) {
     if (alpha <= 0.0 || lines.isEmpty()) return
     fill = ink.opacify(alpha)
-    val top = at.y - (lines.size - 1) * leading / 2.0 + size * 0.34
+    val top = if (hang) at.y + size * 0.2 else at.y - (lines.size - 1) * leading / 2.0 + size * 0.34
     lines.forEachIndexed { i, line -> setLine(line, face, Vector2(at.x, top + i * leading), size, em, align) }
     val widest = lines.maxOf { face.advanceWithSubscripts(it) } * (size / em)
     val from = Vector2(if (to.x < at.x) at.x - widest * align - gap else at.x + widest * (1.0 - align) + gap, at.y)

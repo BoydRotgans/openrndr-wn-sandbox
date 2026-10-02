@@ -1943,8 +1943,9 @@ count is what is agreed and not built yet, and the top bar counts open, to build
   wall. `music("Third course", mainBed)` is the new course's playlist.
 - **The figures are the client's.** `co2-behaald` reads the data table under the chart on slide 24 of
   "Duurzaam Algemeen" (`input/fact-check-folder`): 26,41 → 19,49 t CO₂e per million euro of indexed
-  turnover, −26%; green power is 5,2 GWh in 2024 and about 1 GWh more foreseen for 2026, the invented 2025
-  bar gone. Concrete's world share is "tot 9%" (cement and concrete together, Scientific American) with
+  turnover, −26%; green power is 5,2 GWh in 2024 and about 1 GWh more foreseen for 2026. The 2025 bar,
+  which no source gives, went that day and came back on 2 October at 5,57, read off the client's frame
+  2-08 (see the chart kit below). Concrete's world share is "tot 9%" (cement and concrete together, Scientific American) with
   cement alone about 8%; none of the client's files states one. The −30% on facade elements is against
   the 2024 mix (the Volvo deck), set under it with `Reduction.baseline`. The webtool's design time is
   "binnen 2 uur", the client's own wording.
@@ -4433,8 +4434,22 @@ the show.
 
 `CarbonCharts` is the numbers behind the ladder: bars grow from the axis one after another, the
 target line draws across them, the second chart's bars grow, and the bullets are counted in under
-both. Every figure is read off the client's chart, which carries no data table, and is marked
-`PLACEHOLDER` in the show; the real ones are still to come from WN.
+both. **Its finished state is the client's frame 2-08** (`export/references/2-08-pane.png`), brought
+in line on 2 October and measured off it: every element stands within a few pixels of the frame. That
+undid two earlier choices. All nine bullets are on the wall, where the intent of 16 September had
+kept three a chart. The 2025 green-power bar is back at 5,57 GWh, read off the frame's bar and marked
+`PLACEHOLDER`, since no source gives a 2025 figure. The CO₂ figures stay the data table's (26,41 to
+19,49, target 26,41 to 23,77), which the frame's bars and dots match within half a unit. Three things
+are the house's rather than the frame's:
+- **Rockwell throughout.** The frame sets the axis, the years and the leader labels in a grotesque;
+  here they are Rockwell, matched by cap height rather than width.
+- **The house red and blue.** The frame's lighter blue (`4674D6`) is the old sky blue the one-blue
+  rule replaced.
+- **The spelling**: CO₂, geïndexeerde, elektrische, 1 GWh, het CSC Silver-statuut.
+
+`ChartKit` gained `dottedGrid` (the frame's 1 px gridlines, three on and three off) and a `hang` on
+`leaderLabel` (the first line on the leader, as a spreadsheet chart sets a data label); `axis` draws no
+tick at `tick = 0`. All three default to what they did, so `Co2Column` is unchanged.
 
 `ReductionProcess` is the ordinary process against the process with reuse: two columns of steps.
 **The right column's layout is a pure function of how many steps it holds**, `steps + on(3)`, so
@@ -7147,6 +7162,36 @@ than the quote beside it. `longShadowV3Card(overlaid = true)` hands it black pap
 `groundGrain = false`: the roofs keep their marks and the ground is the wall's, as it is under every
 slide (see *One ground* above). `ChapterMidi` films the card without the overlay and passes
 `overlaid = false`, keeping the sketch's own grey and grain.
+
+**Since 2 October the shadow is a deep navy while the blocks stand, and turns to the house blue once the
+title stands alone** (`SLIDES_CARD_V3_SHADOW=0.45`, `SLIDES_CARD_V3_SHADE_AFTER=@blue`,
+`SLIDES_CARD_V3_SHADE_TURN=6`), on the card, the chapter openings and the course transitions that build
+into them. The review of that day found the depth gone, and measuring the film of 1 October said why:
+- **The shadow was not the darkest thing on the wall.** The overlay lifts black to dark stone, and the
+  blue shadow (`003575`) came out 2.4 times as bright as the sunlit ground beside it.
+- **The field read as flat blue.** While the blocks stood, half the frame was shadow and 1–2% sunlit
+  ground, so the blue read as a light background.
+- **The sunlit ground read as stray shadows.** Its few patches by the rising letters, where blocks had
+  gone down before a letter came up, read as dark grey shadows in the wrong place.
+
+The navy is `LONGSHADOW_SHADE` at 0.45 of its brightness, so it follows the brand blue. It is darker than
+the lifted black (0.010 against 0.016, measured), and sits just under the overlay's floor reach so it is
+barely lifted. Once every block is in the floor — the plan's `settleFrom`, which the card shares with the
+wall, so the turn carries through the cut — it eases over six seconds to the full blue (`shadeAfter` on
+`LongShadowV3`). With nothing left standing, a light shadow no longer costs any depth.
+
+**A blue ground was tried the same day and taken out.** With `SLIDES_CARD_V3_PAPER=@blue` the order was
+navy shadow, blue ground, grey roofs, and the 3D read best, but the left projector became a blue panel
+beside black slides for the whole chapter. The key still works. Two things built for it stay, since they
+change nothing on black:
+- **`LongShadowV3.roofBase`**: the roofs are mixed up from black rather than from the paper, or grey
+  blocks on a coloured ground come out tinted.
+- **`ground` on `LongShadowV3.draw` and `ChapterOpening.drawBuilding`**: the course transition lays
+  the opening's ground and shadows at a brightness, black once the course wall has gone dark, eased up
+  to full as the last block lands. On blue this brought the ground up as one under the build, where
+  covering the unbuilt cells swapped dark for blue a cell at a time. On black it is full from the first
+  block: fading the shadows in from the dark wall read as the shadow drifting to blue before the title
+  was alone, which is the one change the shadow is to make. At 1 the effect draws exactly as before.
 
 **The elements stand on the project highlight's grid**, since 21 September:
 `LONGSHADOW_V3_FIELD_LAYOUT=mosaic`. Six coarse cells across on the marks' 1.85 proportion, each split

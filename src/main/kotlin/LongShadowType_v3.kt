@@ -173,6 +173,10 @@ fun longShadowV3FromEnv(
     revealFill: Double? = null, revealAt: Double? = null,
     /** The show's ground instead of `LONGSHADOW_*_PAPER`, and whether the stone goes into it. */
     paper: ColorRGBa? = null, groundGrain: Boolean = true,
+    /** The show's shadow and roof base instead of `LONGSHADOW_*_SHADE` and the paper. */
+    shade: ColorRGBa? = null, roofBase: ColorRGBa? = null,
+    /** What the shadow turns to once the title stands alone, and over how many seconds; see [LongShadowV3.shadeAfter]. */
+    shadeAfter: ColorRGBa? = null, shadeTurn: Double = 6.0,
     /**
      * A quote beside the title, making the effect a wall of two panes — a chapter opening — and
      * the show's timing for it; see `ChapterOpening`. The sketch has none.
@@ -192,7 +196,10 @@ fun longShadowV3FromEnv(
         ink = colour("LONGSHADOW_INK", "FFFFFF"),
         paper = paper ?: colour("LONGSHADOW_PAPER", "000000"),
         groundGrain = groundGrain,
-        shade = colour("LONGSHADOW_SHADE", slideshow.Brand.blueHex),
+        shade = shade ?: colour("LONGSHADOW_SHADE", slideshow.Brand.blueHex),
+        roofBase = roofBase ?: paper ?: colour("LONGSHADOW_PAPER", "000000"),
+        shadeAfter = shadeAfter,
+        shadeTurn = shadeTurn,
         margin = number("LONGSHADOW_MARGIN", 160.0),
         lines = v3Env("LINES")?.toIntOrNull(),
         leading = number("LONGSHADOW_LEADING", 1.0),

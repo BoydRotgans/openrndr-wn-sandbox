@@ -137,10 +137,11 @@ class ChapterOpening(
 
     /**
      * This opening's first frame with every element of [elements] standing at [rise] of its height:
-     * 0 is the bare ground, and 1 for all of them is exactly what [draw] shows at frame 0.
+     * 0 is the bare ground, and 1 for all of them is exactly what [draw] shows at frame 0. [ground] is
+     * the light on the ground and its shadows, 0 black to 1 as the opening has it.
      */
-    fun drawBuilding(drawer: Drawer, bounds: Rectangle, rise: (Int) -> Double) {
-        if (chapter.isNotEmpty()) shadow.draw(drawer, bounds, chapter, 0, svg = svg, rise = rise)
+    fun drawBuilding(drawer: Drawer, bounds: Rectangle, ground: Double = 1.0, rise: (Int) -> Double) {
+        if (chapter.isNotEmpty()) shadow.draw(drawer, bounds, chapter, 0, svg = svg, rise = rise, ground = ground)
     }
 
     private var warned = false
