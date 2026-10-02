@@ -1950,7 +1950,26 @@ count is what is agreed and not built yet, and the top bar counts open, to build
   the 2024 mix (the Volvo deck), set under it with `Reduction.baseline`. The webtool's design time is
   "binnen 2 uur", the client's own wording.
 - **Slides.** A new **A·B·C slide** before the life cycle ([`LifeCycleKey`](src/main/kotlin/slideshow/slide-drawers/LifeCycleKey.kt)),
-  read off the life cycle's own phases (`lifePhases` in `Slideshow.kt`), so the two cannot disagree. The
+  read off the life cycle's own phases (`lifePhases` in `Slideshow.kt`), so the two cannot disagree. Since
+  2 October it is **a road** after the client's LCA picture rather than three columns: one line across the
+  pane, A drawn with the slide and B and C a click each, every step a dot with its code and its name listed
+  under its stretch as the road reaches it. B is the longest stretch, for the decades a building is in use,
+  and C runs in red into a dead end, the linear life the next slide breaks. Each click's length follows its
+  stretch (`stepLength`), so the road travels at one pace. **A subtle grey drawing stands on the road over
+  every stop**, as in the picture: eight plain outline svgs drawn for it in `data/illustrations` after the
+  reduction slide's battery and solar panel (`excavator`, `lorry`, `factory`, `tower-crane`, `building`,
+  `demolition`, `recycling`, `heap`), each fitted to its own stop's share of the road so none touches the
+  next. The reduction slide's trailer truck (4:1) came out a smudge at a stop and its crane, a hairline
+  photo-trace, read fainter than the outlines; `icons` in the drawer maps a code to an svg, so either is
+  one word to bring back, and a designer's drawing of the same name replaces one. `data/` is not
+  committed, so the svgs live with the rest of the assets. **The life cycle after it takes the road over**:
+  stepped into forward, its first frame is the road's last (`LifeCycleKey.leave`, drawn by `LifeCycle` on
+  its own clock and handed the first column's boxes), and over 1.6 s the road, its drawings and the other
+  steps fade, A1 to A3 travel from the list into their red boxes, and the column comes up behind them; the
+  steps are drawn over the column so they stay readable the whole way. Measured on film, the cut changes
+  the picture by 0.013 levels. Jumped into or stepped back into, the life cycle opens as before. The
+  subtitles follow the road ("Volg de weg van een betonelement", "het langste stuk van de weg", "Daar loopt
+  de weg dood"). The
   crowd's titles turn to Governance with the arrow. Every takeaway ends on a question for the table. The
   case studies are a click a view again (`cycle = null`). The ending has no QR code (`EndingScene(qr =
   false)`). The circle catalogue leaves 13 round pieces out (`CircleCatalogue.exclude`): rods, lifting

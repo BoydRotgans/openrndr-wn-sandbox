@@ -1639,17 +1639,19 @@ val show = slideshow {
         )
         // What A, B and C stand for, a letter a click, before the life cycle sets every box with its code
         // (meeting of 30 September: "maybe we should think of a slide that explains ABC").
+        val lifeKey = LifeCycleKey(
+            phases = lifePhases,
+            meaning = mapOf("A" to "Van grondstof tot gebouw", "B" to "In gebruik", "C" to "Einde levensduur"),
+            boldPath = boldFont,
+            textPath = textFont
+        )
         slide(
-            LifeCycleKey(
-                phases = lifePhases,
-                meaning = mapOf("A" to "Van grondstof tot gebouw", "B" to "In gebruik", "C" to "Einde levensduur"),
-                boldPath = boldFont,
-                textPath = textFont
-            ),
+            lifeKey,
             title = "De fasen A, B en C",
-            notes = "De letters van de levenscyclus uitgelegd voordat ze op elk vak staan: A de productie en " +
-                    "de bouw, B het gebruik, C het einde van de levensduur. Een letter per click, uit dezelfde " +
-                    "fasen als de levenscyclus erna."
+            notes = "De letters van de levenscyclus uitgelegd voordat ze op elk vak staan, als een weg die " +
+                    "per click verder loopt: A de productie en de bouw, B het gebruik (het langste stuk), C het " +
+                    "einde van de levensduur, in rood tot een doodlopend einde. Uit dezelfde fasen als de " +
+                    "levenscyclus erna."
         )
         slide(
             LifeCycle(
@@ -1666,6 +1668,8 @@ val show = slideshow {
                 textPath = textFont,
                 // A piece in each of The Circle's boxes, turning, red as its step is named.
                 pieces = listOf("WAND_27", "TANDBALK", "PREDAL", "FUND"),
+                // Stepped into from the road, the road hands over: A1 to A3 travel into their boxes.
+                from = lifeKey,
                 stepCues = List(5) { markCue }      // a mark as each column lands: a counted build
             ),
             title = "Levenscyclus van betonproducten",

@@ -59,6 +59,12 @@ class LifePhase(val code: String, val name: String, val steps: List<LifeStep>)
  * so "A2 Transport naar fabricage plek" breaks where it will fit rather than at a place stated
  * for one column width. That matters here because the same label is set at four widths as the
  * columns close in.
+ *
+ * **Arriving from the A·B·C road ([from]), it takes the road over** (2 October): its first frame is
+ * the road's last, drawn by [LifeCycleKey.leave], and over [MORPH] seconds the drawings, the road, the
+ * letters and the steps that are not in the first column go, A1 to A3 travel from the road's list
+ * into their red boxes, and the column comes up round them. Only on a forward arrival onto the first
+ * state ([cameFrom]); jumped into or stepped back into, it opens as it always did.
  */
 class LifeCycle(
     private val title: String = "Levenscyclus van betonproducten",
@@ -79,11 +85,23 @@ class LifeCycle(
     /** The column frames. The Figma export's blue, not the draaiboek's navy. */
     private val frame: ColorRGBa = slideshow.Palette.BLUE,
     private val paper: ColorRGBa = ColorRGBa.WHITE,
+    /** The A·B·C road this slide takes over from when it is the slide before. */
+    private val from: LifeCycleKey? = null,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val stepFrames: Int = frames(0.8),
     override val sound: Sound? = null,
     override val stepCues: List<Sound> = emptyList()
 ) : Slide() {
+
+    /** Whether the deck has just stepped forward onto this slide from [from]. */
+    private var fromRoad = false
+
+    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int) {
+        fromRoad = from != null && previous === from && opensOn == 0
+    }
+
+    /** A hands-off run holds the first state until the hand-over has played. */
+    override val settle: Int get() = if (from != null) maxOf(stepFrames, frames(MORPH)) else stepFrames
 
     override val name = "Life cycle"
 
@@ -120,7 +138,13 @@ class LifeCycle(
     override fun draw(drawer: Drawer, stage: Stage) {
         drawer.stroke = null
 
-        drawer.fill = ColorRGBa.WHITE
+        // The hand-over from the road, on the slide's own clock and only on the first state.
+        val road = from?.takeIf { fromRoad && stage.step == 0 && stage.position < 1e-6 }
+        val morph = if (road != null) stage.since(0, frames(MORPH)) else 1.0
+        val appear = if (morph < 1.0) smoothstep(((morph - APPEAR_FROM) / (1.0 - APPEAR_FROM - 0.1)).coerceIn(0.0, 1.0)) else 1.0
+        val labels = if (morph < 1.0) smoothstep(((morph - LABELS_FROM) / (1.0 - LABELS_FROM)).coerceIn(0.0, 1.0)) else 1.0
+
+        drawer.fill = ColorRGBa.WHITE.opacify(appear)
         run(drawer, listOf(title to bold), Vector2(stage.center.x, stage.height * TITLE_Y), stage.height * TITLE / SIZE)
 
         // How many columns are up, continuously: 1 at rest on click 0, 2.4 part way through
@@ -145,7 +169,7 @@ class LifeCycle(
                 stage.width * MARGIN + i * (width + stage.width * GAP), top, width, height
             )
             val last = i == phases.size - 1
-            column(drawer, stage, box, phase, arriving * if (last) 1.0 - gone else 1.0, ink, ColorRGBa.WHITE)
+            column(drawer, stage, box, phase, arriving * appear * if (last) 1.0 - gone else 1.0, ink, ColorRGBa.WHITE, labels = labels)
 
             // The Circle stands in the last column's place: the same frame, filled the other
             // way round — white boxes and red type, so the break reads as a change of kind.
@@ -155,6 +179,9 @@ class LifeCycle(
             }
         }
         circleBox?.let { pieces(drawer, stage, it, gone) }
+
+        // The road goes over the column, so the steps travelling into it stay in front of its boxes.
+        if (road != null && morph < 1.0) road.leave(drawer, stage.width, stage.height, morph, targets(stage))
     }
 
     /**
@@ -181,6 +208,15 @@ class LifeCycle(
         iso.draw(drawer, w, h, placed, ink, background, background)
     }
 
+    /** Where the first column's steps stand on the first state: the road's steps travel there. */
+    private fun targets(stage: Stage): Map<String, LifeCycleKey.Target> {
+        val first = phases.firstOrNull() ?: return emptyMap()
+        val box = Rectangle(stage.width * MARGIN, stage.height * TOP, stage.width * (1.0 - 2.0 * MARGIN), stage.height * (BOTTOM - TOP))
+        return boxesOf(stage, box, first.steps.size).mapIndexed { i, at ->
+            first.steps[i].code to LifeCycleKey.Target(at, stage.height * LABEL)
+        }.toMap()
+    }
+
     /** The boxes of a column of [n] under its heading. */
     private fun boxesOf(stage: Stage, box: Rectangle, n: Int, fill: Double = 1.0): List<Rectangle> {
         val head = stage.height * HEADER
@@ -200,7 +236,9 @@ class LifeCycle(
         drawer: Drawer, stage: Stage, box: Rectangle, phase: LifePhase,
         shown: Double, boxInk: ColorRGBa, boxText: ColorRGBa,
         /** For The Circle: how far each box's step has been named, which sets its name under its piece. */
-        named: ((Int) -> Double)? = null
+        named: ((Int) -> Double)? = null,
+        /** How far the labels are up, over [shown]: the road's steps hand over to them. */
+        labels: Double = 1.0
     ) {
         if (shown <= 0.0) return
 
@@ -222,7 +260,7 @@ class LifeCycle(
             drawer.fill = boxInk.opacify(shown)
             drawer.rectangle(at)
 
-            val alpha = named?.invoke(i) ?: 1.0
+            val alpha = (named?.invoke(i) ?: 1.0) * labels
             if (alpha <= 0.0) return@forEachIndexed
             drawer.fill = boxText.opacify(shown * alpha)
             val label = if (step.code.isEmpty()) listOf(step.name to text)
@@ -311,5 +349,10 @@ class LifeCycle(
         const val WIDEST = 3.6
         /** Each piece a golden turn out of phase with the one above it. */
         const val GOLDEN = 2.39996
+
+        /** Seconds the hand-over from the road takes, and where in it the column and its labels come up. */
+        const val MORPH = 1.6
+        const val APPEAR_FROM = 0.4
+        const val LABELS_FROM = 0.8
     }
 }
