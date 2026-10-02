@@ -174,7 +174,8 @@ and no subtitles are ever offered there**.
   `VITE_PRACTICE_KEY_SEALED`, the practice key sealed with the review key
   (`scripts/seal-practice-key.mjs`), so no readable key is ever in the page.
 - Dutch by default, English with the switch in the head; the address carries the click
-  (`/practice#de-cijfers-C`), and the page reopens where it was left.
+  (`/practice#de-cijfers-C`) as it is clicked through, but **the page always opens on the opening scene**,
+  whatever the address or the last visit said (2 October): a rehearsal starts at the top.
 
 **What it plays is the newest cut in `public/releases/practice.json`** — the latest `created`, and of
 two on one day the one listed last. There is no choosing between versions on the page; its head

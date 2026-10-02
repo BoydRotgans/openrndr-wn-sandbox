@@ -8,7 +8,6 @@ import { practiceLink } from '../lib/access'
 
 const LANG = 'wn-practice.lang'
 const MUTED = 'wn-practice.muted'
-const AT = 'wn-practice.at'
 
 function remembered<T>(key: string, fallback: T): T {
   try {
@@ -77,14 +76,14 @@ export default function Practice() {
   const next = states[current + 1]
   const nextSlide = deck?.slideOf[current + 1]
 
-  // Where the page opens: the click in the address, else where this browser left off. It opens on
-  // that click standing finished, and waits to be played.
+  // The page always opens on the opening scene, whatever the address or the last visit said: a
+  // rehearsal starts at the top (asked 2 October). It opens on that click standing finished, and
+  // waits to be played.
   const opened = useRef(false)
   useEffect(() => {
     if (!cut || opened.current) return
     opened.current = true
-    const wanted = decodeURIComponent(location.hash.slice(1)) || remembered<string>(AT, '')
-    const i = Math.max(0, cut.states.findIndex((s) => s.key === wanted))
+    const i = 0
     const s = cut.states[i]
     setCurrent(i)
     setPhase('idle')
@@ -95,7 +94,6 @@ export default function Practice() {
     if (!state) return
     const h = `#${state.key}`
     if (location.hash !== h) history.replaceState(null, '', h)
-    remember(AT, state.key)
   }, [state])
 
   // --- moving through the show -------------------------------------------------------- //
