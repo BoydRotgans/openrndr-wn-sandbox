@@ -8,6 +8,28 @@ import { practiceLink } from '../lib/access'
 
 const LANG = 'wn-practice.lang'
 const MUTED = 'wn-practice.muted'
+const SUBS = 'wn-practice.subtitles'
+
+/**
+ * When each word of a click's line comes in, in film seconds: word by word at the show's own subtitle
+ * pace — its reading pace of 15 characters a second, with the last word landing at 80% of the card, so
+ * about three words a second — from a breath after the click starts. A click shorter than its line at
+ * that pace has the words come faster, so the line is always whole before the click stands still.
+ */
+const LINE_LEAD = 0.4
+const LINE_PACE = 15 / 0.8
+const LINE_TAIL = 1.2
+const LINE_FADE = 0.2
+function wordTimes(words: string[], start: number, end: number): number[] {
+  const total = words.reduce((n, w) => n + w.length + 1, 0)
+  const span = Math.min(total / LINE_PACE, Math.max(0.5, end - start - LINE_LEAD - LINE_TAIL))
+  let before = 0
+  return words.map((w) => {
+    const at = start + LINE_LEAD + span * (before / Math.max(1, total))
+    before += w.length + 1
+    return at
+  })
+}
 
 function remembered<T>(key: string, fallback: T): T {
   try {
@@ -41,6 +63,7 @@ export default function Practice() {
   const [time, setTime] = useState(0)
   const [overview, setOverview] = useState(false)
   const [muted, setMuted] = useState(() => remembered(MUTED, false))
+  const [subs, setSubs] = useState(() => remembered(SUBS, true))
   const [fullscreen, setFullscreen] = useState(false)
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const film = useRef<FilmHandle>(null)
@@ -62,6 +85,7 @@ export default function Practice() {
 
   useEffect(() => { remember(LANG, lang); document.documentElement.lang = lang }, [lang])
   useEffect(() => { remember(MUTED, muted) }, [muted])
+  useEffect(() => { remember(SUBS, subs) }, [subs])
 
   useEffect(() => {
     loadCut()
@@ -151,6 +175,7 @@ export default function Practice() {
       else if (k === 'o') setOverview((v) => !v)
       else if (k === 'f') toggleFullscreen()
       else if (k === 'm') setMuted((m) => !m)
+      else if (k === 's') setSubs((v) => !v)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -203,6 +228,11 @@ export default function Practice() {
   const title = slideTitle(t, slide.title, moment)
   const sectionLabel = moment ? t.moments[slide.section.name] ?? slide.section.name : `${t.chapter(slide.section.number)} · ${sectionName(slide.section.name)}`
   const progress = Math.max(0, Math.min(1, (time - state.start) / Math.max(0.001, state.end - state.start)))
+  // The line said over this click, word by word in step with the film; whole while the click stands still.
+  const line = cut.lines[state.key] ?? ''
+  const lineWords = line ? line.split(/\s+/).filter(Boolean) : []
+  const lineTimes = wordTimes(lineWords, state.start, state.end)
+  const lineAt = phase === 'waiting' ? state.start : time
   const held = phase === 'held'
   const last = current === states.length - 1
   const save: SaveState = notes.state
@@ -216,6 +246,13 @@ export default function Practice() {
           {t.overview}
         </button>
         <Share t={t} />
+        <button className={`ghost icon${subs ? '' : ' off'}`} onClick={() => setSubs((v) => !v)} title={`${subs ? t.hideLine : t.showLine} (S)`} aria-label={subs ? t.hideLine : t.showLine} aria-pressed={subs}>
+          <svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true">
+            <rect x="1.5" y="3" width="17" height="12" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <text x="10" y="12.2" textAnchor="middle" fontSize="7" fontWeight="700" fill="currentColor" fontFamily="system-ui, sans-serif">CC</text>
+            {!subs && <path d="M3 16.5L17 1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />}
+          </svg>
+        </button>
         {(cut.audioUrl || cut.filmSound) && (
           <button className="ghost icon" onClick={() => setMuted((m) => !m)} title={`${muted ? t.unmute : t.mute} (M)`} aria-label={muted ? t.unmute : t.mute}>
             {muted ? (
@@ -290,13 +327,20 @@ export default function Practice() {
 
         <div className="p-lower">
           <div className="p-left">
-          {cut.lines[state.key] && (
+          {subs && line && (
             <section className="p-line">
               <header>
                 <h2>{t.line}</h2>
                 <p>{t.lineHint}</p>
               </header>
-              <p className="p-line-text">{cut.lines[state.key]}</p>
+              {/* Every word laid out from the start, those not yet said invisible, so the line never reflows. */}
+              <p className="p-line-text">
+                {lineWords.map((w, i) => (
+                  <span key={i} style={{ opacity: Math.max(0, Math.min(1, (lineAt - lineTimes[i]) / LINE_FADE)) }}>
+                    {w}{i < lineWords.length - 1 ? ' ' : ''}
+                  </span>
+                ))}
+              </p>
             </section>
           )}
           <section className="p-notes">

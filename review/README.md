@@ -157,7 +157,11 @@ travel as they are. The site's own **Export CSV** is the human-readable copy.
 a time, with room for their own speaker notes. Nothing of the review is on it, and **no voice-over
 is ever heard there and no subtitles are burned into its film**. Since 2 October the subtitles are on
 it as text: above the speaker notes, the line said over the click on screen (the extended track, the
-standard one where a click has no extended line), only where there is one.
+standard one where a click has no extended line), only where there is one. **It comes in word by word
+as the click plays**, at the show's own subtitle pace (15 characters a second with the last word at 80% of
+the card, about three words a second), in step with the film: paused, it holds; standing still, the line
+is whole; every word is laid out from the start so nothing reflows. On by default; the CC button in the
+head or S hides it, remembered per browser.
 
 - **Volgende** / **Vorige** (→ ←, space, or a presenter clicker's Page Down / Page Up — those work
   even while typing a note) play the next or previous click from its start, and the film then holds

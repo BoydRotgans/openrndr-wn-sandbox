@@ -195,6 +195,7 @@ kbd {
 .p-line h2 { margin: 0; font-size: 15px; font-weight: 650; }
 .p-line header p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
 .p-line-text { margin: 0; font-size: 18px; line-height: 1.55; color: var(--text); }
+.ghost.icon.off { color: var(--faint); }
 .p-notes header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px 8px; }
 .p-notes h2, .p-upnext h2 { margin: 0; font-size: 15px; font-weight: 650; }
 .p-notes header p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
