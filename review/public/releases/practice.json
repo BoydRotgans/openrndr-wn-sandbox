@@ -22,7 +22,17 @@
    "created": "2026-10-02",
    "folder": "practice/2026-10-02",
    "audio": "film",
-   "about": "The show of 2 October filmed without subtitles (video/wn-experience_2026-10-02-clean.mp4), the voice mixed out; its states are frame for frame those of Release 2 October."
+   "about": "The show of 2 October filmed without subtitles (video/wn-experience_2026-10-02-clean.mp4), the voice mixed out; its states are frame for frame those of Release 2 October.",
+   "sheets": [
+    {
+     "key": "uitgebreid",
+     "file": "sprekersnotities-uitgebreid.pdf"
+    },
+    {
+     "key": "standaard",
+     "file": "sprekersnotities-standaard.pdf"
+    }
+   ]
   }
  ]
 }

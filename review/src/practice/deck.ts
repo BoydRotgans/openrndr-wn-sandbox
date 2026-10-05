@@ -34,6 +34,8 @@ export interface Cut {
   states: StateInfo[]
   /** What is said over each click, by its key: the extended line, else the standard one; none where silent. */
   lines: Record<string, string>
+  /** The speaker's sheets made off this cut, as PDFs beside its film: `uitgebreid` and `standaard`. */
+  sheets: { key: string; url: string }[]
 }
 
 interface CutEntry {
@@ -42,6 +44,8 @@ interface CutEntry {
   created?: string
   folder: string
   audio?: string
+  /** The speaker's sheets in the cut's folder, listed so the page offers them. */
+  sheets?: { key: string; file: string }[]
 }
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -71,6 +75,7 @@ export async function loadCut(): Promise<Cut | null> {
       const line = (s.voiceoverExtended || s.voiceover || '').trim()
       return line ? [[s.key, line]] : []
     })),
+    sheets: (entry.sheets ?? []).map((x) => ({ key: x.key, url: absolute(x.file) ? x.file : `${folder}/${x.file}` })),
   }
 }
 

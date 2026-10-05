@@ -72,6 +72,14 @@ kbd {
 .p-share-pop h3 { margin: 0 0 10px; font-size: 15px; }
 .p-share-pop p { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
 .p-share-row { display: flex; gap: 8px; }
+.p-sheets { display: flex; flex-direction: column; gap: 8px; }
+.p-sheet {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 8px; text-decoration: none;
+  border: 1px solid var(--line-2); background: var(--bg); color: var(--text);
+}
+.p-sheet:hover { border-color: #5a606b; background: var(--panel-2); }
+.p-sheet b { font-size: 14px; font-weight: 650; }
+.p-sheet span { font-size: 12.5px; color: var(--muted); }
 .p-share-row input {
   flex: 1; min-width: 0; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line-2);
   background: var(--bg); color: var(--text); font: 13px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;

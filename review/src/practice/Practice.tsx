@@ -225,6 +225,7 @@ export default function Practice() {
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="6" height="5" rx="1" /><rect x="9" y="2" width="6" height="5" rx="1" /><rect x="1" y="9" width="6" height="5" rx="1" /><rect x="9" y="9" width="6" height="5" rx="1" /></svg>
           {t.overview}
         </button>
+        <Sheets t={t} cut={cut} />
         <Share t={t} />
         <button className={`ghost icon${subs ? '' : ' off'}`} onClick={() => setSubs((v) => !v)} title={`${subs ? t.hideLine : t.showLine} (S)`} aria-label={subs ? t.hideLine : t.showLine} aria-pressed={subs}>
           <svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true">
@@ -410,6 +411,46 @@ function Head({ t, lang, onLang, created, children }: { t: (typeof copy)['nl']; 
  * The page's own secret link, to copy and send. It is always the practice key's link — never the review
  * key, even when the review key opened the page (see practiceLink).
  */
+/**
+ * The speaker's sheets of the cut on the page, as PDFs to download: the extended one (the talk as it
+ * is given) and the standard one (the voice-over script). A popover like Share's; offered only when the
+ * cut lists its sheets in `practice.json`.
+ */
+function Sheets({ t, cut }: { t: (typeof copy)['nl']; cut: Cut }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    window.addEventListener('mousedown', close)
+    return () => window.removeEventListener('mousedown', close)
+  }, [open])
+  if (!cut.sheets.length) return null
+  const day = new Date(`${cut.created}T12:00:00`).toLocaleDateString(t.locale, { day: 'numeric', month: 'long', year: 'numeric' })
+  return (
+    <div className="p-share" ref={box} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }}>
+      <button className="ghost" onClick={() => setOpen((v) => !v)} aria-expanded={open} title={t.sheetsTitle}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10" /></svg>
+        {t.sheets}
+      </button>
+      {open && (
+        <div className="p-share-pop" role="dialog" aria-label={t.sheetsTitle}>
+          <h3>{t.sheetsTitle}</h3>
+          <div className="p-sheets">
+            {cut.sheets.map((x) => (
+              <a key={x.key} className="p-sheet" href={x.url} download={`WN sprekersnotities ${cut.created} ${x.key}.pdf`} onClick={() => setOpen(false)}>
+                <b>{t.sheet[x.key] ?? x.key}</b>
+                <span>{t.sheetAbout[x.key] ?? ''}</span>
+              </a>
+            ))}
+          </div>
+          <p>{t.sheetsHint(day)}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Share({ t }: { t: (typeof copy)['nl'] }) {
   const [open, setOpen] = useState(false)
   const [link, setLink] = useState<string | null>(null)

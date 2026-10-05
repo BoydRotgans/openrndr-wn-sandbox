@@ -222,7 +222,16 @@ film lands state for state on the review film's frames, and `-clean-mixed.mp4` b
 subtitle-free film *with* the voice.
 
 then add `{ "slug": "<date>", "created": "<date>", "folder": "practice/<date>", "audio": "film" }` to
-`practice.json` and deploy; being the newest, it is the one played. 2560 wide rather than the review's
+`practice.json` and deploy; being the newest, it is the one played.
+
+**The speaker's sheets go with the cut.** Make them off the clean film (`.venv/bin/python
+tools/subtitle_notes_pdf.py --film video/wn-experience_<date>-clean.mp4`), copy
+`export/wn-sprekersnotities-uitgebreid.pdf` and `-standaard.pdf` into the cut's folder as
+`sprekersnotities-uitgebreid.pdf` and `sprekersnotities-standaard.pdf`, and list them on its entry:
+`"sheets": [ { "key": "uitgebreid", "file": "sprekersnotities-uitgebreid.pdf" }, { "key": "standaard",
+"file": "sprekersnotities-standaard.pdf" } ]`. The page's **PDF** button (beside Delen) then offers both
+to download; with no `sheets` the button is not there. The PDFs are built, so they are not committed,
+like the film. 2560 wide rather than the review's
 1920, since here the film is the page — at crf 33, because Vercel refuses any single file over 100 MB
 and a half-hour film at crf 30 is 133 MB. Check the size before deploying: on 30 September both films
 came out just over it (the review film 100.5 MB at crf 30, the rehearsal 101.7 MB at crf 33), and one
