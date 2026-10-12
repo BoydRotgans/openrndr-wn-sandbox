@@ -36,6 +36,14 @@ data class Settings(
     /** Slide to open on: a number from 1, or a slide's name. Empty starts at the first. */
     val start: String? = null,
     /**
+     * Slide to open on by its id, which wins over [start]: what the organizer hands a show started on the
+     * slide selected in it, since an id is the show's own name for a slide however the order was arranged
+     * since the organizer read it, where a number counts in an order that may be stale.
+     */
+    val startId: String? = null,
+    /** The state to open [startId] or [start] on, 0 being the state a slide arrives on. */
+    val startStep: Int = 0,
+    /**
      * The last slide a hands-off run plays, inclusive — a number from 1 or a slide's name, the
      * same forms [start] takes. Empty runs to the end of the deck, which is what it always did.
      *

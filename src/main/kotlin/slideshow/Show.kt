@@ -161,8 +161,15 @@ private fun org.openrndr.ApplicationBuilder.present(
         slides.forEach { it.load(this); loaded += it; loadedOne() }
         show.panels.forEach { it.load(this); loadedOne() }
 
-        val startSlide = startIndex(slides, settings.start)
+        // The organizer starts a show on the slide selected in it by id; a slide no longer in the running
+        // order — taken onto the shelf since — falls back to SLIDES_START, and says so.
+        val startSlide = settings.startId?.let { id ->
+            show.slideIds.indexOf(id).takeIf { it >= 0 } ?: run { println("show: #$id is not in the running order; starting as SLIDES_START says"); null }
+        } ?: startIndex(slides, settings.start)
         val deck = Deck(slides, startSlide, show.outline)
+        // Opened on a later state of a slide, the slide stands as it would by then: its opening done.
+        if (settings.startStep > 0)
+            deck.restart(startSlide, settings.startStep.coerceAtMost(slides[startSlide].steps - 1), since = -slides[startSlide].settle)
         val clock = Clock()
         var ids = show.slideIds
 
@@ -346,6 +353,17 @@ private fun org.openrndr.ApplicationBuilder.present(
 
         /** The card's resting step: on the left, out of the slide's way. */
         fun closed(panel: Int) = show.panels.getOrNull(panel)?.let { it.steps - 1 } ?: 0
+
+        // Whether the show opens on the start of a section — a chapter opening, or the first slide of a
+        // chapter — where its card arrives with it. Opened anywhere else inside a chapter (the organizer
+        // starts on the slide selected in it), the card stands as it would by then rather than opening the
+        // chapter beside a slide halfway through it: its reveal done and the field gone, the title alone
+        // with its shadow, and no chapter sound announcing it (12 October 2026). The card's own schedule
+        // runs to that rest without the opening's click, which a show opened past the opening never saw.
+        val opensSection = (!slides[startSlide].wide || slides[startSlide].carriesCard) && deck.step == 0 &&
+            (startSlide == 0 || show.panelOf.getOrElse(startSlide) { -1 } != show.panelOf.getOrElse(startSlide - 1) { -2 })
+        if (panelDeck != null && startPanel >= 0 && !opensSection)
+            panelDeck.restart(startPanel, closed(startPanel), since = -show.panels[startPanel].settle)
 
         /**
          * The sting a chapter opens on, fired as its card is announced.
@@ -1105,7 +1123,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 val walled = deck.slide.wide && !deck.slide.carriesCard
                 settings.slideBed?.let { if (walled) speakers.release(it) else speakers.play(it) }
                 soundedStep = deck.step
-                if (first && startPanel >= 0 && !walled) announce(startPanel)
+                if (first && startPanel >= 0 && !walled && opensSection) announce(startPanel)
 
             } else if (deck.step != soundedStep) {
                 // A built slide marks its clicks: a band landing on the stack, and so on.

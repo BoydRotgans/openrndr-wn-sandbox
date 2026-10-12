@@ -1050,10 +1050,28 @@ SLIDES_ORGANIZER=true ./gradlew run -Popenrndr.application=SlideshowKt
 ```
 
 **The page can also run with no show behind it**, and start one. `OrganizerKt` serves the
-same page without a window; its top bar gets `▶ start presentation` (⇧-click opens on the
-selected slide), which starts `SlideshowKt` as a **process of its own** rather than a thread —
+same page without a window; its top bar gets `▶ start presentation`, which starts `SlideshowKt` as a
+**process of its own** rather than a thread —
 the window has to own the JVM's main thread on macOS, and closing it ends its JVM, so a show
 on a thread would take the page down with it and could not be started twice.
+
+**▶ start opens on the slide selected in the page** (12 October 2026), and `from the start` beside it, a
+toggle kept in the browser, opens at the beginning instead; ⇧-click takes the other one for a single start.
+The slide goes to the show by id (`SLIDES_START_ID`, with `SLIDES_START_STEP` for a state), which the show
+finds in its own running order: an index counted in the page's copy of the order went stale once the order
+was arranged after the launcher read it. A slide on the shelf opens at the beginning, and the show says so.
+**Opened inside a chapter, the chapter is already standing.** On a slide past its section's start, the card
+starts at its rest (`settle`): the reveal done, the field gone, the title alone with its shadow, and no chapter
+sound, since the chapter is not arriving. Its own schedule gets it there without the opening's click, which a
+show opened past the opening never saw. Opened on a later state of a slide (`SLIDES_START_STEP`), that slide's
+opening is done too, and a chapter opening's card follows it. Opened on a chapter opening, both play from the
+start, as when the chapter arrives.
+
+**The detail pane's Sound section names every state's sound** (12 October 2026): the slide's id and the
+state's letter, `de-fabrieken-H`, which is the tail [`CueSheet`](src/main/kotlin/slideshow/CueSheet.kt)
+places a file by, with a copy button and the file the sound design's folders hold for it now, if any.
+`CueSheet.files` reads the folders again each time the page reads the show, so a delivery shows without a
+restart; the match is `boundTo`'s, quietly.
 [`Presentation`](src/main/kotlin/slideshow/Presentation.kt) runs the child on the launcher's
 own java, classpath and flags (not a second Gradle run, which would fight the first), with its
 organizer on a free port and `SLIDES_ORGANIZER_OPEN=false`; the launcher forwards `/api/*` to

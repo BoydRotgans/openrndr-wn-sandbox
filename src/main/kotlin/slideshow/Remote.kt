@@ -763,7 +763,9 @@ class Remote(
             put("hasModulesFile", modulesFile.isFile)
             put("revs", revs)
             put("running", JsonArray(ids.map { JsonPrimitive(it) }))
-            put("catalogue", JsonArray(catalogueIds.mapIndexed { i, id -> slideJson(catalogue, i, id) }))
+            // The sound design's files by slide and state, read off its folders now — see CueSheet.files.
+            val cueFiles = catalogue.settings.cueSheet?.files(catalogueIds.zip(catalogue.slides).associate { (id, s) -> id to s.steps }).orEmpty()
+            put("catalogue", JsonArray(catalogueIds.mapIndexed { i, id -> slideJson(catalogue, i, id, cueFiles[id].orEmpty()) }))
             put("order", order.toJson())
             put("declared", declared.toJson())
             put("modules", modules.toJson())
@@ -792,7 +794,7 @@ class Remote(
         }
     }
 
-    private fun slideJson(of: Show, i: Int, id: String): JsonObject {
+    private fun slideJson(of: Show, i: Int, id: String, cues: Map<Int, String> = emptyMap()): JsonObject {
         val slide = of.slides[i]
         val place = of.outline[i]
         val module = (slide as? PlaceholderSlide)?.module
@@ -825,6 +827,9 @@ class Remote(
             put("moment", place?.moment ?: "")
             put("frames", JsonArray((module?.frames ?: modules.covered[id].orEmpty()).map { JsonPrimitive(it) }))
             put("shots", JsonArray(previewShots(slide).map { JsonPrimitive(it.label) }))
+            // The sound design's file for each state that has one, by the state's letter: the page sets
+            // the name every state's sound is to have (`de-fabrieken-H`) beside what is there.
+            put("cues", buildJsonObject { cues.forEach { (step, file) -> put(letter(step), file) } })
         }
     }
 
@@ -917,7 +922,8 @@ class Remote(
 
     /**
      * GET says whether the show is up; POST `{ "action": "start" | "stop" }` starts or stops it.
-     * `start` may name a slide `id` to open on, which is handed to the show as `SLIDES_START`.
+     * `start` may name a slide `id` to open on, and a `step` of it, handed to the show as `SLIDES_START_ID`
+     * and `SLIDES_START_STEP`; without one the show opens where SLIDES_START says, the beginning by default.
      * `{ "action": "projection", "on": true }` puts the next start on the projectors.
      */
     private fun presentationRoute(exchange: HttpExchange, p: Presentation) {
@@ -925,9 +931,14 @@ class Remote(
             val body = exchange.body()
             when (body["action"]?.jsonPrimitive?.contentOrNull) {
                 "start" -> {
-                    // SLIDES_START takes a number counting from 1 in the running order.
-                    val at = body["id"]?.jsonPrimitive?.contentOrNull?.let { ids.indexOf(it) }?.takeIf { it >= 0 }
-                    p.start(if (at != null) mapOf("SLIDES_START" to "${at + 1}") else emptyMap())
+                    // By id, which the show finds in its own running order: an index counted in this page's
+                    // copy of the order went stale whenever the order was arranged after it was read.
+                    val id = body["id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+                    val step = body["step"]?.jsonPrimitive?.intOrNull
+                    p.start(buildMap {
+                        if (id != null) put("SLIDES_START_ID", id)
+                        if (id != null && step != null && step > 0) put("SLIDES_START_STEP", "$step")
+                    })
                 }
                 "stop" -> p.stop()
                 // Takes effect on the next start: a window cannot be moved onto the wall from here.

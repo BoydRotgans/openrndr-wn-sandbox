@@ -71,8 +71,8 @@ class CueSheet private constructor(
         val report = mutableListOf<String>()
 
         for ((slug, cues) in this.states) {
-            val hits = ids.filter { it == slug || it.endsWith("-$slug") || slug.endsWith("-$it") }
-            val id = hits.singleOrNull() ?: hits.firstOrNull { it == slug }
+            val hits = hitsFor(slug, ids)
+            val id = idOf(slug, hits)
             when {
                 id == null && hits.isEmpty() ->
                     report += "  $slug — no slide of that name; ${cues.size} cue(s) ignored"
@@ -99,6 +99,32 @@ class CueSheet private constructor(
         report.forEach { println(it) }
         return CueSheet(folders, bound)
     }
+
+    /**
+     * The files the folders hold now for the slides in [states] (id to state count), by state: what the
+     * organizer shows beside the name a sound for each state is to have (12 October 2026). Read off the
+     * folders again each time, so a delivery shows without a restart, and matched by the rule [boundTo]
+     * binds by — quietly, where [boundTo] reports. Later folders win, as in [read].
+     */
+    fun files(states: Map<String, Int>): Map<String, Map<Int, String>> {
+        val out = mutableMapOf<String, MutableMap<Int, String>>()
+        for (folder in folders) {
+            val wavs = folder.listFiles { f: File -> f.isFile && f.extension.equals("wav", true) }?.sortedBy { it.name }.orEmpty()
+            for (file in wavs) {
+                val (slug, step) = parse(file.nameWithoutExtension) ?: continue
+                val id = idOf(slug, hitsFor(slug, states.keys)) ?: continue
+                if (step < states.getValue(id)) out.getOrPut(id) { mutableMapOf() }[step] = file.name
+            }
+        }
+        return out
+    }
+
+    /** The ids a cue's slug could stand for: the id itself, or one it is a tail of on a dash boundary, or the other way round. */
+    private fun hitsFor(slug: String, ids: Collection<String>) =
+        ids.filter { it == slug || it.endsWith("-$slug") || slug.endsWith("-$it") }
+
+    /** The one id among [hits], or the exact one where several match; null where none decides. */
+    private fun idOf(slug: String, hits: List<String>) = hits.singleOrNull() ?: hits.firstOrNull { it == slug }
 
     companion object {
 
@@ -134,22 +160,29 @@ class CueSheet private constructor(
                 val files = folder.listFiles { f: File -> f.isFile && f.extension.equals("wav", true) }
                     ?.sortedBy { it.name }.orEmpty()
                 for (file in files) {
-                    val name = file.nameWithoutExtension
-                    val cut = name.lastIndexOf('-')
-                    val tail = if (cut > 0) name.substring(cut + 1) else ""
-                    val step = stepOf(tail)
-                    if (step == null) {
+                    val parsed = parse(file.nameWithoutExtension)
+                    if (parsed == null) {
                         println("cues: ${file.name} does not end in a state letter — ignored")
                         continue
                     }
-                    // The slide number is optional: `P4-plain-A` names its slide as well as
-                    // `P4-03-100-elementen-A` does, and was ignored until 22 September.
-                    val slug = slugOf(name.substring(0, cut)).replace(Regex("^p?\\d+-(\\d+-)?"), "")
+                    val (slug, step) = parsed
                     states.getOrPut(slug) { mutableMapOf() }[step] =
                         Sound(file, gain = gain, fadeOut = if (lengthOf(file) > hold) frames(fadeOut) else 0)
                 }
             }
             return if (states.isEmpty()) null else CueSheet(found, states.mapValues { it.value.toMap() })
+        }
+
+        /**
+         * A cue's file name read as the slide it names and the state: `P1-12-de-fabrieken-H` is
+         * `de-fabrieken` and 7. Null where it does not end in a state letter. The slide number is
+         * optional: `P4-plain-A` names its slide as well as `P4-03-100-elementen-A` does, and was
+         * ignored until 22 September.
+         */
+        fun parse(name: String): Pair<String, Int>? {
+            val cut = name.lastIndexOf('-')
+            val step = stepOf(if (cut > 0) name.substring(cut + 1) else "") ?: return null
+            return slugOf(name.substring(0, cut)).replace(Regex("^p?\\d+-(\\d+-)?"), "") to step
         }
 
         /**

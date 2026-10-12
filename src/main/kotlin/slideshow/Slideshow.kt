@@ -2794,6 +2794,8 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         windowY = Env["${prefix}_WINDOW_Y"]?.toIntOrNull() ?: settings.windowY,
         title = Env["${prefix}_TITLE"] ?: settings.title,
         start = Env["${prefix}_START"] ?: settings.start,
+        startId = Env["${prefix}_START_ID"]?.takeIf { it.isNotBlank() } ?: settings.startId,
+        startStep = Env["${prefix}_START_STEP"]?.toIntOrNull() ?: settings.startStep,
         until = Env["${prefix}_UNTIL"] ?: settings.until,
         debug = Env["${prefix}_DEBUG"]?.let { Env.boolean("${prefix}_DEBUG") } ?: settings.debug,
         nameplate = Env["${prefix}_NAMEPLATE"]?.let { Env.boolean("${prefix}_NAMEPLATE") } ?: settings.nameplate,
