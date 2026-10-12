@@ -106,6 +106,13 @@ data class Settings(
      * work either way. The organizer's `practice mode` button switches it on a running show.
      */
     val practice: Boolean = false,
+    /**
+     * Wait for the animation: a forward click is refused until the state on the wall has finished moving —
+     * its handover, its click, or its own opening by the rule a hands-off run holds it by — and while it
+     * moves, the show's countdown line bottom left comes down with how much is left. Back always goes
+     * through. The organizer's `wait for animation` button switches it on a running show. See [Countdown].
+     */
+    val waitForAnimation: Boolean = false,
     val record: Boolean = false,
     val fps: Int = FPS,
     val duration: Double? = null,
@@ -122,6 +129,12 @@ data class Settings(
      * write the same frames; the second is kept to check that against.
      */
     val recorder: String = "pipelined",
+    /**
+     * The x264 quality the pipelined recorder films at, lower being better; null leaves ffmpeg's own
+     * default (crf 23), which is what every film before it was made at. A clip cut for elsewhere —
+     * cropped and encoded again — wants a low number here so the second encode has the grain to keep.
+     */
+    val recordCrf: Int? = null,
     /** Write one png per click of every slide to screenshots/ and quit. */
     val stills: Boolean = false,
     /**
@@ -259,6 +272,11 @@ data class Settings(
      * OpenAL is really playing it — how a voice that "sometimes does not play" is caught.
      */
     val soundTrace: Boolean = false,
+    /**
+     * Seconds the sound design and any sample still ringing take to fade away on a step back, inside a slide
+     * or off its front: the picture cuts back at once, and its sound goes with it rather than playing on.
+     */
+    val backFade: Double = 0.3,
 
     /**
      * The feedback file: notes written against a slide in the organizer while it is watched,

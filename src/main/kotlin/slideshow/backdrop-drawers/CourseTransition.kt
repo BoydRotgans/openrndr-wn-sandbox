@@ -4,7 +4,6 @@ import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.ColorBuffer
 import org.openrndr.draw.Drawer
-import org.openrndr.draw.FontImageMap
 import org.openrndr.draw.RenderTarget
 import org.openrndr.draw.isolated
 import org.openrndr.draw.isolatedWithTarget
@@ -14,15 +13,14 @@ import org.openrndr.draw.renderTarget
 import org.openrndr.extra.color.colormatrix.tint
 import org.openrndr.shape.Rectangle
 import slideshow.Backdrop
+import slideshow.Countdown
 import slideshow.FPS
 import slideshow.Layer
 import slideshow.MosaicCells
-import slideshow.Scale
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.ChapterOpening
-import slideshow.drawers.advanceOf
 import slideshow.frames
 import slideshow.level
 import slideshow.seconds
@@ -43,10 +41,10 @@ import kotlin.random.Random
  * opening's field of blocks begin to rise, a cell at a time, on the dark ground. The last block lands
  * [rest] seconds before the sample ends, and the finished wall stands through the rest of it exactly as
  * [opening] draws its first frame — the click into the chapter is a cut nobody can see, and the title
- * reveal starts from there.
+ * reveal starts from there. [trim] cuts that stand short, and with it the whole transition.
  *
  * **It is timed to the sample, not to a stated length.** The whole transition is the file's own
- * duration, read off its header, and the build follows the sound: [follow] of it is the file's
+ * duration, read off its header, less [trim], and the build follows the sound: [follow] of it is the file's
  * cumulative loudness from the moment the build begins, measured at load, so the blocks come fastest as
  * the sample swells and settle as it dies away. The rest is an even pace to the end, so something is
  * always moving. Another sample changes the timing with nothing restated.
@@ -61,21 +59,26 @@ import kotlin.random.Random
  * once the build begins only in the cells no block has taken yet — by then too dark to see, so the
  * last trace of it goes with no edge. The fade is eased and in light, so it reads as even to the eye
  * rather than holding bright and dropping at the end. With no wall before it — opened on, or
- * previewed — it opens dark. Stepped back into from the chapter, it lands built, as every slide does
- * going back, and says nothing.
+ * previewed — it opens dark. Come back to from the chapter, it lands built and says nothing, as every
+ * slide does going back. **It has to be waited out going forward**: the presenter's clicks forward are
+ * refused until 0:00 ([holds]), and each one refused pulses the countdown's line to [pulse]. **Back stops
+ * it** and keeps the course wall: the deck lands the wall with its clock carried on ([carriesBack]), so it
+ * is the wall as it was, and the playlist the transition had begun to let go of comes back up.
  *
  * **A countdown in the bottom left** says how much of the transition is left, for the speaker to be
- * ready on the click. It is drawn into the wall, so a film carries it; [countdown] false leaves it off.
- * **It stands on an opaque plate of its own, full strength from the click**: drawn straight over the
- * course wall, white type only became readable as the wall went dark, which on a light wall is most
- * of the fade and read as the countdown fading in.
+ * ready on the click: the seconds, m:ss, over the line every animation in the show is counted down by
+ * ([Countdown]), coming down from full to nothing over its full length drawn faintly. It is drawn into
+ * the wall, so a film carries it; [countdown] false leaves it off. It was m:ss on an opaque black plate
+ * until 12 October, when the show took one system for every animation and the transition kept its
+ * figures over the line; the black keyline round both is what is left of the plate, there so they read
+ * from the first frame over a light course wall.
  */
 class CourseTransition(
     /** The chapter opening this builds up to: its first frame is this wall's last. */
     private val opening: ChapterOpening,
     /** The sample the transition is timed to and plays. */
     private val sample: File,
-    /** The face the countdown is set in. */
+    /** The face the countdown's figures are set in. */
     private val fontPath: String,
     /** Seconds over which the moment's playlist is let go and the course wall fades to dark, from the click. */
     private val fade: Double = 10.0,
@@ -83,8 +86,14 @@ class CourseTransition(
     private val dark: Double = 0.12,
     /** Seconds each block takes to rise. */
     private val rise: Double = 1.4,
-    /** Seconds the finished wall stands before the sample ends: the build is done this long before 0:00. */
+    /** Seconds the finished wall stands before the sample ends: the build is done this long before its end. */
     private val rest: Double = 10.0,
+    /**
+     * Seconds cut off the end of the transition, out of [rest]: the finished wall stands that much less,
+     * and the countdown, the lock and the click into the chapter come that much sooner. The fade and the
+     * build keep their pace, being timed to the sample as before.
+     */
+    private val trim: Double = 0.0,
     /** How much of the build follows the sample's loudness rather than an even pace, 0 to 1. */
     private val follow: Double = 0.6,
     /** How much of a seeded shuffle is blended into the outside-in order, 0 to 1. */
@@ -93,19 +102,29 @@ class CourseTransition(
     private val countdown: Boolean = true,
     /** The gain the sample plays at, over the file's own level. */
     private val gain: Double = 1.0,
+    /** What the countdown's line pulses to when a click is refused, and over how many seconds. */
+    private val pulse: ColorRGBa = slideshow.Palette.BLUE,
+    private val pulseLength: Double = 0.9,
     private val seed: Int = 7
 ) : Backdrop() {
 
     override val name get() = "Course transition"
     override val background: ColorRGBa get() = ColorRGBa.BLACK
 
-    /** The whole transition, in seconds: the sample's own length. */
-    val duration: Double = runCatching {
+    /** The sample's own length, in seconds, which the fade and the build are timed to. */
+    private val sampleLength: Double = runCatching {
         AudioSystem.getAudioFileFormat(sample).let { it.frameLength.toDouble() / it.format.frameRate }
     }.getOrElse {
         println("course transition: ${sample.path} will not open — timed to 33 s and silent")
         33.0
     }
+
+    /**
+     * The whole transition, in seconds: the sample's length less [trim] — the countdown, the lock and the
+     * hands-off click into the chapter all run to this. The trim comes out of the finished wall's stand,
+     * so it can be no longer than [rest]: past that the last blocks would still be rising at the cut.
+     */
+    val duration: Double = sampleLength - trim.coerceIn(0.0, rest)
 
     override val settle: Int get() = frames(duration)
     /** A beat after the countdown reaches nothing, and a hands-off run clicks into the chapter. */
@@ -124,11 +143,34 @@ class CourseTransition(
     private var underStep = 0
     private var built = false
 
-    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int) {
-        // Back from the chapter it leads into: it lands built. From anything else it builds, over the
-        // wall it came from when that is a wall.
-        built = previous === opening
-        if (built) return
+    /** The frame of this slide's own count the last refused click came on, null once it no longer applies. */
+    private var refusedAt: Int? = null
+
+    /**
+     * It has to be waited out: no click forward until the countdown reaches 0:00 (12 October 2026), so
+     * the chapter cannot be clicked into early. Landed built, there is no countdown and nothing to wait for.
+     */
+    override fun holds(frame: Int) = !built && seconds(frame) < duration
+
+    /**
+     * Back off it is the course wall it was drawing on, as it was: the wall has stood what it had when the
+     * transition began and the transition's own frames on top. Asked for on 12 October 2026, when back was
+     * still refused here. With no wall under it, back is back.
+     */
+    override fun carriesBack(frame: Int): Int? = if (under != null && !built) underFrom + frame else null
+
+    /** The countdown's line pulses, so the presenter sees the click arrived and was refused. */
+    override fun refused(frame: Int) {
+        refusedAt = frame
+    }
+
+    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int, back: Boolean) {
+        refusedAt = null
+        // Come back to from the chapter it leads into: it lands built, silent, with no countdown and no
+        // lock. Come forward to it again from there (a jump) it starts over, over the course wall it last
+        // came from. From anything else it builds, over the wall it came from when that is a wall.
+        built = back && previous === opening
+        if (previous === opening) return
         under = previous.takeIf { it.wide && !it.carriesCard && it !is CourseTransition }
         underFrom = stood
         underStep = leftOn
@@ -144,11 +186,12 @@ class CourseTransition(
     private var starts = DoubleArray(0)
     private var wall = Rectangle(0.0, 0.0, 1.0, 1.0)
 
-    private var font: FontImageMap? = null
+    /** The countdown bottom left: the line every animation in the show is counted down by. */
+    private var counter = Countdown()
     private var target: RenderTarget? = null
 
     override fun load(program: Program) {
-        if (countdown) font = runCatching { program.loadFont(fontPath, Scale.title(1080.0), contentScale = 1.0) }.getOrNull()
+        if (countdown) counter = Countdown(runCatching { program.loadFont(fontPath, Countdown.SIZE, contentScale = 1.0) }.getOrNull())
         runCatching { measure() }.onFailure { println("course transition: could not read ${sample.name} (${it.message}) — an even build") }
     }
 
@@ -191,14 +234,14 @@ class CourseTransition(
     private fun groundLight(t: Double): Double {
         val p = opening.background
         if (p.r <= 0.0 && p.g <= 0.0 && p.b <= 0.0) return 1.0
-        val until = (duration - rest).coerceAtLeast(fade + 0.1)
+        val until = (sampleLength - rest).coerceAtLeast(fade + 0.1)
         val x = ((t - fade) / (until - fade)).coerceIn(0.0, 1.0)
         return (x * x * x * (x * (6.0 * x - 15.0) + 10.0)).pow(2.2)
     }
 
     /** How far the build has got at [t] seconds, 0 to 1: the sample's loudness from [buildFrom] blended with an even pace. */
     private fun progress(t: Double): Double {
-        val end = duration - rise - rest
+        val end = sampleLength - rise - rest
         if (t <= buildFrom) return 0.0
         if (t >= end) return 1.0
         val even = ((t - buildFrom) / (end - buildFrom).coerceAtLeast(0.1)).coerceIn(0.0, 1.0)
@@ -246,7 +289,7 @@ class CourseTransition(
         if (!schedule()) {
             // No field to build — the face cannot be read here. Show the wall it came from, if any.
             under?.let { drawUnder(drawer, stage, 1.0, listOf(stage.bounds)) }
-            if (countdown && !built) drawCountdown(drawer, stage, duration - t)
+            if (countdown && !built && t < duration) drawCountdown(drawer, stage, duration - t)
             return
         }
         // The course wall fading, the whole of it, until the build begins; the canvas is linear light,
@@ -271,7 +314,7 @@ class CourseTransition(
             if (left.isNotEmpty() && under != null && light > 0.0) drawUnder(drawer, stage, light, left)
         }
 
-        if (countdown && !built) drawCountdown(drawer, stage, duration - t)
+        if (countdown && !built && t < duration) drawCountdown(drawer, stage, duration - t)
     }
 
     /** The wall before, at its own frame count carried on, into [cells] of the picture, at [brightness]. */
@@ -302,42 +345,15 @@ class CourseTransition(
     }
 
     /**
-     * The seconds left, m:ss, with a line that shortens under them — bottom left of the wall, on an
-     * opaque black plate so it reads from the first frame whatever the course wall behind it is doing.
+     * The share of the transition left, as the show's countdown line bottom left of the wall. Gone at
+     * 0:00, the moment the lock lets go: the chapter opening's first frame then stands clean for the click
+     * (12 October 2026).
      */
     private fun drawCountdown(drawer: Drawer, stage: Stage, left: Double) {
-        val face = font ?: return
-        val whole = kotlin.math.round(left).toInt().coerceAtLeast(0)
-        val text = "%d:%02d".format(whole / 60, whole % 60)
-        val x = stage.bounds.x + stage.bounds.height * 16.0 / 9.0 * MARGIN
-        val baseline = stage.bounds.y + stage.bounds.height * FOOT
-        val length = stage.bounds.height * 0.16
-        val size = Scale.title(1080.0)
-        // Sized to the widest the figures get rather than to the text, so the plate never changes size.
-        val width = maxOf(face.advanceOf("0:00"), length)
-        val top = baseline - size * CAP - PAD
-        val plate = Rectangle(x - PAD, top, width + 2 * PAD, baseline + BAR + 3.0 + PAD - top)
-        drawer.isolated {
-            drawer.stroke = null
-            drawer.fill = ColorRGBa.BLACK
-            drawer.rectangle(plate)
-            drawer.fontMap = face
-            drawer.fill = ColorRGBa.WHITE
-            drawer.text(text, x, baseline)
-            drawer.fill = ColorRGBa.WHITE.opacify(0.3)
-            drawer.rectangle(x, baseline + BAR, length, 3.0)
-            drawer.fill = ColorRGBa.WHITE
-            drawer.rectangle(x, baseline + BAR, length * (left / duration).coerceIn(0.0, 1.0), 3.0)
-        }
-    }
-
-    private companion object {
-        /** The house margin and foot, as `Frame` states them for a pane. */
-        const val MARGIN = 0.02
-        const val FOOT = 0.92
-        /** The plate's padding round the figures and the line, the line's drop under the baseline, and the figures' height over it as a share of the size. */
-        const val PAD = 18.0
-        const val BAR = 12.0
-        const val CAP = 0.75
+        // A refused click: the line swells to [pulse] and back, soft at both ends (sin squared).
+        // A replay starts the frame count over under a click noted on the old one, which then no longer applies.
+        refusedAt?.let { if (stage.frame < it) refusedAt = null }
+        val felt = refusedAt?.let { Countdown.pulseAt(seconds(stage.frame - it), pulseLength) } ?: 0.0
+        counter.draw(drawer, stage.bounds, left, duration, felt = felt, pulse = pulse)
     }
 }

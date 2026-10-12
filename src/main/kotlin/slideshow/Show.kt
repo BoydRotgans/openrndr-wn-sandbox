@@ -142,8 +142,24 @@ private fun org.openrndr.ApplicationBuilder.present(
         // for the 4 that play, a 4.4M-triangle building nobody saw, some 12 GB. The rest now loads
         // the first time something asks for it — see ensureLoaded below.
         val loaded: MutableSet<Slide> = java.util.Collections.newSetFromMap(java.util.IdentityHashMap())
-        slides.forEach { it.load(this); loaded += it }
-        show.panels.forEach { it.load(this) }
+        // "Loading" and a line filling under it in the middle of each projector while that happens, put on
+        // the window by hand since nothing is drawn before the first frame — see LoadingScreen. A step a
+        // slide and a card, and one for the sound, which is decoded further down.
+        val loadingScreen = if (settings.record || settings.stills || settings.bench) null else {
+            val s = settings.windowScale
+            val left = (spanned?.left?.width ?: (settings.width / 2)) * s
+            val right = (spanned?.right?.width ?: (settings.width / 2)) * s
+            LoadingScreen(this, listOf(
+                Rectangle(0.0, 0.0, left, (spanned?.left?.height ?: settings.height) * s),
+                Rectangle(left, 0.0, right, (spanned?.right?.height ?: settings.height) * s)
+            ), slideshow.drawers.Type.file)
+        }
+        val loadingSteps = slides.size + show.panels.size + 1
+        var loadingDone = 0
+        fun loadedOne() { loadingDone++; loadingScreen?.show(loadingDone.toDouble() / loadingSteps) }
+        loadingScreen?.show(0.0)
+        slides.forEach { it.load(this); loaded += it; loadedOne() }
+        show.panels.forEach { it.load(this); loadedOne() }
 
         val startSlide = startIndex(slides, settings.start)
         val deck = Deck(slides, startSlide, show.outline)
@@ -219,6 +235,21 @@ private fun org.openrndr.ApplicationBuilder.present(
         fun isBed(sound: Sound?) = sound != null && sound.loop && sound.layer == Layer.MUSIC
 
         /**
+         * A step back, inside a slide or off its front: every sound of the design and every sample still
+         * ringing fades away over [Settings.backFade], since the picture has cut back already (12 October
+         * 2026). Loops run on — the playlists and the ambience — and the voice is let go on any click anyway.
+         */
+        fun hushBack() {
+            val over = frames(settings.backFade)
+            speakers.hush(Layer.DESIGN, over)
+            speakers.hush(Layer.MUSIC, over)
+        }
+
+        /** Whether [sound], asked for again, starts over: anything but a loop, unless it is in [carried] from the slide before. */
+        fun saidAgain(sound: Sound?, carried: Set<java.io.File> = emptySet()) =
+            sound != null && !sound.loop && sound.file !in carried
+
+        /**
          * Everything the slide at [index] can be sounding while it stands: its cues, its lead-in, and its
          * moment's playlist in place of any bed of its own. What is let go as it is left, and what is kept
          * playing when the slide arriving sounds it too.
@@ -250,6 +281,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                         show.panels.mapNotNull { it.sound } + listOfNotNull(settings.slideBed) +
                         voices.values.flatMap { it.all }
             )
+            loadedOne()
             // Which moment plays which playlist, and where one has nothing to play under: the
             // moments are named in the order file and the music in the show, so a rename in the
             // one without the other is said here rather than heard as a silent course.
@@ -479,6 +511,16 @@ private fun org.openrndr.ApplicationBuilder.present(
         var playTapAt = -1
         /** Practice mode: whether the screen and play buttons do anything. See [Settings.practice]. */
         var practice = settings.practice
+        /** Wait for the animation: whether a forward click waits for the state to finish moving. See [Settings.waitForAnimation]. */
+        var waitForAnimation = settings.waitForAnimation
+        /** How present the countdown line is, 0 to 1: up while the state moves, going once it is still. */
+        var waitShown = 0.0
+        /** The deck frame the last click was refused on, for the line's pulse; -1 for none. */
+        var waitRefusedAt = -1
+        /** The same for a click refused during an animation too short for the line, which pulses a dot instead. */
+        var waitDotAt = -1
+        /** The countdown line every animation is counted down by, the course transition's own. See [Countdown]. */
+        val waitCountdown = Countdown()
         // The overview's hidden section, at its foot: the sketches off the shelf that fill both
         // projectors. One chosen there is shown on the side, in a deck of its own, and never enters the
         // running order; forward or back puts the show back as it was. Read again each time the overview
@@ -612,10 +654,74 @@ private fun org.openrndr.ApplicationBuilder.present(
 
         fun forward() = if (cardHoldsTheFrame()) panelDeck!!.next() else deck.next()
 
-        /** Back over the opening click re-covers the slide, so going back undoes it exactly. */
+        /**
+         * Whether the slide up now has to be waited out ([Slide.holds]): then the presenter's click forward
+         * is refused, and the slide told so it can show the click was felt. The keys, the clicker and the
+         * page's arrows ask this going forward; back is never refused (see [backward]), and a hands-off
+         * run's clicks do not ask, being timed past the wait already.
+         */
+        fun waitedOut(): Boolean {
+            val at = deck.frame - deck.startedAt
+            if (aside != null || !deck.slide.holds(at)) return false
+            deck.slide.refused(at)
+            println("show: #${idAt(deck.index)} has to be waited out — click refused")
+            return true
+        }
+
+        /**
+         * Frames until the state on the wall has finished moving, and the whole length of what is still
+         * moving: the handover still running, the click still playing, or — on an opening state reached
+         * going forward — the slide's own opening, by the rule a hands-off run holds it by ([movingFrames]).
+         * Whichever has longest left; a state stepped back to lands built and has nothing left.
+         *
+         * **A wall that stands and plays on counts only the build that uncovers it** — a course wall, the
+         * yard: wide, building in, carrying no card. Its settle is when its preview is taken, not motion to
+         * wait out, and the stress test of 12 October 2026 found the click that ends a course refused for up
+         * to a minute (*sketch-climb* settles at 60 s, *flow v2* at 20 s).
+         */
+        fun stillMoving(): Pair<Int, Int> {
+            val handover = if (deck.transitioning) Math.ceil((1.0 - deck.handover) * deck.transitionFrames).toInt() to deck.transitionFrames else 0 to 0
+            val click = if (deck.direction != 0) (deck.moveFrames - deck.moveElapsed) to deck.moveFrames else 0 to 0
+            val slide = deck.slide
+            val playsOn = slide.wide && !slide.carriesCard && slide.buildsIn
+            val openingFrames = movingFrames(slide, 0, settings).let { if (playsOn) min(it, frames(settings.backdropBuild)) else it }
+            val opening = if (deck.step == 0 && !deck.arrivedBack) (openingFrames - (deck.frame - deck.startedAt)) to openingFrames else 0 to 0
+            return listOf(handover, click, opening).maxBy { it.first }.let { (left, total) -> left.coerceAtLeast(0) to total }
+        }
+
+        /**
+         * Whether a forward click is refused under the wait for the animation ([Settings.waitForAnimation]):
+         * the state is still moving, so the click is dropped and the countdown line, up already, pulses.
+         * Asked after [waitedOut], so a slide that holds shows its own sign instead. Back is never asked:
+         * it lands built, and it is the way out of a click made by mistake.
+         */
+        fun stillAnimating(): Boolean {
+            if (!waitForAnimation || aside != null) return false
+            val (left, total) = stillMoving()
+            // A click in the last tenth of a second is taken: refused that late, with "0.0s to go" said, it
+            // was felt as a click dropped (stress test, 12 October 2026).
+            if (left <= frames(WAIT_GRACE)) return false
+            // Too short for the line ([Countdown.SHORTEST]): the click is still answered, by a dot.
+            if (total > frames(Countdown.SHORTEST)) waitRefusedAt = deck.frame else waitDotAt = deck.frame
+            println("show: #${idAt(deck.index)} still moving — click refused, %.1fs to go".format(left / FPS.toDouble()))
+            return true
+        }
+
+        /**
+         * Back over the opening click re-covers the slide, so going back undoes it exactly. Back off a slide
+         * that drew the one before on under itself ([Slide.carriesBack]) lands that one with its clock carried
+         * on: back during a course transition stops it and keeps the course wall as it was.
+         */
         fun backward() {
             if (panelDeck != null && panelDeck.slide.steps > 1 &&
-                panelDeck.step > 0 && atSectionStart()) panelDeck.back() else deck.back()
+                panelDeck.step > 0 && atSectionStart()) { panelDeck.back(); return }
+            val from = deck.index
+            val carried = if (deck.step == 0) deck.slide.carriesBack(deck.frame - deck.startedAt) else null
+            deck.back()
+            if (carried != null && deck.index == from - 1) {
+                deck.restart(deck.index, deck.step, since = deck.frame - carried, back = true)
+                println("show: back off #${idAt(from)} — #${idAt(deck.index)} carries on")
+            }
         }
 
         /**
@@ -675,9 +781,9 @@ private fun org.openrndr.ApplicationBuilder.present(
             when {
                 // A presenter clicker is a keyboard to the machine: the Logitech R400's forward and
                 // back buttons send Page Down and Page Up, so those click exactly as the arrows do.
-                event.key == KEY_ARROW_RIGHT || event.key == KEY_PAGE_DOWN -> forward()
+                event.key == KEY_ARROW_RIGHT || event.key == KEY_PAGE_DOWN -> if (!waitedOut() && !stillAnimating()) forward()
                 event.key == KEY_ARROW_LEFT || event.key == KEY_PAGE_UP -> backward()
-                event.key == KEY_ARROW_DOWN -> deck.nextSlide()
+                event.key == KEY_ARROW_DOWN -> if (!waitedOut() && !stillAnimating()) deck.nextSlide()
                 event.key == KEY_ARROW_UP -> deck.previousSlide()
                 event.key == KEY_ESCAPE -> { println("show: shift-escape — closing"); speakers.close(); application.exit() }
 
@@ -720,7 +826,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 settings.duration?.let { maximumDuration = it }
             }) else extend(
                 WallRecorder(File(settings.video), settings.fps, 1.0 / settings.windowScale,
-                    settings.duration ?: Double.POSITIVE_INFINITY)
+                    settings.duration ?: Double.POSITIVE_INFINITY, settings.recordCrf)
             )
             // The soundtrack is rendered from the log once the film is on disk, which is
             // after the program ends — so it is handed out rather than done here. The
@@ -918,13 +1024,15 @@ private fun org.openrndr.ApplicationBuilder.present(
                     // slide, so it starts with the slide — on the very frame the slide came up,
                     // which may have been between two draws, so the two are one picture and the
                     // slide after it finds the card exactly where the wall left it. Forward it is
-                    // the chapter opening, announced like any. Stepped back into, it lands built,
-                    // the deck's rule for going back: its clock set to where its reveal has come
-                    // to rest, and the card's with it. A replay runs both again from the start.
+                    // the chapter opening, announced like any. Come back to — a step back, or a jump
+                    // back from the organizer — it lands built, the deck's rule for going back: its
+                    // clock set to where its reveal has come to rest, and the card's with it. A replay
+                    // runs both again from the start.
                     deck.slide.carriesCard && (deck.index != shownSlide || deck.startedAt != shownStart) -> {
-                        if (deck.index < shownSlide) deck.restart(deck.index, deck.step, since = deck.frame - deck.slide.settle)
+                        val cameBack = deck.index < shownSlide && deck.arrivedBack
+                        if (cameBack) deck.restart(deck.index, deck.step, since = deck.frame - deck.slide.settle)
                         panelDeck.restart(wanted, closed(wanted), since = deck.startedAt)
-                        if (deck.index > shownSlide) announce(wanted)
+                        if (deck.index != shownSlide && !cameBack) announce(wanted)
                     }
 
                     fromWide && opening -> {
@@ -973,15 +1081,23 @@ private fun org.openrndr.ApplicationBuilder.present(
                         .filter { it.sustained && it.file !in arrivingFiles }
                         .forEach { speakers.release(if (over != null && over > it.fadeOut) it.copy(fadeOut = over) else it) }
                 }
+                // Off the front of a slide going back, whatever it was still sounding goes with it at once.
+                if (leaving != null && deck.index < soundedFrom) hushBack()
 
                 // The slide's own cue, unless it is a bed and the moment has a playlist of its own
                 // to play instead; then the playlist, which asked for again does not restart.
+                // A cue asked for again starts from its top, as a voice line does. Come back to a
+                // slide within its cue's fade-out and the cue is still held, fading; played on, it
+                // carried on from wherever it had got to — seconds in, past its hit — and the
+                // sample went unheard. A loop runs on, and so does a file the slide left was sounding.
+                val carried = if (leaving != null) heardAt(soundedFrom).mapTo(mutableSetOf()) { it.file } else emptySet()
                 val bed = momentBed(deck.index)
                 val own = cueAt(deck.index, 0)
-                speakers.play(if (bed != null && isBed(own)) null else own)
+                speakers.play(if (bed != null && isBed(own)) null else own, restart = saidAgain(own, carried))
                 speakers.play(bed)
-                // The way in, beside the state's cue: coming forward, or opening on it.
-                if (first || deck.index > soundedFrom) speakers.play(deck.slide.leadIn)
+                // The way in, beside the state's cue: coming forward, or opening on it — not going back,
+                // which lands a slide built.
+                if (!deck.arrivedBack) speakers.play(deck.slide.leadIn, restart = saidAgain(deck.slide.leadIn, carried))
                 // The bed under the talk: up on any slide of a chapter, let go while a wall
                 // or a scene is up. Asking for it again on the next slide does not restart it —
                 // a held loop only picks its fade up from where it stands — so it runs on
@@ -995,7 +1111,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // A built slide marks its clicks: a band landing on the stack, and so on.
                 // Forward only — clicking back through a build is a correction, and re-firing
                 // the marks would say it is being built when it is being taken apart.
-                if (deck.step > soundedStep) speakers.play(cueAt(deck.index, deck.step))
+                // A click made again after a step back is said again from its top, for the reason above.
+                if (deck.step > soundedStep) cueAt(deck.index, deck.step).let { speakers.play(it, restart = saidAgain(it)) }
+                // A step back cuts the picture back, and the click's sound fades away with it (hushBack).
+                else hushBack()
                 soundedStep = deck.step
             }
 
@@ -1439,6 +1558,30 @@ private fun org.openrndr.ApplicationBuilder.present(
                     pick, current, overviewShown, hiddenFrom = ids.size)
             }
             holdRing.draw(drawer, shown, canvasBounds, settings.panelWidth, ringProgress, ringShown)
+            // The countdown line, over every animation longer than [Countdown.SHORTEST] while the wait is on:
+            // the share still to play, coming down, gone once the state is still. A shorter one is over before
+            // a line could be read, so it shows none. Laid on the window through the fit, so it is the same size
+            // and place on the wall and never reaches a film; a slide that holds draws its own into the wall.
+            val (waitLeft, waitTotal) = stillMoving()
+            val counting = waitForAnimation && aside == null && waitLeft > 0 && waitTotal > frames(Countdown.SHORTEST) &&
+                !deck.slide.holds(deck.frame - deck.startedAt)
+            waitShown = if (counting) 1.0 else max(0.0, waitShown - dt / (Countdown.FADE * FPS))
+            if (waitShown > 0.0) {
+                val felt = if (waitRefusedAt < 0) 0.0 else Countdown.pulseAt((frame - waitRefusedAt) / FPS.toDouble(), Countdown.PULSE_LENGTH)
+                drawer.isolated {
+                    translate(shown.corner)
+                    scale(shown.width / canvasBounds.width)
+                    waitCountdown.draw(this, canvasBounds, waitLeft / FPS.toDouble(), waitTotal / FPS.toDouble(), waitShown, felt)
+                }
+            }
+            // A click refused during an animation too short for the line is answered by a blue dot where the
+            // line would start, pulsing once, so every click the presenter makes is seen to have arrived.
+            val dotFelt = if (waitDotAt < 0) 0.0 else Countdown.pulseAt((frame - waitDotAt) / FPS.toDouble(), Countdown.PULSE_LENGTH)
+            if (dotFelt > 0.0) drawer.isolated {
+                translate(shown.corner)
+                scale(shown.width / canvasBounds.width)
+                waitCountdown.drawDot(this, canvasBounds, dotFelt)
+            }
 
             if (debug && !settings.stills) {
                 overlay.draw(drawer, deck, slideStage, width, height, fps, clock.paused, paintFps)
@@ -1493,7 +1636,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                             if (it == deck.index && command.step == deck.step) subtitleState = -1 to -1
                             deck.goTo(it, command.step, cut = true)
                         }
-                        Remote.Forward -> forward()
+                        Remote.Forward -> if (!waitedOut() && !stillAnimating()) forward()
                         Remote.Backward -> backward()
                         Remote.Replay -> deck.replay()
                         is Remote.Previews -> {
@@ -1512,6 +1655,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                         is Remote.Practice -> {
                             practice = command.on ?: !practice
                             println("organizer: practice mode ${if (practice) "on" else "off"}")
+                        }
+                        is Remote.WaitForAnimation -> {
+                            waitForAnimation = command.on ?: !waitForAnimation
+                            println("organizer: wait for animation ${if (waitForAnimation) "on" else "off"}")
                         }
                         is Remote.Subtitle -> {
                             subtitleMode = command.on ?: !subtitleMode
@@ -1637,7 +1784,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 remote.snapshot = Remote.Snapshot(
                     deck.index, ids[deck.index], deck.step, deck.slide.steps, frame, previewJobs.size, remote.previewStamp,
                     concreteOn, concrete != null, gridOn,
-                    muted = speakers.muted, hasSound = speakers.ready, practice = practice,
+                    muted = speakers.muted, hasSound = speakers.ready, practice = practice, waitForAnimation = waitForAnimation,
                     subtitles = subtitleMode, subtitleTrack = subtitleTrack, voice = voiceOn,
                     mix = Layer.entries.associateWith { speakers.mixOf(it) }, autoplay = autoplay
                 )
@@ -1722,6 +1869,9 @@ private const val SUBTITLE_TAIL = 1.0
 /** Seconds between reads of the voice folder while the show is up — see [VoiceTrack]. */
 private const val VOICE_RESCAN = 4.0
 
+/** Seconds of motion still to play under which the wait for the animation takes a click rather than refusing it. */
+private const val WAIT_GRACE = 0.1
+
 /**
  * Frames a state stands on a run that clicks for itself: long enough for it to finish moving —
  * its click, or the slide's own opening — plus a reading time, longer for a wall that is one
@@ -1733,10 +1883,7 @@ private const val VOICE_RESCAN = 4.0
  */
 internal fun standFrames(slide: Slide, step: Int, said: String, settings: Settings, pace: Pace, voiced: Int? = null,
                          heard: Speech? = null): Int {
-    // A backdrop coming up through the show's build has not settled until the build is done.
-    val building = step == 0 && slide.wide && slide.buildsIn && settings.wallBuild != null && settings.backdropBuild > 0.0
-    val settle = if (step == 0) (if (building) maxOf(slide.settle, frames(settings.backdropBuild)) else slide.settle)
-        else slide.stepLength(step)
+    val settle = movingFrames(slide, step, settings)
     val read = slide.holdAfterSettle ?: if (slide.wide && !slide.carriesCard && slide.steps == 1) settings.holdWide else settings.hold
     val spoken = when {
         // The voice and the cards, whichever runs longer. With the voice's own word times the
@@ -1749,6 +1896,18 @@ internal fun standFrames(slide: Slide, step: Int, said: String, settings: Settin
     val stand = maxOf(settle + frames(read), spoken)
     // A backdrop is one picture and is never hurried: see Settings.holdBackdrop.
     return if (slide.kind == "backdrop") maxOf(stand, frames(settings.holdBackdrop)) else stand
+}
+
+/**
+ * Frames a state takes to finish moving, counted from the frame it was reached: its click, or on the
+ * opening state the slide's own opening — and a backdrop coming up through the show's build has not
+ * settled until the build is done. Read by [standFrames] for a hands-off run's holds and by the wait for
+ * the animation ([Settings.waitForAnimation]), so the two agree on when a state is still.
+ */
+internal fun movingFrames(slide: Slide, step: Int, settings: Settings): Int {
+    if (step > 0) return slide.stepLength(step)
+    val building = slide.wide && slide.buildsIn && settings.wallBuild != null && settings.backdropBuild > 0.0
+    return if (building) maxOf(slide.settle, frames(settings.backdropBuild)) else slide.settle
 }
 
 /**

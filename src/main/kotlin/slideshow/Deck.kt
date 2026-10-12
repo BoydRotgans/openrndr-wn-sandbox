@@ -96,16 +96,18 @@ class Deck(
     }
 
     /**
-     * The click before. Stepping back off the front of a slide lands on the *last* click
-     * of the one before it, fully built — so going back retraces the way you came rather
-     * than resetting what you already showed.
+     * The click before, as a cut: inside a slide the click before, and off the front of a slide the
+     * last click of the one before — either standing as it was left, fully built. Nothing plays in
+     * reverse. Asked for on 12 October 2026: going back used to undo the arrival with the transition
+     * reversed, which read as the show playing backwards; landing on the previous slide's start
+     * instead, tried the same morning, skipped the clicks it had already shown.
      */
     fun back() {
         moves++
-        if (current.step > 0) current.goTo(current.step - 1, instant = false)
+        if (current.step > 0) current.goTo(current.step - 1, instant = true)
         else if (current.index > 0) {
             val previous = current.index - 1
-            show(previous, slides[previous].steps - 1, reverse = true, cut = false)
+            show(previous, slides[previous].steps - 1, reverse = true, cut = true)
         }
     }
 
@@ -115,9 +117,10 @@ class Deck(
         if (current.index < slides.size - 1) show(current.index + 1, 0, reverse = false, cut = false)
     }
 
+    /** The slide before, at its start and on a cut, as [back] lands off the front of a slide. */
     fun previousSlide() {
         moves++
-        if (current.index > 0) show(current.index - 1, 0, reverse = true, cut = false)
+        if (current.index > 0) show(current.index - 1, 0, reverse = false, cut = true)
     }
 
     /** Jumps straight to a slide. Cuts by default: this is for finding a slide, not showing it. */
@@ -157,13 +160,14 @@ class Deck(
      * from now — for a deck that has to keep time with another. The chapter card starts this way
      * under a chapter opening that carries it, on the frame the opening came up, so the two are
      * the same picture to the frame: the opening may have come up between two draws, on a key,
-     * while the card's deck is only moved inside one.
+     * while the card's deck is only moved inside one. [back] says it was come to going back, which lands
+     * it built (see [arrivedBack]).
      */
-    fun restart(index: Int, step: Int = 0, since: Int = frame) {
+    fun restart(index: Int, step: Int = 0, since: Int = frame, back: Boolean = false) {
         moves++
         leaving = null
         transition = Cut
-        current = Playhead(index.coerceIn(slides.indices), step, since)
+        current = Playhead(index.coerceIn(slides.indices), step, since, back)
     }
 
     /**
@@ -197,7 +201,7 @@ class Deck(
         reversed = reverse
         transitionAt = frame
         current = Playhead(target, step, back = reverse)
-        slides[target].cameFrom(left.slide, frame - left.startedAt, left.step, step)
+        slides[target].cameFrom(left.slide, frame - left.startedAt, left.step, step, back = reverse)
     }
 
     // --- what the driver draws ------------------------------------------------------ //

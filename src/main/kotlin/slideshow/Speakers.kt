@@ -135,6 +135,8 @@ class Speakers(
     private val heldLayer = mutableMapOf<String, Layer>()
     private var poolLayer = arrayOfNulls<Layer>(0)
     private var poolGain = DoubleArray(0)
+    /** The pool voices [hush] is letting go, by index, each from its own gain down to nothing. */
+    private var poolFading = arrayOfNulls<Fade>(0)
 
     /** The gain a layer is played at, 0..1 (more than 1 boosts), never past [MAX_MIX]. */
     fun mixOf(layer: Layer): Double = mix[layer] ?: 1.0
@@ -147,7 +149,28 @@ class Speakers(
             if (heldLayer[key] == layer) alSourcef(source, AL_GAIN, ((level[key] ?: 0.0) * mixOf(layer)).toFloat())
         }
         pool.indices.forEach { i ->
-            if (poolLayer.getOrNull(i) == layer) alSourcef(pool[i], AL_GAIN, (poolGain[i] * mixOf(layer)).toFloat())
+            if (poolLayer.getOrNull(i) == layer && poolFading.getOrNull(i) == null) alSourcef(pool[i], AL_GAIN, (poolGain[i] * mixOf(layer)).toFloat())
+        }
+    }
+
+    /**
+     * Lets everything sounding on [layer] go over [over] frames, held and pooled alike — but not a loop, so a
+     * bed or a playlist runs on. For going back (12 October 2026): a one-shot otherwise rings out to its end
+     * and a click's mark is let go only when its slide is, so a step back during an animation cut the picture
+     * back and left its sound playing. A fade already running out faster is overtaken by this one all the same,
+     * since it starts from wherever the gain has got to.
+     */
+    fun hush(layer: Layer, over: Int) {
+        if (!ready) return
+        for ((key, source) in held) {
+            if (heldLayer[key] != layer) continue
+            if (alGetSourcei(source, AL_LOOPING) == AL_TRUE) continue
+            if (alGetSourcei(source, AL_SOURCE_STATE) != AL_PLAYING) continue
+            fading[key] = Fade(level[key] ?: 0.0, 0.0, frame, over, stopAtEnd = true)
+        }
+        pool.indices.forEach { i ->
+            if (poolLayer[i] != layer || alGetSourcei(pool[i], AL_SOURCE_STATE) != AL_PLAYING) return@forEach
+            poolFading[i] = Fade(poolGain[i], 0.0, frame, over, stopAtEnd = true)
         }
     }
 
@@ -261,6 +284,7 @@ class Speakers(
             pool = IntArray(voices) { alGenSources().also { s -> alSourcef(s, AL_MAX_GAIN, MAX_MIX.toFloat()) } }
             poolLayer = arrayOfNulls(voices)
             poolGain = DoubleArray(voices)
+            poolFading = arrayOfNulls(voices)
         }
         println(
             "sound: %d cues, %.1fs, %.0f MB, %d voices on %s".format(
@@ -324,6 +348,7 @@ class Speakers(
 
         if (pool.isEmpty()) return
         val source = pool[next]
+        poolFading[next] = null   // a voice taken for a new cue is not the one being let go
         next = (next + 1) % pool.size
         // A source will not take a new buffer while it is playing, so stop it first.
         alSourceStop(source)
@@ -367,7 +392,13 @@ class Speakers(
      */
     fun tick(frame: Int) {
         this.frame = frame
-        if (!ready || fading.isEmpty()) return
+        if (!ready) return
+        poolFading.forEachIndexed { i, fade ->
+            if (fade == null) return@forEachIndexed
+            alSourcef(pool[i], AL_GAIN, (fade.levelAt(frame) * mixOf(poolLayer[i] ?: Layer.DESIGN)).toFloat())
+            if (fade.doneAt(frame)) { alSourceStop(pool[i]); poolFading[i] = null }
+        }
+        if (fading.isEmpty()) return
 
         val finished = mutableListOf<String>()
         for ((key, fade) in fading) {
@@ -408,6 +439,7 @@ class Speakers(
     fun silence() {
         if (!ready) return
         fading.clear()
+        poolFading.fill(null)
         pool.forEach { alSourceStop(it) }
         held.forEach { (key, source) -> alSourceStop(source); level[key] = 0.0 }
     }

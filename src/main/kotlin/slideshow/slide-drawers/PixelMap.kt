@@ -13,7 +13,6 @@ import org.openrndr.draw.FontImageMap
 import org.openrndr.draw.MagnifyingFilter
 import org.openrndr.draw.MinifyingFilter
 import org.openrndr.draw.RenderTarget
-import org.openrndr.draw.isolated
 import org.openrndr.draw.isolatedWithTarget
 import org.openrndr.draw.loadFont
 import org.openrndr.draw.renderTarget
@@ -28,6 +27,7 @@ import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
 import slideshow.drawers.setLine
+import slideshow.drawers.wrapped
 import slideshow.easeInOutCubic
 import slideshow.frames
 import slideshow.linear
@@ -99,37 +99,40 @@ class NamePart(val word: String, val kept: String)
  *
  * [shades] are factors of [colour] dealt to the countries so that two that touch differ, the way
  * the greys are dealt; one shade, the default, tints them all one colour, so Benelux and France
- * read as one mass. Up to four. [labels] name countries on the map, in [ink] unless a label says
- * otherwise. The tint comes in over the back of the click as the camera lands, and the city names
- * give way at the front of it, since at this scale they would sit on top of one another.
+ * read as one mass. Up to [MAX_SLOTS]. The tint comes in over the back of the click as the camera
+ * lands, and the city names give way at the front of it, since at this scale they would sit on top
+ * of one another.
+ *
+ * **Nothing is written on the map.** The countries are named in [list], a column down the pane's
+ * left in [ink], set large; the camera frames the countries in what the column leaves, and the
+ * column stands on the sea, any country it would lie over left off, so no name lies over land it
+ * does not belong to. Labels
+ * on the countries with hairlines to the small ones were the first version (meeting of 30
+ * September) and read as clutter on a map that is only blue and grey.
+ *
+ * Given a [beat], **the countries light one after another** in [codes] order, that many seconds
+ * apart, once the camera has landed, and each one's name joins the list as it lights. The click
+ * is lengthened to carry it (`stepLength`), so clicking back puts them out in reverse.
  */
 class MapCountries(
     val name: String,
     val codes: List<String>,
     val colour: ColorRGBa = slideshow.Palette.BLUE,
-    val labels: List<CountryLabel> = emptyList(),
+    val list: List<CountryLabel> = emptyList(),
+    val beat: Double = 0.0,
     val shades: List<Double> = listOf(1.0),
     val ink: ColorRGBa = ColorRGBa.WHITE,
     val margin: Double = 0.06
 ) : MapShot
 
 /**
- * A country named on the map, one size on screen at every zoom as the cities are: [name] in the
- * bold face — empty takes the collected Dutch name — and [note] under it in the text face.
- *
- * It stands centred on the country's own middle (the centroid of its largest piece of land), or
- * at [lonLat] when that is given, ranged by [align] — 0 left of the point, 0.5 centred, 1 right of
- * it. A label moved off its country draws a hairline back to the country's middle unless [leader]
- * is off. [ink] overrides the shot's, for a label that stands on a light grey rather than the tint.
+ * A country in a [MapCountries] list: [name] in the bold face — empty takes the collected Dutch
+ * name — and [note] under it in the text face, wrapped to the column the names make.
  */
 class CountryLabel(
     val code: String,
     val name: String? = null,
-    val note: String? = null,
-    val lonLat: Vector2? = null,
-    val align: Double = 0.5,
-    val leader: Boolean = true,
-    val ink: ColorRGBa? = null
+    val note: String? = null
 )
 
 /**
@@ -252,6 +255,14 @@ class PixelMap(
 
     override val name = "Pixel map"
     override val steps get() = shots.size
+
+    /** A click onto a [MapCountries] build is the camera's move and then a beat a country. */
+    override fun stepLength(step: Int): Int =
+        (shots.getOrNull(step) as? MapCountries)?.takeIf { it.beat > 0.0 }
+            ?.let { frames(lightsAt(it, it.codes.size - 1) + LIGHT) } ?: stepFrames
+
+    /** Seconds into the click onto [shot] that its [rank]-th country starts to light. */
+    private fun lightsAt(shot: MapCountries, rank: Int) = stepFrames / slideshow.FPS.toDouble() * LIGHT_FROM + rank * shot.beat
     override fun stepName(step: Int) = when (val shot = shots.getOrNull(step)) {
         is MapFrame -> shot.name
         is FactoryCluster -> shot.name
@@ -275,16 +286,24 @@ class PixelMap(
     private lateinit var text: FontImageMap
     /** The face a name is set large in, loaded big so it is not a magnified atlas. */
     private lateinit var hero: FontImageMap
+    /** The face a [MapCountries] list is set in, loaded at the size it is set at. */
+    private lateinit var listFace: FontImageMap
     /** The pixel map, counted once and then only moved and scaled. See [freeze]. */
     private var frozen: Frozen? = null
     /** Each [MapCountries] shot's countries as a box on the projection, west-south and east-north corners. */
     private var extents: Map<MapCountries, Pair<Vector2, Vector2>> = emptyMap()
-    /** Each [MapCountries] shot's shade a country, by country index: -1 where it is not tinted. */
-    private var tonesOf: Map<MapCountries, IntArray> = emptyMap()
-    /** Where a country is named, by `ADM0_A3`: the centroid of its largest piece of land, on the projection. */
-    private var middles: Map<String, Vector2> = emptyMap()
-    /** The collected Dutch name a country, by `ADM0_A3`, for a label that states none. */
+    /**
+     * Each [MapCountries] shot's slot a country, by country index: -1 where it is not tinted. A slot
+     * is what the tint can fade on its own — the country's turn in a build, or its shade when the
+     * countries light together. See [maskColour].
+     */
+    private var slotsOf: Map<MapCountries, IntArray> = emptyMap()
+    /** Each [MapCountries] shot's shade a slot, as an index into its [MapCountries.shades]. */
+    private var slotShades: Map<MapCountries, IntArray> = emptyMap()
+    /** The collected Dutch name a country, by `ADM0_A3`, for a list entry that states none. */
     private var countryNames: Map<String, String> = emptyMap()
+    /** Each country's middle on the projection, by country index; null for one too small to have one. */
+    private var middles: List<Vector2?> = emptyList()
 
     private class Frozen(
         /** The pane it was counted for; another size counts it again. */
@@ -318,6 +337,7 @@ class PixelMap(
         bold = program.loadFont(boldPath, NAME_EM, TYPE_CHARACTERS, contentScale = 1.0)
         text = program.loadFont(textPath, TEXT_EM, TYPE_CHARACTERS, contentScale = 1.0)
         hero = program.loadFont(boldPath, HERO_EM, TYPE_CHARACTERS, contentScale = 1.0)
+        listFace = program.loadFont(boldPath, LIST_EM, TYPE_CHARACTERS, contentScale = 1.0)
 
         val began = System.currentTimeMillis()
         val countries = runCatching { loadCountries(source()) }
@@ -369,8 +389,7 @@ class PixelMap(
         val neighbours = neighboursOf(countries)
         fills = greys(countries, neighbours).mapIndexed { k, grey -> grey.towards(tint, tintMax * counts[k] / most) }
 
-        // The countries shots: the box each one frames, the shade each of its countries takes,
-        // and where every country it names stands.
+        // The countries shots: the box each one frames and the slot each of its countries takes.
         val countryShots = shots.filterIsInstance<MapCountries>().distinct()
         extents = countryShots.mapNotNull { shot ->
             val lit = countries.filter { it.code in shot.codes }
@@ -384,16 +403,33 @@ class PixelMap(
                 Vector2(points.maxOf { it.x }, points.maxOf { it.y })
             )
         }.toMap()
-        tonesOf = countryShots.associateWith { shot ->
+        // Lit together, a country's slot is its shade; built one by one, it is its turn, and the
+        // slot carries the shade the country was dealt.
+        val dealtOf = countryShots.associateWith { shot ->
             val lit = countries.indices.filter { countries[it].code in shot.codes }
                 .sortedBy { shot.codes.indexOf(countries[it].code) }
-            val dealt = deal(lit, shot.shades.size.coerceIn(1, MAX_TONES), neighbours)
-            IntArray(countries.size) { dealt[it] ?: -1 }
+            lit to deal(lit, shot.shades.size.coerceIn(1, MAX_SLOTS), neighbours)
         }
-        val named = countryShots.flatMap { shot -> shot.labels.map { it.code } }.toSet()
-        middles = countries.filter { it.code in named }.mapNotNull { country -> middleOf(country)?.let { country.code to it } }.toMap()
+        slotsOf = dealtOf.mapValues { (shot, pair) ->
+            val (lit, dealt) = pair
+            if (shot.beat > 0.0 && lit.size > MAX_SLOTS) println("pixel map: \"${shot.name}\" builds ${lit.size} countries; the last ${lit.size - MAX_SLOTS + 1} light together")
+            IntArray(countries.size) { k ->
+                when {
+                    k !in dealt -> -1
+                    shot.beat > 0.0 -> lit.indexOf(k).coerceAtMost(MAX_SLOTS - 1)
+                    else -> dealt.getValue(k)
+                }
+            }
+        }
+        slotShades = dealtOf.mapValues { (shot, pair) ->
+            val (lit, dealt) = pair
+            IntArray(MAX_SLOTS) { slot -> if (shot.beat > 0.0) lit.getOrNull(slot)?.let { dealt[it] } ?: 0 else slot }
+        }
         countryNames = countries.associate { it.code to (it.nameNl ?: it.name) }
-        named.filter { it !in middles }.forEach { println("pixel map: no country $it to name") }
+        middles = countries.map { middleOf(it) }
+        countryShots.flatMap { shot -> shot.list.map { it.code } }.toSet()
+            .filter { code -> countries.none { it.code == code } }
+            .forEach { println("pixel map: no country $it to list") }
 
         println("pixel map: %d countries, %d factories, %d other sites (%s) in %.1fs".format(
             countries.size, sites.filterIndexed { k, _ -> !factories[k].hidden }.count { it != null }, officeSpots.count { it != null },
@@ -429,9 +465,14 @@ class PixelMap(
         val raw = linear(eased)
         val moves = factoryOf(a) == null || factoryOf(a) != factoryOf(b)
         fun window(from: Double, to: Double) = easeInOutCubic(((raw - from) / (to - from)).coerceIn(0.0, 1.0))
+        // The share of this click the camera's move takes: all of it, but on a click onto a
+        // countries build, whose click runs on after the camera has landed while they light.
+        val length = stepLength(i + 1).toDouble()
+        val cameraShare = stepFrames / length
         val (t, nameT) = when {
             moves && a is FactoryName && b !is FactoryName -> window(HANDOFF, 1.0) to window(0.0, HANDOFF)
             moves && b is FactoryName && a !is FactoryName -> window(0.0, 1.0 - HANDOFF) to window(1.0 - HANDOFF, 1.0)
+            cameraShare < 1.0 -> window(0.0, cameraShare) to window(0.0, cameraShare)
             else -> eased to eased
         }
         val centre = centreOf(a, w, h, frozen.dots).mix(centreOf(b, w, h, frozen.dots), t)
@@ -450,34 +491,49 @@ class PixelMap(
         drawer.image(frozen.image.colorBuffer(0), corner.x, corner.y, mapWidth, mapHeight)
 
         // How far a kind of shot is up at this position: all the way while the click is between two
-        // of them, coming in over [from]..[to] of a click into one, and going over the mirror of
-        // that on a click out of one. Off the click's linear time, like the name's handoff.
+        // of them, coming in over [from]..[to] of the camera's move into one, and going over the
+        // mirror of that on a click out of one. Off the click's linear time, like the name's handoff.
         fun arrived(of: (MapShot) -> Boolean, from: Double, to: Double): Double {
             val inA = of(a)
             val inB = of(b)
             return when {
                 inA && inB -> 1.0
-                inB -> window(from, to)
+                inB -> window(from * cameraShare, to * cameraShare)
                 inA -> 1.0 - window(1.0 - to, 1.0 - from)
                 else -> 0.0
             }
         }
 
+        // How far the [rank]-th country of a countries shot is lit: at its turn in the click onto a
+        // build, with the rest of the tint otherwise.
+        fun lit(shot: MapCountries, rank: Int): Double {
+            if (shot.beat <= 0.0 || a === shot || b !== shot) return arrived({ it === shot }, TINT_FROM, 1.0)
+            val from = frames(lightsAt(shot, rank)) / length
+            return window(from, from + frames(LIGHT) / length)
+        }
+
         // --- the countries the group builds in ------------------------------------------ //
         //
         // Laid over the map as a second picture of the same cells: where the shot's mask says a
-        // cell is one of its countries, the cell takes that country's shade of the colour, faded
-        // in as the camera lands. Every other cell lets the grey through untouched.
+        // cell is one of its countries, the cell takes its slot's shade of the colour, each slot
+        // faded in on its own. Every other cell lets the grey through untouched.
 
         val countryShots = listOf(a, b).filterIsInstance<MapCountries>().distinct()
         countryShots.forEach { shot ->
             val mask = frozen.masks[shot] ?: return@forEach
-            val amount = arrived({ it === shot }, TINT_FROM, 1.0)
-            if (amount <= 0.0) return@forEach
-            val tones = List(MAX_TONES) { k -> shot.colour.shade(shot.shades.getOrElse(k) { shot.shades.lastOrNull() ?: 1.0 }) }
+            val shades = slotShades[shot] ?: return@forEach
+            val amounts = List(MAX_SLOTS) { slot -> lit(shot, slot) }
+            // What the column would lie over is never seen: painted out at full from the first frame of
+            // the click into the shot, which is before the camera can have brought it into frame. Fading it
+            // out with the camera's move showed Greenland coming in and going again, and read as a question.
+            val cleared = if (shot.list.isEmpty()) 0.0 else 1.0
+            if (amounts.all { it <= 0.0 } && cleared <= 0.0) return@forEach
             drawer.shadeStyle = tinted.apply {
-                tones.forEachIndexed { k, tone -> parameter("tone$k", tone) }
-                parameter("amount", amount)
+                parameter("ground", background.opacify(cleared))
+                amounts.forEachIndexed { slot, amount ->
+                    val shade = shot.shades.getOrElse(shades[slot]) { shot.shades.lastOrNull() ?: 1.0 }
+                    parameter("slot$slot", shot.colour.shade(shade).opacify(amount))
+                }
             }
             drawer.image(mask.colorBuffer(0), corner.x, corner.y, mapWidth, mapHeight)
             drawer.shadeStyle = null
@@ -554,12 +610,12 @@ class PixelMap(
 
         // --- the countries' names -------------------------------------------------------- //
         //
-        // One size on screen at every zoom, like the cities, arriving after the tint and rising
-        // into place the way every other line on this slide does.
+        // A column down the left, on the sea, each name rising into its place as its country lights.
 
         countryShots.forEach { shot ->
-            val up = arrived({ it === shot }, LABEL_FROM, 1.0)
-            if (up > 0.0) countryLabels(drawer, shot, h, up) { world -> screen(world) }
+            val column = columnOf(shot, w, h) ?: return@forEach
+            // An entry for a country the shot does not light arrives with the first.
+            countryList(drawer, shot, column, w, h) { code -> lit(shot, shot.codes.indexOf(code).coerceIn(0, MAX_SLOTS - 1)) }
         }
 
         // --- a name, large ------------------------------------------------------------- //
@@ -653,47 +709,60 @@ class PixelMap(
         }
     }
 
+    /** A [MapCountries] list laid out on a pane: its entries, and the right edge of the room it takes. */
+    private class Column(val entries: List<Entry>, val right: Double)
+
+    /** One country in a [Column]: its name's baseline, and the note's lines with theirs. */
+    private class Entry(val code: String, val name: String, val baseline: Double, val notes: List<Pair<String, Double>>)
+
     /**
-     * A [MapCountries] shot's labels, [up] of the way in: each name centred on its point's height
-     * and ranged by its [CountryLabel.align], its note under it, and — where the label was moved
-     * off its country — a hairline from the label's near side back to the country's middle.
-     * [screen] lays a point on the projection onto the pane.
+     * Where a [MapCountries] shot's list stands on a [w] by [h] pane, or null for a shot with none.
+     *
+     * **One size for every name**, a list of things of one kind. The column is as wide as the
+     * widest name, a note is wrapped to it, and the block is centred down the pane, ranged left on
+     * the margin the programme's list stands on. Every position is fixed by the whole list, so an
+     * entry arriving never moves the ones already there. The room it takes runs a gap past the
+     * column, and the camera frames the countries in what is left — see [spanOf].
      */
-    private fun countryLabels(drawer: Drawer, shot: MapCountries, h: Double, up: Double, screen: (Vector2) -> Vector2) {
-        val nameSize = h * COUNTRY
-        val noteSize = h * COUNTRY_NOTE
-        val rise = (1.0 - smoothstep(up)) * nameSize * RISE
-        shot.labels.forEach { label ->
-            val middle = middles[label.code] ?: return@forEach
-            val name = label.name ?: countryNames[label.code] ?: label.code
-            val at = screen(label.lonLat?.let { webMercator(it) } ?: middle)
-            val ink = (label.ink ?: shot.ink).opacify(up)
-            val baseline = at.y + nameSize * CAP + rise
-            val noteBaseline = baseline + nameSize * NOTE_GAP + noteSize
+    private fun columnOf(shot: MapCountries, w: Double, h: Double): Column? {
+        if (shot.list.isEmpty()) return null
+        val nameSize = h * LIST_NAME
+        val noteSize = h * LIST_NOTE
+        val left = w * LIST_LEFT
+        val names = shot.list.map { it.name ?: countryNames[it.code] ?: it.code }
+        val measure = names.maxOf { listFace.advanceOf(it) * nameSize / LIST_EM }
+        val notes = shot.list.map { entry -> entry.note?.let { text.wrapped(it, measure * TEXT_EM / noteSize) }.orEmpty() }
 
-            if (label.lonLat != null && label.leader) {
-                val gap = nameSize * LEADER_GAP
-                val from = when {
-                    label.align <= 0.0 -> Vector2(at.x - gap, at.y + rise)
-                    label.align >= 1.0 -> Vector2(at.x + gap, at.y + rise)
-                    else -> Vector2(at.x, (if (label.note != null) noteBaseline else baseline) + gap)
-                }
-                // Hoisted: inside isolated the receiver is a Drawer, with a width and height of its own.
-                val to = screen(middle)
-                val weight = h * LEADER
-                drawer.isolated {
-                    fill = null
-                    stroke = ink
-                    strokeWeight = weight
-                    lineSegment(from, to)
-                }
-            }
+        // Laid from a first baseline of 0, then moved down so the block's cap-top-to-last-baseline
+        // stands in the middle of the pane.
+        var at = 0.0
+        val laid = shot.list.indices.map { k ->
+            val baseline = at
+            val lines = notes[k].mapIndexed { j, line -> line to baseline + nameSize * LIST_NOTE_DROP + j * noteSize * LIST_NOTE_LEAD }
+            at = (lines.lastOrNull()?.second ?: baseline) + nameSize * LIST_ROW
+            Entry(shot.list[k].code, names[k], baseline, lines)
+        }
+        val last = laid.last().let { it.notes.lastOrNull()?.second ?: it.baseline }
+        val shift = (h - (last + nameSize * CAP_HEIGHT)) / 2.0 + nameSize * CAP_HEIGHT
+        val widest = maxOf(measure, notes.flatten().maxOfOrNull { text.advanceOf(it) * noteSize / TEXT_EM } ?: 0.0)
+        return Column(
+            laid.map { e -> Entry(e.code, e.name, e.baseline + shift, e.notes.map { (line, y) -> line to y + shift }) },
+            left + widest + h * LIST_GAP
+        )
+    }
 
-            drawer.fill = ink
-            drawer.setLine(name, bold, Vector2(at.x, baseline), nameSize, NAME_EM, align = label.align)
-            label.note?.let { note ->
-                drawer.setLine(note, text, Vector2(at.x, noteBaseline), noteSize, TEXT_EM, align = label.align)
-            }
+    /** The list, each entry [shown] by its code: rising into place and coming up as its country lights. */
+    private fun countryList(drawer: Drawer, shot: MapCountries, column: Column, w: Double, h: Double, shown: (String) -> Double) {
+        val nameSize = h * LIST_NAME
+        val noteSize = h * LIST_NOTE
+        val left = w * LIST_LEFT
+        column.entries.forEach { entry ->
+            val up = shown(entry.code)
+            if (up <= 0.0) return@forEach
+            val rise = (1.0 - up) * nameSize * RISE
+            drawer.fill = shot.ink.opacify(up)
+            drawer.setLine(entry.name, listFace, Vector2(left, entry.baseline + rise), nameSize, LIST_EM)
+            entry.notes.forEach { (line, y) -> drawer.setLine(line, text, Vector2(left, y + rise), noteSize, TEXT_EM) }
         }
     }
 
@@ -846,8 +915,18 @@ class PixelMap(
         }
 
         val image = count(fills, background, mixed)
-        val masks = tonesOf.mapValues { (_, tones) ->
-            count(fills.indices.map { k -> maskColour(k, tones.getOrElse(k) { -1 }) }, ColorRGBa.BLACK, 0.0)
+        // **A country the list would lie over is left off.** A name may not stand on land it does
+        // not belong to, and the column is otherwise sea at the countries' frame: only Greenland
+        // reaches into it. So a country whose middle lands in the column is marked in the mask and
+        // painted out with the ground. A rectangle of ground behind the column was the first way,
+        // and it sliced Greenland at rest and Iceland while the camera pulled out past it.
+        val masks = slotsOf.mapValues { (shot, slots) ->
+            val gone = columnOf(shot, w, h)?.let { column ->
+                val c = centreOf(shot, w, h, emptyList())
+                val pixelsPerKm = h / spanOf(shot, w, h)
+                fills.indices.filter { k -> middles.getOrNull(k)?.let { w / 2.0 + (it.x - c.x) * pixelsPerKm < column.right } == true }.toSet()
+            }.orEmpty()
+            count(fills.indices.map { k -> maskColour(k, slots.getOrElse(k) { -1 }, k in gone) }, ColorRGBa.BLACK, 0.0)
         }
 
         val taken = HashSet<Long>()
@@ -890,22 +969,24 @@ class PixelMap(
      * ground, and Mercator stretches the ground by latitude, so it is laid on the map as that many
      * km times the stretch where the shot is looking. A [MapCountries] shot is the exception: it is
      * framed on the projection directly, off its countries' box, the height or the width at the
-     * pane's proportion, whichever binds, and its margin either side.
+     * proportion of what its list leaves of the pane, whichever binds, and its margin either side.
      */
     private fun spanOf(shot: MapShot, w: Double, h: Double): Double = when (shot) {
         is MapFrame -> mercatorStretch(shot.lat) * shot.span
         is FactoryCluster -> mercatorStretch(cluster.y) * shot.span
         is FactoryVisit -> mercatorStretch(latitudeOf(shot.factory)) * shot.span
         is FactoryName -> mercatorStretch(latitudeOf(shot.factory)) * shot.span
-        is MapCountries -> extents[shot]
-            ?.let { (low, high) -> maxOf(high.y - low.y, (high.x - low.x) * h / w) * (1.0 + 2.0 * shot.margin) }
-            ?: (mercatorStretch(BENELUX.lat) * BENELUX.span)
+        is MapCountries -> extents[shot]?.let { (low, high) ->
+            val across = w - (columnOf(shot, w, h)?.right ?: 0.0)
+            maxOf(high.y - low.y, (high.x - low.x) * h / across) * (1.0 + 2.0 * shot.margin)
+        } ?: (mercatorStretch(BENELUX.lat) * BENELUX.span)
     }
 
     /**
      * Where a shot looks, in Web Mercator km. A visit stands its factory's dot at [anchor] across
      * the pane and in the middle of the map left **above the bar**, not of the whole pane; a
-     * [MapCountries] shot looks at the middle of its countries' box.
+     * [MapCountries] shot stands the middle of its countries' box in the middle of what its list
+     * leaves of the pane.
      */
     private fun centreOf(shot: MapShot, w: Double, h: Double, dots: List<Vector2?>): Vector2 = when (shot) {
         is MapFrame -> webMercator(Vector2(shot.lon, shot.lat))
@@ -914,8 +995,10 @@ class PixelMap(
             ?.let { f -> dots.getOrNull(f) ?: sites.getOrNull(f) }
             ?.let { it + Vector2(w / 2.0 - anchor * w, -barOffset(h) / 2.0) * (spanOf(shot, w, h) / h) }
             ?: webMercator(Vector2(BENELUX.lon, BENELUX.lat))
-        is MapCountries -> extents[shot]?.let { (low, high) -> (low + high) * 0.5 }
-            ?: webMercator(Vector2(BENELUX.lon, BENELUX.lat))
+        is MapCountries -> extents[shot]?.let { (low, high) ->
+            val left = columnOf(shot, w, h)?.right ?: 0.0
+            (low + high) * 0.5 - Vector2(left / 2.0 * spanOf(shot, w, h) / h, 0.0)
+        } ?: webMercator(Vector2(BENELUX.lon, BENELUX.lat))
     }
 
     /**
@@ -941,17 +1024,20 @@ class PixelMap(
 
     /**
      * The tinted half of the map: where a [MapCountries] mask says a cell is one of its countries,
-     * that country's shade of the colour, [amount] of the way in; everywhere else nothing at all.
-     * The shade rides in the mask's green — see [maskColour] — and is read back to the nearest step.
+     * its slot's colour, as far in as the slot's alpha says; where it marks a country left off under
+     * a list, the ground, as far in as `ground`'s alpha says; everywhere else nothing at
+     * all. The slot rides in the mask's green — see [maskColour] — and is read back to the nearest step.
      */
     private val tinted by lazy {
         shadeStyle {
             fragmentTransform = """
                 float g = x_fill.g;
                 float lit = step($MASK_LIT, g);
-                float tone = clamp(floor((g - $MASK_FIRST) / $MASK_STEP + 0.5), 0.0, ${MAX_TONES - 1}.0);
-                vec4 c = tone < 0.5 ? p_tone0 : (tone < 1.5 ? p_tone1 : (tone < 2.5 ? p_tone2 : p_tone3));
-                x_fill = vec4(c.rgb, c.a * p_amount * lit);
+                float gone = step(${MASK_GONE / 2.0}, g) * (1.0 - step(${(MASK_GONE + MASK_UNLIT) / 2.0}, g));
+                int slot = int(clamp(floor((g - $MASK_FIRST) / $MASK_STEP + 0.5), 0.0, ${MAX_SLOTS - 1}.0));
+                vec4 slots[$MAX_SLOTS] = vec4[$MAX_SLOTS](${(0 until MAX_SLOTS).joinToString { "p_slot$it" }});
+                vec4 c = lit > 0.5 ? slots[slot] : vec4(p_ground.rgb, p_ground.a * gone);
+                x_fill = c;
             """.trimIndent()
         }
     }
@@ -1080,8 +1166,8 @@ private fun deal(lit: List<Int>, tones: Int, neighbours: List<Set<Int>>): Map<In
 }
 
 /**
- * Where a country is named: the centroid of its largest piece of land on the projection, so
- * France is named on the mainland rather than between it and Corsica.
+ * Where a country is, for the test that leaves it off under a list: the centroid of its largest
+ * piece of land on the projection, so France is its mainland rather than a point between it and Corsica.
  */
 private fun middleOf(country: Country): Vector2? {
     var best: Vector2? = null
@@ -1111,13 +1197,18 @@ private fun middleOf(country: Country): Vector2? {
 
 /**
  * A country's colour in a [MapCountries] mask: unique to the country in red and blue, so the vote
- * splits every cell exactly as it does for the greys, and its [tone] in green — [MASK_UNLIT] where
- * it is not tinted, [MASK_FIRST] up in steps of [MASK_STEP] where it is. Stated linear so it is
+ * splits every cell exactly as it does for the greys, and its [slot] in green — [MASK_UNLIT] where
+ * it is not tinted, [MASK_FIRST] up in steps of [MASK_STEP] where it is, [MASK_GONE] where it is
+ * [gone] under a list. Stated linear so it is
  * stored as written; the sea under it is black, which no country is.
  */
-private fun maskColour(country: Int, tone: Int) = ColorRGBa(
+private fun maskColour(country: Int, slot: Int, gone: Boolean = false) = ColorRGBa(
     0.25 + 0.05 * (country % 16),
-    if (tone < 0) MASK_UNLIT else MASK_FIRST + MASK_STEP * tone.coerceAtMost(MAX_TONES - 1),
+    when {
+        slot >= 0 -> MASK_FIRST + MASK_STEP * slot.coerceAtMost(MAX_SLOTS - 1)
+        gone -> MASK_GONE
+        else -> MASK_UNLIT
+    },
     0.25 + 0.05 * ((country / 16) % 16),
     1.0,
     Linearity.LINEAR
@@ -1204,36 +1295,50 @@ private val BLINK_PERIOD = frames(1.6)
 private const val LABEL_REACH = 3.0
 
 /**
- * A [MapCountries] click: the tint comes in from [TINT_FROM] of it and the names from
- * [LABEL_FROM], both to its end, while the cities are gone by [CITY_GO]; a click out of one plays
- * the same windows mirrored.
+ * A [MapCountries] click, as shares of the camera's move: the tint comes in from [TINT_FROM] of it
+ * to its end, while the cities are gone by [CITY_GO]; a click out of one plays the same windows
+ * mirrored.
  */
 private const val TINT_FROM = 0.4
-private const val LABEL_FROM = 0.65
 private const val CITY_GO = 0.35
 
 /**
- * A country's name and the note under it as shares of the pane's height, at every zoom; the gap
- * between the name's baseline and the note's top as a share of the name; the leader's weight as a
- * share of the pane's height, and how far it starts off the label as a share of the name.
+ * A countries build: the first country starts to light at [LIGHT_FROM] of the camera's move, as
+ * it lands, and each takes [LIGHT] seconds to come up.
  */
-private const val COUNTRY = 0.026
-private const val COUNTRY_NOTE = 0.018
-private const val NOTE_GAP = 0.3
-private const val LEADER = 0.0012
-private const val LEADER_GAP = 0.3
-
-/** Shades a [MapCountries] tint can deal, which is as many as its mask's green carries. */
-private const val MAX_TONES = 4
+private const val LIGHT_FROM = 0.85
+private const val LIGHT = 0.5
 
 /**
- * A mask's green: an untinted country, the first shade and the step to the next, and the
- * threshold between untinted and tinted. Stored in eight bits as 128, 159, 191, 223 and 255.
+ * The countries' list: a name and a note as shares of the pane's height, a name larger than a
+ * slide's title so it reads across the room, a note at the body size; the em the list's face loads
+ * at; the left edge as a share of the width (the programme's list's margin); from a name's baseline
+ * to its note's first, and from one note line to the next, as shares of their sizes; from the last
+ * baseline of an entry to the next name's, as a share of the name; and the room left between the
+ * column and the map, as a share of the height.
  */
+private const val LIST_NAME = 0.06
+private const val LIST_NOTE = 0.0287
+private const val LIST_EM = 72.0
+private const val LIST_LEFT = 0.05
+private const val LIST_NOTE_DROP = 0.72
+private const val LIST_NOTE_LEAD = 1.25
+private const val LIST_ROW = 1.4
+private const val LIST_GAP = 0.06
+
+/** Slots a [MapCountries] tint can fade apart — shades, or a build's countries — as many as its mask's green carries. */
+private const val MAX_SLOTS = 8
+
+/**
+ * A mask's green: a country left off under a list, an untinted country, the first slot and
+ * the step to the next, and the threshold between untinted and tinted. Stored in eight bits as 64,
+ * 128, then 143 to 255 in steps of 16; the sea is 0.
+ */
+private const val MASK_GONE = 0.25
 private const val MASK_UNLIT = 0.5
-private const val MASK_FIRST = 0.625
-private const val MASK_STEP = 0.125
-private const val MASK_LIT = 0.5625
+private const val MASK_FIRST = 0.5625
+private const val MASK_STEP = 0.0625
+private const val MASK_LIT = 0.53125
 
 /** The most cells the grid may have along a side, however far a shot reaches; four times that is the sample buffer. */
 private const val MAX_CELLS = 1500

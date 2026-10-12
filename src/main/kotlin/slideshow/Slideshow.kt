@@ -846,7 +846,10 @@ fun courseTransition(start: ChapterStart): CourseTransition? {
         fade = Env["SLIDES_COURSE_TRANSITION_FADE"]?.toDoubleOrNull() ?: 10.0,
         dark = Env["SLIDES_COURSE_TRANSITION_DARK"]?.toDoubleOrNull() ?: 0.12,
         rest = Env["SLIDES_COURSE_TRANSITION_REST"]?.toDoubleOrNull() ?: 10.0,
-        countdown = Env.boolean("SLIDES_COURSE_TRANSITION_COUNTDOWN", default = true)
+        trim = Env["SLIDES_COURSE_TRANSITION_TRIM"]?.toDoubleOrNull() ?: 0.0,
+        countdown = Env.boolean("SLIDES_COURSE_TRANSITION_COUNTDOWN", default = true),
+        pulse = Env["SLIDES_COURSE_TRANSITION_PULSE"]?.takeIf { it.isNotBlank() }?.let { ColorRGBa.fromHex(it) } ?: slideshow.Palette.BLUE,
+        pulseLength = Env["SLIDES_COURSE_TRANSITION_PULSE_LENGTH"]?.toDoubleOrNull() ?: 0.9
     )
 }
 
@@ -1961,20 +1964,21 @@ val show = slideshow {
                         joiners = listOf(", ", " ", ", ")),
                     europe,
                     // The countries the group builds in, lit after the factories (meeting of 30 September):
-                    // the map pulls out until all of Sweden is in, and the six take the house blue.
+                    // the map pulls out until all of Sweden is in, and the six take the house blue one
+                    // after another, in the order the line names them, each joining a list down the
+                    // left as it lights. Nothing is written on the map (feedback of 12 October).
                     MapCountries(
                         "Waar we bouwen",
                         codes = listOf("BEL", "NLD", "FRA", "LUX", "DNK", "SWE"),
                         colour = wnBlue,
-                        labels = listOf(
+                        beat = 0.9,
+                        list = listOf(
+                            CountryLabel("BEL", "België", "de thuisbasis"),
+                            CountryLabel("NLD", "Nederland"),
                             CountryLabel("FRA", "Frankrijk"),
+                            CountryLabel("LUX", "Luxemburg"),
                             CountryLabel("DNK", "Denemarken", "en de bredere Scandinavische regio"),
-                            CountryLabel("SWE", "Zweden"),
-                            // Benelux is a few cells across out here: a column over Germany, dark on the grey,
-                            // each with a hairline back to its country.
-                            CountryLabel("NLD", "Nederland", lonLat = Vector2(9.0, 53.2), align = 0.0, ink = ColorRGBa.fromHex("111111")),
-                            CountryLabel("BEL", "België", "de thuisbasis", lonLat = Vector2(9.0, 51.5), align = 0.0, ink = ColorRGBa.fromHex("111111")),
-                            CountryLabel("LUX", "Luxemburg", lonLat = Vector2(9.0, 49.1), align = 0.0, ink = ColorRGBa.fromHex("111111"))
+                            CountryLabel("SWE", "Zweden")
                         )
                     )
                 ),
@@ -2804,12 +2808,14 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         holdRestart = Env["${prefix}_HOLD_RESTART"]?.toDoubleOrNull() ?: settings.holdRestart,
         overviewDouble = Env["${prefix}_OVERVIEW_DOUBLE"]?.toDoubleOrNull() ?: settings.overviewDouble,
         practice = Env["${prefix}_PRACTICE"]?.let { Env.boolean("${prefix}_PRACTICE") } ?: settings.practice,
+        waitForAnimation = Env["${prefix}_WAIT_FOR_ANIMATION"]?.let { Env.boolean("${prefix}_WAIT_FOR_ANIMATION") } ?: settings.waitForAnimation,
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,
         video = Env["${prefix}_VIDEO"]?.takeIf { it.isNotBlank() } ?: settings.video,
         mix = Env["${prefix}_MIX"]?.let { Env.boolean("${prefix}_MIX") } ?: settings.mix,
         recorder = Env["${prefix}_RECORDER"]?.takeIf { it.isNotBlank() } ?: settings.recorder,
+        recordCrf = Env["${prefix}_RECORD_CRF"]?.toIntOrNull() ?: settings.recordCrf,
         stills = Env.boolean("${prefix}_STILLS"),
         bench = Env.boolean("${prefix}_BENCH"),
         benchSamples = Env["${prefix}_BENCH_SAMPLES"]?.toIntOrNull() ?: settings.benchSamples,
@@ -2836,6 +2842,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
             Env["${prefix}_MIX_${layer.name}"]?.toDoubleOrNull() ?: settings.levels[layer] ?: 1.0
         },
         soundTrace = Env["${prefix}_SOUND_TRACE"]?.let { Env.boolean("${prefix}_SOUND_TRACE") } ?: settings.soundTrace,
+        backFade = Env["${prefix}_BACK_FADE"]?.toDoubleOrNull() ?: settings.backFade,
         feedback = Env["${prefix}_FEEDBACK"]?.takeIf { it.isNotBlank() } ?: settings.feedback,
         meeting = Env["${prefix}_MEETING"]?.takeIf { it.isNotBlank() } ?: settings.meeting,
         draaiboek = Env["${prefix}_DRAAIBOEK"]?.takeIf { it.isNotBlank() } ?: settings.draaiboek,

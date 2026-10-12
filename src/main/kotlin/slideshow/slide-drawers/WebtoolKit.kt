@@ -115,7 +115,7 @@ class WebtoolKit(
     /** The click the deck opened this slide on: the catalogue's arrival plays only from the first. */
     private var openedOn = 0
 
-    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int) {
+    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int, back: Boolean) {
         openedOn = opensOn
         if (catalogue != null && previous is CircleGrid && previous.scene === catalogue) catalogue.gridLeftOn = leftOn
     }

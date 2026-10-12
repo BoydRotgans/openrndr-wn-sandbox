@@ -831,6 +831,37 @@ nothing. Two traps: the page's `▶ start presentation` kept the browser's focus
 so a stray key there stopped the show (it lets go of the focus now); and a stop from the page exits 143
 where a quit from inside the show exits 0, which is how the two are told apart in the output.
 
+**Wait for the animation** (`SLIDES_WAIT_FOR_ANIMATION`, the organizer's `wait for animation` button,
+kept by the launcher like practice mode; 12 October): a forward click (→, Page Down, ↓, the page's
+arrows) is refused while the state on the wall is still moving, so the talk cannot be clicked through
+faster than it plays. **Every animation is counted down by one line, bottom left of the wall**
+([`Countdown`](src/main/kotlin/slideshow/Countdown.kt)):
+- **It shows the share still to play**, coming down from full to nothing over its full length drawn
+  faintly. It is up for as long as the state moves and gone once it is still.
+- **Only for an animation longer than 2 s** (`Countdown.SHORTEST`): a shorter one is over before the line
+  could be read, so it shows none. A click refused during it is answered by a blue dot where the line would
+  start, pulsing once over 0.9 s (`Countdown.drawDot`), so every click is seen to arrive.
+- **A wall that stands and plays on waits only for its build** (stress test, 12 October 2026): a course wall's
+  `settle` is when its preview is taken (60 s for *climb*), not motion, and counting it refused the click that
+  ends a course for up to a minute. `stillMoving()` caps a wide, building, card-less slide at
+  `SLIDES_BACKDROP_BUILD`; `movingFrames` is untouched, so a hands-off run's holds are as before. And a click
+  in the last tenth of a second is taken (`WAIT_GRACE`): refused that late it read as a dropped click.
+- **No figures and no plate**: a thin black keyline under it keeps it readable on a light wall.
+- **A refused click swells it** in weight and toward the blue, so the click is seen to land.
+- **One drawing, two callers**: the course transition draws it into its wall, and the driver draws it on
+  the window over every other animation while the mode is on, stepping aside on a slide that `holds`.
+
+It went through a red dot, a shrinking bar and the transition's m:ss plate on the same day before it
+became one system. "Still moving" is the handover still running, the click still playing, or, on an opening state
+reached going forward, the slide's own opening, by the rule a hands-off run holds a state by (`movingFrames`,
+which `standFrames` now reads too). Three things go through regardless:
+- **Back always works**: it lands built, and it is the way out of a click made by mistake.
+- **A slide that `holds` is asked first**, so the course transition counts down with its own line.
+- **A hands-off run is never held.**
+
+The driver's line is drawn on the window like the restart ring, so it never reaches a film. A slide whose `settle`
+is the default click length waits that long after it arrives even when its opening does not move.
+
 The folder is in three parts. **`Slideshow.kt` is the show** — the one file to open, and
 the only one to edit to change what the talk is. **`slide-drawers/` is a file per slide**,
 so adding one is adding a file rather than growing a list, and **`backdrop-drawers/` is a
@@ -875,17 +906,22 @@ because the frame count is derived from `seconds` rather than from frames drawn.
 **Each slide is drawn into its own buffer and the transition composites the two.** That
 is what lets slides with different grounds hand over cleanly — there is no moment where
 one background is painted over the other, only two finished pictures being mixed. `Cut`
-(no handover at all), `Fade` and `Push` are the three; a slide declares how it *arrives*,
-and stepping backwards replays that same transition reversed, so going back undoes exactly
-what going forward did.
+(no handover at all), `Fade` and `Push` are the three; a slide declares how it *arrives*.
+Going back plays none of them: it cuts (below).
 
 **`Cut` is the default, and the deck arrived at that one slide at a time.** `Fade` was, and
 every slide was asked to stop doing it in turn until the answer was plainly all of them: a
 talk moves between subjects, and a dissolve reads as one picture becoming another rather
 than as the subject having changed. A slide that genuinely hands over says so — the `Push`
 on the demo loop, or a fade between two states of one thing. It also means the seamless cut
-into the tree is the default rather than something arranged. Stepping back off the front of a slide lands on the **last** click
-of the one before it, fully built, rather than resetting it.
+into the tree is the default rather than something arranged.
+
+**Going back is a cut to the click before** (12 October 2026). Inside a slide, `←` or the clicker's
+back lands on the click before; off the front of a slide, on the last click of the one before. Either
+stands as it was left, fully built, and nothing plays in reverse: it used to undo the arrival with the
+transition reversed, which read as the show playing backwards. Landing on the previous slide's start
+was tried the same morning and went, since it skipped the clicks that slide had already shown. `↑`
+goes a whole slide back to its start, also on a cut.
 
 **`SLIDES_CUES` films a run hands-off**, and `SLIDES_AUTOSTEP` mostly cannot: a click of the
 city takes twelve seconds and a click of the stack takes half of one, so any single interval
@@ -1496,7 +1532,9 @@ state of the running order a line, under its slide, chapter and moment, the exte
 - **A line whose voice is not rendered for its text has an amber edge** and `♪ not rendered` or `♪ older text`
   beside it, the render command in its tooltip; the bar's `♪ n to render ▸` goes to the next one.
 - **Autoplay or wait for click**: on the extended track with subtitles or the voice on, the show clicks on by
-  itself once each line is said (`autoplay`), or says the line and holds the state for a click. `SLIDES_AUTOPLAY`
+  itself once each line is said (`autoplay`), or says the line and holds the state for a click. The switch is
+  in the top bar too (`autoplay: on/off`, 12 October 2026), beside voice and subtitles, since on the
+  Subtitles tab alone it went unfound and a show restarted with the voice on from `.env` seemed to play by itself. `SLIDES_AUTOPLAY`
   (`Settings.autoplay`) is where it starts, `POST /api/autoplay` switches the running show (`Remote.Autoplay`),
   and the launcher keeps it for the next start like the mute. Switched back on, a state whose line is said moves
   on at once.
@@ -4170,6 +4208,27 @@ its dot on the whole pane. Eight states now: the cue sheet's `de-fabrieken-B`
 to `-E` land on Seveton, its name, the name apart and Transwinaton; Transwinaton's name, its
 breakdown and the pull-back have none.
 
+**The ninth state is the six countries, built one by one beside a list** (`MapCountries`, 12
+October). Its first version put a label on each country, with hairlines to the Benelux ones, and
+read as clutter. Now nothing is written on the map:
+- **The countries light in the order the line names them**, `beat` (0.9 s) apart once the camera has
+  landed: België, Nederland, Frankrijk, Luxemburg, Denemarken, Zweden. Each country's name rises
+  into a list down the left as it lights, set large at 0.06 of the height, with the notes ("de
+  thuisbasis", "en de bredere Scandinavische regio") under their names. The click is lengthened to
+  carry it (`stepLength`, 6.7 s), so clicking back puts them out in reverse. The state count is
+  unchanged, so `de-fabrieken-I`'s subtitles and voice stay where they were.
+- **The camera frames the countries in what the list leaves**: the countries' box is fitted to the
+  pane right of the column, so the list never covers a country.
+- **No name lies over land it does not belong to.** At this frame the column is sea except for
+  Greenland, so a country whose middle falls in the column is marked in the mask and painted out
+  with the ground from the first frame of the click, so it is never seen. A rectangle of ground behind
+  the column came first: it sliced Greenland at rest and Iceland mid-move. Fading Greenland out with the
+  camera's move came second, and showed it coming in and going again.
+- **The tint fades by slot.** The mask's green carries a slot (a country's turn, or its shade when
+  the countries light together), up to eight, each with its own colour and amount.
+- All six stand in the one blue, so at rest France and Benelux read as one mass; `shades` deals
+  darker shades of the blue to neighbours if they should stay apart.
+
 `tools/factory_graphics.py` pulls the other document, *onderdeel per fabriek*, into
 `data/factories/`: one product-page screenshot a factory, and Seveton's cut into its three photos
 (`wandelementen-volbeton`, `sandwichpanelen`, `verdiepingselementen-ttx`). Transwinaton has no page
@@ -5003,26 +5062,42 @@ the Second. **The click onto it is the operator ending the course**; from then i
   begins, measured at load, the rest an even pace, so the blocks come fastest as the swell peaks and the
   last settle as it dies away. Each rises over 1.4 s, and **the last is up `SLIDES_COURSE_TRANSITION_REST`
   (10 s) before the file ends**, so the finished opening stands while the swell dies away (it was 0.6 s
-  until 28 September). The loudness is measured over the build's own window, not the whole file:
+  until 28 September). **Every transition is cut 8 s short** (`SLIDES_COURSE_TRANSITION_TRIM`, 12 October 2026): the
+  finished opening stands 2 s rather than 10, so the countdown, the lock and the click into the chapter
+  come 8 s sooner, at 25.1 s, while the fade and the build keep their pace. Nothing audible is lost: the
+  sample is under −76 dB from 25 s on. The loudness is measured over the build's own window, not the whole file:
   normalised to the file, the swell still to come after the build would all be owed on its last frame,
   and the last tenth of the blocks would start together.
 - **It ends on the chapter opening's first frame.** `ChapterOpening.drawBuilding` draws the opening at
   frame 0 with each element at a share of its height (`LongShadowV3.draw(rise = …)`), so at 1 for all
   of them it *is* that frame. Checked on film: the cut from the transition into the opening changes the
   picture by 0.216 levels on average, against 0.139 between ordinary neighbouring frames.
-- **A countdown, bottom left of the wall**: the seconds left as m:ss with a line that shortens under
-  them, for the speaker to be ready on the click. Drawn into the canvas, so a film carries it;
-  `SLIDES_COURSE_TRANSITION_COUNTDOWN=false` leaves it off. **It stands on an opaque black plate, at
-  full strength from the click** (29 September: "directly clear for the presenter"). Drawn straight
-  over the course wall, white figures only became readable as the wall went dark, which over the light
-  walls — the flow's concrete block, the climb — is most of the ten-second fade, and read as the
-  countdown fading in. The plate is sized to the line rather than the figures, so it never changes size.
+- **A countdown, bottom left of the wall**: the seconds left, m:ss, over the show's countdown line
+  ([`Countdown`](src/main/kotlin/slideshow/Countdown.kt)), which comes down over the transition's length,
+  for the speaker to be ready on the click. Drawn into the canvas, so a film carries it;
+  `SLIDES_COURSE_TRANSITION_COUNTDOWN=false` leaves it off. It was m:ss on an opaque black plate until 12
+  October, when every animation in the show took the one line (see wait for the animation); the transition
+  alone keeps its figures, over the line, asked for the same day. The plate was there because white over
+  a light course wall only became readable as the wall went dark (29 September: "directly clear for the
+  presenter"); a black keyline round the figures and the line does that job now. **It goes at 0:00** (12
+  October 2026), the moment the lock lets go, so the chapter opening's first frame stands clean for the click.
+- **It has to be waited out going forward** (12 October 2026): until 0:00 the presenter's clicks forward
+  are refused — the keys, the clicker and the organizer's arrows (`Slide.holds`, asked by `waitedOut` in
+  the driver) — so the chapter cannot be clicked into early. Each refused click pulses the countdown's line
+  to `SLIDES_COURSE_TRANSITION_PULSE` (the house blue) and back over `_PULSE_LENGTH` (0.9 s), sin squared so
+  it is soft at both ends, which says the clicker works. A hands-off run is not refused, its clicks being
+  timed past the wait already, and `0`, the restart hold and a jump from the organizer still go through.
+- **Back stops it and keeps the course wall** (12 October 2026). Back was refused here too until the
+  same day. Now `Slide.carriesBack` hands the driver how long the wall has stood, counting what it ran
+  under the transition, and the deck lands the wall built with that clock (`Deck.restart(back = true)`):
+  no wall build, no jump, the wall as it was. The transition's sample fades out over its 2 s, and the
+  moment's playlist, which the transition had begun to let go of, picks its fade back up.
 
 How it knows the wall it came from: the deck's `cameFrom` names the slide it left and how long that
 stood, and the transition draws that wall at its own frame count carried on, so the course picture does
 not jump on the click. Four more `Slide` properties carry the rest, each off by default: `leadIn` plays
 the sample only on a forward arrival (stepping back into the transition from the chapter lands it built,
-silent, with no countdown); `momentMusic = false` keeps the playlist from carrying on under it;
+silent, with no countdown and no lock); `momentMusic = false` keeps the playlist from carrying on under it;
 `carriesOn` stops `FilmKt` cutting a film into pieces in front of it, since a piece opening there would
 have no wall under it; and `holdAfterSettle` makes a hands-off run click on half a second after 0:00
 rather than a wall's twelve.
@@ -5186,6 +5261,17 @@ each used under half a core. Four things, in the order they were fixed:
 and prints the slides by what they cost a film at `SLIDES_FPS`, with the states in `build/bench/bench.tsv`.
 A filmed run writes `<film>.timing` beside the film, the same per slide off the run itself. Read either
 before blaming the encoder.
+
+### The loading screen
+
+**A show that is loading says so** (12 October 2026). Every slide in the running order loads and the
+sound is decoded before the first frame, eight seconds and more in which the window was black and could
+be taken for a fault. [`LoadingScreen`](src/main/kotlin/slideshow/LoadingScreen.kt) puts "Loading" and a
+line filling under it in the middle of each projector meanwhile, a step a slide, a card and the sound.
+Nothing is drawn before the first frame unless it is put on screen by hand: OpenRNDR shows the window and
+clears it once before the program's setup, so the screen draws straight into the window, swaps it with
+GLFW and polls the window's events (which is why `lwjgl-glfw` is declared in the build, the jar OpenRNDR
+already loads). Never on a film, a still or a bench.
 
 ### Keeping the show light
 
@@ -5575,6 +5661,20 @@ click would be more noticeable than letting it finish.
 **A fade picks up from wherever the gain got to**, rather than from the value the cue declares.
 Clicking off the opening wall four seconds into a six-second fade-in was measured doing exactly
 that: up to 0.2, then down from 0.2 to silence, with no jump to full gain first.
+
+**A cue asked for again starts from its top** (12 October 2026), unless it is a loop or a file the
+slide being left was sounding too. A cue over `SLIDES_CUE_HOLD` is held and fades out over
+`SLIDES_CUE_FADE` as its slide is left, and coming back inside that second and a half used to pick the
+fade back up on the old play, seconds in and past its hit, so the sample went unheard on a quick back
+and forth. `saidAgain` in the driver decides it, and the same holds for a click made again after a step
+back. It is the rule the voice already had.
+
+**A step back fades the sound away** (12 October 2026), inside a slide or off its front: every sound of the
+design and every sample still ringing goes over `SLIDES_BACK_FADE` (0.3 s), loops excepted, so the
+playlists and the ambience run on (`hushBack` in the driver, `Speakers.hush`). Before, the picture cut back
+and its sound played on: a one-shot rings out to its end and a click's mark is let go only with its slide.
+`hush` is the one fade the pool's one-shot voices have; it is not in the cue log, so a filmed run, which
+never steps back, has no use for it.
 
 **A built slide marks its clicks as well as its arrival.** `Slide.sound` is what a slide says on
 coming up; `stepCues` is what each click says after that, and the stack is the case it exists

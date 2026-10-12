@@ -96,7 +96,7 @@ class LifeCycle(
     /** Whether the deck has just stepped forward onto this slide from [from]. */
     private var fromRoad = false
 
-    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int) {
+    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int, back: Boolean) {
         fromRoad = from != null && previous === from && opensOn == 0
     }
 

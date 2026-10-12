@@ -68,12 +68,12 @@ class CircleGrid(
 
     /** The click the deck opened this slide on: the arrival plays only from the first. */
     private var openedOn = 0
-    /** Stepped back into from the webtool: with one state there is no later click to say so, so the sheet stands. */
+    /** Come back to from the webtool: with one state there is no later click to say so, so the sheet stands. */
     private var cameBack = false
 
-    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int) {
+    override fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int, back: Boolean) {
         openedOn = opensOn
-        cameBack = !toScale && previous is WebtoolKit
+        cameBack = back && !toScale && previous is WebtoolKit
         if (previous is CircleRing && previous.scene === scene) scene.ringStood = stood
     }
 

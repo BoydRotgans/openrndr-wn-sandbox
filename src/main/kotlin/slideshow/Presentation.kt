@@ -33,6 +33,8 @@ class Presentation(
     @Volatile var muted: Boolean = false,
     /** Whether the clicker's special buttons work: the page's practice mode button, kept across starts. */
     @Volatile var practice: Boolean = false,
+    /** Whether a forward click waits for the state to finish moving: the page's wait button, kept across starts. */
+    @Volatile var waitForAnimation: Boolean = false,
     /** Whether the show starts in subtitle mode: the page's subtitles button, kept across starts. */
     @Volatile var subtitles: Boolean = false,
     /** Which subtitle track the show starts on: the page's voice-over selector, kept across starts. */
@@ -65,7 +67,7 @@ class Presentation(
         val child = ProcessBuilder(command)
             .directory(workingDir)
             .redirectErrorStream(true)
-            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + ("SLIDES_PRACTICE" to "$practice") + ("SLIDES_SUBTITLE_MODE" to "$subtitles") + ("SLIDES_SUBTITLE_TRACK" to subtitleTrack.key) + ("SLIDES_VOICE_ON" to "$voice") + ("SLIDES_AUTOPLAY" to "$autoplay") + mix.entries.associate { (l, g) -> "SLIDES_MIX_${l.name}" to "$g" } + extra) }
+            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + ("SLIDES_PRACTICE" to "$practice") + ("SLIDES_WAIT_FOR_ANIMATION" to "$waitForAnimation") + ("SLIDES_SUBTITLE_MODE" to "$subtitles") + ("SLIDES_SUBTITLE_TRACK" to subtitleTrack.key) + ("SLIDES_VOICE_ON" to "$voice") + ("SLIDES_AUTOPLAY" to "$autoplay") + mix.entries.associate { (l, g) -> "SLIDES_MIX_${l.name}" to "$g" } + extra) }
             .start()
         process = child
         println("presentation: starting" + if (projection) " on the projectors (${placed["SLIDES_WINDOW_X"]}, ${placed["SLIDES_WINDOW_Y"]})" else " in a window")

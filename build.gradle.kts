@@ -145,6 +145,9 @@ dependencies {
     // recorder reads its frames back through pixel buffers, which OPENRNDR has no API for.
     // The same 3.3.6 jar openrndr-gl3 already pulls in at runtime.
     implementation(libs.lwjgl.opengl)
+    // The GLFW bindings, for the same reason: the loading screen puts itself on the window before
+    // the first frame, which OPENRNDR has no API for. The 3.3.6 jar openrndr-gl3 already pulls in.
+    implementation(libs.lwjgl.glfw)
     // The QR code on the ending wall. Small, pure Java, no natives.
     implementation("com.google.zxing:core:3.5.3")
 

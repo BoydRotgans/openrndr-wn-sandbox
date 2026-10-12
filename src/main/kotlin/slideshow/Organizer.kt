@@ -46,6 +46,7 @@ fun main() {
         projection = Env.boolean("SLIDES_PROJECTION"),
         muted = settings.muted,
         practice = settings.practice,
+        waitForAnimation = settings.waitForAnimation,
         subtitles = settings.subtitleMode,
         subtitleTrack = settings.subtitleTrack,
         voice = settings.voiceOn,

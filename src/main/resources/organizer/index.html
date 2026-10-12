@@ -574,6 +574,7 @@
     <span class="grp show-only" id="grpShow"><span class="cap">show</span>
       <span id="live"><i></i><span id="liveText">connecting…</span></span>
       <button class="ghost" id="practiceBtn" title="Practice mode: the clicker's screen button (hold to start over) and play button (twice for the overview of every slide) work. Off, they do nothing, so a wrong press in front of the room changes nothing; forward and back always work">practice mode: off</button>
+      <button class="ghost" id="waitBtn" title="Wait for the animation: a forward click (the clicker, the arrows, this page) is refused until the state on the wall has finished moving, and while it moves, a countdown line bottom left comes down with how much is left. Back always works">wait for animation: off</button>
       <button class="ghost" id="projectionBtn" hidden title="Start the presentation on the two projectors — undecorated, 1:1, across the wall — rather than in a window">projection: off</button>
       <button id="presentBtn" hidden title="Start the show in a window of its own; the page steers it">▶ start presentation</button>
     </span>
@@ -617,6 +618,7 @@
       <button class="ghost" id="voiceBtn" title="Speak the rendered voice under each state (v in the show). Independent of the subtitles: hear the talk with or without its words on the wall. On the extended track either one makes the show present itself">voice: off</button>
       <span id="voiceCount" title="States of this track rendered as speech by tools/voiceover_render.py — refreshed while the render runs"></span>
       <button class="ghost" id="subBtn" title="Subtitle mode: what is said over each state on the wall, a card at a time at a speaker's pace (s in the show)">subtitles: off</button>
+      <button class="ghost" id="autoplayBtn" title="On the extended track with the voice or subtitles on, autoplay clicks on by itself once each line has been said; off, the line is said and the state holds until you click. Switches the running show at once and is kept for the next start">autoplay: on</button>
     </span>
     <span class="grp"><span class="cap">wall</span>
       <button class="ghost" id="gridBtn" title="Rule the layout grid over the wall: cells, the seam, each pane's margin, title line and foot (g in the show)">grid: off</button>
@@ -2262,6 +2264,7 @@
       cb.classList.toggle('primary', !!s.concrete); cb.textContent = s.concrete ? 'concrete: on' : 'concrete: off';
       renderMute(s.muted);
       renderPractice(s.practice);
+      renderWait(s.waitForAnimation);
       renderSubMode(s.subtitles);
       renderVoiceMode(s.voice);
       renderMix(s.mix);
@@ -2310,6 +2313,7 @@
     if (!liveOK) {
       renderMute(p.muted);
       renderPractice(p.practice);
+      renderWait(p.waitForAnimation);
       renderSubMode(p.subtitles);
       renderVoiceMode(p.voice);
       renderMix(p.mix);
@@ -2709,6 +2713,21 @@
     const on = !practice;
     renderPractice(on);   // at once, rather than on the next poll
     await post('/api/practice', { on });
+  });
+
+  // ---------- wait for the animation: a forward click waits until the state is still ----------
+  let waitOn = false;
+  function renderWait(on) {
+    waitOn = !!on;
+    const b = $('#waitBtn');
+    b.textContent = waitOn ? 'wait for animation: on' : 'wait for animation: off';
+    b.classList.toggle('primary', waitOn);
+  }
+  $('#waitBtn').addEventListener('click', async ev => {
+    ev.currentTarget.blur();   // left focused, a clicker's key in the browser could press it again
+    const on = !waitOn;
+    renderWait(on);   // at once, rather than on the next poll
+    await post('/api/wait', { on });
   });
 
   $('#projectionBtn').addEventListener('click', async () => {
@@ -3359,11 +3378,17 @@
     const b = $('#scriptAutoplay');
     b.textContent = autoplayOn ? 'autoplay' : 'wait for click';
     b.classList.toggle('primary', autoplayOn);
+    // The same switch in the top bar, where the other switches of the show are, so it can be found on every tab.
+    const t = $('#autoplayBtn');
+    t.textContent = autoplayOn ? 'autoplay: on' : 'autoplay: off';
+    t.classList.toggle('primary', autoplayOn);
   }
-  $('#scriptAutoplay').addEventListener('click', async () => {
+  async function toggleAutoplay() {
     autoplayOn = !autoplayOn; renderAutoplay(null);
     await post('/api/autoplay', { on: autoplayOn });
-  });
+  }
+  $('#scriptAutoplay').addEventListener('click', toggleAutoplay);
+  $('#autoplayBtn').addEventListener('click', toggleAutoplay);
 
   /** The texts each voice was rendered from, off the tracks' manifests. */
   async function loadVoiceTexts() {

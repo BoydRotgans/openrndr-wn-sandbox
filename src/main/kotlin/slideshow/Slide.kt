@@ -240,9 +240,29 @@ abstract class Slide : MidiTimed {
      * slide before it — the catalogue's grid picks the ring up at the turn it had reached, which only the deck
      * knows. Called on every move between two slides, never by a preview; an export calls it only where it runs
      * on into the next slide ([runsInto]). It may note what it is told and nothing more: what is drawn when is
-     * still [draw]'s, off its [Stage].
+     * still [draw]'s, off its [Stage]. [back] says the deck came to it going back — a step back off the front of
+     * the slide after it, or a jump back from the organizer — which lands a slide built, on its last click.
      */
-    open fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int) {}
+    open fun cameFrom(previous: Slide, stood: Int, leftOn: Int, opensOn: Int, back: Boolean) {}
+
+    /**
+     * Whether a click forward on this slide, [frame] frames after it came up, is refused: a slide that has
+     * to be waited out, as the course transition's countdown is. Only the presenter's clicks forward are
+     * refused — the keys, the clicker and the organizer's arrows; back, a hands-off run, `0`, the restart
+     * hold and a jump from the organizer still go through, so there is always a way off it.
+     */
+    open fun holds(frame: Int): Boolean = false
+
+    /**
+     * Going back off this slide to the one before it, [frame] frames after this one came up: how many
+     * frames that one has stood, counting what it ran on under this one, so its clock carries on where it
+     * had got to rather than starting over — or null, the default, which starts it over like any slide.
+     * The course transition draws the course wall on under itself, so back off it is the wall as it was.
+     */
+    open fun carriesBack(frame: Int): Int? = null
+
+    /** A click was refused [frame] frames after this slide came up: the slide may show it was felt. */
+    open fun refused(frame: Int) {}
 
     /**
      * The slide an export of this one runs on into, one click further: that slide's opening state, settled and

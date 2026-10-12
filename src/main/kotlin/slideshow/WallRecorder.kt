@@ -46,6 +46,8 @@ class WallRecorder(
     private val frameRate: Int,
     private val contentScale: Double,
     private val maximumDuration: Double = Double.POSITIVE_INFINITY,
+    /** The x264 quality to film at; null leaves ffmpeg's default, as ScreenRecorder does. */
+    private val crf: Int? = null,
 ) : Extension {
     override var enabled: Boolean = true
 
@@ -112,6 +114,7 @@ class WallRecorder(
             "-color_range", "1", "-colorspace", "1", "-color_primaries", "1", "-color_trc", "1",
             "-vf", "vflip,colorspace=bt709:iall=bt601-6-625:fast=1",
             "-vcodec", "libx264",
+            *(crf?.let { arrayOf("-crf", "$it") } ?: emptyArray()),
             output.path
         )
         val process = ProcessBuilder(command).redirectErrorStream(true).redirectOutput(log).start()
