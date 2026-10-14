@@ -148,6 +148,8 @@ class Remote(
     data class Practice(val on: Boolean?) : Command
     /** Wait for the animation on or off — whether a forward click waits for the state to finish moving; null flips it. See [Settings.waitForAnimation]. */
     data class WaitForAnimation(val on: Boolean?) : Command
+    /** The speaker's autocue on or off; null flips it. Where it goes is the Projection tab's. See [Autocue]. */
+    data class Autocue(val on: Boolean?) : Command
     /** Subtitle mode on or off; null flips it. See [Subtitles]. */
     data class Subtitle(val on: Boolean?) : Command
     /** Say these lines from now on — a save from the page, played at once — on [track]. */
@@ -190,7 +192,10 @@ class Remote(
         val subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
         val voice: Boolean = false,
         val mix: Map<Layer, Double> = emptyMap(),
-        val autoplay: Boolean = true
+        val autoplay: Boolean = true,
+        val autocue: Boolean = false,
+        /** Whether the autocue's own window is open and showing. */
+        val autocueWindow: Boolean = false
     )
 
     val commands = ConcurrentLinkedQueue<Command>()
@@ -429,6 +434,11 @@ class Remote(
                     p.waitForAnimation = on ?: !p.waitForAnimation
                     if (!p.live) return exchange.json(200, presentationJson(p))
                 }
+                if (path == "/api/autocue" && method == "POST") {
+                    val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
+                    p.autocue = on ?: !p.autocue
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
                 if (path == "/api/subtitle-mode" && method == "POST") {
                     val on = runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["on"]?.jsonPrimitive?.booleanOrNull }.getOrNull()
                     p.subtitles = on ?: !p.subtitles
@@ -493,6 +503,10 @@ class Remote(
                 }
                 path == "/api/wait" && method == "POST" -> {
                     commands += WaitForAnimation(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
+                    exchange.json(202, ok())
+                }
+                path == "/api/autocue" && method == "POST" -> {
+                    commands += Autocue(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
                 }
                 path == "/api/subtitle-mode" && method == "POST" -> {
@@ -868,6 +882,7 @@ class Remote(
             put("muted", s.muted); put("hasSound", s.hasSound); put("practice", s.practice); put("subtitles", s.subtitles)
             put("waitForAnimation", s.waitForAnimation)
             put("subtitleTrack", s.subtitleTrack.key); put("voice", s.voice); put("autoplay", s.autoplay)
+            put("autocue", s.autocue); put("autocueWindow", s.autocueWindow)
             put("mix", buildJsonObject { s.mix.forEach { (l, g) -> put(l.key, g) } })
             put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
             put("exportFrame", exportFrame); put("exportFrames", exportFrames)
@@ -917,6 +932,7 @@ class Remote(
         put("projection", p.projection); put("muted", p.muted); put("practice", p.practice); put("subtitles", p.subtitles)
         put("waitForAnimation", p.waitForAnimation)
         put("subtitleTrack", p.subtitleTrack.key); put("voice", p.voice); put("autoplay", p.autoplay)
+        put("autocue", p.autocue)
         put("mix", buildJsonObject { p.mix.forEach { (l, g) -> put(l.key, g) } })
     }
 

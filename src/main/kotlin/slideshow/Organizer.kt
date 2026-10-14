@@ -47,6 +47,7 @@ fun main() {
         muted = settings.muted,
         practice = settings.practice,
         waitForAnimation = settings.waitForAnimation,
+        autocue = settings.autocue,
         subtitles = settings.subtitleMode,
         subtitleTrack = settings.subtitleTrack,
         voice = settings.voiceOn,

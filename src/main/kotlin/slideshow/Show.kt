@@ -12,7 +12,23 @@ import org.openrndr.KeyEvent
 import org.openrndr.KeyModifier
 import org.openrndr.KEY_PAGE_DOWN
 import org.openrndr.KEY_PAGE_UP
+import org.openrndr.ApplicationWindow
+import org.openrndr.WindowConfiguration
 import org.openrndr.application
+import org.openrndr.window
+import org.lwjgl.glfw.GLFW.GLFW_DECORATED
+import org.lwjgl.glfw.GLFW.GLFW_FALSE
+import org.lwjgl.glfw.GLFW.GLFW_TRUE
+import org.lwjgl.glfw.GLFW.glfwFocusWindow
+import org.lwjgl.glfw.GLFW.glfwGetCurrentContext
+import org.lwjgl.glfw.GLFW.glfwHideWindow
+import org.lwjgl.glfw.GLFW.glfwSetWindowAttrib
+import org.lwjgl.glfw.GLFW.glfwSetWindowPos
+import org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose
+import org.lwjgl.glfw.GLFW.glfwSetWindowSize
+import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
+import org.lwjgl.glfw.GLFW.glfwShowWindow
+import org.lwjgl.glfw.GLFW.glfwSwapInterval
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.ColorFormat
 import org.openrndr.draw.ColorType
@@ -60,6 +76,7 @@ import kotlin.math.min
  *     0                             back to the first slide
  *     r                             replay this slide from its first click
  *     d                             debug overlay
+ *     c                             the autocue, the speaker's screen — see Autocue
  *     esc                           quit
  *
  * and with the overlay up, `p` holds the clock and `.` / `,` step it a frame at a time.
@@ -756,6 +773,40 @@ private fun org.openrndr.ApplicationBuilder.present(
             announce(target)
         }
 
+        // --- the autocue ------------------------------------------------------------------- //
+        //
+        // The speaker's screen — see Autocue. Its picture is composed in the wall's own draw, into a target of its
+        // own, whenever the frame changes, and shown on top of this window over the wall or in a window of its own
+        // (see openAutocueWindow); which is read every frame off the Projection tab's setup, so a change there is a
+        // change here. Never on a film, a still or a bench.
+        val watched = !settings.record && !settings.stills && !settings.bench
+        var autocueOn = settings.autocue && watched
+        val autocue = if (!watched) null else Autocue(
+            runCatching { loadFont(Type.file, settings.autocueText, TYPE_CHARACTERS, contentScale = 1.0) }.getOrNull(), settings.autocueText,
+            runCatching { loadFont(Type.file, Autocue.SMALL, TYPE_CHARACTERS, contentScale = 1.0) }.getOrNull(),
+            runCatching { loadFont(Type.file, Autocue.LARGE, TYPE_CHARACTERS, contentScale = 1.0) }.getOrNull()
+        )
+        var autocueTarget: RenderTarget? = null
+        fun autocueSetup(): AutocueSetup = (Projectors.shown ?: Projectors.started)?.autocue ?: AutocueSetup()
+        /** A slide as the autocue names it: its title in the running order, a course wall without its "Sketch: ". */
+        fun cueTitle(index: Int) = (show.outline[index]?.title ?: slides.getOrNull(index)?.name.orEmpty()).removePrefix("Sketch: ")
+        // Where the scroll stood when the state changed, so a click is eased into rather than jumped; and the frame
+        // the click was first offered on, from which the next divider glides up onto the reading line.
+        var autocueState = -1 to -1
+        var autocueSince = -1
+        var autocueFrom = 0.0
+        var autocueShown = 0.0
+        var autocueOfferedAt = -1
+        var autocueWindow: ApplicationWindow? = null
+        var autocueHandle = 0L
+        var autocueApplied: AutocueSetup? = null
+        var autocueVisible = false
+        // The wall's own window: the context current while the program sets up.
+        val wallHandle = glfwGetCurrentContext()
+        if (autocueOn) println("autocue: on, " + autocueSetup().let { a ->
+            if (a.ownWindow) "in its own window" else "on top of the show's window"
+        })
+
         // Key handlers move the slide deck and nothing else — they never read a clock,
         // and they never touch the panel deck directly (see above). Under ScreenRecorder
         // the draw loop runs on video time while a handler sees wall time, so a timestamp
@@ -767,15 +818,15 @@ private fun org.openrndr.ApplicationBuilder.present(
         // slide that listens to keys draws, between two draws.
         var repaint = true
 
-        keyboard.keyDown.listen { event ->
+        fun keyDown(event: KeyEvent) {
             repaint = true
             // Every key the show is handed goes to the output, so a clicker or keyboard that does
             // something unexpected on site can be read back from the terminal.
             println("key: ${event.name} (${event.key})" + if (event.modifiers.isEmpty()) "" else " with ${event.modifiers.joinToString("+")}")
             // The clicker's held buttons, and the overview while it is open, before anything else. Out of
             // practice mode they are taken and dropped, so a wrong press in front of the room does nothing.
-            if (isPlay(event)) { if (practice) playEdges.addLast(true); return@listen }
-            if (isScreen(event)) { if (practice) screenEdges.addLast(true); return@listen }
+            if (isPlay(event)) { if (practice) playEdges.addLast(true); return }
+            if (isScreen(event)) { if (practice) screenEdges.addLast(true); return }
             if (overviewOpen) {
                 val last = ids.size + shelf.size - 1
                 when (event.key) {
@@ -785,17 +836,17 @@ private fun org.openrndr.ApplicationBuilder.present(
                     KEY_ARROW_UP -> pick = overview.neighbour(pick, -1).coerceIn(0, last)
                     KEY_ENTER -> overviewGo = true
                 }
-                return@listen
+                return
             }
             // Forward or back off a sketch shown on the side puts the show back where it was, unclicked.
             if (aside != null && (event.key == KEY_ARROW_RIGHT || event.key == KEY_ARROW_LEFT ||
                     event.key == KEY_PAGE_DOWN || event.key == KEY_PAGE_UP)) {
                 aside = null
                 println("show: back to the show from #$asideId")
-                return@listen
+                return
             }
             // The slide on screen asks first, for controls of its own.
-            if (event.key != KEY_ESCAPE && deck.slide.key(event.name)) return@listen
+            if (event.key != KEY_ESCAPE && deck.slide.key(event.name)) return
             when {
                 // A presenter clicker is a keyboard to the machine: the Logitech R400's forward and
                 // back buttons send Page Down and Page Up, so those click exactly as the arrows do.
@@ -811,6 +862,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 event.name == "g" -> gridOn = !gridOn
                 event.name == "s" -> subtitleMode = !subtitleMode
                 event.name == "v" -> voiceOn = !voiceOn
+                event.name == "c" && watched -> { autocueOn = !autocueOn; println("show: autocue ${if (autocueOn) "on" else "off"}") }
 
                 // The clock controls are part of the debug view, not of the show, so they
                 // do nothing while it is down.
@@ -819,12 +871,77 @@ private fun org.openrndr.ApplicationBuilder.present(
                 debug && (event.name == "," || event.name == "comma") -> clock.step(-1)
             }
         }
-        keyboard.keyUp.listen { event ->
+        fun keyUp(event: KeyEvent) {
             repaint = true
             when {
                 event.key == KEY_F5 || event.key == KEY_ESCAPE -> { println("key up: ${event.name}"); playEdges.addLast(false) }
                 event.name == "b" || event.name == "." || event.name == "period" -> { println("key up: ${event.name}"); screenEdges.addLast(false) }
             }
+        }
+        keyboard.keyDown.listen { keyDown(it) }
+        keyboard.keyUp.listen { keyUp(it) }
+
+        /**
+         * The autocue's own window, opened the first time it is wanted — from the top of a draw, the wall's
+         * context current — and only ever hidden after, so switching it or moving it costs nothing. It draws one
+         * thing, the autocue's picture, which the wall's draw composes: the two contexts share their textures, so
+         * nothing else of the show has to know a second window exists. It is handed the show's keys, so the
+         * clicker works whichever window has the focus, and the focus goes back to the wall as it opens.
+         */
+        fun openAutocueWindow(setup: AutocueSetup) {
+            val config = WindowConfiguration(
+                title = "Autocue", position = setup.windowX?.let { IntVector2(it, setup.windowY ?: 0) },
+                width = setup.width, height = setup.height,
+                // Not closable by OPENRNDR, which would destroy the window inside GLFW's own close callback. On ⌘Q
+                // GLFW asks every window to close while walking its list of them, so a window destroyed there is
+                // read after it is freed: the JVM died in libglfw on 14 October 2026. Its close button is read off
+                // the window's flag below instead, and the window is only ever hidden; it goes with the show.
+                resizable = true, closable = false, hideDecorations = setup.undecorated
+            )
+            autocueWindow = window(config) {
+                autocueHandle = glfwGetCurrentContext()
+                // The wall's window waits for the display; two windows each waiting would halve the wall's rate.
+                glfwSwapInterval(0)
+                keyboard.keyDown.listen { keyDown(it) }
+                keyboard.keyUp.listen { keyUp(it) }
+                extend {
+                    val t = autocueTarget ?: return@extend
+                    if (!autocueVisible) return@extend
+                    val fit = min(width / Autocue.WIDTH, height / Autocue.HEIGHT)
+                    val r = Rectangle.fromCenter(Vector2(width / 2.0, height / 2.0), Autocue.WIDTH * fit, Autocue.HEIGHT * fit)
+                    drawer.image(t.colorBuffer(0), r.x, r.y, r.width, r.height)
+                }
+            }
+            autocueVisible = true
+            autocueApplied = null
+            if (wallHandle != 0L) glfwFocusWindow(wallHandle)
+            println("autocue: in its own window, ${setup.width}x${setup.height}" +
+                    (setup.windowX?.let { " at $it,${setup.windowY ?: 0}" } ?: "") + (setup.display?.let { " on $it" } ?: ""))
+        }
+
+        /** The autocue's window as the setup says this frame: opened, shown or hidden, placed, sized, with or without its title bar. */
+        fun syncAutocueWindow(setup: AutocueSetup) {
+            // Its close button: the window is hidden, and the autocue is off until it is switched on again.
+            if (autocueHandle != 0L && glfwWindowShouldClose(autocueHandle)) {
+                glfwSetWindowShouldClose(autocueHandle, false)
+                if (autocueOn) { autocueOn = false; println("autocue: its window was closed — autocue off") }
+            }
+            val wanted = autocueOn && setup.ownWindow
+            if (wanted && autocueWindow == null) openAutocueWindow(setup)
+            val h = autocueHandle
+            if (autocueWindow == null || h == 0L) return
+            if (wanted != autocueVisible) {
+                if (wanted) glfwShowWindow(h) else glfwHideWindow(h)
+                autocueVisible = wanted
+                if (wanted && wallHandle != 0L) glfwFocusWindow(wallHandle)
+            }
+            val was = autocueApplied
+            if (was == null || was.windowX != setup.windowX || was.windowY != setup.windowY)
+                setup.windowX?.let { glfwSetWindowPos(h, it, setup.windowY ?: 0) }
+            if (was == null || was.width != setup.width || was.height != setup.height) glfwSetWindowSize(h, setup.width, setup.height)
+            if (was == null || was.undecorated != setup.undecorated)
+                glfwSetWindowAttrib(h, GLFW_DECORATED, if (setup.undecorated) GLFW_FALSE else GLFW_TRUE)
+            autocueApplied = setup
         }
 
         // The state log's marks, kept for the whole run and written beside the film at the end.
@@ -922,6 +1039,7 @@ private fun org.openrndr.ApplicationBuilder.present(
             // video time while recording and wall time otherwise. Everything downstream
             // sees frame numbers.
             val frame = clock.advance(seconds)
+            if (autocue != null) syncAutocueWindow(autocueSetup())
 
             // The clicker's held buttons, timed here — see their declaration.
             val dt = (frame - uiFrame).coerceIn(0, 10)
@@ -1165,6 +1283,12 @@ private fun org.openrndr.ApplicationBuilder.present(
                         benchDrawn = 0
                     }
                 }
+            } else if (autocueOn) {
+                // The autocue is up: the speaker clicks, when ready, and nothing in the show clicks on by itself —
+                // not the presented run, not a cue list, not the autostep, whatever autoplay says. Their clocks
+                // are held at this frame, so switching the autocue off does not catch up on the clicks held back.
+                cueAt = frame
+                lastAutoStep = frame
             } else if (holds.isNotEmpty()) {
                 if (cue < cueFrames.size) {
                     if (frame - cueAt >= cueFrames[cue]) {
@@ -1547,6 +1671,95 @@ private fun org.openrndr.ApplicationBuilder.present(
                 canvasBounds.width * fit, canvasBounds.height * fit
             )
             if (fresh) canvas.colorBuffer(0).generateMipmaps()
+
+            // The autocue, for the state the subtitles' clock is on, at the pace they keep — see Autocue.
+            val cueSetup = autocueSetup()
+            val cueShown = autocue != null && autocueOn && (!cueSetup.ownWindow || autocueVisible)
+            if (autocue != null && cueShown) {
+                autocue.layout(listOf(ids, subtitles(), slides.size)) {
+                    slides.indices.flatMap { i ->
+                        (0 until slides[i].steps).map { step ->
+                            Autocue.Entry(i, step, i + 1, cueTitle(i), subtitles()[idAt(i), step])
+                        }
+                    }
+                }
+                val id = idAt(deck.index)
+                val step = deck.step
+                val said = subtitles()[id, step]
+                val timing = CueTiming.of(said, pace, voiceFrames(deck.index, step)?.let { pace.spoken(it) }, voice()?.speech(id, step))
+                val elapsed = frame - subtitleSince
+                val moving = stillMoving().first
+                val holding = aside == null && deck.slide.holds(deck.frame - deck.startedAt)
+                val last = step >= deck.slide.steps - 1 && deck.index >= slides.lastIndex
+                // Nothing clicks on by itself while the autocue is up (see the cue list above): READY is the
+                // presenter's to take.
+                val status = when {
+                    elapsed < timing.end -> Autocue.Status.SPEAKING
+                    moving > 0 || holding -> Autocue.Status.WAITING
+                    last -> Autocue.Status.END
+                    else -> Autocue.Status.READY
+                }
+                // A new state, or the same one said again, eases on from wherever the scroll stood.
+                if ((deck.index to step) != autocueState || subtitleSince != autocueSince) {
+                    autocueState = deck.index to step
+                    autocueSince = subtitleSince
+                    autocueFrom = autocueShown
+                    autocueOfferedAt = -1
+                }
+                val offered = status == Autocue.Status.READY
+                if (!offered) autocueOfferedAt = -1 else if (autocueOfferedAt < 0) autocueOfferedAt = frame
+                val glide = if (autocueOfferedAt < 0) 0.0 else smoothstep((frame - autocueOfferedAt) / (Autocue.GLIDE * FPS))
+                val target = autocue.target(deck.index, step, timing, elapsed, glide)
+                val into = (frame - autocueSince) / (Autocue.EASE * FPS)
+                val far = kotlin.math.abs(autocueFrom - autocue.target(deck.index, step, timing, 0)) > Autocue.FAR
+                autocueShown = if (far || into >= 1.0) target else mix(autocueFrom, target, 1.0 - (1.0 - into).let { it * it * it })
+                if (fresh || autocueTarget == null) {
+                    val place = show.outline[deck.index]
+                    val (nextLabel, next) = when {
+                        step < deck.slide.steps - 1 -> "VOLGENDE KLIK  ${letter(step + 1)}" to
+                                CueTiming.flat(subtitles()[id, step + 1]).ifEmpty { "stil — geen tekst" }
+                        deck.index < slides.lastIndex -> "VOLGENDE DIA" to
+                                "${deck.index + 2}  ${cueTitle(deck.index + 1)}"
+                        else -> "EINDE" to "de laatste stand van de show"
+                    }
+                    val now = Autocue.Now(
+                        index = deck.index, step = step, steps = deck.slide.steps,
+                        section = place?.let { p ->
+                            when {
+                                p.moment.isNotBlank() -> p.moment
+                                // closed up where the card breaks it: "verantwoor-delijkheid"
+                                p.chapterTitle.isNotBlank() -> "Hoofdstuk ${p.chapter}  ·  " +
+                                        p.chapterTitle.replace(Regex("(?<=\\p{Ll})-(?=\\p{Ll})"), "")
+                                else -> ""
+                            }
+                        }.orEmpty(),
+                        title = cueTitle(deck.index), number = deck.index + 1, count = slides.size,
+                        scroll = autocueShown, status = status,
+                        left = when (status) {
+                            Autocue.Status.SPEAKING -> (timing.end - elapsed) / FPS.toDouble()
+                            Autocue.Status.WAITING -> moving / FPS.toDouble()
+                            else -> 0.0
+                        },
+                        said = if (timing.end > 0) elapsed.toDouble() / timing.end else 1.0,
+                        nextLabel = nextLabel, next = next,
+                        clock = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),
+                        frame = frame
+                    )
+                    // with a stencil, as every buffer here has, since its marks are filled contours
+                    val t = autocueTarget ?: buffer(AutocueSetup.WIDTH, AutocueSetup.HEIGHT).also {
+                        it.colorBuffer(0).filterMin = MinifyingFilter.LINEAR_MIPMAP_LINEAR
+                        it.colorBuffer(0).filterMag = MagnifyingFilter.LINEAR
+                        autocueTarget = it
+                    }
+                    drawer.isolatedWithTarget(t) {
+                        drawer.ortho(t)
+                        // The wall small in the foot, where the autocue has a screen of its own; on the wall it is beside it.
+                        autocue.draw(drawer, now, if (cueSetup.ownWindow) canvas.colorBuffer(0) else null)
+                    }
+                    t.colorBuffer(0).generateMipmaps()
+                }
+            }
+
             val picture = brandPreview.apply(drawer, canvas.colorBuffer(0))
             drawer.clear(ColorRGBa.BLACK)
             drawer.isolated {
@@ -1555,6 +1768,17 @@ private fun org.openrndr.ApplicationBuilder.present(
             }
 
             if (gridOn && !settings.stills) grid.draw(drawer, shown, canvasBounds, settings.panelWidth)
+
+            // The autocue on top of the show's window, where the Projection tab stands it on the canvas: through the
+            // fit like the grid, so it lands on the projectors too and never in a film. Under the clicker's overlays.
+            if (cueShown && !cueSetup.ownWindow) autocueTarget?.let { t ->
+                val k = shown.width / canvasBounds.width
+                drawer.isolated {
+                    drawer.shadeStyle = null
+                    drawer.image(t.colorBuffer(0), shown.x + cueSetup.x * k, shown.y + cueSetup.y * k,
+                        Autocue.WIDTH * cueSetup.scale * k, Autocue.HEIGHT * cueSetup.scale * k)
+                }
+            }
 
             // The clicker's overview and hold ring, on the window like the grid: never in a film or a still.
             if (overviewShown > 0.0) {
@@ -1673,6 +1897,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                         is Remote.Practice -> {
                             practice = command.on ?: !practice
                             println("organizer: practice mode ${if (practice) "on" else "off"}")
+                        }
+                        is Remote.Autocue -> {
+                            autocueOn = watched && (command.on ?: !autocueOn)
+                            println("organizer: autocue ${if (autocueOn) "on" else "off"}")
                         }
                         is Remote.WaitForAnimation -> {
                             waitForAnimation = command.on ?: !waitForAnimation
@@ -1804,7 +2032,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                     concreteOn, concrete != null, gridOn,
                     muted = speakers.muted, hasSound = speakers.ready, practice = practice, waitForAnimation = waitForAnimation,
                     subtitles = subtitleMode, subtitleTrack = subtitleTrack, voice = voiceOn,
-                    mix = Layer.entries.associateWith { speakers.mixOf(it) }, autoplay = autoplay
+                    mix = Layer.entries.associateWith { speakers.mixOf(it) }, autoplay = autoplay,
+                    autocue = autocueOn, autocueWindow = autocueWindow != null && autocueVisible
                 )
             }
 

@@ -121,6 +121,16 @@ data class Settings(
      * through. The organizer's `wait for animation` button switches it on a running show. See [Countdown].
      */
     val waitForAnimation: Boolean = false,
+    /**
+     * The autocue: the speaker's screen, what is to be said over the state on the wall, scrolling as it is
+     * said and offering the click once it has been — see [Autocue]. On or off; where it goes, on top of the
+     * show's window or a window of its own on a chosen screen, is the Projection tab's ([AutocueSetup]).
+     * The organizer's `autocue` button and `c` in the show switch it; never on a film, a still or a bench.
+     * **While it is up the presenter clicks**: nothing clicks on by itself — not [autoplay], not a cue list.
+     */
+    val autocue: Boolean = false,
+    /** The autocue's type size, in pixels of the 1920 by 1080 it is composed at. */
+    val autocueText: Double = Autocue.TEXT,
     val record: Boolean = false,
     val fps: Int = FPS,
     val duration: Double? = null,

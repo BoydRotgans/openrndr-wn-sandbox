@@ -57,7 +57,9 @@ data class ProjectorSetup(
     val right: Projector = Projector(),
     /** The left projector's top left corner on the desktop, in points; null to take the rightmost two displays. */
     val desktopX: Int? = null,
-    val desktopY: Int? = null
+    val desktopY: Int? = null,
+    /** Where the speaker's autocue goes, over the wall or on a screen of its own — all of it live. See [Autocue]. */
+    val autocue: AutocueSetup = AutocueSetup()
 ) {
     /** The desktop the two cover together, which is the size of the show's window across them. */
     val width: Int get() = left.width + right.width
@@ -68,10 +70,11 @@ data class ProjectorSetup(
         it.width == halfWidth && it.height == halfHeight && it.x == 0.0 && it.y == 0.0 && it.scale == 1.0
     }
 
-    /** These projectors' sizes and desktop place with [placed]'s halves on them. */
+    /** These projectors' sizes and desktop place with [placed]'s halves on them, and its autocue, which is live throughout. */
     fun placedAs(placed: ProjectorSetup) = copy(
         left = left.copy(x = placed.left.x, y = placed.left.y, scale = placed.left.scale),
-        right = right.copy(x = placed.right.x, y = placed.right.y, scale = placed.right.scale)
+        right = right.copy(x = placed.right.x, y = placed.right.y, scale = placed.right.scale),
+        autocue = placed.autocue
     )
 }
 
@@ -127,7 +130,10 @@ object Projectors {
         val o = buildJsonObject {
             put("about", "The two projectors of the wall and where its 1920x1080 halves stand on them, set in the organizer's Projection tab. " +
                     "width and height are each projector's size in points, read at the start; x, y and scale place the half on it and move the running show at once. " +
-                    "desktop is the left projector's top left corner on the desktop, null for the rightmost two displays. SLIDES_PROJECTORS names the file.")
+                    "desktop is the left projector's top left corner on the desktop, null for the rightmost two displays. " +
+                    "autocue is where the speaker's screen goes: place wall draws it over the canvas at x, y and scale; place window gives it a window of its own " +
+                    "at window.x, window.y in points (null: where macOS puts it), window.width by window.height, undecorated to fill a screen; all of it moves the running show. " +
+                    "SLIDES_PROJECTORS names the file.")
             json(setup).forEach { (k, v) -> put(k, v) }
         }
         file.writeText(pretty.encodeToString(JsonObject.serializer(), o) + "\n")
@@ -144,7 +150,11 @@ object Projectors {
 
     fun describe(s: ProjectorSetup) = listOf("left" to s.left, "right" to s.right).joinToString(", ") { (side, p) ->
         "$side ${p.model?.let { "$it " } ?: ""}${p.width}x${p.height}, half at %.0f,%.0f x%.3f".format(p.x, p.y, p.scale)
-    } + (s.desktopX?.let { ", desktop at $it,${s.desktopY ?: 0}" } ?: ", on the rightmost displays")
+    } + (s.desktopX?.let { ", desktop at $it,${s.desktopY ?: 0}" } ?: ", on the rightmost displays") +
+            ", autocue " + s.autocue.let { a ->
+                if (a.ownWindow) "in its own window ${a.width}x${a.height}" + (a.windowX?.let { " at $it,${a.windowY ?: 0}" } ?: "") + (a.display?.let { " on $it" } ?: "")
+                else "on the wall at %.0f,%.0f x%.2f".format(a.x, a.y, a.scale)
+            }
 
     fun json(s: ProjectorSetup): JsonObject = buildJsonObject {
         put("left", projectorJson(s.left))
@@ -153,6 +163,7 @@ object Projectors {
             put("x", s.desktopX)
             put("y", s.desktopY)
         })
+        put("autocue", AutocueSetup.json(s.autocue))
     }
 
     private fun projectorJson(p: Projector) = buildJsonObject {
@@ -177,7 +188,8 @@ object Projectors {
         return ProjectorSetup(
             projector("left", base.left), projector("right", base.right),
             if (desktop != null) desktop["x"]?.jsonPrimitive?.intOrNull else base.desktopX,
-            if (desktop != null) desktop["y"]?.jsonPrimitive?.intOrNull else base.desktopY
+            if (desktop != null) desktop["y"]?.jsonPrimitive?.intOrNull else base.desktopY,
+            AutocueSetup.parse(runCatching { o["autocue"]?.jsonObject }.getOrNull(), base.autocue)
         )
     }
 

@@ -2811,6 +2811,8 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         overviewDouble = Env["${prefix}_OVERVIEW_DOUBLE"]?.toDoubleOrNull() ?: settings.overviewDouble,
         practice = Env["${prefix}_PRACTICE"]?.let { Env.boolean("${prefix}_PRACTICE") } ?: settings.practice,
         waitForAnimation = Env["${prefix}_WAIT_FOR_ANIMATION"]?.let { Env.boolean("${prefix}_WAIT_FOR_ANIMATION") } ?: settings.waitForAnimation,
+        autocue = Env["${prefix}_AUTOCUE"]?.let { Env.boolean("${prefix}_AUTOCUE") } ?: settings.autocue,
+        autocueText = Env["${prefix}_AUTOCUE_TEXT"]?.toDoubleOrNull()?.takeIf { it in 24.0..160.0 } ?: settings.autocueText,
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,

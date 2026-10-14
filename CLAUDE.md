@@ -1124,6 +1124,9 @@ is all of it.
   displays with "Displays have separate Spaces" off, which the tab says too, and where macOS has a display
   at another resolution than the setup expects — 1920 x 1080 against an Epson's 1920 x 1200 — the tab
   says that as well, since it is the likeliest fault on site.
+- **The autocue is placed here too** (14 October 2026): its card says on top of the show window or in its
+  own window, the first drawn on the stage in amber and dragged where it is to stand, the second put on a
+  screen off a map of macOS's displays. See [the autocue](#the-autocue).
 
 Checked on the running show by capturing its window before and after a live move: the halves stood where
 the file put them (60 down on a 1920x1200 projector; 100 across at 0.9 on the other), and the move reached
@@ -1677,6 +1680,69 @@ asked for but not loaded, or refused by OpenAL, prints a line.
 **A sustained cue frees its OpenAL source once it has faded out.** Before, every file played as a held
 cue kept its source for the life of the show — one per voice line beside the design's own — and OpenAL
 Soft hands out 256; past that a cue plays on nothing and says nothing about it.
+
+### The autocue
+
+**The speaker has a screen of their own** (14 October 2026): [`Autocue`](src/main/kotlin/slideshow/Autocue.kt)
+is what is to be said over the state on the wall and what comes after it, composed at 1920 by 1080.
+`SLIDES_AUTOCUE`, the organizer's `autocue` button or `c` in the show switch it, live, and the launcher keeps
+it across starts like practice mode. Never on a film, a still or a bench. (`a` was taken: two walls step their
+grid with it.)
+
+- **The talk is one column**, a block a state of the running order: a hairline naming the state (the slide's
+  number and title on its first, the nameplate's letter on every one), then the line of the track the show
+  reads, set large (`SLIDES_AUTOCUE_TEXT`, 64 px, about 44 characters a line), or `stil — geen tekst`. The
+  speaker reads on through the evening as a teleprompter runs, the next state's words below the one being said.
+- **It scrolls as the line is said, and stops for the click.** The reading line stands at 0.38 of the script's
+  height, marked at both ends. Through a state it moves through the line on the subtitles' own cards
+  ([`CueTiming`](src/main/kotlin/slideshow/Autocue.kt) off `Pace.cards`): the voice's words with the voice on,
+  the 15 cps estimate otherwise. At the end of the line it stops. Once the line is said **and** the state has
+  stopped moving (`stillMoving`, the wait for the animation's rule, and a slide that `holds`), the next divider
+  glides onto the reading line and turns green: KLIK. A click eases in from where the scroll stood (0.6 s); a
+  jump further than a screen is cut. Lines said are dimmed, the next state's grey.
+- **The presenter clicks, always** (asked for on 14 October 2026). While the autocue is up nothing in the show
+  clicks on by itself — not autoplay's presented run, not a cue list, not the autostep — so the KLIK is the
+  presenter's to take when ready. Their clocks are held while it is up, so switching it off does not catch up on
+  the clicks held back; the organizer's autoplay button says `autoplay: off (autocue)` meanwhile.
+- **It follows the speaking a line at a time, never a word at a time.** Each line's middle stands on the band
+  as its middle is said, and the path between is averaged over 1.4 s either side (`Autocue.reading`). Word by
+  word it hiccuped: the voice's word times are matched to the script by letters, so where Whisper heard a
+  compound or a number differently several words shared a start, and measured over every state of the talk the
+  scroll leapt up to 59 px in one frame (378 frames over 4 px). Line by line and smoothed: none over 1.2 px, the
+  fastest second 1.7 times the median rather than 2.5, and the band a fifth of a line off the line being said at
+  the median, never a whole line — the same at a 0.6 s window, so the wider one costs nothing.
+- **The foot says what to do**: SPREKEN with what is left of the line, WACHT while the wall still moves (the
+  marks turn amber), KLIK pulsing green, EINDE on the last state. Beside it what the next click brings, and in its own
+  window, the wall small. The header has the chapter or moment, the slide, its state, the time and the slide
+  count. The labels are Dutch: it is the speaker's screen, and the script is Dutch.
+- **Where it goes is the Projection tab's**, kept in `show-projection.json` as `autocue`
+  ([`AutocueSetup`](src/main/kotlin/slideshow/Autocue.kt)), and every part of it moves the running show:
+  - `wall`: on top of the show's own window, its 1920 by 1080 at x, y on the canvas at a scale — over the left
+    projector at 1, half size in a corner, or dragged on the tab's stage. Drawn on the window like the grid, so
+    it reaches the projectors (ProjectorSplit lays the window out after it) but never a film, still or preview.
+    It is the rehearsal with nothing more to plug in.
+  - `window`: a window of its own, 1920 by 1080, or 960 by 540 to look at on a laptop, placed in points;
+    clicking a screen on the tab's map fills it (its place and size, no title bar).
+- **The second window is OPENRNDR 0.4.5's `Program.window`**, a GLFW window sharing the wall's GL context. It
+  draws one thing: the autocue's picture, which the wall's draw composes into a target of its own (with a
+  stencil, since its marks are filled contours) once a frame that changes. Shared contexts share textures, so
+  nothing else in the show knows a second window exists. It is opened the first time it is wanted, from the
+  top of a draw, and only ever shown, hidden, moved and resized after; closed by hand it is hidden and the
+  autocue is off until switched on again. Four things it needed:
+  - **OPENRNDR must not close it.** A child window OPENRNDR may close is destroyed inside GLFW's close callback,
+    and on ⌘Q GLFW asks every window to close while walking its list of them — so it read a freed window and
+    the JVM died in `libglfw` (14 October 2026, `hs_err`). The window is `closable = false`, its close button is
+    read off `glfwWindowShouldClose` in the draw, and it goes when the show does.
+  - **Its swap does not wait for the display** (`glfwSwapInterval(0)`): the wall's window does, and two windows
+    each waiting for vsync in one loop would halve the wall's rate.
+  - **It is handed the show's keys**: `keyDown` and `keyUp` are functions both windows listen with, so the
+    clicker works whichever window has the focus. Not yet checked with a real key on the second window.
+  - **The focus goes back to the wall** as it opens, since GLFW gives a new window the focus.
+- Checked on a muted show, by a throwaway readback of both windows' framebuffers to png, since removed
+  (screenshots do not work on this machine): the window drew its picture with the wall small in its foot
+  and the wall's own window untouched; a click eased into the next slide's line from its first word; moved onto
+  the wall it covered the left projector, then half size on the right, its window hidden; off, then its window
+  back; on a short line, SPREKEN gave way to the green KLIK. The tab was checked in headless Chrome.
 
 ### The refactor of 16 September
 

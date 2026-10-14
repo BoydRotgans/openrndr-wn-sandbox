@@ -460,6 +460,20 @@
   .projCard .note { color: var(--dim); font-size: 11.5px; line-height: 1.45; }
   .projCard .note.warn { color: var(--warn); }
   .projCard .displays { display: flex; flex-direction: column; gap: 4px; font: 11.5px ui-monospace, Menlo, monospace; color: var(--dim); }
+  /* the autocue: amber wherever it is drawn — over the wall on the stage, or as a window on the screens map */
+  #projStage .cue { position: absolute; z-index: 3; outline: 2px solid #ffb020; outline-offset: -2px; background: rgba(255, 176, 32, .14); cursor: grab; touch-action: none; }
+  #projStage .cue.off { outline-style: dashed; background: transparent; }
+  #projStage .cue.dragging { cursor: grabbing; }
+  #projStage .cue .lbl { position: absolute; left: 8px; top: 6px; color: #ffb020; font-size: 11px; text-shadow: 0 1px 2px #000; pointer-events: none; }
+  .projCard.cueCard { border-color: rgba(255, 176, 32, .55); }
+  .projCard .pick { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius); background: var(--panel-2); }
+  .projCard .screens { position: relative; background: var(--thumb); border-radius: var(--radius); }
+  .projCard .screens .scr { position: absolute; box-shadow: inset 0 0 0 1px #5a5a60; color: #9a9aa0; font-size: 10px; line-height: 1.3; cursor: pointer; overflow: hidden; }
+  .projCard .screens .scr span { position: absolute; left: 5px; top: 4px; pointer-events: none; }
+  .projCard .screens .scr:hover { box-shadow: inset 0 0 0 1px var(--accent); }
+  .projCard .screens .scr.sel { box-shadow: inset 0 0 0 2px #ffb020; }
+  .projCard .screens .wallwin { position: absolute; outline: 2px solid var(--live); outline-offset: -2px; pointer-events: none; }
+  .projCard .screens .cuewin { position: absolute; outline: 2px solid #ffb020; outline-offset: -2px; background: rgba(255, 176, 32, .2); pointer-events: none; }
   /* ---------- the Subtitles tab: the talk as a script ---------- */
   body.view-subtitles #nav, body.view-subtitles #main, body.view-subtitles #help { display: none; }
   body.view-subtitles #top .show-only:not(#grpShow) { display: none !important; }
@@ -591,6 +605,7 @@
       <span id="live"><i></i><span id="liveText">connecting…</span></span>
       <button class="ghost" id="practiceBtn" title="Practice mode: the clicker's screen button (hold to start over) and play button (twice for the overview of every slide) work. Off, they do nothing, so a wrong press in front of the room changes nothing; forward and back always work">practice mode: off</button>
       <button class="ghost" id="waitBtn" title="Wait for the animation: a forward click (the clicker, the arrows, this page) is refused until the state on the wall has finished moving, and while it moves, a countdown line bottom left comes down with how much is left. Back always works">wait for animation: off</button>
+      <button class="ghost" id="autocueBtn" title="The autocue: the speaker's screen — what is to be said over the state on the wall, scrolling as it is said, and a green KLIK once the line is said and the wall is still (c in the show). Where it goes — on top of the show window, or a window of its own on a screen — is set in the Projection tab. Switches the running show at once and is kept for the next start">autocue: off</button>
       <button class="ghost" id="projectionBtn" hidden title="Start the presentation on the two projectors — undecorated, 1:1, across the wall — rather than in a window">projection: off</button>
       <button id="presentBtn" hidden title="Start the show in a window of its own; the page steers it">▶ start presentation</button>
       <button class="ghost" id="fromStartBtn" hidden title="On: ▶ start opens the show at its beginning. Off: on the slide selected here. ⇧-click the start button for the other one, once. Kept in this browser">from the start: off</button>
@@ -2361,6 +2376,7 @@
       renderMute(s.muted);
       renderPractice(s.practice);
       renderWait(s.waitForAnimation);
+      renderAutocue(s.autocue, s.autocueWindow);
       renderSubMode(s.subtitles);
       renderVoiceMode(s.voice);
       renderMix(s.mix);
@@ -2412,6 +2428,7 @@
       renderMute(p.muted);
       renderPractice(p.practice);
       renderWait(p.waitForAnimation);
+      renderAutocue(p.autocue);
       renderSubMode(p.subtitles);
       renderVoiceMode(p.voice);
       renderMix(p.mix);
@@ -2826,6 +2843,22 @@
     const on = !waitOn;
     renderWait(on);   // at once, rather than on the next poll
     await post('/api/wait', { on });
+  });
+
+  // ---------- the autocue: the speaker's screen, on or off; where it goes is the Projection tab's ----------
+  let autocueOn = false;
+  function renderAutocue(on, inWindow) {
+    autocueOn = !!on;
+    const b = $('#autocueBtn');
+    b.textContent = autocueOn ? 'autocue: on' : 'autocue: off';
+    b.classList.toggle('primary', autocueOn);
+    window.dispatchEvent(new CustomEvent('autocue-state', { detail: { on: autocueOn, inWindow: !!inWindow } }));
+  }
+  $('#autocueBtn').addEventListener('click', async ev => {
+    ev.currentTarget.blur();   // left focused, a clicker's key in the browser could press it again
+    const on = !autocueOn;
+    renderAutocue(on);   // at once, rather than on the next poll
+    await post('/api/autocue', { on });
   });
 
   $('#projectionBtn').addEventListener('click', async () => {
@@ -3490,17 +3523,22 @@
   // line said, then a click by itself. Off, it says the line and holds the state for a click.
   // The running show's own word, or the launcher's for the next start.
   let autoplayOn = true;
+  let autoplayHeld = false;
   function renderAutoplay(s) {
     const p = s && s.presentation;
-    if (p && !p.live) { if (p.autoplay !== undefined) autoplayOn = !!p.autoplay; }
-    else if (s && s.autoplay !== undefined) autoplayOn = !!s.autoplay;
+    if (p && !p.live) { if (p.autoplay !== undefined) autoplayOn = !!p.autoplay; autoplayHeld = !!p.autocue; }
+    else if (s && s.autoplay !== undefined) { autoplayOn = !!s.autoplay; autoplayHeld = !!s.autocue; }
     const b = $('#scriptAutoplay');
-    b.textContent = autoplayOn ? 'autoplay' : 'wait for click';
-    b.classList.toggle('primary', autoplayOn);
+    b.textContent = autoplayHeld ? 'wait for click (autocue)' : autoplayOn ? 'autoplay' : 'wait for click';
+    b.classList.toggle('primary', autoplayOn && !autoplayHeld);
     // The same switch in the top bar, where the other switches of the show are, so it can be found on every tab.
     const t = $('#autoplayBtn');
-    t.textContent = autoplayOn ? 'autoplay: on' : 'autoplay: off';
-    t.classList.toggle('primary', autoplayOn);
+    // With the autocue up the presenter clicks, whatever this says: the switch is kept, and waits.
+    t.textContent = autoplayHeld ? 'autoplay: off (autocue)' : autoplayOn ? 'autoplay: on' : 'autoplay: off';
+    t.classList.toggle('primary', autoplayOn && !autoplayHeld);
+    t.title = autoplayHeld
+      ? `The autocue is up, so the presenter clicks: nothing clicks on by itself while it is. Autoplay is kept ${autoplayOn ? 'on' : 'off'} for when the autocue is switched off`
+      : 'On the extended track with the voice or subtitles on, autoplay clicks on by itself once each line has been said; off, the line is said and the state holds until you click. Switches the running show at once and is kept for the next start';
   }
   async function toggleAutoplay() {
     autoplayOn = !autoplayOn; renderAutoplay(null);
@@ -3735,6 +3773,11 @@
   let timer = null;
   let saveTimer = null;
   let loaded = false;
+  // The autocue's switch is the top bar's; this tab places it. Told by the poll whether it is on and its window open.
+  let cueOn = false, cueWindow = false;
+  const CUE_W = 1920, CUE_H = 1080;
+  const CUE_DEFAULT = { place: 'window', x: 0, y: 0, scale: 1, window: { x: null, y: null, width: 1920, height: 1080, undecorated: false }, display: null };
+  const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
   const half = () => ({ w: canvas.width / 2, h: canvas.height });
   const round = (v, d = 0) => { const f = 10 ** d; return Math.round(v * f) / f; };
@@ -3750,11 +3793,19 @@
       live = !!st.live;
       canvas = st.canvas || canvas;
       setup = JSON.parse(JSON.stringify(live ? st.shown : st.saved));
+      // an organizer from before the autocue sends none
+      setup.autocue = Object.assign(JSON.parse(JSON.stringify(CUE_DEFAULT)), setup.autocue || {});
+      setup.autocue.window = Object.assign({}, CUE_DEFAULT.window, setup.autocue.window || {});
       displays = st.displays || [];
       $('#projOutlines').checked = !!st.outlines;
       $('#projOutlines').disabled = !live;
       document.querySelectorAll('#projModels button').forEach((b) => { b.disabled = live; });
-      try { liveId = (await (await fetch('/api/state')).json()).id || null; } catch (e) { liveId = null; }
+      try {
+        const s = await (await fetch('/api/state')).json();
+        liveId = s.id || null;
+        cueOn = !!(s.presentation && !s.presentation.live ? s.presentation.autocue : s.autocue);
+        cueWindow = !!s.autocueWindow;
+      } catch (e) { liveId = null; }
       loaded = true;
       render();
     } catch (e) {
@@ -3764,7 +3815,7 @@
 
   /** Sends the setup: at once to the running wall, and with `save` into the file for the next start. */
   function send(save) {
-    return post('/api/projection', { left: setup.left, right: setup.right, desktop: setup.desktop, save: !!save });
+    return post('/api/projection', { left: setup.left, right: setup.right, desktop: setup.desktop, autocue: setup.autocue, save: !!save });
   }
   /**
    * A change: on the wall within a frame or two while a show runs, and saved once it settles. A drag
@@ -3819,6 +3870,48 @@
       frame.appendChild(el);
       stage.appendChild(frame);
     });
+    if (setup.autocue.place === 'wall') stage.appendChild(cueOnStage(k));
+  }
+
+  /**
+   * The autocue on the wall, where the show draws it: its 1920×1080 at x, y on the canvas and its scale, carried
+   * through whichever half its middle falls in onto that half's projector. Dragged, it moves the running wall.
+   */
+  function cueRect(k) {
+    const a = setup.autocue, h = half();
+    const w = CUE_W * a.scale, hh = CUE_H * a.scale;
+    const side = (a.x + w / 2) < h.w ? 0 : 1;
+    const p = setup[SIDES[side]];
+    const fx = side === 0 ? 0 : setup.left.width;
+    return { p, left: (fx + p.x + (a.x - side * h.w) * p.scale) * k, top: (p.y + a.y * p.scale) * k,
+      width: w * p.scale * k, height: hh * p.scale * k };
+  }
+  function cueOnStage(k) {
+    const a = setup.autocue, r = cueRect(k);
+    const el = document.createElement('div'); el.className = 'cue' + (cueOn ? '' : ' off');
+    Object.assign(el.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    const label = () => `autocue${cueOn ? '' : ' (off)'} · ${round(CUE_W * a.scale)}×${round(CUE_H * a.scale)} at ${round(a.x)}, ${round(a.y)}`;
+    el.innerHTML = `<span class="lbl">${label()}</span>`;
+    el.title = 'The autocue on top of the show window. Drag it where it is to stand on the wall';
+    el.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      const x0 = a.x, y0 = a.y, sx = ev.clientX, sy = ev.clientY, s = k * r.p.scale;
+      el.setPointerCapture(ev.pointerId);
+      el.classList.add('dragging');
+      const move = (e) => {
+        a.x = Math.round(x0 + (e.clientX - sx) / s);
+        a.y = Math.round(y0 + (e.clientY - sy) / s);
+        const n = cueRect(k);
+        Object.assign(el.style, { left: n.left + 'px', top: n.top + 'px', width: n.width + 'px', height: n.height + 'px' });
+        el.querySelector('.lbl').textContent = label();
+        changed(false);
+      };
+      const up = () => { el.removeEventListener('pointermove', move); render(); };
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up, { once: true });
+      el.addEventListener('pointercancel', up, { once: true });
+    });
+    return el;
   }
 
   function drag(ev, side, el, k) {
@@ -3902,6 +3995,112 @@
       cols.appendChild(card);
     });
     cols.appendChild(desktopCard());
+    cols.appendChild(autocueCard());
+  }
+
+  /** What the autocue is doing now, in a line — rewritten as the poll says it changed. */
+  function cueStateText() {
+    const a = setup.autocue;
+    if (!cueOn) return 'off — switch it on with “autocue” in the top bar, or c in the show';
+    if (a.place === 'wall') return 'on — drawn on top of the show window, where the stage above shows it';
+    return cueWindow ? 'on — in its own window' : (live ? 'on — its window opens in a moment' : 'on — its window opens with the presentation');
+  }
+
+  /**
+   * The autocue: where the speaker's screen goes. On top of the show window — a rehearsal with nothing more to
+   * plug in, dragged on the stage — or a window of its own, put on one of the screens macOS has. All of it
+   * moves the running show at once; with no show running it is saved for the next start.
+   */
+  function autocueCard() {
+    const a = setup.autocue, w = a.window;
+    const card = document.createElement('div'); card.className = 'projCard cueCard';
+    card.innerHTML = '<h3>Autocue — the speaker\'s screen</h3>';
+    const state = Object.assign(document.createElement('div'), { className: 'note', id: 'projCueState', textContent: cueStateText() });
+    card.appendChild(state);
+    const pick = document.createElement('span'); pick.className = 'pick';
+    [['wall', 'on top of the show window', 'Drawn over the wall in the show\'s own window, like the grid — on the projectors too. For a rehearsal with no screen to spare'],
+     ['window', 'in its own window', 'A window of its own, 1920×1080 or half that, to put on the speaker\'s screen']].forEach(([key, text, title]) => {
+      const b = document.createElement('button'); b.textContent = text; b.title = title;
+      b.className = a.place === key ? 'primary' : 'ghost';
+      b.addEventListener('click', () => { a.place = key; changed(); });
+      pick.appendChild(b);
+    });
+    card.appendChild(row('shown', pick));
+
+    if (a.place === 'wall') {
+      const h = half();
+      card.appendChild(row('at', numberField(round(a.x), 1, (v) => { a.x = v; changed(); }), numberField(round(a.y), 1, (v) => { a.y = v; changed(); })));
+      card.appendChild(row('scale', numberField(round(a.scale, 3), 0.01, (v) => { a.scale = Math.min(4, Math.max(0.1, v)); changed(); }),
+        `${round(CUE_W * a.scale)} × ${round(CUE_H * a.scale)} px`));
+      card.appendChild(row('',
+        button('the left projector', 'Over the whole left half, where the chapter card stands', () => { a.x = 0; a.y = 0; a.scale = 1; }),
+        button('the right projector', 'Over the whole right half, where the slide stands', () => { a.x = h.w; a.y = 0; a.scale = 1; }),
+        button('half size, in a corner', 'At half size in the left half\'s top left corner, the chapter card still showing round it', () => { a.x = 0; a.y = 0; a.scale = 0.5; })));
+      card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
+        textContent: 'Its corner in canvas pixels, 3840 × 1080 across the wall. Drawn on the window, never into the canvas: it reaches the projectors while it is on, but never a film, a still or a preview. Drag it on the stage above.' }));
+    } else {
+      card.appendChild(row('screen', screensMap(a)));
+      const field = (key) => {
+        const i = document.createElement('input'); i.type = 'number'; i.step = 1; i.placeholder = 'auto';
+        i.value = w[key] ?? '';
+        i.addEventListener('change', () => { const v = i.value.trim() === '' ? null : Math.round(parseFloat(i.value)); w[key] = Number.isFinite(v) ? v : null; a.display = null; changed(); });
+        i.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') i.blur(); });
+        return i;
+      };
+      card.appendChild(row('window at', field('x'), field('y')));
+      const sizes = [[1920, 1080, '1920 × 1080'], [960, 540, '960 × 540 — half, to look at on a laptop'], [1280, 720, '1280 × 720']];
+      const size = document.createElement('select');
+      size.innerHTML = sizes.map(([sw, sh, t]) => `<option value="${sw}x${sh}">${t}</option>`).join('') + '<option value="">other</option>';
+      size.value = sizes.some(([sw, sh]) => sw === w.width && sh === w.height) ? `${w.width}x${w.height}` : '';
+      size.addEventListener('change', () => { if (!size.value) return; const [sw, sh] = size.value.split('x').map(Number); w.width = sw; w.height = sh; changed(); });
+      card.appendChild(row('size', size,
+        numberField(w.width, 1, (v) => { w.width = Math.max(160, Math.round(v)); changed(); }), '×',
+        numberField(w.height, 1, (v) => { w.height = Math.max(160, Math.round(v)); changed(); })));
+      const bare = document.createElement('label');
+      bare.innerHTML = `<input type="checkbox"${w.undecorated ? ' checked' : ''}> no title bar — to fill a screen`;
+      bare.querySelector('input').addEventListener('change', (e) => { w.undecorated = e.target.checked; changed(); });
+      card.appendChild(row('', bare));
+      card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
+        textContent: 'Click a screen to fill it with the autocue — its place and size, no title bar; or set the window by hand, 960 × 540 to look at beside the code. The picture is composed at 1920 × 1080 and fitted. It opens the first time it is wanted and moves, resizes and hides at once; closed by hand, the autocue is off until it is switched on again.' }));
+      if ((displays || []).length > 2) card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
+        textContent: 'On the night: the autocue\'s screen beside the two projectors, all three in one arrangement in System Settings › Displays, and “Displays have separate Spaces” off.' }));
+    }
+    return card;
+  }
+
+  /** The screens macOS has, to scale, with the wall's window in green and the autocue's in amber. A click puts the autocue on one. */
+  function screensMap(a) {
+    const ds = displays || [];
+    const box = document.createElement('div'); box.className = 'screens';
+    if (!ds.length) { box.textContent = 'no displays found (this reads macOS)'; box.style.padding = '6px 8px'; return box; }
+    const minX = Math.min(...ds.map((d) => d.x)), minY = Math.min(...ds.map((d) => d.y));
+    const maxX = Math.max(...ds.map((d) => d.x + d.width)), maxY = Math.max(...ds.map((d) => d.y + d.height));
+    const W = 330, k = W / Math.max(1, maxX - minX);
+    box.style.width = W + 'px'; box.style.height = Math.round((maxY - minY) * k) + 'px';
+    const place = (el, x, y, w, h) => Object.assign(el.style, { left: (x - minX) * k + 'px', top: (y - minY) * k + 'px', width: w * k + 'px', height: h * k + 'px' });
+    ds.forEach((d) => {
+      const el = document.createElement('div'); el.className = 'scr' + (a.display === d.name ? ' sel' : '');
+      place(el, d.x, d.y, d.width, d.height);
+      el.innerHTML = `<span>${esc(d.name)}<br>${Math.round(d.width)}×${Math.round(d.height)}</span>`;
+      el.title = `Put the autocue on ${d.name}: its window at ${Math.round(d.x)}, ${Math.round(d.y)}, the screen's size, no title bar`;
+      el.addEventListener('click', () => {
+        a.place = 'window'; a.display = d.name;
+        Object.assign(a.window, { x: Math.round(d.x), y: Math.round(d.y), width: Math.round(d.width), height: Math.round(d.height), undecorated: true });
+        changed();
+      });
+      box.appendChild(el);
+    });
+    if (setup.desktop && setup.desktop.x != null) {
+      const wall = document.createElement('div'); wall.className = 'wallwin'; wall.title = 'the wall';
+      place(wall, setup.desktop.x, setup.desktop.y || 0, setup.left.width + setup.right.width, Math.max(setup.left.height, setup.right.height));
+      box.appendChild(wall);
+    }
+    if (a.window.x != null) {
+      const cue = document.createElement('div'); cue.className = 'cuewin';
+      place(cue, a.window.x, a.window.y || 0, a.window.width, a.window.height);
+      box.appendChild(cue);
+    }
+    return box;
   }
 
   function desktopCard() {
@@ -3977,6 +4176,15 @@
   });
   window.addEventListener('resize', () => { if (loaded && !$('#projection').hidden) renderStage(); });
   window.addEventListener('projection-view', load);
+  // The poll says whether the autocue is on and its window open; the line and the stage follow, the fields left alone.
+  window.addEventListener('autocue-state', (ev) => {
+    const { on, inWindow } = ev.detail;
+    if (on === cueOn && inWindow === cueWindow) return;
+    cueOn = on; cueWindow = inWindow;
+    if (!loaded || $('#projection').hidden || !setup) return;
+    const st = $('#projCueState'); if (st) st.textContent = cueStateText();
+    if (!document.querySelector('#projStage .cue.dragging')) renderStage();
+  });
 })();
 
 // ---------- the Sketches tab ----------

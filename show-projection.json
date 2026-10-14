@@ -1,5 +1,5 @@
 {
-    "about": "The two projectors of the wall and where its 1920x1080 halves stand on them, set in the organizer's Projection tab. width and height are each projector's size in points, read at the start; x, y and scale place the half on it and move the running show at once. desktop is the left projector's top left corner on the desktop, null for the rightmost two displays. SLIDES_PROJECTORS names the file.",
+    "about": "The two projectors of the wall and where its 1920x1080 halves stand on them, set in the organizer's Projection tab. width and height are each projector's size in points, read at the start; x, y and scale place the half on it and move the running show at once. desktop is the left projector's top left corner on the desktop, null for the rightmost two displays. autocue is where the speaker's screen goes: place wall draws it over the canvas at x, y and scale; place window gives it a window of its own at window.x, window.y in points (null: where macOS puts it), window.width by window.height, undecorated to fill a screen; all of it moves the running show. SLIDES_PROJECTORS names the file.",
     "left": {
         "width": 1920,
         "height": 1080,
@@ -19,5 +19,19 @@
     "desktop": {
         "x": null,
         "y": null
+    },
+    "autocue": {
+        "place": "window",
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "window": {
+            "x": null,
+            "y": null,
+            "width": 960,
+            "height": 540,
+            "undecorated": false
+        },
+        "display": null
     }
 }
