@@ -33,6 +33,28 @@
      "file": "sprekersnotities-standaard.pdf"
     }
    ]
+  },
+  {
+   "slug": "2026-10-15",
+   "name": "Rehearsal 15 October",
+   "created": "2026-10-15",
+   "folder": "practice/2026-10-15",
+   "audio": "film",
+   "about": "The show of 15 October on the aligned voice-over, filmed without subtitles (video/wn-experience_2026-10-15-clean.mp4), the voice mixed out, with the speaker's autocue filmed on the same run (video/wn-experience_2026-10-15-autocue.mp4); its states are frame for frame those of Release 15 October.",
+   "sheets": [
+    {
+     "key": "uitgelijnd",
+     "file": "sprekersnotities-uitgelijnd.pdf"
+    },
+    {
+     "key": "uitgebreid",
+     "file": "sprekersnotities-uitgebreid.pdf"
+    },
+    {
+     "key": "standaard",
+     "file": "sprekersnotities-standaard.pdf"
+    }
+   ]
   }
  ]
 }
