@@ -318,20 +318,36 @@ kbd {
   .p-keys { display: none; }
 }
 
-/* --- the autocue under the film (15 October) -------------------------------------------------- */
-/* Beside the notes, on the left and as large as the row allows: it is what the speaker reads from. The notes
-   and what comes next stack on the right. */
-.p-lower.with-cue { grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); grid-template-rows: auto 1fr; }
-.p-lower.with-cue .p-cue { grid-row: 1 / span 2; }
-.p-cue {
-  align-self: start; aspect-ratio: 16 / 9; background: black; border-radius: 10px; overflow: hidden;
-  box-shadow: 0 0 0 1px var(--line);
+/* --- the autocue, floating in a corner (15 October) ----------------------------------------------- */
+/* Over the page and under its head and the slide overview; placed and sized by FloatingCue, which keeps it wholly in
+   the window. It glides into its corner when let go, and follows the pointer exactly while dragged or resized. */
+.p-cue-float {
+  position: fixed; z-index: 4; display: flex; flex-direction: column; background: black; border-radius: 10px;
+  overflow: hidden; box-shadow: 0 0 0 1px var(--line-2), 0 18px 50px rgba(0, 0, 0, 0.6); user-select: none;
 }
-.p-cue video { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-.p-lower.with-cue .p-notes textarea { min-height: 120px; }
-.p-lower.with-cue .p-upnext .p-thumb { max-width: 240px; }
+.p-cue-float.settled { transition: left 0.22s ease, top 0.22s ease; }
+.p-cue-bar {
+  flex: none; height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 4px 0 10px;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); cursor: grab; touch-action: none;
+}
+.p-cue-float.dragging .p-cue-bar { cursor: grabbing; }
+.p-cue-name { font-size: 11px; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.p-cue-hint { flex: 1; min-width: 0; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-cue-bar button {
+  background: none; border: none; color: var(--muted); font-size: 17px; line-height: 1; padding: 2px 6px; border-radius: 4px;
+}
+.p-cue-bar button:hover { color: var(--text); background: var(--panel); }
+.p-cue-float video { display: block; width: 100%; flex: 1; min-height: 0; object-fit: contain; pointer-events: none; background: black; }
+/* the grip, on the corner facing the middle of the window */
+.p-cue-grip { position: absolute; width: 18px; height: 18px; touch-action: none; opacity: 0.55; transition: opacity 0.15s; }
+.p-cue-float:hover .p-cue-grip { opacity: 1; }
+.p-cue-grip::before { content: ''; position: absolute; inset: 4px; border: 0 solid var(--muted); }
+.p-cue-grip.br { right: 0; bottom: 0; cursor: nwse-resize; }
+.p-cue-grip.br::before { border-right-width: 2px; border-bottom-width: 2px; }
+.p-cue-grip.tl { left: 0; top: 0; cursor: nwse-resize; }
+.p-cue-grip.tl::before { border-left-width: 2px; border-top-width: 2px; }
+.p-cue-grip.tr { right: 0; top: 0; cursor: nesw-resize; }
+.p-cue-grip.tr::before { border-right-width: 2px; border-top-width: 2px; }
+.p-cue-grip.bl { left: 0; bottom: 0; cursor: nesw-resize; }
+.p-cue-grip.bl::before { border-left-width: 2px; border-bottom-width: 2px; }
 .ghost.off { color: var(--faint); }
-@media (max-width: 900px) {
-  .p-lower.with-cue { grid-template-columns: 1fr; grid-template-rows: none; }
-  .p-lower.with-cue .p-cue { grid-row: auto; }
-}

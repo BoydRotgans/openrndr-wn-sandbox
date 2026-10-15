@@ -13,6 +13,7 @@ const MUTED = 'wn-practice.muted'
 // text now, and every browser that had been here had stored the old default.
 const SUBS = 'wn-practice.subtitles-v2'
 const CUE = 'wn-practice.autocue'
+const CUE_PLACE = 'wn-practice.autocue-place'
 
 
 function remembered<T>(key: string, fallback: T): T {
@@ -341,14 +342,9 @@ export default function Practice() {
           </button>
         </div>
 
-        <div className={`p-lower${cueShown ? ' with-cue' : ''}`}>
-          {cueShown && (
-            // The autocue as the presenter sees it, filmed on the same run: it follows the film frame for frame, so
-            // the text runs on as the click plays and KLIK stands at its end. Silent, and not to be clicked.
-            <section className="p-cue" title={t.autocueAbout}>
-              <video ref={cueFilm} src={cut.autocueUrl!} preload="auto" playsInline muted controls={false} disablePictureInPicture />
-            </section>
-          )}
+        {cueShown && <FloatingCue t={t} src={cut.autocueUrl!} video={cueFilm} onHide={() => setCueOn(false)} />}
+
+        <div className="p-lower">
           <section className="p-notes">
             <header>
               <div>
@@ -400,6 +396,117 @@ export default function Practice() {
         <Overview t={t} cut={cut} deck={deck} current={current} hasNote={(k) => notes.has(k)} onPick={go} onClose={() => setOverview(false)} />
       )}
     </div>
+  )
+}
+
+type Corner = 'tl' | 'tr' | 'bl' | 'br'
+interface CuePlace { corner: Corner; width: number }
+
+/** Room kept clear between the panel and the window's edge; the bar it is dragged by; its smallest width. */
+const EDGE = 16
+const BAR = 26
+const SMALLEST = 260
+
+/**
+ * The autocue as the presenter sees it, filmed on the same run — it follows the film frame for frame, so the text
+ * runs on as the click plays and KLIK stands at its end — in a panel floating over the page (asked 15 October).
+ *
+ * It stands in one of the window's four corners: dragged by its bar it goes where it is taken, and let go it settles
+ * into the corner nearest its middle. The grip on its inner corner resizes it, at the film's 16:9, about the corner
+ * it stands in. **It is always wholly in the window**: its size is held between [SMALLEST] and what the window has
+ * room for, the top corners keep below the page's head, and a window made smaller shrinks it with it. Its corner and
+ * width are remembered per browser.
+ */
+function FloatingCue({ t, src, video, onHide }: { t: (typeof copy)['nl']; src: string; video: React.RefObject<HTMLVideoElement>; onHide(): void }) {
+  const [place, setPlace] = useState<CuePlace>(() => {
+    const p = remembered<Partial<CuePlace>>(CUE_PLACE, {})
+    return { corner: (['tl', 'tr', 'bl', 'br'] as Corner[]).includes(p.corner as Corner) ? p.corner as Corner : 'br', width: typeof p.width === 'number' ? p.width : 520 }
+  })
+  useEffect(() => { remember(CUE_PLACE, place) }, [place])
+  const [view, setView] = useState({ w: window.innerWidth, h: window.innerHeight })
+  useEffect(() => {
+    const on = () => setView({ w: window.innerWidth, h: window.innerHeight })
+    window.addEventListener('resize', on)
+    document.addEventListener('fullscreenchange', on)
+    return () => { window.removeEventListener('resize', on); document.removeEventListener('fullscreenchange', on) }
+  }, [])
+  // The top corners stand below the head, which stays on the page as it scrolls.
+  const [head, setHead] = useState(64)
+  useEffect(() => { setHead(Math.ceil(document.querySelector('.p-head')?.getBoundingClientRect().bottom ?? 64)) }, [view])
+  const top = head + EDGE / 2
+
+  const widest = Math.max(SMALLEST, Math.min(view.w - 2 * EDGE, (view.h - top - EDGE - BAR) * 16 / 9))
+  const fit = (w: number) => Math.round(Math.max(SMALLEST, Math.min(widest, w)))
+  const width = fit(place.width)
+  const height = Math.round(width * 9 / 16) + BAR
+  const at = (c: Corner) => ({
+    left: c[1] === 'l' ? EDGE : view.w - EDGE - width,
+    top: c[0] === 't' ? top : view.h - EDGE - height,
+  })
+  const clampTo = (x: number, y: number) => ({
+    left: Math.max(EDGE, Math.min(view.w - EDGE - width, x)),
+    top: Math.max(top, Math.min(view.h - EDGE - height, y)),
+  })
+
+  // While dragged: where it is, and where the pointer took hold of it.
+  const [dragged, setDragged] = useState<{ left: number; top: number } | null>(null)
+  const hold = useRef({ dx: 0, dy: 0 })
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    const here = at(place.corner)
+    hold.current = { dx: e.clientX - here.left, dy: e.clientY - here.top }
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDragged(here)
+  }
+  const moveDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragged) return
+    setDragged(clampTo(e.clientX - hold.current.dx, e.clientY - hold.current.dy))
+  }
+  const endDrag = () => {
+    if (!dragged) return
+    const cx = dragged.left + width / 2
+    const cy = dragged.top + height / 2
+    setPlace((p) => ({ ...p, corner: `${cy < view.h / 2 ? 't' : 'b'}${cx < view.w / 2 ? 'l' : 'r'}` as Corner }))
+    setDragged(null)
+  }
+
+  // Resized from its inner corner, about the corner it stands in: the pointer's move along whichever axis it moves
+  // most, read as a change of width.
+  const grip = useRef<{ x: number; y: number; width: number } | null>(null)
+  const [sizing, setSizing] = useState(false)
+  const startSize = (e: React.PointerEvent<HTMLSpanElement>) => {
+    e.stopPropagation()
+    grip.current = { x: e.clientX, y: e.clientY, width }
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setSizing(true)
+  }
+  const moveSize = (e: React.PointerEvent<HTMLSpanElement>) => {
+    const g = grip.current
+    if (!g) return
+    const gx = (place.corner[1] === 'r' ? -1 : 1) * (e.clientX - g.x)
+    const gy = (place.corner[0] === 'b' ? -1 : 1) * (e.clientY - g.y) * 16 / 9
+    setPlace((p) => ({ ...p, width: fit(g.width + (Math.abs(gx) > Math.abs(gy) ? gx : gy)) }))
+  }
+  const endSize = () => { grip.current = null; setSizing(false) }
+
+  const pos = dragged ?? at(place.corner)
+  // the grip on the corner facing the middle of the window
+  const inner = `${place.corner[0] === 't' ? 'b' : 't'}${place.corner[1] === 'l' ? 'r' : 'l'}`
+  return (
+    <section
+      className={`p-cue-float${dragged ? ' dragging' : ''}${dragged || sizing ? '' : ' settled'}`}
+      style={{ left: pos.left, top: pos.top, width, height }}
+      title={t.autocueAbout}
+    >
+      <div className="p-cue-bar" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
+        <span className="p-cue-name">{t.autocue}</span>
+        <span className="p-cue-hint">{t.autocueMove}</span>
+        <button onClick={onHide} title={`${t.hideAutocue} (A)`} aria-label={t.hideAutocue}>×</button>
+      </div>
+      <video ref={video} src={src} preload="auto" playsInline muted controls={false} disablePictureInPicture />
+      <span className={`p-cue-grip ${inner}`} onPointerDown={startSize} onPointerMove={moveSize} onPointerUp={endSize} onPointerCancel={endSize}
+        title={t.autocueResize} aria-hidden="true" />
+    </section>
   )
 }
 

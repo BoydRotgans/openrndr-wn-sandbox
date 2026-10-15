@@ -7731,9 +7731,11 @@ the practice-cut recipe; three decisions carry it.
   appears in it. Notes are one per state key in Supabase's `speaker_notes`, kept in the browser first.
 - **The autocue under the film** (15 October 2026). A cut's manifest may carry `autocue`, the presenter's
   autocue filmed on the same run (`SLIDES_AUTOCUE_FILM`, see the autocue) and copied in by `release_build.py
-  --autocue`. The page plays it left of the notes, following the film (`Film`'s `follow`): it plays, pauses
-  and seeks with it, is pulled back when it drifts past a few frames, and on a held click stands on the
-  film's own frame — KLIK. **Autocue** in the head, or A, hides it. With it the subtitle over the film went
+  --autocue`. The page plays it following the film (`Film`'s `follow`): it plays, pauses and seeks with it, is
+  pulled back when it drifts past a few frames, and on a held click stands on the film's own frame — KLIK.
+  It floats over the page (`FloatingCue`): dragged by its bar and let go, it settles into the nearest corner;
+  its inner-corner grip resizes it at 16:9; it is always wholly in the window, its size held between 260 px
+  and what the window has room for, the top corners kept below the head. **Autocue** in the head, or A, hides it. With it the subtitle over the film went
   **off by default**, under a new storage key so every browser starts off; the CC button or S puts it back.
   `--track aligned` names the track the cut was voiced from, and the page's lines are that track's alone.
 - **The review site carries the aligned track** as a third voice-over tab (`voiceoverAligned` in the
