@@ -399,8 +399,13 @@ export default function Practice() {
   )
 }
 
-type Corner = 'tl' | 'tr' | 'bl' | 'br'
-interface CuePlace { corner: Corner; width: number }
+/**
+ * Where the autocue stands: a row — top, middle, bottom — and a column — left, centre, right — of the window. The
+ * corners, the middle of each edge, and the middle (asked 15 October: "centre bottom, or centre right").
+ */
+type Spot = `${'t' | 'm' | 'b'}${'l' | 'c' | 'r'}`
+const SPOTS: Spot[] = ['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br']
+interface CuePlace { corner: Spot; width: number }
 
 /** Room kept clear between the panel and the window's edge; the bar it is dragged by; its smallest width. */
 const EDGE = 16
@@ -411,16 +416,17 @@ const SMALLEST = 260
  * The autocue as the presenter sees it, filmed on the same run — it follows the film frame for frame, so the text
  * runs on as the click plays and KLIK stands at its end — in a panel floating over the page (asked 15 October).
  *
- * It stands in one of the window's four corners: dragged by its bar it goes where it is taken, and let go it settles
- * into the corner nearest its middle. The grip on its inner corner resizes it, at the film's 16:9, about the corner
- * it stands in. **It is always wholly in the window**: its size is held between [SMALLEST] and what the window has
+ * It stands in a corner of the window, or at the middle of an edge, or in the middle — a 3 by 3 grid of places:
+ * dragged by its bar it goes where it is taken, and let go it settles into the place nearest to where it was left.
+ * The grip on its inner corner resizes it, at the film's 16:9, about the place it stands in: a corner stays put, and
+ * on the middle of an edge it grows out both ways, so it stays centred. **It is always wholly in the window**: its size is held between [SMALLEST] and what the window has
  * room for, the top corners keep below the page's head, and a window made smaller shrinks it with it. Its corner and
  * width are remembered per browser.
  */
 function FloatingCue({ t, src, video, onHide }: { t: (typeof copy)['nl']; src: string; video: React.RefObject<HTMLVideoElement>; onHide(): void }) {
   const [place, setPlace] = useState<CuePlace>(() => {
     const p = remembered<Partial<CuePlace>>(CUE_PLACE, {})
-    return { corner: (['tl', 'tr', 'bl', 'br'] as Corner[]).includes(p.corner as Corner) ? p.corner as Corner : 'br', width: typeof p.width === 'number' ? p.width : 520 }
+    return { corner: SPOTS.includes(p.corner as Spot) ? p.corner as Spot : 'br', width: typeof p.width === 'number' ? p.width : 520 }
   })
   useEffect(() => { remember(CUE_PLACE, place) }, [place])
   const [view, setView] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -439,9 +445,10 @@ function FloatingCue({ t, src, video, onHide }: { t: (typeof copy)['nl']; src: s
   const fit = (w: number) => Math.round(Math.max(SMALLEST, Math.min(widest, w)))
   const width = fit(place.width)
   const height = Math.round(width * 9 / 16) + BAR
-  const at = (c: Corner) => ({
-    left: c[1] === 'l' ? EDGE : view.w - EDGE - width,
-    top: c[0] === 't' ? top : view.h - EDGE - height,
+  const at = (c: Spot) => ({
+    left: c[1] === 'l' ? EDGE : c[1] === 'c' ? Math.round((view.w - width) / 2) : view.w - EDGE - width,
+    // the middle row is the middle of the room below the head
+    top: c[0] === 't' ? top : c[0] === 'm' ? Math.round(top + (view.h - EDGE - top - height) / 2) : view.h - EDGE - height,
   })
   const clampTo = (x: number, y: number) => ({
     left: Math.max(EDGE, Math.min(view.w - EDGE - width, x)),
@@ -464,9 +471,13 @@ function FloatingCue({ t, src, video, onHide }: { t: (typeof copy)['nl']; src: s
   }
   const endDrag = () => {
     if (!dragged) return
-    const cx = dragged.left + width / 2
-    const cy = dragged.top + height / 2
-    setPlace((p) => ({ ...p, corner: `${cy < view.h / 2 ? 't' : 'b'}${cx < view.w / 2 ? 'l' : 'r'}` as Corner }))
+    // the place nearest to where it was let go
+    const d = dragged
+    const nearest = SPOTS.reduce((best, s) => {
+      const p = at(s), q = at(best)
+      return Math.hypot(p.left - d.left, p.top - d.top) < Math.hypot(q.left - d.left, q.top - d.top) ? s : best
+    })
+    setPlace((p) => ({ ...p, corner: nearest }))
     setDragged(null)
   }
 
@@ -483,15 +494,17 @@ function FloatingCue({ t, src, video, onHide }: { t: (typeof copy)['nl']; src: s
   const moveSize = (e: React.PointerEvent<HTMLSpanElement>) => {
     const g = grip.current
     if (!g) return
-    const gx = (place.corner[1] === 'r' ? -1 : 1) * (e.clientX - g.x)
-    const gy = (place.corner[0] === 'b' ? -1 : 1) * (e.clientY - g.y) * 16 / 9
+    // about a corner the grip's move is the change in size; about a middle the panel grows out both ways, so twice it
+    const gx = ({ l: 1, c: 2, r: -1 })[place.corner[1] as 'l' | 'c' | 'r'] * (e.clientX - g.x)
+    const gy = ({ t: 1, m: 2, b: -1 })[place.corner[0] as 't' | 'm' | 'b'] * (e.clientY - g.y) * 16 / 9
     setPlace((p) => ({ ...p, width: fit(g.width + (Math.abs(gx) > Math.abs(gy) ? gx : gy)) }))
   }
   const endSize = () => { grip.current = null; setSizing(false) }
 
   const pos = dragged ?? at(place.corner)
-  // the grip on the corner facing the middle of the window
-  const inner = `${place.corner[0] === 't' ? 'b' : 't'}${place.corner[1] === 'l' ? 'r' : 'l'}`
+  // the grip on the corner facing the middle of the window: the foot unless it stands at the bottom, the right unless
+  // it stands at the right
+  const inner = `${place.corner[0] === 'b' ? 't' : 'b'}${place.corner[1] === 'r' ? 'l' : 'r'}`
   return (
     <section
       className={`p-cue-float${dragged ? ' dragging' : ''}${dragged || sizing ? '' : ' settled'}`}

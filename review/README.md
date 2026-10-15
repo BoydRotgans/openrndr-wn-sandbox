@@ -161,9 +161,10 @@ is ever heard there and no subtitles are burned into its film**.
 the film (`SLIDES_AUTOCUE_FILM`) and so frame for frame with it — the script scrolling on as the click
 plays, SPREKEN, WACHT, and KLIK standing at the click's end, exactly as the presenter will see it on the
 evening. It follows the film: it plays, pauses and seeks with it and stands on the film's own frame when
-a click is held. **It floats over the page in a corner**: dragged by its bar it goes where it is taken and,
-let go, settles into the nearest of the four corners; the grip on its inner corner resizes it at 16:9. It is
-always wholly in the window — no smaller than 260 px, no larger than the window has room for, the top corners
+a click is held. **It floats over the page**: dragged by its bar it goes where it is taken and, let go,
+settles into the nearest of nine places — a corner, the middle of an edge (bottom centre, middle right …) or
+the middle; the grip on its inner corner resizes it at 16:9, growing out both ways on the middle of an edge so
+it stays centred. It is always wholly in the window — no smaller than 260 px, no larger than the window has room for, the top corners
 below the page's head — and shrinks with the window. Its corner and size are remembered per browser;
 **Autocue** in the head, A or its × hides it. A cut whose manifest has no `autocue` shows none.
 
