@@ -51,9 +51,9 @@ import java.util.concurrent.Executors
  *     PUT  /api/meeting          a meeting tasks file          save what a meeting asked, agreed per task
  *     PUT  /api/midi             a midi file's contents        save which slides are wanted as MIDI
  *     PUT  /api/subtitles        a subtitles file's contents   save what is said over each state
- *                                ?track=extended               … of the extended track
+ *                                ?track=extended|aligned       … of the extended or the aligned track
  *     POST /api/subtitle-mode    { "on": true }?               subtitles on the wall on or off
- *     POST /api/subtitle-track   { "track": "extended" }       which track is read; extended presents
+ *     POST /api/subtitle-track   { "track": "extended" }       which track is read: default, extended or aligned
  *     POST /api/voice-mode       { "on": true }?               the rendered voice spoken or not
  *     POST /api/mix              { "layer": "voice", "gain": 0.3 }  one track of the sound's level
  *     POST /api/colours          { "red": "FF0000" }, "blue", "save": true
@@ -109,6 +109,8 @@ class Remote(
     private val subtitlesFile: File = File("show-subtitles.json"),
     /** The extended track's file — see [SubtitleTrack]. */
     private val subtitlesExtendedFile: File = File("show-subtitles-extended.json"),
+    /** The aligned track's file — see [SubtitleTrack]. */
+    private val subtitlesAlignedFile: File = File("show-subtitles-aligned.json"),
     /** The meeting tasks — see [MeetingTasks]. */
     private val meetingFile: File = File("show-meeting-tasks.json"),
     /** The production's draaiboek and its Show tab, read for the evening's times — see [Draaiboek]. Null has none. */
@@ -158,7 +160,7 @@ class Remote(
     data class Track(val track: SubtitleTrack) : Command
     /** The voice spoken or not; null flips it. See [VoiceTrack]. */
     data class Voice(val on: Boolean?) : Command
-    /** Whether the presented run clicks on by itself once a state's line is said, or waits for a click. Null switches it. */
+    /** Whether, with the autocue up, the show continues by itself once each state is done, or waits for a click. Null switches it. */
     data class Autoplay(val on: Boolean?) : Command
     /** One track of the sound at this gain. See [Layer]. */
     data class Mix(val layer: Layer, val gain: Double) : Command
@@ -255,6 +257,33 @@ class Remote(
     var subtitlesExtended: Subtitles = Subtitles.readOrEmpty(subtitlesExtendedFile.path)
         private set
 
+    /** The aligned track, as last read or saved. */
+    @Volatile
+    var subtitlesAligned: Subtitles = Subtitles.readOrEmpty(subtitlesAlignedFile.path)
+        private set
+
+    /** A track's file, the name the page writes it under, and its lines as last read or saved. */
+    private fun trackFile(track: SubtitleTrack): File = when (track) {
+        SubtitleTrack.DEFAULT -> subtitlesFile
+        SubtitleTrack.EXTENDED -> subtitlesExtendedFile
+        SubtitleTrack.ALIGNED -> subtitlesAlignedFile
+    }
+    private fun trackKey(track: SubtitleTrack): String = when (track) {
+        SubtitleTrack.DEFAULT -> "subtitles"
+        SubtitleTrack.EXTENDED -> "subtitlesExtended"
+        SubtitleTrack.ALIGNED -> "subtitlesAligned"
+    }
+    private fun trackLines(track: SubtitleTrack): Subtitles = when (track) {
+        SubtitleTrack.DEFAULT -> subtitles
+        SubtitleTrack.EXTENDED -> subtitlesExtended
+        SubtitleTrack.ALIGNED -> subtitlesAligned
+    }
+    private fun setTrackLines(track: SubtitleTrack, lines: Subtitles) = when (track) {
+        SubtitleTrack.DEFAULT -> subtitles = lines
+        SubtitleTrack.EXTENDED -> subtitlesExtended = lines
+        SubtitleTrack.ALIGNED -> subtitlesAligned = lines
+    }
+
     /** The pace the show cuts and times its cards at; the page asks for cards at the same one. */
     private val pace = Pace(show.settings.subtitleCps)
 
@@ -309,7 +338,7 @@ class Remote(
     private val pageFiles
         get() = mapOf(
             "order" to orderFile, "modules" to modulesFile, "intents" to intentsFile,
-            "subtitles" to subtitlesFile, "subtitlesExtended" to subtitlesExtendedFile,
+            "subtitles" to subtitlesFile, "subtitlesExtended" to subtitlesExtendedFile, "subtitlesAligned" to subtitlesAlignedFile,
             "feedback" to feedbackFile, "midi" to midiFile, "meeting" to meetingFile,
             "subtitleFeedback" to subtitleFeedbackFile
         )
@@ -575,11 +604,11 @@ class Remote(
                     })
                 }
                 path == "/api/subtitles" && method == "PUT" -> {
-                    // `?track=extended` saves the extended track; without it, the default one.
+                    // `?track=extended` or `?track=aligned` saves that track; without it, the default one.
                     val track = SubtitleTrack.of(exchange.query("track"))
-                    if (refused(exchange, if (track == SubtitleTrack.EXTENDED) "subtitlesExtended" else "subtitles")) return
-                    val file = if (track == SubtitleTrack.EXTENDED) subtitlesExtendedFile else subtitlesFile
-                    val was = if (track == SubtitleTrack.EXTENDED) subtitlesExtended else subtitles
+                    if (refused(exchange, trackKey(track))) return
+                    val file = trackFile(track)
+                    val was = trackLines(track)
                     val text = exchange.bytes().decodeToString()
                     val next = runCatching { Subtitles.parse(text) }.getOrElse {
                         exchange.json(400, error("not a subtitles file: ${it.message}"))
@@ -588,7 +617,7 @@ class Remote(
                     // The header and the voice-over beside the lines are the file's, not the page's.
                     val kept = Subtitles(next.lines, next.note ?: was.note, was.extra + next.extra)
                     kept.write(file)
-                    if (track == SubtitleTrack.EXTENDED) subtitlesExtended = kept else subtitles = kept
+                    setTrackLines(track, kept)
                     commands += ApplySubtitles(kept, track)
                     println("organizer: saved ${file.path} (${kept.size} slides with a line)")
                     exchange.json(200, buildJsonObject { put("saved", file.path); put("applied", true); put("rev", revOf(file)) })
@@ -789,6 +818,8 @@ class Remote(
             put("subtitles", subtitles.toJson())
             put("subtitlesExtendedFile", subtitlesExtendedFile.path)
             put("subtitlesExtended", subtitlesExtended.toJson())
+            put("subtitlesAlignedFile", subtitlesAlignedFile.path)
+            put("subtitlesAligned", subtitlesAligned.toJson())
             // The voices rendered per track, seconds a state — read off the folder each time, since
             // the renderer writes it from outside the show.
             put("voiceDir", voiceDir?.path ?: "")
@@ -1003,6 +1034,7 @@ class Remote(
         subtitleFeedback = SubtitleFeedback.readOrEmpty(subtitleFeedbackFile)
         subtitles = Subtitles.readOrEmpty(subtitlesFile.path)
         subtitlesExtended = Subtitles.readOrEmpty(subtitlesExtendedFile.path)
+        subtitlesAligned = Subtitles.readOrEmpty(subtitlesAlignedFile.path)
         midi = if (midiFile.isFile) runCatching { MidiWanted.read(midiFile) }.getOrDefault(MidiWanted.EMPTY) else MidiWanted.EMPTY
         catalogue = runCatching { catalogue.withModules(modules, references) }.getOrDefault(catalogue)
         show = runCatching { catalogue.arranged(currentOrder()) }.getOrDefault(catalogue)
@@ -1055,7 +1087,7 @@ class Remote(
         )
 
         private val PREVIEW_NAME = Regex("^[a-z0-9-]+-[0-2]\\.png$")
-        private val VOICE_NAME = Regex("^(default|extended)/([a-z0-9-]+-[A-Z]{1,2}\\.wav|manifest\\.json)$")
+        private val VOICE_NAME = Regex("^(default|extended|aligned)/([a-z0-9-]+-[A-Z]{1,2}\\.wav|manifest\\.json)$")
         private val REFERENCE_NAME = Regex("^[0-9]+-[0-9]+-(wall\\.jpg|pane\\.png)$")
 
         /** One of the three frames a preview shows: the click it stands on, the frame, and its caption. */

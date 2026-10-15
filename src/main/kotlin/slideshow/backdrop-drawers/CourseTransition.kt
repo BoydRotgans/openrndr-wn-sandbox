@@ -289,7 +289,7 @@ class CourseTransition(
         if (!schedule()) {
             // No field to build — the face cannot be read here. Show the wall it came from, if any.
             under?.let { drawUnder(drawer, stage, 1.0, listOf(stage.bounds)) }
-            if (countdown && !built && t < duration) drawCountdown(drawer, stage, duration - t)
+            if (countdown && !Countdown.hidden && !built && t < duration) drawCountdown(drawer, stage, duration - t)
             return
         }
         // The course wall fading, the whole of it, until the build begins; the canvas is linear light,
@@ -314,7 +314,7 @@ class CourseTransition(
             if (left.isNotEmpty() && under != null && light > 0.0) drawUnder(drawer, stage, light, left)
         }
 
-        if (countdown && !built && t < duration) drawCountdown(drawer, stage, duration - t)
+        if (countdown && !Countdown.hidden && !built && t < duration) drawCountdown(drawer, stage, duration - t)
     }
 
     /** The wall before, at its own frame count carried on, into [cells] of the picture, at [brightness]. */

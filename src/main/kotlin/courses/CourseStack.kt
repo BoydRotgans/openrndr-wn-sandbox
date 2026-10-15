@@ -10,6 +10,7 @@ import org.openrndr.draw.shadeStyle
 import org.openrndr.math.Matrix44
 import org.openrndr.math.Vector3
 import org.openrndr.math.transforms.buildTransform
+import org.lwjgl.opengl.GL33C
 import java.io.File
 import kotlin.math.PI
 import kotlin.math.abs
@@ -129,7 +130,10 @@ fun rowMain() = runCourse("course-v2-row", preview = 10.0) { stackCourse(panels)
 
 fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
     fun key(k: String) = Env["${layout.prefix}_$k"]
-    val name = key("PIECE") ?: layout.piece
+    // `PIECES` mixes several kinds, the first setting the size every other is fitted to; `PIECE` is one.
+    val names = key("PIECES")?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+        .ifEmpty { listOf(key("PIECE") ?: layout.piece) }
+    val name = names.first()
     val mesh = loadObjMesh(File("data/objects/$name.obj")) ?: error("stack: no data/objects/$name.obj")
     val count = key("COUNT")?.toIntOrNull() ?: layout.count
 
@@ -195,6 +199,7 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
         vertexTransform = "vBary = va_bary; vEdges = va_edges; vObjPosition = va_position; vObjNormal = va_normal;"
         fragmentPreamble = """
             in vec3 vBary; in vec3 vEdges; in vec3 vObjPosition; in vec3 vObjNormal;
+            ${DimWave.GLSL}
             // The stone read off the piece's own face, so it travels with the piece: a face takes the
             // two object coordinates that lie in it. Divided by the stone's own average, so the colour
             // keeps its value and only the grain shows.
@@ -236,6 +241,8 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
                 // Down to black at the foot, or the colour flat all the way down.
                 c = p_toBlack == 1 ? mix(vec3(0.0), top, clamp((vObjPosition.y - p_lowY) / p_height, 0.0, 1.0)) : top;
             }
+            // A slow dark wave through the fills, each colour in its rhythm; the lines are left white.
+            c = dimWave(c);
             // A line on every real edge, the same width in pixels however the piece stands.
             vec3 w = max(fwidth(vBary), vec3(1e-6));
             vec3 sel = mix(vec3(1e6), vBary / w, step(0.5, vEdges));
@@ -260,6 +267,7 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
     }
 
     val iso = Math.toDegrees(atan(1.0 / sqrt(2.0)))
+    val dim = DimWave(layout.prefix)
     val shadow = key("SHADOW")?.toDoubleOrNull() ?: layout.shadow
     // A shadow map only where there are shadows: the stacks run without, and a 4096 float map is 128 MB
     // standing idle — which counts once every variant is loaded as a wall in the show.
@@ -277,10 +285,59 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
             it.generateMipmaps(); it.filterMin = org.openrndr.draw.MinifyingFilter.LINEAR_MIPMAP_LINEAR
         }
     }
-    val lines = if (seeThrough) creaseLines(File("data/objects/$name.obj")) else null
+    // `EDGES=lines` draws the white edges as lines rather than in the face shader: a line painted inside
+    // a face is measured across the face, so on a face seen nearly edge on — the panels' grooves, their
+    // narrow ends — it breaks into dashes, and an edge between two visible faces is drawn twice as heavy
+    // as one on the outline. Drawn as lines, depth-tested and a hair toward the camera, every visible
+    // edge is one line of one weight.
+    val edgeLines = !seeThrough && key("EDGES") == "lines"
+    val lines = if (seeThrough || edgeLines) creaseLines(File("data/objects/$name.obj")) else null
+    // Every kind of piece the stack mixes, the first being the piece above. The others are turned the same
+    // way and fitted to its box — its length, height and thickness — so a row of mixed kinds stands as
+    // evenly as a row of one; the four wall panels the climb mixes are within a tenth of one proportion.
+    class Kind(val mesh: ObjMesh, val lay: Matrix44, val lines: org.openrndr.draw.VertexBuffer?)
+    val kinds = listOf(Kind(mesh, lay, lines)) + names.drop(1).mapNotNull { other ->
+        val m = loadObjMesh(File("data/objects/$other.obj")) ?: return@mapNotNull null.also { println("stack: no data/objects/$other.obj") }
+        val l = Vector3(m.points.minOf { it.x }, m.points.minOf { it.y }, m.points.minOf { it.z })
+        val h = Vector3(m.points.maxOf { it.x }, m.points.maxOf { it.y }, m.points.maxOf { it.z })
+        val e = h - l
+        val z = e.z > e.x
+        Kind(m, buildTransform {
+            scale(length / (if (z) e.z else e.x), extent.y / e.y, depth / (if (z) e.x else e.z))
+            translate(0.0, -l.y, 0.0)
+            if (z) rotate(Vector3.UNIT_Y, 90.0)
+        }, if (seeThrough || edgeLines) creaseLines(File("data/objects/$other.obj")) else null)
+    }
+    if (kinds.size > 1) println("stack: mixing ${names.joinToString()}")
+    /** Which kind stands at a place, and whether it is mirrored along its length, fixed by the place. */
+    fun kindAt(lane: Int, i: Int, level: Int): Pair<Int, Boolean> {
+        if (kinds.size == 1) return 0 to false
+        val r = kotlin.random.Random(lane * 7919 + i * 104729 + level * 15485863 + 17)
+        return r.nextInt(kinds.size) to r.nextBoolean()
+    }
     val lineStyle = shadeStyle { fragmentTransform = "x_fill = vec4(p_ink.rgb, p_fade);" }
     // A line two pixels wide out of one-pixel GL lines: drawn four times, a pixel apart on the canvas.
     val nudges = listOf(0.0 to 0.0, 1.0 to 0.0, 0.0 to 1.0, 1.0 to 1.0)
+    // Angles to cut between, `yaw,pitch[,frame[,aim]]` apart by `/`, a hard cut every `ANGLE_TIME` seconds;
+    // the camera never travels from one to the next. `frame` scales how much the frame shows and `aim`
+    // moves where the camera looks up or down, in storeys. Empty holds the one angle.
+    val angles = key("ANGLES")?.split("/")?.mapNotNull { a ->
+        a.split(",").mapNotNull { it.trim().toDoubleOrNull() }.takeIf { it.size >= 2 }
+    }.orEmpty()
+    // Seconds a storey takes, and how much of it the build is spread over, the rest a breath before
+    // the next. Empty `ANGLE_TIME` cuts once a storey, as the next one starts, so a storey is built
+    // whole from one angle and every cut falls in the breath.
+    val levelTime = key("LEVEL_TIME")?.toDoubleOrNull() ?: 20.0
+    val sweep = (key("SWEEP")?.toDoubleOrNull() ?: 0.8).coerceIn(0.1, 1.0)
+    val angleTime = (key("ANGLE_TIME")?.toDoubleOrNull() ?: levelTime).coerceAtLeast(1.0)
+    // Seconds a climbing piece takes to come down into its place from above the frame; 0 has it there
+    // at once. It enters at an easy pace and slows to land, `cubic-bezier(0.25, 0.5, 0.3, 1)`.
+    val arrive = key("ARRIVE")?.toDoubleOrNull() ?: 0.0
+    val landing = slideshow.CubicBezier(0.25, 0.5, 0.3, 1.0)
+    // The order a storey is built in: `diagonal` along the rows and across them, or `screen`, left to
+    // right across the frame as the camera stands, so the pieces landing in shot are spread over the
+    // whole storey instead of bunched where the build happens to cross the frame.
+    val byScreen = key("ORDER") == "screen"
 
     return { drawer: Drawer, time: Double ->
         drawer.clear(paper)
@@ -295,8 +352,10 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
         // under the floor — a whole orbit rather than a stop at either end. Round is kept in 0..360
         // and up in -180..180, so a saved angle reads the same however it was reached.
         val basePitch = key("VIEW_PITCH")?.toDoubleOrNull() ?: layout.viewPitch ?: iso
-        val yawDegrees = (fixed?.x ?: if (pointer != null) baseYaw + (pointer.x - 0.5) * 360.0 else baseYaw).mod(360.0)
-        val pitchDegrees = ((fixed?.y ?: if (pointer != null) basePitch + (pointer.y - 0.5) * 360.0 else basePitch) + 180.0).mod(360.0) - 180.0
+        // A held view wins over the cut list, and the cut list over the cursor.
+        val cut = angles.takeIf { it.isNotEmpty() }?.let { it[floor(time / angleTime).toInt().mod(it.size)] }
+        val yawDegrees = (fixed?.x ?: cut?.get(0) ?: if (pointer != null) baseYaw + (pointer.x - 0.5) * 360.0 else baseYaw).mod(360.0)
+        val pitchDegrees = ((fixed?.y ?: cut?.get(1) ?: if (pointer != null) basePitch + (pointer.y - 0.5) * 360.0 else basePitch) + 180.0).mod(360.0) - 180.0
         CourseControl.current = org.openrndr.math.Vector2(yawDegrees, pitchDegrees)
         val yaw = Math.toRadians(yawDegrees)
         val pitchAngle = Math.toRadians(pitchDegrees)
@@ -307,12 +366,11 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
         // Aimed at half the piece's height, so a standing panel is framed whole and not cut at its foot.
         val climb = layout.climb
         val levelHeight = extent.y * (1.0 + (key("LEVEL_GAP")?.toDoubleOrNull() ?: 0.12))
-        val levelTime = key("LEVEL_TIME")?.toDoubleOrNull() ?: 20.0
         val progress = time / levelTime
-        val target = if (climb) Vector3(0.0, progress * levelHeight + extent.y * 0.1, 0.0)
+        val target = if (climb) Vector3(0.0, (progress + (cut?.getOrNull(3) ?: 0.0)) * levelHeight + extent.y * 0.1, 0.0)
             else if (travel) Vector3(0.0, extent.y / 2.0, 0.0)
             else Vector3((if (layout.onEnds) length / 2.0 else 0.0) + middle * step, extent.y / 2.0, middle * pitch)
-        val half = pitch * count * (key("FRAME")?.toDoubleOrNull() ?: layout.frame)
+        val half = pitch * count * (cut?.getOrNull(2) ?: key("FRAME")?.toDoubleOrNull() ?: layout.frame)
         val aspect = drawer.width.toDouble() / drawer.height
         drawer.isolated {
             drawer.projection = orthoMatrix(-half, half, -half / aspect, half / aspect, -100.0, 100.0)
@@ -332,7 +390,7 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
             style.parameter("side", side)
             style.parameter("end", end)
             style.parameter("ink", ink)
-            style.parameter("width", key("LINE")?.toDoubleOrNull() ?: layout.line)
+            style.parameter("width", if (edgeLines) 0.0 else key("LINE")?.toDoubleOrNull() ?: layout.line)
             style.parameter("soft", key("SOFT")?.toDoubleOrNull() ?: layout.soft)
             val gradient = (key("GRADIENT") ?: layout.gradient)?.takeIf { it != "none" }
             style.parameter("gradient", if (gradient != null) 1 else 0)
@@ -345,6 +403,7 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
             style.parameter("flow", if (gradients.size >= 2) flow else 0.0)
             style.parameter("wave", length * (key("WAVE")?.toDoubleOrNull() ?: 2.5))
             style.parameter("time", time)
+            dim.apply(style, time, drawer.height.toDouble())
             style.parameter("toBlack", if (key("TO_BLACK")?.let { it == "true" } ?: layout.toBlack) 1 else 0)
             style.parameter("flowA", gradients.getOrElse(0) { ColorRGBa.WHITE })
             style.parameter("flowB", gradients.getOrElse(1) { ColorRGBa.WHITE })
@@ -358,7 +417,7 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
             val laneWidth = length * (key("LANE_GAP")?.toDoubleOrNull() ?: layout.laneGap)
             // Where every piece stands this frame, worked out once so the light's pass and the camera's
             // draw exactly the same scene.
-            class Placed(val model: Matrix44, val fade: Double, val tint: ColorRGBa, val top: ColorRGBa?)
+            class Placed(val model: Matrix44, val fade: Double, val tint: ColorRGBa, val top: ColorRGBa?, val kind: Int = 0)
             val placed = mutableListOf<Placed>()
             if (climb) {
                 // Storeys: the one being built and the finished ones under it. A piece drops onto its
@@ -368,27 +427,50 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
                 val keep = key("LEVELS")?.toIntOrNull() ?: 6
                 val snap = key("SNAP")?.toDoubleOrNull() ?: 0.0
                 val seat = key("SEAT")?.toDoubleOrNull() ?: 0.0
+                // The frame's half height, and how far a piece reaches up and down the frame from its
+                // middle at this pitch — its height stood up, its length laid back — both in view units.
+                val halfV = half / aspect
+                val reach = extent.y / 2.0 * abs(cos(pitchAngle)) + length / 2.0 * abs(sin(pitchAngle))
+                val tilt = maxOf(abs(cos(pitchAngle)), 0.2)
                 for (level in current - keep..current) {
                     val depthBelow = progress - level
                     val fog = kotlin.math.exp(-depthBelow * (key("FOG")?.toDoubleOrNull() ?: 0.0)).coerceIn(0.0, 1.0)
                     for (lane in 0 until lanes) {
                         val across = (lane - (lanes - 1) / 2.0) * laneWidth
                         for (i in 0 until count) {
-                            // A diagonal wave: along the row and across the rows, so a storey fills in a sweep.
-                            val order = (i.toDouble() / count + lane.toDouble() / lanes * 0.6) / 1.6
-                            val start = (level + order * 0.8) * levelTime
+                            val z = i * pitch - span / 2.0
+                            // Where the piece's middle stands in the frame once it has landed.
+                            val rest = drawer.view * org.openrndr.math.Vector4(across, level * levelHeight + extent.y / 2.0, z, 1.0)
+                            // A piece that lands wholly below the frame is never seen — it is set down there unseen,
+                            // never lowered through the picture — and with the sun above it shadows only what is
+                            // lower still, so it is left out of both passes. Six storeys of 154 pieces, each drawn six
+                            // times, were 6500 draws a frame and held the wall at 47 frames a second; most of them
+                            // were under the frame (stress test, 15 October 2026). Twice its reach, to be sure.
+                            if (rest.y + reach * 2.0 < -halfV) continue
+                            // Left to right across the frame and a little down it; or a diagonal wave
+                            // along the row and across the rows, so a storey fills in a sweep.
+                            val order = if (byScreen)
+                                (0.85 * (rest.x / half + 1.0) / 2.0 + 0.15 * (1.0 - rest.y / halfV) / 2.0).coerceIn(0.0, 1.0)
+                                else (i.toDouble() / count + lane.toDouble() / lanes * 0.6) / 1.6
+                            val start = (level + order * sweep) * levelTime
                             if (time < start) continue
                             // Clicked in, not dropped: the piece is there at once and only seats itself,
                             // settling `CLIMB_SEAT` of a storey over `CLIMB_SNAP` seconds on an ease-out.
                             // 0 for either makes it appear exactly in place.
                             val u = if (snap <= 0.0) 1.0 else ((time - start) / snap).coerceIn(0.0, 1.0)
                             val drop = (1.0 - u) * (1.0 - u) * (1.0 - u) * levelHeight * seat
-                            val y = level * levelHeight + drop
-                            val z = i * pitch - span / 2.0
+                            // Or lowered in from just above the top of the frame, so the whole of its
+                            // way down is in shot — never faded. One landing below the frame would fall
+                            // straight through the picture, so it is set down where it stands, unseen.
+                            val above = halfV + reach * 1.1 - rest.y
+                            val lift = if (arrive <= 0.0 || rest.y + reach < -halfV) 0.0
+                                else (1.0 - landing((time - start) / arrive)) * maxOf(above, 2.2 * reach) / tilt
+                            val y = level * levelHeight + drop + lift
                             val t = tint(lane, i)
-                            placed += Placed(buildTransform { translate(across, y, z) } * lay, 1.0,
+                            val (kind, mirrored) = kindAt(lane, i, level)
+                            placed += Placed(buildTransform { translate(across, y, z); if (mirrored) scale(-1.0, 1.0, 1.0) } * kinds[kind].lay, 1.0,
                                 ColorRGBa(t.r * fog, t.g * fog, t.b * fog, 1.0),
-                                gradients.takeIf { it.isNotEmpty() }?.let { it[(i + lane + level).mod(it.size)] })
+                                gradients.takeIf { it.isNotEmpty() }?.let { it[(i + lane + level).mod(it.size)] }, kind)
                         }
                     }
                 }
@@ -442,7 +524,7 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
                     drawer.depthTestPass = DepthTestPass.LESS_OR_EQUAL
                     depthStyle.parameter("lightVP", lightVP)
                     drawer.shadeStyle = depthStyle
-                    placed.forEach { drawer.model = it.model; drawer.vertexBuffer(mesh.vertexBuffer, DrawPrimitive.TRIANGLES) }
+                    placed.forEach { drawer.model = it.model; drawer.vertexBuffer(kinds[it.kind].mesh.vertexBuffer, DrawPrimitive.TRIANGLES) }
                 }
                 drawer.projection = cameraProjection
                 drawer.view = cameraView
@@ -466,22 +548,32 @@ fun Program.stackCourse(layout: StackLayout = beams): (Drawer, Double) -> Unit {
                 style.parameter("tint", p.tint)
                 p.top?.let { style.parameter("gradientTop", it) }
                 drawer.model = p.model
-                if (lines != null) {
+                if (!seeThrough) {
+                    drawer.shadeStyle = style
+                    // With the edges as lines the faces are pushed back in depth by how steeply each is
+                    // seen (OpenGL's polygon offset), so a line wins on the face it lies on and loses to
+                    // anything really in front of it — the walls of a groove included.
+                    if (edgeLines) { GL33C.glEnable(GL33C.GL_POLYGON_OFFSET_FILL); GL33C.glPolygonOffset(1f, 1f) }
+                    drawer.vertexBuffer(kinds[p.kind].mesh.vertexBuffer, DrawPrimitive.TRIANGLES)
+                    if (edgeLines) GL33C.glDisable(GL33C.GL_POLYGON_OFFSET_FILL)
+                }
+                val pieceLines = kinds[p.kind].lines
+                if (pieceLines != null) {
                     lineStyle.parameter("ink", ink)
                     lineStyle.parameter("fade", p.fade)
                     drawer.shadeStyle = lineStyle
                     val projection = drawer.projection
-                    val weight = (key("LINE")?.toDoubleOrNull() ?: 1.6)
+                    val weight = key("LINE")?.toDoubleOrNull() ?: if (edgeLines) layout.line else 1.6
+                    // On solid faces the lines are depth-tested like the faces, which stand back.
+                    if (edgeLines) drawer.depthWrite = false
                     nudges.forEach { (dx, dy) ->
                         drawer.projection = buildTransform {
                             translate(dx * weight / 2.0 * 2.0 / drawer.width, dy * weight / 2.0 * 2.0 / drawer.height, 0.0)
                         } * projection
-                        drawer.vertexBuffer(lines, DrawPrimitive.LINES)
+                        drawer.vertexBuffer(pieceLines, DrawPrimitive.LINES)
                     }
+                    if (edgeLines) drawer.depthWrite = true
                     drawer.projection = projection
-                } else {
-                    drawer.shadeStyle = style
-                    drawer.vertexBuffer(mesh.vertexBuffer, DrawPrimitive.TRIANGLES)
                 }
             }
             drawer.model = Matrix44.IDENTITY

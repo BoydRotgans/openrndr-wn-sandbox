@@ -8,6 +8,14 @@
           "at": "2026-10-01",
           "line": "Dit is Den Bosch, van boven gezien. Elk gebouw dat u ziet is opgebouwd uit onze eigen elementen, een stad als catalogus. Onze samenleving leunt op structuren die we vanzelfsprekend vinden.",
           "done": true
+        },
+        {
+          "id": "gsevavxu",
+          "text": "Kan dit compacter ben er nog steeds niet tevregen mee. deze zin mag weg \"Elk gebouw is opgebouwd uit elementen: een stad als een catalogus van onderdelen. \"",
+          "at": "2026-10-15",
+          "line": "Neem een stad als Den Bosch, van boven gezien. Elk gebouw is opgebouwd uit elementen: een stad als een catalogus van onderdelen. Onze samenleving leunt op structuren die we vanzelfsprekend vinden.",
+          "edited": "2026-10-15",
+          "done": true
         }
       ],
       "de-fabrieken-D": [
@@ -35,6 +43,58 @@
           "at": "2026-10-02",
           "line": "Op de nieuwe ladder staat Willy Naessens op trede één. Dezelfde positie, geen stap terug. We werken nu aan trede twee, met als doel trede drie en nul CO₂-uitstoot in 2050.",
           "done": true
+        }
+      ]
+    },
+    "aligned": {
+      "esg-social-governance-C": [
+        {
+          "id": "3fbsivu1",
+          "text": "Vijfentwintig laat dit weg",
+          "at": "2026-10-15",
+          "line": "Tussen die mensen lopen lijnen. Zo denkt de groep ook na over levenskwaliteit: minder verspilling, betere infrastructuur, respect voor de omgeving.",
+          "done": true
+        }
+      ],
+      "the-catalogue-city-A": [
+        {
+          "id": "bu0xhofr",
+          "text": "Kan dit compacter ben er nog steeds niet tevregen mee. deze zin mag weg \"Elk gebouw is opgebouwd uit elementen: een stad als een catalogus van onderdelen. \"",
+          "at": "2026-10-15",
+          "line": "Dit is Den Bosch, van boven. Elk gebouw is hier getekend met de elementen waaruit het is opgebouwd: een stad als een catalogus van onderdelen. Onze samenleving leunt op structuren die we vanzelfsprekend vinden.",
+          "done": true
+        }
+      ],
+      "levenscyclus-van-betonproducten-C": [
+        {
+          "id": "ob9ownje",
+          "text": "\"Tientallen jaren.\" ? vind ik raar laat dit weg overal in de subtitle",
+          "at": "2026-10-15",
+          "line": "B één tot B vijf, de gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing. Tientallen jaren."
+        }
+      ],
+      "levenscyclus-van-betonproducten-E": [
+        {
+          "id": "a6iil7za",
+          "text": "echt element is raar, laat dit stuk weg, noem het gwoon in 4 stappen",
+          "at": "2026-10-15",
+          "line": "Wij vervangen die laatste kolom. In plaats van einde levensduur komt The Circle: vier stappen, met in elke stap een echt element uit onze catalogus."
+        }
+      ],
+      "verborgen-verhaal-B": [
+        {
+          "id": "42xhhgyt",
+          "text": "wat er af ging; vind ik raar; benoem het eerder is onze besparing",
+          "at": "2026-10-15",
+          "line": "Het rode deel is wat eraf ging. In de betonsamenstelling van gevelelementen haalden we dertig procent CO₂ weg, ten opzichte van het mengsel van 2024. Hoe: minder cementgebruik, de overstap van CEM I naar CEM II, het gebruik van CEM III A, en alternatieve samenstellingen. Dezelfde kwaliteit, met minder CO₂. Dat mengsel hebben we jarenlang ontwikkeld met onze betontechnologen."
+        }
+      ],
+      "projecthighlight-3-B": [
+        {
+          "id": "v2hmpweg",
+          "text": "onder een betonnen dak; is vreemd; noem dat naders",
+          "at": "2026-10-15",
+          "line": "Van binnen ziet u waar het om ging: kratten vol groente en fruit, onder een betonnen dak. Koelen vraagt massa, en daar is beton bij uitstek geschikt voor: het accumulerend vermogen houdt de temperatuur stabiel. Dat geldt voor voedsel, maar ook voor pharma en defensie. Twee jaar lang hebben we een stalen en een betonnen gebouw gemonitord: in beton waren de energiekosten lager en stabieler. En beton is bestand tegen hittestress."
         }
       ]
     }

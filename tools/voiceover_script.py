@@ -58,18 +58,21 @@ def lines_of(value):
     return out
 
 
+TRACK_FILES = {"default": "show-subtitles.json", "extended": "show-subtitles-extended.json", "aligned": "show-subtitles-aligned.json"}
+
+
 def title_of(sid):
     return re.sub(r"-", " ", sid).capitalize()
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--track", default="extended", choices=["default", "extended"])
+    ap.add_argument("--track", default="extended", choices=["default", "extended", "aligned"])
     ap.add_argument("--order", default=str(ROOT / "show-order.json"))
     ap.add_argument("--plain", action="store_true", help="the lines alone, a paragraph each")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
-    file = ROOT / ("show-subtitles-extended.json" if a.track == "extended" else "show-subtitles.json")
+    file = ROOT / TRACK_FILES[a.track]
     doc = json.loads(file.read_text())
     subs = {sid: lines_of(v) for sid, v in doc.get("subtitles", {}).items()}
     order = json.loads(Path(a.order).read_text())

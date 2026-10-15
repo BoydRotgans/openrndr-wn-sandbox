@@ -7,6 +7,8 @@ dist
 # the film is uploaded to storage by scripts/publish-release.mjs
 public/releases/*/video.mp4
 public/releases/practice/*/video.mp4
+# the autocue filmed beside it (SLIDES_AUTOCUE_FILM), built the same way
+public/releases/practice/*/autocue.mp4
 # the speaker's sheets beside a rehearsal cut: built by tools/subtitle_notes_pdf.py, copied in
 public/releases/practice/*/*.pdf
 # the other soundtracks beside it — same reason: they are built, not written

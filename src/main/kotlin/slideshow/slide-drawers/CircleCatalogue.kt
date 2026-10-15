@@ -109,8 +109,9 @@ class CircleCatalogue(
     private val largest: Double = 10.0,
     /**
      * Pieces left out of the ring, the grid and everything after them, by name. The meeting of 30
-     * September asked for the round ones to go: threaded rods, lifting eyes, ball-head anchors, piles and
-     * void formers are fittings rather than building elements, and at the sheet's size they read as discs.
+     * September asked for the round ones to go, and 15 October for all of them: threaded rods, lifting
+     * eyes, ball-head and connector anchors, piles, void formers and the cone symbols are fittings rather
+     * than building elements, and at the sheet's size they read as discs.
      */
     private val exclude: Set<String> = emptySet()
 ) {

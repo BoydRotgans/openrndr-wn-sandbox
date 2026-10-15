@@ -16,8 +16,12 @@ import type { Manifest, StateInfo } from '../lib/types'
  * must never reach this page.
  *
  * **The subtitles come as text, beside the film rather than in it** (asked 2 October): [Cut.lines] is
- * what is said over each click, the extended track where a click has a line there and the standard one
- * otherwise, set above the speaker notes. The film stays a clean cut; nothing is heard.
+ * what is said over each click — on the track the cut's voice was rendered from where its manifest says
+ * (`track`, the aligned one since 15 October), else the extended track where a click has a line there and
+ * the standard one otherwise. The film stays a clean cut; nothing is heard.
+ *
+ * **The autocue comes as a film of its own** (15 October): `autocue` in the manifest is the presenter's
+ * autocue filmed on the same run, frame for frame with the film and silent, which the page plays under it.
  */
 export interface Cut {
   slug: string
@@ -36,6 +40,8 @@ export interface Cut {
   lines: Record<string, string>
   /** The speaker's sheets made off this cut, as PDFs beside its film: `uitgebreid` and `standaard`. */
   sheets: { key: string; url: string }[]
+  /** The autocue filmed on the same run, to play under the film in step with it; null where the cut has none. */
+  autocueUrl: string | null
 }
 
 interface CutEntry {
@@ -69,13 +75,18 @@ export async function loadCut(): Promise<Cut | null> {
     thumbBase: `${folder}/`,
     fps: m.fps,
     duration: m.duration,
-    // The lines are kept apart from the states, for the text above the notes; nothing is played.
-    states: m.states.map(({ voiceover: _v, voiceoverExtended: _x, ...s }) => s),
+    // The lines are kept apart from the states, for the subtitle over the film; nothing is played.
+    states: m.states.map(({ voiceover: _v, voiceoverExtended: _x, voiceoverAligned: _a, ...s }) => s),
     lines: Object.fromEntries(m.states.flatMap((s) => {
-      const line = (s.voiceoverExtended || s.voiceover || '').trim()
-      return line ? [[s.key, line]] : []
+      // the track the voice was rendered from, where the cut names it: a click silent there stays silent
+      const line = (m.track === 'aligned' ? s.voiceoverAligned
+        : m.track === 'extended' ? s.voiceoverExtended
+        : m.track === 'default' ? s.voiceover
+        : s.voiceoverExtended || s.voiceover) ?? ''
+      return line.trim() ? [[s.key, line.trim()]] : []
     })),
     sheets: (entry.sheets ?? []).map((x) => ({ key: x.key, url: absolute(x.file) ? x.file : `${folder}/${x.file}` })),
+    autocueUrl: m.autocue ? (absolute(m.autocue) ? m.autocue : `${folder}/${m.autocue}`) : null,
   }
 }
 

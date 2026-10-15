@@ -85,3 +85,62 @@ internal fun benchReport(
     }
     println("bench: per state in ${file.path}")
 }
+
+/**
+ * A watched show's frame times, printed a line every [every] seconds (`SLIDES_PERF_LOG`, 15 October 2026):
+ * how many draws and how many of them painted, the gap from one draw to the next — mean, 99th percentile
+ * and the longest, with the state it fell on — what a draw cost the CPU, and the heap in use. The gap is
+ * the honest number: it holds the GPU catching up and the wait for the display, which the CPU time does not.
+ *
+ * A stress test reads a running show off these lines; a bench steps its own clock and cannot.
+ */
+class PerfLog(private val every: Double) {
+    private var gaps = DoubleArray(2048)
+    private var n = 0
+    private var painted = 0
+    private var cpuSum = 0.0
+    private var cpuMax = 0.0
+    private var cpuN = 0
+    private var worst = 0.0
+    private var worstOn = ""
+    private var key = ""
+    private var lastStart = 0L
+    private var windowStart = 0L
+    private var started = 0L
+
+    /** A draw begins, with [key] on the wall. */
+    fun begin(key: String) {
+        val now = System.nanoTime()
+        if (lastStart != 0L) {
+            val gap = (now - lastStart) / 1e6
+            if (n == gaps.size) gaps = gaps.copyOf(n * 2)
+            gaps[n++] = gap
+            // the gap is the draw before's, and the state it drew
+            if (gap > worst) { worst = gap; worstOn = this.key }
+        } else windowStart = now
+        lastStart = now
+        started = now
+        this.key = key
+        if (n > 0 && (now - windowStart) / 1e9 >= every) report(now)
+    }
+
+    /** The draw ends; [fresh] when it painted the wall rather than showing the last picture again. */
+    fun end(fresh: Boolean) {
+        val cpu = (System.nanoTime() - started) / 1e6
+        cpuSum += cpu; cpuN++
+        if (cpu > cpuMax) cpuMax = cpu
+        if (fresh) painted++
+    }
+
+    private fun report(now: Long) {
+        val s = gaps.copyOf(n).also { it.sort() }
+        val seconds = (now - windowStart) / 1e9
+        val rt = Runtime.getRuntime()
+        println("perf: %4.1fs  %4d draws %3.0f/s  %4d painted  gap %.1f p99 %.1f max %.1f ms on %s  >25ms %d  >50ms %d  cpu %.1f max %.1f ms  heap %d MB  %s".format(
+            seconds, n, n / seconds, painted, s.average(), s[((n - 1) * 0.99).toInt()], worst, worstOn.ifBlank { "-" },
+            s.count { it > 25.0 }, s.count { it > 50.0 }, cpuSum / cpuN.coerceAtLeast(1), cpuMax,
+            (rt.totalMemory() - rt.freeMemory()) / (1 shl 20), key))
+        n = 0; painted = 0; cpuSum = 0.0; cpuMax = 0.0; cpuN = 0; worst = 0.0; worstOn = ""
+        windowStart = now
+    }
+}

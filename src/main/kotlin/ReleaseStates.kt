@@ -6,6 +6,7 @@ import slideshow.drawers.Type
 import slideshow.StateMark
 import slideshow.StatesLog
 import slideshow.SubtitleTrack
+import slideshow.subtitlesFile
 import slideshow.Subtitles
 import slideshow.VoiceTrack
 import slideshow.arrangedFromFile
@@ -37,10 +38,7 @@ fun main() {
     val start = startIndex(slides, settings.start)
     val until = untilIndex(slides, settings.until, start)
     // The track the film was made on: the extended track's lines are longer, so its holds are too.
-    val subtitles = if (settings.subtitleMode || settings.voiceOn) Subtitles.readOrEmpty(
-        if (settings.subtitleTrack == SubtitleTrack.EXTENDED) settings.subtitlesExtended ?: "show-subtitles-extended.json"
-        else settings.subtitles ?: "show-subtitles.json"
-    ) else null
+    val subtitles = if (settings.subtitleMode || settings.voiceOn) Subtitles.readOrEmpty(settings.subtitlesFile(settings.subtitleTrack)) else null
     val voice = if (settings.voiceOn) VoiceTrack.read(settings.voice, settings.subtitleTrack, settings.voiceGain) else null
     val holds = autoCues(slides, ids, start, until, settings, subtitles, Pace(settings.subtitleCps), voice)
 

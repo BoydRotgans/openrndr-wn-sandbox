@@ -99,6 +99,15 @@ def main():
     ap.add_argument("--subtitles", default="show-subtitles.json", help="the voice-over per state, carried into the manifest")
     ap.add_argument("--subtitles-extended", default="show-subtitles-extended.json",
                     help="the extended track — the longer line the voice actually speaks — carried beside it")
+    ap.add_argument("--subtitles-aligned", default="show-subtitles-aligned.json",
+                    help="the aligned track, the voice-over written to what each state shows (15 October 2026)")
+    ap.add_argument("--track", default="",
+                    help="the subtitle track the film's voice was rendered from — default, extended or aligned — "
+                         "which the rehearsal page reads its lines off; empty leaves the page its old rule")
+    ap.add_argument("--autocue", help="the autocue's film of the same run (SLIDES_AUTOCUE_FILM), copied in for the rehearsal page")
+    ap.add_argument("--autocue-width", type=int, default=1280)
+    ap.add_argument("--autocue-crf", type=int, default=36,
+                    help="white type on black survives a high crf: 36 reads as 30 does at half the size (52 MB for 39 min)")
     ap.add_argument("--audio", action="append", default=[],
                     help="another soundtrack for the same film, as key=name=path — e.g. "
                          "novoice=\"without voice\"=video/wn-walkthrough-v2-novoice.mp4. It is "
@@ -141,11 +150,13 @@ def main():
     # The extended track is what the voice-over is rendered from, so it is the one to read along
     # with the film — carried beside the default so the page can show and edit either.
     voice_extended = track(a.subtitles_extended)
+    voice_aligned = track(a.subtitles_aligned)
 
     for i, s in enumerate(states):
         s["index"] = i
         s["voiceover"] = voice.get(s["slide"], {}).get(s["letter"], "")
         s["voiceoverExtended"] = voice_extended.get(s["slide"], {}).get(s["letter"], "")
+        s["voiceoverAligned"] = voice_aligned.get(s["slide"], {}).get(s["letter"], "")
         s["key"] = f"{s['slide']}-{s['letter']}"
         s["start"] = round(s["frame"] / fps, 3)
         end = states[i + 1]["frame"] / fps if i + 1 < len(states) else duration
@@ -173,6 +184,26 @@ def main():
                         "-crf", str(a.crf), "-pix_fmt", "yuv420p", "-movflags", "+faststart",
                         "-c:a", "aac", "-b:a", "96k", target], check=True)
         print(f"video: {os.path.getsize(target) / 1e6:.0f} MB")
+
+    # The autocue as the presenter saw it on the same run, frame for frame with the film: the rehearsal page
+    # plays it under the film, following it. No sound — it has none.
+    autocue_name = None
+    if a.autocue:
+        if not os.path.isfile(a.autocue):
+            sys.exit(f"autocue: no film at {a.autocue}")
+        autocue_name = "autocue.mp4"
+        cw, ch, cd = probe(a.autocue)
+        if abs(cd - duration) > 0.5:
+            print(f"warning: the autocue's film runs {cd:.1f}s and the film {duration:.1f}s — they will drift apart")
+        target = os.path.join(out, autocue_name)
+        print(f"autocue: encoding {a.autocue} to {target} at {a.autocue_width} wide, crf {a.autocue_crf} …")
+        subprocess.run(["ffmpeg", "-v", "error", "-stats", "-y", "-i", a.autocue,
+                        "-vf", f"scale={a.autocue_width}:-2", "-c:v", "libx264", "-preset", "slow", "-tune", "animation",
+                        "-crf", str(a.autocue_crf), "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                        "-an", target], check=True)
+        print(f"autocue: {os.path.getsize(target) / 1e6:.0f} MB")
+    elif os.path.isfile(os.path.join(out, "autocue.mp4")):
+        autocue_name = "autocue.mp4"
 
     waveform_name = None
     if not a.no_waveform:
@@ -213,10 +244,15 @@ def main():
         source=os.path.basename(a.video), fps=fps, frames=frames, duration=round(duration, 3),
         width=w, height=h, video=video_name, waveform=waveform_name, audio=tracks, states=[
             {k: s[k] for k in ("key", "index", "slide", "step", "letter", "title", "chapter",
-                                "chapterKind", "slideKind", "start", "end", "thumb", "voiceover", "voiceoverExtended")}
+                                "chapterKind", "slideKind", "start", "end", "thumb", "voiceover", "voiceoverExtended",
+                                "voiceoverAligned")}
             for s in states
         ],
     )
+    if a.track:
+        manifest["track"] = a.track
+    if autocue_name:
+        manifest["autocue"] = autocue_name
     with open(os.path.join(out, "manifest.json"), "w") as f:
         json.dump(manifest, f, indent=1, ensure_ascii=False)
 

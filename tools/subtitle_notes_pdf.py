@@ -22,7 +22,7 @@ preview (`build/previews`). With no organizer the film's own order stands.
     --film     the film the pictures come off (a clean one: no subtitles in the picture)
     --cut      the state log of that film: the .states file beside it, or a review site manifest
     --show     the organizer's /api/show, a url or a saved file
-    --track    default, extended or both
+    --track    default, extended, aligned or both (all three)
 """
 import argparse
 import html
@@ -51,6 +51,11 @@ TRACKS = {
         "file": "show-subtitles-extended.json",
         "out": "export/wn-sprekersnotities-uitgebreid.pdf",
         "title": "Uitgebreide voice-over",
+    },
+    "aligned": {
+        "file": "show-subtitles-aligned.json",
+        "out": "export/wn-sprekersnotities-uitgelijnd.pdf",
+        "title": "Uitgelijnde voice-over",
     },
 }
 
@@ -656,7 +661,7 @@ def main():
     ap.add_argument("--cut", default=None, help="defaults to the .states log beside the film")
     ap.add_argument("--show", default="http://localhost:8765/api/show")
     ap.add_argument("--order", default=os.path.join(ROOT, "show-order.json"))
-    ap.add_argument("--track", choices=["default", "extended", "both"], default="both")
+    ap.add_argument("--track", choices=["default", "extended", "aligned", "both"], default="both")
     ap.add_argument("--width", type=int, default=900, help="picture width in pixels (60 mm on the page)")
     ap.add_argument("--quality", type=int, default=5, help="ffmpeg jpeg q, 2 best to 31 worst")
     args = ap.parse_args()
@@ -696,7 +701,7 @@ def main():
     warn = lambda m: (warnings.append(m), print("note:", m))
     data_d, _ = track_lines("default", steps, lambda m: None)
     data_e, _ = track_lines("extended", steps, lambda m: None)
-    for track in (["default", "extended"] if args.track == "both" else [args.track]):
+    for track in (["default", "extended", "aligned"] if args.track == "both" else [args.track]):
         data, lines = track_lines(track, steps, warn)
         markup = build_html(track, order, where, heads, pics, lines, data, data_d, data_e,
                             os.path.basename(args.film), rehearsal, times, cues, day)

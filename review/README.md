@@ -155,14 +155,24 @@ travel as they are. The site's own **Export CSV** is the human-readable copy.
 
 `/practice` is the show for the client to rehearse on, on its own link: the film large, a click at
 a time, with room for their own speaker notes. Nothing of the review is on it, and **no voice-over
-is ever heard there and no subtitles are burned into its film**. Since 2 October the subtitles are laid
-over the film as the show sets them: at the foot of the right half (the slide's projector), the line said
-over the click on screen (the extended track, the standard one where a click has no extended line), cut
-into cards of at most two lines of 42 characters and **coming in word by word as the click plays**, at the
-show's own pace — `src/practice/subtitles.ts` is a port of `Subtitles.cards` — in step with the film:
-paused, it holds; a click standing still keeps its last card; every word of a card is laid out from its
-first frame so nothing reflows. On by default; the CC button in the head or S hides it, remembered per
-browser.
+is ever heard there and no subtitles are burned into its film**.
+
+**The autocue plays under the film** (15 October): the speaker's own screen, filmed on the same run as
+the film (`SLIDES_AUTOCUE_FILM`) and so frame for frame with it — the script scrolling on as the click
+plays, SPREKEN, WACHT, and KLIK standing at the click's end, exactly as the presenter will see it on the
+evening. It follows the film: it plays, pauses and seeks with it and stands on the film's own frame when
+a click is held. It sits left of the notes, as large as the row allows; **Autocue** in the head or A hides
+it, remembered per browser. A cut whose manifest has no `autocue` shows none.
+
+The subtitles can also be laid over the film as the show sets them: at the foot of the right half (the
+slide's projector), the line said over the click on screen — on the track the cut was voiced from where
+its manifest says (`track`; the aligned one since 15 October), else the extended track and the standard
+one where a click has no extended line — cut into cards of at most two lines of 42 characters and
+**coming in word by word as the click plays**, at the show's own pace — `src/practice/subtitles.ts` is a
+port of `Subtitles.cards` — in step with the film: paused, it holds; a click standing still keeps its
+last card; every word of a card is laid out from its first frame so nothing reflows. **Off by default
+since 15 October**, now the autocue carries the text: the CC button in the head or S shows it, remembered
+per browser under a new key, so a browser that had the old default starts off too.
 
 - **Volgende** / **Vorige** (→ ←, space, or a presenter clicker's Page Down / Page Up — those work
   even while typing a note) play the next or previous click from its start, and the film then holds
@@ -204,17 +214,26 @@ track, subtitles and all. With the next release, film a second run with the subt
 voice on — the voice is what times the states to the length of the talk — and mix the voice out:
 
 ```
-SLIDES_SUBTITLE_MODE=false SLIDES_SUBTITLE_TRACK=extended SLIDES_VOICE_ON=true SLIDES_MIX_VOICE=1.0 \
+SLIDES_SUBTITLE_MODE=false SLIDES_SUBTITLE_TRACK=aligned SLIDES_VOICE_ON=true SLIDES_MIX_VOICE=1.0 \
     SLIDES_MIX_DESIGN=1.0 SLIDES_MIX_MUSIC=1.0 SLIDES_CUES=auto SLIDES_RECORD=true SLIDES_FPS=30 \
     SLIDES_MUTED=true SLIDES_NAMEPLATE=false SLIDES_VIDEO=video/wn-experience_<date>-clean.mp4 \
+    SLIDES_AUTOCUE_FILM=video/wn-experience_<date>-autocue.mp4 \
     ./gradlew run -Popenrndr.application=SlideshowKt
 SLIDES_VIDEO=video/wn-experience_<date>-clean.mp4 SLIDES_MIX_LAYERS=voice=0 SLIDES_MIX_NAME=novoice \
     ./gradlew run -Popenrndr.application=MixSoundtrackKt
 python3 tools/release_build.py --video video/wn-experience_<date>-clean-novoice.mp4 \
     --states video/wn-experience_<date>-clean.states --name "Rehearsal <date>" --slug <date> \
-    --created <date> --out review/public/releases/practice \
+    --created <date> --out review/public/releases/practice --track aligned \
+    --autocue video/wn-experience_<date>-autocue.mp4 \
     --no-waveform --no-audio-timeline --width 2560 --crf 33
 ```
+
+`SLIDES_AUTOCUE_FILM` films the autocue beside the wall on the very same draws, 1280 wide
+(`SLIDES_AUTOCUE_FILM_WIDTH`), as the presenter sees it — nothing counting down, KLIK once the line is said
+and the wall is still, the clock in the head the time into the run. `--autocue` copies it into the cut as
+`autocue.mp4` for the web and `--track` tells the page which track the voice was rendered from, so its
+lines (and the sheets) are that track's. The review film is made the same way with `SLIDES_SUBTITLE_TRACK`
+on the same track, so the two stay state for state.
 
 With the same settings as the review film but for the subtitles, the auto cues come out the same —
 checked on 29 September, the two cue lists identical to the hundredth of a second — so the clean
@@ -229,8 +248,9 @@ tools/subtitle_notes_pdf.py --film video/wn-experience_<date>-clean.mp4`), copy
 `export/wn-sprekersnotities-uitgebreid.pdf` and `-standaard.pdf` into the cut's folder as
 `sprekersnotities-uitgebreid.pdf` and `sprekersnotities-standaard.pdf`, and list them on its entry:
 `"sheets": [ { "key": "uitgebreid", "file": "sprekersnotities-uitgebreid.pdf" }, { "key": "standaard",
-"file": "sprekersnotities-standaard.pdf" } ]`. The page's **PDF** button (beside Delen) then offers both
-to download; with no `sheets` the button is not there. The PDFs are built, so they are not committed,
+"file": "sprekersnotities-standaard.pdf" } ]`. Since 15 October the tool also writes the aligned track's
+sheet (`-uitgelijnd.pdf`), listed first as `{ "key": "uitgelijnd", … }`: it is the autocue's text. The
+page's **PDF** button (beside Delen) then offers them to download; with no `sheets` the button is not there. The PDFs are built, so they are not committed,
 like the film. 2560 wide rather than the review's
 1920, since here the film is the page — at crf 33, because Vercel refuses any single file over 100 MB
 and a half-hour film at crf 30 is 133 MB. Check the size before deploying: on 30 September both films

@@ -44,6 +44,8 @@ object CourseWalls {
         CourseWall("course-v2-stack", "v2 · beams, stepped", "CourseStack", "Stack", 10.0) { stackCourse(beams) },
         CourseWall("course-v2-row", "v2 · panels in a row", "CourseRow", "Row", 10.0) { stackCourse(panels) },
         CourseWall("course-v2-climb", "v2 · building upward, for ever", "CourseClimb", "Climb", 60.0) { stackCourse(storeys) },
+        CourseWall("course-v2-layers", "v2 · the climb in layers, from above", "CourseLayers", "Layers", 40.0) { layersCourse() },
+        CourseWall("course-v2-climb-mix", "v2 · the climb's angles and the layers, by turns", "CourseClimbMix", "Climb mix", 30.0) { climbMixCourse() },
         CourseWall("course-v3-grid", "v3 · a grid, each turned a step further", "CourseGrid", "Grid", 8.0) { gridCourse() },
         CourseWall("course-v4-flow", "v4 · assembling and taking apart, flat", "CourseFlow", "Flow", 20.0) { flowCourse() },
         CourseWall("course-v4-flow-v2", "v4 flow v2 · on the shadow mosaic's grid, closer", "CourseFlow2", "Flow v2", 20.0) { flowMosaicCourse() },

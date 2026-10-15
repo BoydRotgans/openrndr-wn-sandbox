@@ -60,6 +60,7 @@ SPOKEN = [
     # as "Frans Binato" at best; split into its syllables it reads back as the name (0.83 against 0.75).
     (r"\bTranswinaton\b", "Trans-wie-na-ton"),
     (r"\bCSC\b", "C-S-C"), (r"\bESG\b", "E-S-G"), (r"\bWDP\b", "W-D-P"), (r"\bVGP\b", "V-G-P"), (r"\bB & C\b", "B en C"),
+    (r"\bBREEAM\b", "Brie-em"),
     (r"\bkm\b", "kilometer"), (r"\bm²", "vierkante meter"),
     (r"[“”„]", '"'), (r"[‘’]", "'"), (r"\s*[–—]\s*", ", "), (r"…", "."),
     (r"\s+", " "),
@@ -301,12 +302,15 @@ def verdict(audio, sr, asked, ear, tmp: Path, cut=False):
 
 PASS_SCORE = 0.8
 
+# The file each track reads, as SubtitleTrack names them; the voice goes to data/sounds/voice/<track>.
+TRACK_FILES = {"default": "show-subtitles.json", "extended": "show-subtitles-extended.json", "aligned": "show-subtitles-aligned.json"}
+
 
 # ---------------------------------------------------------------------------- main ------- //
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--track", default="extended", choices=["default", "extended"])
+    ap.add_argument("--track", default="extended", choices=["default", "extended", "aligned"])
     ap.add_argument("--engine", default="chatterbox", choices=["chatterbox", "say", "piper"])
     ap.add_argument("--device", default="mps")
     ap.add_argument("--voice", default=None, help="a reference clip to clone (Chatterbox), or a say voice name")
@@ -324,7 +328,7 @@ def main():
     global PASS_SCORE
     PASS_SCORE = a.pass_score
 
-    file = ROOT / ("show-subtitles-extended.json" if a.track == "extended" else "show-subtitles.json")
+    file = ROOT / TRACK_FILES[a.track]
     doc = json.loads(file.read_text())
     subs = {sid: lines_of(v) for sid, v in doc.get("subtitles", {}).items()}
     order = json.loads((ROOT / "show-order.json").read_text())

@@ -106,10 +106,12 @@ export function buildLanes(doc: AudioDoc, states: StateInfo[]): Lane[] {
     if (lane.layer === 'design' || lane.layer === 'voice') {
       const voiced = doc.clips.filter((c) => c.layer === 'voice')
       const extended = voiced.some((c) => /\/extended\//.test(c.file))
+      const aligned = voiced.some((c) => /\/aligned\//.test(c.file))
       for (const s of states) {
         const key = slotFor(lane.layer, s.key)
         if (slots.has(key)) continue
-        const owed = lane.layer === 'design' || (voiced.length > 0 && !!(extended ? s.voiceoverExtended : s.voiceover)?.trim())
+        const line = aligned ? s.voiceoverAligned : extended ? s.voiceoverExtended : s.voiceover
+        const owed = lane.layer === 'design' || (voiced.length > 0 && !!line?.trim())
         if (owed) slots.set(key, { key, layer: lane.layer, state: s, clips: [], missing: { start: s.start, end: s.end, row: 0 }, start: s.start, end: s.end })
       }
     }

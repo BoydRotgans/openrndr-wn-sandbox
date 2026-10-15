@@ -1,6 +1,8 @@
 // No package: it reads `show` and `withEnv` out of Slideshow.kt, which is in the default
 // package for the reason given there, and Kotlin cannot import from the default package.
 
+import slideshow.SubtitleTrack
+import slideshow.subtitlesFile
 import slideshow.Presentation
 import slideshow.References
 import slideshow.Remote
@@ -60,7 +62,8 @@ fun main() {
         File(settings.feedback ?: "show-feedback.json"),
         File(settings.midi ?: "show-midi.json"),
         subtitlesFile = File(settings.subtitles ?: "show-subtitles.json"),
-        subtitlesExtendedFile = File(settings.subtitlesExtended ?: "show-subtitles-extended.json"),
+        subtitlesExtendedFile = File(settings.subtitlesFile(SubtitleTrack.EXTENDED)),
+        subtitlesAlignedFile = File(settings.subtitlesFile(SubtitleTrack.ALIGNED)),
         meetingFile = File(settings.meeting ?: "show-meeting-tasks.json"),
         draaiboekFile = settings.draaiboek?.let { File(it) },
         draaiboekTab = settings.draaiboekTab,

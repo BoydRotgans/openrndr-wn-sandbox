@@ -549,13 +549,19 @@ val circleCatalogue = CircleCatalogue(
     personName = Env["SLIDES_CIRCLE_PERSON"],                       // empty: the adult standing stillest
     // The longest piece kept on the sheet to scale, in metres: the long beams and columns shrink away.
     largest = Env["SLIDES_CIRCLE_SCALE_MAX"]?.toDoubleOrNull() ?: 10.0,
-    // The round pieces, out since the meeting of 30 September: fittings rather than building elements, and
-    // discs at the sheet's size. Read off the meshes — a round section about one axis — plus the two void
-    // formers whose section is not square but which read as discs all the same.
+    // No round pieces, asked for at the meeting of 30 September and again on 15 October: they are fittings
+    // rather than building elements, and discs at the sheet's size. Read off the meshes — faces turning
+    // through many directions about one axis — and then every one of the 115 looked at, which is what
+    // caught the second line: the connector anchors and their end rods, the two cone symbols and the
+    // point-load cone, which the first pass had let through. Left in on purpose, with a round detail on
+    // a straight piece: the column shoe HPKM39's bend and the angles' fillets.
     exclude = setOf(
         "DRST_M16", "DRST_M24", "DRST_M24_1500", "HIJSOOG_DIAM_63", "HIJSOOG_DIAM_63_2", "HPKM39_ORANJE",
         "KOGELKOPANKER_2.5T_85", "KOGELKOPANKER_7.5T_20", "KUNSTSTOFUITSPARING", "KUNSTSTOFUITSPARING_2",
-        "KUNSTSTOFUITSPARING_3", "PAAL", "PAAL_2"
+        "KUNSTSTOFUITSPARING_3", "PAAL", "PAAL_2",
+        "KONN_ANKER_M16_D12_DB", "KONN_ANKER_M20_D16", "KONN_ANKER_M20_D16_2", "KONN_ANKER_M24_D20",
+        "KONN_ANKER_M30_D25", "KONN_ANKER_M30_D25_2", "KONN_EIND_M20_D16", "KONN_EIND_M30_D25",
+        "DOORSTORTSYMBOOL", "DOORSTORTSYMBOOL_2", "PUNTLAST_P2"
     )
 )
 
@@ -1228,20 +1234,22 @@ val show = slideshow {
                     // title on its card is unchanged, its rename having been dropped.
                     Entry("The Circle: een nieuwe manier van denken en doen", chapter = true, message = chapterMessages[3]),
                     Entry("Derde gang"),
-                    Entry("Vragen"),
-                    Entry("Dessert"),
-                    Entry("Uitloop")
+                    // The case studies play before the questions, so the programme names both (15 October 2026).
+                    Entry("Case studies en vragen"),
+                    // No Uitloop: the programme ends on the dessert (15 October 2026).
+                    Entry("Dessert")
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
                 accent = wnRed,
                 side = 1
             ),
-            // Else de Bruin of StudioBuik (meeting of 30 September; her name confirmed 1 October). PLACEHOLDER: her role.
+            // Else de Bruin of StudioBuik (meeting of 30 September; her name confirmed 1 October). Her role is left
+            // off until it is known (15 October 2026): the empty line keeps its room, so her name stays level with Erik's.
             guest = NameTag(
                 presenter = "Else de Bruin",
                 organisation = "StudioBuik",
-                role = "[Functie]",
+                role = "",
                 fontPath = boldFont,
                 accent = wnRed,
                 pane = 1
@@ -2616,17 +2624,19 @@ val show = slideshow {
     )
     // The case studies across the whole wall, through the project highlight's effect: each project's
     // photographs on the left projector and its blueprints on the right, a click a view, built up out
-    // of the catalogue's marks and dissolved into the whole picture. Photos from the case studies'
-    // folders (SLIDES_HIGHLIGHTS), drawings from SLIDES_BLUEPRINTS; Panattoni Almelo's is its own pdf,
-    // rendered and inverted to white on black like the others. The lines under the names are drafts,
-    // Kivits' from the blueprints; Panattoni Waalwijk, Sas van Gent and Prohuis have drawings only and
-    // Intervest photos only. `CaseBlueprints`, the version before, is still in scene-drawers.
+    // of the catalogue's marks. Photos from the case studies' folders (SLIDES_HIGHLIGHTS), drawings
+    // from SLIDES_BLUEPRINTS; Panattoni Almelo's is its own pdf, rendered and inverted to white on
+    // black like the others; Intervest has photos only. Since 15 October it is the five cases of the
+    // client's mail, in its order, each its client's question on its first view and Willy Naessens'
+    // answer on the next, in the script only (show-subtitles*.json): A–B Almelo, C–D Van Cranenbroek,
+    // E–G VGP, H–I Kivits, J–L Intervest. Panattoni Waalwijk, Sas van Gent and Prohuis, drawings with
+    // no facts and no story, went then. `CaseBlueprints`, the version before, is still in scene-drawers.
     scene(
         CaseStudies(
             projects = listOf(
                 // The facts are the client's, off data/other/project-details-case-studies.txt; each
                 // function is the area and a short line cut from the paragraph given there.
-                // Panattoni first (review of 22 September).
+                // Panattoni first (review of 22 September, and the client's mail of 15 October).
                 CaseProject("Panattoni Almelo", "Almelo", "Case Studie - Panattoni Almelo", listOf("panattoni-almelo-a.png"),
                     facts = listOf(
                         "Functie" to "55.000 m² · warehouse, BREEAM Excellent",
@@ -2661,9 +2671,6 @@ val show = slideshow {
                         "Functie" to "40.000 m² · vier loodsen, een The Circle-project",
                         "Opdrachtgever" to "Intervest",
                         "Locatie" to "Herstal")),
-                CaseProject("Panattoni", "Waalwijk", blueprints = listOf("panattoni-waalwijk-a.png", "panattoni-waalwijk-b.png")),
-                CaseProject("Panattoni", "Sas van Gent", blueprints = listOf("panattoni-sas-van-gent-a.png", "panattoni-sas-van-gent-b.png")),
-                CaseProject("Prohuis", blueprints = listOf("prohuis-a.png", "prohuis-b.png")),
             ),
             photoFolder = File(Env["SLIDES_HIGHLIGHTS"] ?: "data/case-studies/Studie Cases"),
             blueprintFolder = File(Env["SLIDES_BLUEPRINTS"] ?: "data/case-blueprints"),
@@ -2672,9 +2679,10 @@ val show = slideshow {
             marks = File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"),
             concrete = File(Env["SLIDES_CASE_CONCRETE"] ?: "data/concrete"),
             instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade",
-            // Round and round on its own clock, like a backdrop, and the pictures kept in the
-            // grid rather than dissolved (review of 22 September).
-            dissolves = false,
+            // Every picture dissolves out of its marks into the whole image, as in the project
+            // highlights (15 October). From 22 September they were kept in the grid, which left the
+            // photographs never seen whole.
+            dissolves = true,
             // A click a view since 30 September: Erik talks the cases through and the wall waits for him.
             cycle = null,
             // The project highlights' own sounds, since it is their effect (feedback of 28 September): the
@@ -2683,9 +2691,9 @@ val show = slideshow {
         ),
         title = "Case studies",
         notes = "De case studies over de hele wand: per project de foto's links en de blauwdrukken rechts, " +
-                "gezien door de catalogus, en de wand gaat vanzelf rond. Functie, opdrachtgever, " +
-                "locatie en realisatietijd uit de projectgegevens van WN; Waalwijk, Sas van Gent en " +
-                "Prohuis hebben die nog niet."
+                "gezien door de catalogus, een klik per beeld. Functie, opdrachtgever, locatie en " +
+                "realisatietijd uit de projectgegevens van WN; per project de klantvraag en ons antwoord " +
+                "in het script, uit de mail van de klant van 15 oktober."
     )
     // The ending: one sentence, one action, and a code to scan. PROPOSAL: the sentence is the
     // fourth chapter's own line, the action and the address are placeholders until WN says
@@ -2813,6 +2821,12 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         waitForAnimation = Env["${prefix}_WAIT_FOR_ANIMATION"]?.let { Env.boolean("${prefix}_WAIT_FOR_ANIMATION") } ?: settings.waitForAnimation,
         autocue = Env["${prefix}_AUTOCUE"]?.let { Env.boolean("${prefix}_AUTOCUE") } ?: settings.autocue,
         autocueText = Env["${prefix}_AUTOCUE_TEXT"]?.toDoubleOrNull()?.takeIf { it in 24.0..160.0 } ?: settings.autocueText,
+        // A path with a space in it, as every system font has, is copied somewhere loadFont can parse — see usableFont.
+        // A file that is not there falls back to the talk's bold rather than stopping the show.
+        autocueFont = Env["${prefix}_AUTOCUE_FONT"]?.takeIf { it.isNotBlank() }?.let { usableFont(it, fallback = boldFont) } ?: settings.autocueFont,
+        autocueFilm = Env["${prefix}_AUTOCUE_FILM"]?.takeIf { it.isNotBlank() } ?: settings.autocueFilm,
+        autocueFilmWidth = Env["${prefix}_AUTOCUE_FILM_WIDTH"]?.toIntOrNull()?.takeIf { it in 320..3840 } ?: settings.autocueFilmWidth,
+        autocueFilmCrf = Env["${prefix}_AUTOCUE_FILM_CRF"]?.toIntOrNull()?.takeIf { it in 0..51 } ?: settings.autocueFilmCrf,
         record = Env.boolean("${prefix}_RECORD"),
         fps = Env["${prefix}_FPS"]?.toIntOrNull() ?: settings.fps,
         duration = Env["${prefix}_DURATION"]?.toDoubleOrNull() ?: settings.duration,
@@ -2835,6 +2849,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         intents = Env["${prefix}_INTENTS"]?.takeIf { it.isNotBlank() } ?: settings.intents,
         subtitles = Env["${prefix}_SUBTITLES"]?.takeIf { it.isNotBlank() } ?: settings.subtitles,
         subtitlesExtended = Env["${prefix}_SUBTITLES_EXTENDED"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesExtended,
+        subtitlesAligned = Env["${prefix}_SUBTITLES_ALIGNED"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesAligned,
         subtitleTrack = Env["${prefix}_SUBTITLE_TRACK"]?.takeIf { it.isNotBlank() }?.let { slideshow.SubtitleTrack.of(it) } ?: settings.subtitleTrack,
         subtitleMode = Env["${prefix}_SUBTITLE_MODE"]?.let { Env.boolean("${prefix}_SUBTITLE_MODE") } ?: settings.subtitleMode,
         subtitleCps = Env["${prefix}_SUBTITLE_CPS"]?.toDoubleOrNull() ?: settings.subtitleCps,
@@ -2846,6 +2861,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
             Env["${prefix}_MIX_${layer.name}"]?.toDoubleOrNull() ?: settings.levels[layer] ?: 1.0
         },
         soundTrace = Env["${prefix}_SOUND_TRACE"]?.let { Env.boolean("${prefix}_SOUND_TRACE") } ?: settings.soundTrace,
+        perfLog = Env["${prefix}_PERF_LOG"]?.toDoubleOrNull() ?: settings.perfLog,
         backFade = Env["${prefix}_BACK_FADE"]?.toDoubleOrNull() ?: settings.backFade,
         feedback = Env["${prefix}_FEEDBACK"]?.takeIf { it.isNotBlank() } ?: settings.feedback,
         meeting = Env["${prefix}_MEETING"]?.takeIf { it.isNotBlank() } ?: settings.meeting,

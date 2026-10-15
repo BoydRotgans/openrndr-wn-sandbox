@@ -33,6 +33,7 @@ import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
 import slideshow.drawers.setLine
 import slideshow.drawers.setToFit
+import slideshow.drawers.subscriptRuns
 import slideshow.frames
 import slideshow.linear
 import slideshow.pitchStep
@@ -774,19 +775,41 @@ class DominoEffect(
             drawer.translate(centre)
             drawer.scale(scale)
             drawer.strokeWeight = LINK / scale.coerceAtLeast(0.25)
+            // A tree's links are one draw and its labels another (stress test, 15 October 2026): drawn one by one,
+            // the twenty-five trees of the last grid were 1150 strokes and 1150 texts a frame, every one its own
+            // draw and its own upload, and held the wall at 36 frames a second on the CPU alone. The links are
+            // the same curves in every tree, so they are sampled once a zoom step (see linksAt).
+            val labels = ArrayList<String>(left.size + right.size)
+            val places = ArrayList<Vector2>(left.size + right.size)
+            val k = type / SIZE
             for (side in listOf(-1, 1)) {
                 val branch = if (side < 0) left else right
                 val top = -branch.size * pitch / 2.0
                 branch.forEachIndexed { i, label ->
                     val at = Vector2(side * tip, top + (i + 0.5) * pitch)
-                    val from = Vector2(side * hub, 0.0)
-                    val mid = (from.x + at.x) / 2.0
-                    drawer.fill = null
-                    drawer.stroke = ink.opacify(alpha)
-                    drawer.contour(contour { moveTo(from); curveTo(Vector2(mid, from.y), Vector2(mid, at.y), at) })
-                    drawer.stroke = null
-                    drawer.fill = ink.opacify(alpha)
-                    drawer.setLine(label, text, Vector2(at.x + side * w * LABEL_GAP, at.y + type * 0.34), type, SIZE, align = if (side < 0) 1.0 else 0.0)
+                    val set = Vector2(at.x + side * w * LABEL_GAP, at.y + type * 0.34)
+                    // where setLine would put it, in the label's own scale; a label with a subscript is left to setLine
+                    val runs = subscriptRuns(label)
+                    if (runs.size == 1 && !runs[0].second) {
+                        labels += label
+                        places += Vector2(set.x / k - text.advanceOf(label) * (if (side < 0) 1.0 else 0.0), set.y / k)
+                    } else {
+                        drawer.stroke = null
+                        drawer.fill = ink.opacify(alpha)
+                        drawer.setLine(label, text, set, type, SIZE, align = if (side < 0) 1.0 else 0.0)
+                    }
+                }
+            }
+            drawer.fill = null
+            drawer.stroke = ink.opacify(alpha)
+            drawer.lineStrips(linksAt(scale, tip, hub, pitch))
+            drawer.stroke = null
+            drawer.fill = ink.opacify(alpha)
+            if (labels.isNotEmpty()) {
+                drawer.fontMap = text
+                drawer.isolated {
+                    drawer.scale(k)
+                    drawer.texts(labels, places)
                 }
             }
             // The element in the middle, off the sheet, in its own colour.
@@ -798,6 +821,34 @@ class DominoEffect(
             } else {
                 drawer.fill = ink.opacify(alpha)
                 drawer.rectangle(Rectangle(-root / 2.0, -root / 2.0, root, root))
+            }
+        }
+    }
+
+    /** A tree's links sampled into strips, by zoom step and the tree's own measures — see [linksAt]. */
+    private val links = HashMap<List<Double>, List<List<Vector2>>>()
+
+    /**
+     * A tree's links — d3's `linkHorizontal`, a cubic from the hub to each label with both handles on the midline —
+     * as strips of points in the tree's own units, sampled as finely as `Drawer.contour` would sample them at
+     * [scale]. Kept per quarter octave of scale, so a frame draws them rather than samples them; the samples are
+     * taken at the low end of the step, which only makes them finer than the frame needs.
+     */
+    private fun linksAt(scale: Double, tip: Double, hub: Double, pitch: Double): List<List<Vector2>> {
+        val step = floor(kotlin.math.log2(scale.coerceAtLeast(1e-3)) * 4.0)
+        return links.getOrPut(listOf(step, tip, hub, pitch)) {
+            val s = Math.pow(2.0, step / 4.0)
+            val weight = LINK / s.coerceAtLeast(0.25)
+            val tolerance = 0.5 / (s * kotlin.math.log2(weight).coerceAtLeast(1.0))
+            listOf(-1, 1).flatMap { side ->
+                val branch = if (side < 0) left else right
+                val top = -branch.size * pitch / 2.0
+                branch.indices.map { i ->
+                    val at = Vector2(side * tip, top + (i + 0.5) * pitch)
+                    val from = Vector2(side * hub, 0.0)
+                    val mid = (from.x + at.x) / 2.0
+                    contour { moveTo(from); curveTo(Vector2(mid, from.y), Vector2(mid, at.y), at) }.adaptivePositions(tolerance)
+                }
             }
         }
     }

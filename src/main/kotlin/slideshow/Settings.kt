@@ -126,11 +126,25 @@ data class Settings(
      * said and offering the click once it has been — see [Autocue]. On or off; where it goes, on top of the
      * show's window or a window of its own on a chosen screen, is the Projection tab's ([AutocueSetup]).
      * The organizer's `autocue` button and `c` in the show switch it; never on a film, a still or a bench.
-     * **While it is up the presenter clicks**: nothing clicks on by itself — not [autoplay], not a cue list.
+     * With [autoplay] off the presenter clicks and nothing clicks on by itself, a cue list included.
      */
     val autocue: Boolean = false,
     /** The autocue's type size, in pixels of the 1920 by 1080 it is composed at. */
     val autocueText: Double = Autocue.TEXT,
+    /**
+     * The face the autocue's script is read in, a font file; null takes the talk's own. Arial Bold as committed
+     * (15 October 2026), the teleprompter recommendation: an even sans at a heavy weight reads from further off
+     * and at a glance better than the talk's slab serif. The labels round it stay in the talk's face.
+     */
+    val autocueFont: String? = null,
+    /**
+     * A filmed run also films the autocue, into this file beside the wall's film (15 October 2026): the presenter's
+     * autocue — nothing counting down, KLIK once a line is said and the wall still — on the very frames of the wall,
+     * so the rehearsal page can play the two together. [autocueFilmWidth] wide, at [autocueFilmCrf]. Null films none.
+     */
+    val autocueFilm: String? = null,
+    val autocueFilmWidth: Int = 1280,
+    val autocueFilmCrf: Int = 28,
     val record: Boolean = false,
     val fps: Int = FPS,
     val duration: Double? = null,
@@ -245,9 +259,13 @@ data class Settings(
      */
     val subtitlesExtended: String? = null,
     /**
-     * Which file is read: `default` or `extended`. The organizer's `voice-over` selector switches
-     * it while the show runs. On the extended track, with subtitles on, the deck advances itself
-     * once each state's line has been said.
+     * The aligned subtitles file: the extended track rewritten to what is on the wall at each
+     * state — see [SubtitleTrack]. Null, or no file there, has none.
+     */
+    val subtitlesAligned: String? = null,
+    /**
+     * Which file is read: `default`, `extended` or `aligned`. The organizer's `voice-over`
+     * selector switches it while the show runs.
      */
     val subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
     /**
@@ -274,11 +292,13 @@ data class Settings(
      */
     val voiceOn: Boolean = false,
     /**
-     * Whether the presented run — subtitles or the voice on, on the extended track — clicks on by
-     * itself once each state's line has been said, or plays the state's line and waits for a click.
-     * The organizer's autoplay button switches it while the show runs; kept across starts.
+     * The autocue's option: with the autocue up, whether the show continues by itself once each state is
+     * done — its line said (by the voice where it is on, at reading pace where it is not), or its hold where
+     * it has none — with the autocue counting down to the click; off, the presenter clicks. Nothing without
+     * the autocue, and nothing to do with the voice or the subtitles. The organizer's `autoplay` button beside
+     * `autocue` switches it while the show runs; kept across starts. Off unless asked for.
      */
-    val autoplay: Boolean = true,
+    val autoplay: Boolean = false,
     /**
      * The mix: a gain per track of the sound — voice, design, music — see [Layer]. All three play
      * at once; this is how loud each is, and 0 mutes one. The organizer's `mix` panel moves them
@@ -290,6 +310,11 @@ data class Settings(
      * OpenAL is really playing it — how a voice that "sometimes does not play" is caught.
      */
     val soundTrace: Boolean = false,
+    /**
+     * Seconds between the lines of a watched show's frame-time log — draws, paints, the gap between draws and
+     * the heap, see [PerfLog]. 0, as committed, prints none. Never on a film, a bench or stills.
+     */
+    val perfLog: Double = 0.0,
     /**
      * Seconds the sound design and any sample still ringing take to fade away on a step back, inside a slide
      * or off its front: the picture cuts back at once, and its sound goes with it rather than playing on.
@@ -386,3 +411,10 @@ data class Settings(
      */
     val concreteFloor: Double = 0.0225
 )
+
+/** The subtitles file [track] reads, with each track's committed name where none is set. */
+fun Settings.subtitlesFile(track: SubtitleTrack): String = when (track) {
+    SubtitleTrack.DEFAULT -> subtitles ?: "show-subtitles.json"
+    SubtitleTrack.EXTENDED -> subtitlesExtended ?: "show-subtitles-extended.json"
+    SubtitleTrack.ALIGNED -> subtitlesAligned ?: "show-subtitles-aligned.json"
+}

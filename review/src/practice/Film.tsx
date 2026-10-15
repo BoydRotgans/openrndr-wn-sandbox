@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, type ReactNode } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, type ReactNode, type RefObject } from 'react'
 
 /** Where the film stands: not started, loading, running a click, paused by hand, or held at a click's end. */
 export type FilmState = 'idle' | 'waiting' | 'playing' | 'paused' | 'held'
@@ -22,6 +22,13 @@ interface Props {
   onTime(t: number): void
   onState(s: FilmState): void
   onClick(): void
+  /**
+   * Another film of the same run that follows this one frame for frame — the autocue, played under it. It
+   * plays, pauses and seeks with the film and is pulled back whenever it drifts; [followKey] changes when it is
+   * mounted or replaced, so the following starts again on the new element.
+   */
+  follow?: RefObject<HTMLVideoElement | null>
+  followKey?: string
   children?: ReactNode
 }
 
@@ -33,7 +40,7 @@ const HOLD = 0.05
  * The film, one click at a time. The time is followed every animation frame rather than on
  * `timeupdate`, which fires four times a second — too coarse to stop on a click's own end.
  */
-const Film = forwardRef<FilmHandle, Props>(function Film({ src, audio, filmSound, muted, onTime, onState, onClick, children }, ref) {
+const Film = forwardRef<FilmHandle, Props>(function Film({ src, audio, filmSound, muted, onTime, onState, onClick, follow, followKey, children }, ref) {
   const video = useRef<HTMLVideoElement>(null)
   const dub = useRef<HTMLAudioElement>(null)
   const until = useRef(Infinity)
@@ -151,6 +158,37 @@ const Film = forwardRef<FilmHandle, Props>(function Film({ src, audio, filmSound
       a.pause()
     }
   }, [audio, src])
+
+  // The film that follows: on every play, pause and seek it is put on the film's own time, and while both
+  // play any drift past a few frames is pulled back. Paused, it stands on exactly the film's frame — at a
+  // click's end, the autocue's KLIK.
+  useEffect(() => {
+    const v = video.current
+    const f = follow?.current
+    if (!v || !f) return
+    const align = (tolerance: number) => {
+      if (f.readyState >= 1 && Math.abs(f.currentTime - v.currentTime) > tolerance) f.currentTime = v.currentTime
+    }
+    const play = () => { align(0.02); f.play().catch(() => {}) }
+    const stop = () => { f.pause(); align(0.005) }
+    const seeked = () => align(0.005)
+    const ready = () => { align(0.005); if (!v.paused) f.play().catch(() => {}) }
+    v.addEventListener('play', play)
+    v.addEventListener('playing', play)
+    v.addEventListener('pause', stop)
+    v.addEventListener('seeked', seeked)
+    f.addEventListener('loadedmetadata', ready)
+    ready()
+    const drift = setInterval(() => { if (!v.paused) align(0.12) }, 500)
+    return () => {
+      v.removeEventListener('play', play)
+      v.removeEventListener('playing', play)
+      v.removeEventListener('pause', stop)
+      v.removeEventListener('seeked', seeked)
+      f.removeEventListener('loadedmetadata', ready)
+      clearInterval(drift)
+    }
+  }, [src, follow, followKey])
 
   return (
     <div className="film" onClick={onClick}>

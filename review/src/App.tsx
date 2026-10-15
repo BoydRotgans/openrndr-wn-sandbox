@@ -375,8 +375,10 @@ export default function App() {
       ? parent.author === name && !you ? `${who} replied to your note` : `${who} replied`
       : c.kind === 'voiceover' ? `${who} changed the voice-over`
       : c.kind === 'voiceover_extended' ? `${who} changed the extended voice-over`
+      : c.kind === 'voiceover_aligned' ? `${who} changed the aligned voice-over`
       : c.kind === 'voiceover_note' ? `${who} wrote about the voice-over`
       : c.kind === 'voiceover_extended_note' ? `${who} wrote about the extended voice-over`
+      : c.kind === 'voiceover_aligned_note' ? `${who} wrote about the aligned voice-over`
       : !you && c.assignees?.includes(name) ? `${who} assigned you a note`
       : c.clip ? `${who} wrote about ${sound}`
       : `${who} added ${general ? 'a general comment' : `a ${c.topic} note`}`
@@ -714,6 +716,8 @@ export default function App() {
               ...([
                 { key: 'voiceover', label: 'subtitle', text: state.voiceover ?? '' },
                 { key: 'voiceover_extended', label: 'extended', text: state.voiceoverExtended ?? '' },
+                // the aligned track, on the releases built since it existed (15 October 2026)
+                ...(state.voiceoverAligned !== undefined ? [{ key: 'voiceover_aligned', label: 'aligned', text: state.voiceoverAligned }] : []),
               ] as const).map((t) => {
                 const here = comments.filter((c) => c.releaseId === release.id && c.stateKey === state.key)
                 const notes = here.filter((c) => c.kind === `${t.key}_note` && !c.parentId)

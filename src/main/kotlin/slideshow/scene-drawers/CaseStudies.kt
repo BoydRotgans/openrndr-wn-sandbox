@@ -66,11 +66,12 @@ class CaseProject(
  * its edges — and the black past a drawing's edge is its own ground. Photos fill the pane.
  *
  * **It can run on its own clock** ([cycle]), every view holding and handing over to the next and
- * the last back round to the first, the way a backdrop does — the show runs it so since 22
- * September, when a click a view was asked to become a wall that goes round by itself. And the
+ * the last back round to the first, the way a backdrop does — the show ran it so from 22 to 30
+ * September, and steps it a click a view since, so the wall waits for the speaker. And the
  * photographs can **stay in the grid** ([dissolves] false): seen through the marks while they stand
- * rather than dissolving into the whole photograph, which was asked for the same day. A drawing
- * still dissolves out of its concrete, since that is the only way it is seen.
+ * rather than dissolving into the whole photograph. The show did that from 22 September to 15
+ * October; since then every picture dissolves whole, as the project highlights do. A drawing
+ * dissolves out of its concrete either way, since that is the only way it is seen.
  *
  * **Each project carries its facts** — function, client, location, the time it took — set in the
  * four corners of both projectors, the same on each, after the blueprint sketch. A project without

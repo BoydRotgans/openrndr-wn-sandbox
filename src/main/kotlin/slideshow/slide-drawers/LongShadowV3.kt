@@ -305,7 +305,10 @@ class LongShadowV3(
     private lateinit var card: RenderTarget
     private var stone: ColorBuffer? = null
     private val plates = mutableMapOf<String, Plate?>()
-    private val fields = mutableMapOf<String, List<Tower>>()
+    // Filled from the draw loop and from the organizer's server alike — it asks every slide how long it settles
+    // and what it scores (`/api/show`) on a thread of its own — so every cache reached from [settled] and [midi] is
+    // synchronised: two threads filling one plain map at once can corrupt it (stress test, 15 October 2026).
+    private val fields: MutableMap<String, List<Tower>> = java.util.Collections.synchronizedMap(mutableMapOf())
     private lateinit var probe: RenderTarget
     /** [marks] as vertex buffers, one a mark, built in [load]. */
     private var markBuffers: List<VertexBuffer> = emptyList()
@@ -988,8 +991,8 @@ class LongShadowV3(
         }
     }
 
-    private val titles = mutableMapOf<String, Title?>()
-    private val covers = mutableMapOf<String, List<Cover>>()
+    private val titles: MutableMap<String, Title?> = java.util.Collections.synchronizedMap(mutableMapOf())
+    private val covers: MutableMap<String, List<Cover>> = java.util.Collections.synchronizedMap(mutableMapOf())
 
     private fun blockTitle(plate: Plate): Title = titles.getOrPut("plate:${plate.labels}") {
         Title("plate:${plate.labels}", plate.pieceBoxes, plate.pieceBoxes.map { null }, plate.pieceKinds.map { it == 1 }) { i, cell ->
@@ -1270,8 +1273,8 @@ class LongShadowV3(
     }
 
     /** For each piece of the title, when the last element over it has gone. Kept with the covers. */
-    private val clears = mutableMapOf<String, DoubleArray>()
-    private val starts = mutableMapOf<String, DoubleArray>()
+    private val clears: MutableMap<String, DoubleArray> = java.util.Collections.synchronizedMap(mutableMapOf())
+    private val starts: MutableMap<String, DoubleArray> = java.util.Collections.synchronizedMap(mutableMapOf())
 
     /**
      * The reveal's whole schedule, worked out once: the elements, when each piece of the title rises,
@@ -1284,7 +1287,7 @@ class LongShadowV3(
                        /** When each piece of the quote rises; empty with no quote. */
                        val quoteStart: DoubleArray = DoubleArray(0))
 
-    private val plans = mutableMapOf<String, Plan>()
+    private val plans: MutableMap<String, Plan> = java.util.Collections.synchronizedMap(mutableMapOf())
 
     private fun planFor(drawer: Drawer?, title: Title, quoted: Title? = null, leave: Double? = null): Plan =
         plans.getOrPut(title.key + "|" + quoted?.key + "|" + leave?.let { if (it.isInfinite()) "hold" else frames(it).toString() }) {

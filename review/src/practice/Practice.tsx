@@ -9,7 +9,10 @@ import { cardAt, cards as cardsOf } from './subtitles'
 
 const LANG = 'wn-practice.lang'
 const MUTED = 'wn-practice.muted'
-const SUBS = 'wn-practice.subtitles'
+// A new key since 15 October, when the subtitle went off by default: the autocue under the film carries the
+// text now, and every browser that had been here had stored the old default.
+const SUBS = 'wn-practice.subtitles-v2'
+const CUE = 'wn-practice.autocue'
 
 
 function remembered<T>(key: string, fallback: T): T {
@@ -44,7 +47,9 @@ export default function Practice() {
   const [time, setTime] = useState(0)
   const [overview, setOverview] = useState(false)
   const [muted, setMuted] = useState(() => remembered(MUTED, false))
-  const [subs, setSubs] = useState(() => remembered(SUBS, true))
+  const [subs, setSubs] = useState(() => remembered(SUBS, false))
+  const [cueOn, setCueOn] = useState(() => remembered(CUE, true))
+  const cueFilm = useRef<HTMLVideoElement>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const film = useRef<FilmHandle>(null)
@@ -67,6 +72,7 @@ export default function Practice() {
   useEffect(() => { remember(LANG, lang); document.documentElement.lang = lang }, [lang])
   useEffect(() => { remember(MUTED, muted) }, [muted])
   useEffect(() => { remember(SUBS, subs) }, [subs])
+  useEffect(() => { remember(CUE, cueOn) }, [cueOn])
 
   useEffect(() => {
     loadCut()
@@ -157,6 +163,7 @@ export default function Practice() {
       else if (k === 'f') toggleFullscreen()
       else if (k === 'm') setMuted((m) => !m)
       else if (k === 's') setSubs((v) => !v)
+      else if (k === 'a') setCueOn((v) => !v)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -216,6 +223,7 @@ export default function Practice() {
   const held = phase === 'held'
   const last = current === states.length - 1
   const save: SaveState = notes.state
+  const cueShown = cueOn && !!cut.autocueUrl
 
   return (
     <div className={`practice phase-${phase}`}>
@@ -226,6 +234,12 @@ export default function Practice() {
           {t.overview}
         </button>
         <Sheets t={t} cut={cut} />
+        {cut.autocueUrl && (
+          <button className={`ghost${cueOn ? '' : ' off'}`} onClick={() => setCueOn((v) => !v)} title={`${cueOn ? t.hideAutocue : t.showAutocue} (A)`} aria-pressed={cueOn}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5" /><path d="M4 5.5h8M4 8.5h5M6 14h4" /></svg>
+            {t.autocue}
+          </button>
+        )}
         <Share t={t} />
         <button className={`ghost icon${subs ? '' : ' off'}`} onClick={() => setSubs((v) => !v)} title={`${subs ? t.hideLine : t.showLine} (S)`} aria-label={subs ? t.hideLine : t.showLine} aria-pressed={subs}>
           <svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true">
@@ -254,7 +268,8 @@ export default function Practice() {
 
       <main className="p-main">
         <div className="p-stage">
-          <Film ref={film} src={cut.videoUrl} audio={cut.audioUrl} filmSound={cut.filmSound} muted={muted} onTime={onTime} onState={onState} onClick={onFilm}>
+          <Film ref={film} src={cut.videoUrl} audio={cut.audioUrl} filmSound={cut.filmSound} muted={muted} onTime={onTime} onState={onState} onClick={onFilm}
+            follow={cueFilm} followKey={cueShown ? cut.autocueUrl ?? '' : ''}>
             {phase === 'idle' && (
               <div className="film-veil">
                 <button className="film-start" onClick={(e) => { e.stopPropagation(); replay() }}>
@@ -326,7 +341,14 @@ export default function Practice() {
           </button>
         </div>
 
-        <div className="p-lower">
+        <div className={`p-lower${cueShown ? ' with-cue' : ''}`}>
+          {cueShown && (
+            // The autocue as the presenter sees it, filmed on the same run: it follows the film frame for frame, so
+            // the text runs on as the click plays and KLIK stands at its end. Silent, and not to be clicked.
+            <section className="p-cue" title={t.autocueAbout}>
+              <video ref={cueFilm} src={cut.autocueUrl!} preload="auto" playsInline muted controls={false} disablePictureInPicture />
+            </section>
+          )}
           <section className="p-notes">
             <header>
               <div>

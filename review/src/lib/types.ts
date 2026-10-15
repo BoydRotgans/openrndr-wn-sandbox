@@ -20,6 +20,11 @@ export interface StateInfo {
    * edited apart, since a change to one is not a change to the other.
    */
   voiceoverExtended?: string
+  /**
+   * The same state on the **aligned** track (show-subtitles-aligned.json, 15 October 2026): the extended
+   * talk rewritten to what each state shows. Only on releases built since it existed.
+   */
+  voiceoverAligned?: string
 }
 
 /** What tools/release_build.py writes beside a release's thumbnails and video. */
@@ -44,6 +49,13 @@ export interface Manifest {
    * against a state holds whichever is playing.
    */
   audio?: { key: string; name: string; file: string; waveform?: string | null }[]
+  /** The subtitle track the film's voice was rendered from — default, extended or aligned — where the release says. */
+  track?: string
+  /**
+   * The autocue as the presenter saw it on the same run, frame for frame with the film and without sound,
+   * relative to the release folder: the rehearsal page plays it under the film.
+   */
+  autocue?: string
   states: StateInfo[]
 }
 
@@ -68,9 +80,11 @@ export type CommentKind =
   /** A proposed line: `body` is the whole new text, on the default or the extended track. */
   | 'voiceover'
   | 'voiceover_extended'
+  | 'voiceover_aligned'
   /** A remark about a line rather than a change to it — it stands under the line, and takes replies. */
   | 'voiceover_note'
   | 'voiceover_extended_note'
+  | 'voiceover_aligned_note'
   /**
    * Where a sound in the audio timeline stands: `body` is a [ClipStatus], `clip` the slot. The
    * latest row for a slot is its status, across releases — a status follows the sound, not the film.

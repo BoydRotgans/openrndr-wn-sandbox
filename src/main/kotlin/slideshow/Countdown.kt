@@ -86,6 +86,12 @@ class Countdown(private val face: FontImageMap? = null) {
     }
 
     companion object {
+        /**
+         * Whether the countdown line is off the wall: set by the driver each frame while the speaker's autocue is
+         * up, which counts every wait down itself (15 October 2026), and read by a slide that draws its own line,
+         * the course transition. Never set on a film, a still or a bench, where there is no autocue.
+         */
+        @Volatile var hidden: Boolean = false
         /** The dot's radius in canvas pixels: a click received during an animation too short for the line. */
         const val DOT = 9.0
         /** The size the figures' face is loaded at: a slide's title on a 1080 pane. */

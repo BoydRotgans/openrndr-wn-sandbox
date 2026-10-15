@@ -1231,9 +1231,11 @@
           "meeting": "2026-09-30",
           "kind": "wall",
           "text": "Put Panattoni Almelo last; it is now first.",
-          "status": "open",
+          "status": "dropped",
           "at": "1:15:43",
-          "where": "Slideshow.kt:2491"
+          "where": "Slideshow.kt:2491",
+          "decided": "2026-10-15",
+          "note": "Kept first: the order of the client's mail of 15 October, Panattoni Almelo first."
         },
         {
           "id": "m0930-77",

@@ -317,3 +317,21 @@ kbd {
   .p-lower { grid-template-columns: 1fr; }
   .p-keys { display: none; }
 }
+
+/* --- the autocue under the film (15 October) -------------------------------------------------- */
+/* Beside the notes, on the left and as large as the row allows: it is what the speaker reads from. The notes
+   and what comes next stack on the right. */
+.p-lower.with-cue { grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); grid-template-rows: auto 1fr; }
+.p-lower.with-cue .p-cue { grid-row: 1 / span 2; }
+.p-cue {
+  align-self: start; aspect-ratio: 16 / 9; background: black; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.p-cue video { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.p-lower.with-cue .p-notes textarea { min-height: 120px; }
+.p-lower.with-cue .p-upnext .p-thumb { max-width: 240px; }
+.ghost.off { color: var(--faint); }
+@media (max-width: 900px) {
+  .p-lower.with-cue { grid-template-columns: 1fr; grid-template-rows: none; }
+  .p-lower.with-cue .p-cue { grid-row: auto; }
+}

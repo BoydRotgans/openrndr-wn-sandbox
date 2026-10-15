@@ -54,27 +54,13 @@ class WallRecorder(
     private lateinit var frame: RenderTarget
     private var resolved: ColorBuffer? = null
     private var texture = 0
-    private var bytes = 0
-
-    private val pbos = IntArray(DEPTH)
-    private val fences = LongArray(DEPTH)
-    private val pending = BooleanArray(DEPTH)
-    private var slot = 0
-
-    private val spare = ArrayBlockingQueue<ByteBuffer>(POOL)
-    private val filled = ArrayBlockingQueue<ByteBuffer>(POOL + 1)
-    private val end: ByteBuffer = ByteBuffer.allocate(0)
-    private var writer: Thread? = null
-    private var ffmpeg: Process? = null
-    @Volatile private var failure: Throwable? = null
+    private lateinit var pipe: FramePipe
 
     private var frameIndex = 0L
     private var storedClock: (() -> Double)? = null
-    private var stopped = false
 
     /** Frames handed to the encoder so far. */
-    var written = 0L
-        private set
+    val written: Long get() = if (::pipe.isInitialized) pipe.written else 0L
 
     override fun setup(program: Program) {
         program.window.resizable = false
@@ -90,11 +76,97 @@ class WallRecorder(
         val w = source.effectiveWidth
         val h = source.effectiveHeight
         require(w % 2 == 0 && h % 2 == 0) { "recorder: ${w}x$h will not encode as yuv420p; it needs even sides" }
-        // OPENRNDR's GL colour buffer keeps its texture name in `texture`; the class is in the
-        // runtime-only gl3 module, so it is asked for by name rather than by type.
-        texture = source.javaClass.getMethod("getTexture").invoke(source) as Int
-        bytes = w * h * 4
+        texture = FramePipe.textureOf(source)
+        pipe = FramePipe(output, w, h, FramePipe.h264(crf), frameRate, "recorder")
+        println("recorder: ${w}x$h at $frameRate fps, read back ${FramePipe.DEPTH} frames behind → ${output.path}")
+    }
 
+    override fun beforeDraw(drawer: Drawer, program: Program) {
+        storedClock = program.clock
+        program.clock = { frameIndex / frameRate.toDouble() }
+        program.updateFrameSecondsFromClock()
+        frame.bind()
+        program.backgroundColor?.let { drawer.clear(it) }
+    }
+
+    override fun afterDraw(drawer: Drawer, program: Program) {
+        frame.unbind()
+        if (!pipe.stopped) {
+            if (pipe.written / frameRate.toDouble() < maximumDuration) {
+                resolved?.let { frame.colorBuffer(0).copyTo(it) }
+                pipe.push(texture)
+            } else {
+                program.application.exit()
+                pipe.stop()
+            }
+        }
+        drawer.isolated {
+            drawer.defaults()
+            drawer.image(resolved ?: frame.colorBuffer(0), 0.0, 0.0, frame.width.toDouble(), frame.height.toDouble())
+        }
+        frameIndex++
+        storedClock?.let {
+            program.clock = it
+            program.updateFrameSecondsFromClock()
+        }
+    }
+
+    override fun shutdown(program: Program) {
+        pipe.stop()
+        pipe.destroy()
+        resolved?.destroy()
+        frame.colorBuffer(0).destroy()
+        frame.depthBuffer?.destroy()
+        frame.destroy()
+    }
+
+    companion object {
+        /** ffmpeg on the path, or Homebrew's, which a GUI-launched JVM may not have on its path. */
+        fun ffmpegPath(): String =
+            listOf("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg").firstOrNull { File(it).canExecute() } ?: "ffmpeg"
+    }
+}
+
+/**
+ * The recorder's way of getting frames off the GPU, for any texture of [width] by [height]: each read goes into
+ * a **pixel buffer** the GPU fills when it gets there, with a fence behind it, and is collected [DEPTH] pushes
+ * later, when it is long finished — copied into one of a small pool of buffers and handed to a **writer thread**
+ * that feeds ffmpeg while the next frames are drawn. The draw loop only waits when the encoder falls a whole pool
+ * behind, which is backpressure, and right.
+ *
+ * ffmpeg is given the raw frames at [frameRate] and then [encode], its arguments from the pixel format on, and
+ * writes [output]; its log is `build/recorder/<name>.log`. [WallRecorder] films the wall through one, and the
+ * autocue's film is another ([Settings.recordAutocue]), pushed on the same draws so the two are frame for frame.
+ */
+class FramePipe(
+    private val output: File,
+    width: Int, height: Int,
+    encode: List<String>,
+    private val frameRate: Int,
+    /** Who is speaking in the log lines. */
+    private val label: String,
+) {
+    private val bytes = width * height * 4
+    private val pbos = IntArray(DEPTH)
+    private val fences = LongArray(DEPTH)
+    private val pending = BooleanArray(DEPTH)
+    private var slot = 0
+
+    private val spare = ArrayBlockingQueue<ByteBuffer>(POOL)
+    private val filled = ArrayBlockingQueue<ByteBuffer>(POOL + 1)
+    private val end: ByteBuffer = ByteBuffer.allocate(0)
+    private val writer: Thread
+    private val ffmpeg: Process
+    @Volatile private var failure: Throwable? = null
+
+    /** Frames handed to the encoder so far. */
+    var written = 0L
+        private set
+
+    var stopped = false
+        private set
+
+    init {
         for (i in 0 until DEPTH) {
             pbos[i] = glGenBuffers()
             glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[i])
@@ -105,18 +177,10 @@ class WallRecorder(
 
         output.absoluteFile.parentFile?.mkdirs()
         val log = File("build/recorder/${output.nameWithoutExtension}.log").also { it.parentFile.mkdirs() }
-        // ScreenRecorder's own arguments: its preamble and H264Profile's defaults, word for word.
         val command = listOf(
-            ffmpegPath(), "-y", "-f", "rawvideo", "-vcodec", "rawvideo",
-            "-s", "${w}x$h", "-pix_fmt", "rgba", "-r", "$frameRate", "-i", "-",
-            "-pix_fmt", "yuv420p",
-            "-sws_flags", "spline+accurate_rnd+full_chroma_int",
-            "-color_range", "1", "-colorspace", "1", "-color_primaries", "1", "-color_trc", "1",
-            "-vf", "vflip,colorspace=bt709:iall=bt601-6-625:fast=1",
-            "-vcodec", "libx264",
-            *(crf?.let { arrayOf("-crf", "$it") } ?: emptyArray()),
-            output.path
-        )
+            WallRecorder.ffmpegPath(), "-y", "-f", "rawvideo", "-vcodec", "rawvideo",
+            "-s", "${width}x$height", "-pix_fmt", "rgba", "-r", "$frameRate", "-i", "-"
+        ) + encode + output.path
         val process = ProcessBuilder(command).redirectErrorStream(true).redirectOutput(log).start()
         ffmpeg = process
         writer = Thread({
@@ -133,52 +197,13 @@ class WallRecorder(
                 failure = t
             }
             runCatching { channel.close() }
-        }, "wall-recorder").apply { isDaemon = true; start() }
-        println("recorder: ${w}x$h at $frameRate fps, read back $DEPTH frames behind → ${output.path}")
+        }, "$label-writer").apply { isDaemon = true; start() }
     }
 
-    override fun beforeDraw(drawer: Drawer, program: Program) {
-        storedClock = program.clock
-        program.clock = { frameIndex / frameRate.toDouble() }
-        program.updateFrameSecondsFromClock()
-        frame.bind()
-        program.backgroundColor?.let { drawer.clear(it) }
-    }
-
-    override fun afterDraw(drawer: Drawer, program: Program) {
-        frame.unbind()
-        if (!stopped) {
-            if (written / frameRate.toDouble() < maximumDuration) {
-                resolved?.let { frame.colorBuffer(0).copyTo(it) }
-                read()
-            } else {
-                program.application.exit()
-                stop()
-            }
-        }
-        drawer.isolated {
-            drawer.defaults()
-            drawer.image(resolved ?: frame.colorBuffer(0), 0.0, 0.0, frame.width.toDouble(), frame.height.toDouble())
-        }
-        frameIndex++
-        storedClock?.let {
-            program.clock = it
-            program.updateFrameSecondsFromClock()
-        }
-    }
-
-    override fun shutdown(program: Program) {
-        stop()
-        pbos.forEach { if (it != 0) glDeleteBuffers(it) }
-        resolved?.destroy()
-        frame.colorBuffer(0).destroy()
-        frame.depthBuffer?.destroy()
-        frame.destroy()
-    }
-
-    /** Asks for this frame into the next pixel buffer, collecting the one that buffer last held. */
-    private fun read() {
-        failure?.let { throw RuntimeException("recorder: ffmpeg stopped taking frames (${it.message}); see build/recorder", it) }
+    /** Asks for [texture]'s pixels into the next pixel buffer, collecting the frame that buffer last held. */
+    fun push(texture: Int) {
+        if (stopped) return
+        failure?.let { throw RuntimeException("$label: ffmpeg stopped taking frames (${it.message}); see build/recorder", it) }
         collect(slot)
         glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[slot])
         val bound = glGetInteger(GL_TEXTURE_BINDING_2D)
@@ -222,24 +247,27 @@ class WallRecorder(
     private fun takeSpare(): ByteBuffer {
         while (true) {
             spare.poll(1, TimeUnit.SECONDS)?.let { return it }
-            failure?.let { throw RuntimeException("recorder: ffmpeg stopped taking frames (${it.message}); see build/recorder", it) }
+            failure?.let { throw RuntimeException("$label: ffmpeg stopped taking frames (${it.message}); see build/recorder", it) }
         }
     }
 
     /** Collects what is still in flight, closes the pipe and waits for ffmpeg to finish the file. */
-    private fun stop() {
+    fun stop() {
         if (stopped) return
         stopped = true
         for (k in 0 until DEPTH) collect((slot + k) % DEPTH)
         filled.put(end)
-        writer?.join()
-        ffmpeg?.let { process ->
-            runCatching { process.outputStream.close() }
-            val code = process.waitFor()
-            if (code != 0) println("recorder: ffmpeg exited $code — see build/recorder/${output.nameWithoutExtension}.log")
-        }
-        failure?.let { println("recorder: the writer failed (${it.message})") }
-        println("recorder: $written frames at $frameRate fps → ${output.path}")
+        writer.join()
+        runCatching { ffmpeg.outputStream.close() }
+        val code = ffmpeg.waitFor()
+        if (code != 0) println("$label: ffmpeg exited $code — see build/recorder/${output.nameWithoutExtension}.log")
+        failure?.let { println("$label: the writer failed (${it.message})") }
+        println("$label: $written frames at $frameRate fps → ${output.path}")
+    }
+
+    /** The pixel buffers back to the GPU; after [stop]. */
+    fun destroy() {
+        pbos.forEachIndexed { i, it -> if (it != 0) { glDeleteBuffers(it); pbos[i] = 0 } }
     }
 
     companion object {
@@ -249,8 +277,20 @@ class WallRecorder(
         /** Frames that may wait for ffmpeg before the draw loop does. */
         const val POOL = 6
 
-        /** ffmpeg on the path, or Homebrew's, which a GUI-launched JVM may not have on its path. */
-        fun ffmpegPath(): String =
-            listOf("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg").firstOrNull { File(it).canExecute() } ?: "ffmpeg"
+        /**
+         * OPENRNDR's GL colour buffer keeps its texture name in `texture`; the class is in the runtime-only gl3
+         * module, so it is asked for by name rather than by type.
+         */
+        fun textureOf(buffer: ColorBuffer): Int = buffer.javaClass.getMethod("getTexture").invoke(buffer) as Int
+
+        /** ScreenRecorder's own arguments from the pixel format on: H264Profile's defaults, word for word, at [crf] or x264's own. */
+        fun h264(crf: Int?): List<String> = listOf(
+            "-pix_fmt", "yuv420p",
+            "-sws_flags", "spline+accurate_rnd+full_chroma_int",
+            "-color_range", "1", "-colorspace", "1", "-color_primaries", "1", "-color_trc", "1",
+            "-vf", "vflip,colorspace=bt709:iall=bt601-6-625:fast=1",
+            "-vcodec", "libx264",
+            *(crf?.let { arrayOf("-crf", "$it") } ?: emptyArray()),
+        )
     }
 }

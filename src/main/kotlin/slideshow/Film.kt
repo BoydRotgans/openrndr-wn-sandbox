@@ -6,6 +6,7 @@
 import slideshow.Pace
 import slideshow.Pieces
 import slideshow.SubtitleTrack
+import slideshow.subtitlesFile
 import slideshow.Subtitles
 import slideshow.VoiceTrack
 import slideshow.arrangedFromFile
@@ -45,10 +46,7 @@ fun main() {
     val ids = show.slideIds
     val start = startIndex(slides, settings.start)
     val until = untilIndex(slides, settings.until, start)
-    val subtitles = if (settings.subtitleMode || settings.voiceOn) Subtitles.readOrEmpty(
-        if (settings.subtitleTrack == SubtitleTrack.EXTENDED) settings.subtitlesExtended ?: "show-subtitles-extended.json"
-        else settings.subtitles ?: "show-subtitles.json"
-    ) else null
+    val subtitles = if (settings.subtitleMode || settings.voiceOn) Subtitles.readOrEmpty(settings.subtitlesFile(settings.subtitleTrack)) else null
     val voice = if (settings.voiceOn) VoiceTrack.read(settings.voice, settings.subtitleTrack, settings.voiceGain) else null
     val holds = autoCues(slides, ids, start, until, settings, subtitles, Pace(settings.subtitleCps), voice)
     val perSlide = MutableList(slides.size) { 0.0 }
@@ -96,7 +94,9 @@ fun main() {
                             "SLIDES_START" to "${p.first + 1}", "SLIDES_UNTIL" to "${p.last + 1}",
                             "SLIDES_VIDEO" to p.file.path, "SLIDES_RECORD" to "true", "SLIDES_CUES" to "auto",
                             "SLIDES_MUTED" to "true", "SLIDES_MIX" to "false", "SLIDES_ORGANIZER" to "false",
-                            "SLIDES_STILLS" to "false", "SLIDES_BENCH" to "false", "SLIDES_DURATION" to ""
+                            "SLIDES_STILLS" to "false", "SLIDES_BENCH" to "false", "SLIDES_DURATION" to "",
+                            // the pieces are joined afterwards and the autocue's film is not: one run films it, or none
+                            "SLIDES_AUTOCUE_FILM" to ""
                         )
                     )
                 }

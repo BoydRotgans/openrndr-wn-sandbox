@@ -8,6 +8,7 @@ import org.lwjgl.openal.AL10.AL_FORMAT_STEREO16
 import org.lwjgl.openal.AL10.AL_GAIN
 import org.lwjgl.openal.AL10.AL_LOOPING
 import org.lwjgl.openal.AL10.AL_NO_ERROR
+import org.lwjgl.openal.AL10.AL_PAUSED
 import org.lwjgl.openal.AL10.AL_PLAYING
 import org.lwjgl.openal.AL10.AL_SOURCE_STATE
 import org.lwjgl.openal.AL10.AL_TRUE
@@ -20,6 +21,7 @@ import org.lwjgl.openal.AL10.alGenSources
 import org.lwjgl.openal.AL10.alGetError
 import org.lwjgl.openal.AL10.alGetSourcei
 import org.lwjgl.openal.AL10.alListenerf
+import org.lwjgl.openal.AL10.alSourcePause
 import org.lwjgl.openal.AL10.alSourcePlay
 import org.lwjgl.openal.AL10.alSourceStop
 import org.lwjgl.openal.AL10.alSourcef
@@ -180,6 +182,21 @@ class Speakers(
      */
     fun isPlaying(sound: Sound): Boolean =
         ready && held[sound.file.path]?.let { alGetSourcei(it, AL_SOURCE_STATE) == AL_PLAYING } == true
+
+    /**
+     * Holds a sustained cue where it is, mid-word, for the show's pause (space): only if it is sounding, so a
+     * line already said is left alone. Not in the log — a filmed run has no pause.
+     */
+    fun pause(sound: Sound?) {
+        if (sound == null || !ready) return
+        held[sound.file.path]?.let { if (alGetSourcei(it, AL_SOURCE_STATE) == AL_PLAYING) alSourcePause(it) }
+    }
+
+    /** Carries a cue held by [pause] on from where it stood; one that was not paused is not started again. */
+    fun resume(sound: Sound?) {
+        if (sound == null || !ready) return
+        held[sound.file.path]?.let { if (alGetSourcei(it, AL_SOURCE_STATE) == AL_PAUSED) alSourcePlay(it) }
+    }
 
     /** The ramps running on held sources. */
     private val fading = mutableMapOf<String, Fade>()

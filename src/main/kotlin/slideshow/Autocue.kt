@@ -168,8 +168,10 @@ class CueTiming private constructor(private val at: IntArray, private val chars:
  * middle, marked at both ends. Through a state it moves through the line on the subtitles' own timing
  * ([CueTiming]) — the word being said is on the reading line — and at the end of the line it stops. Once
  * the line has been said *and* the wall has stopped moving, the next divider glides up onto the reading
- * line and goes green: KLIK. **The click is the presenter's**: while the autocue is up nothing in the show
- * clicks on by itself, autoplay or not, so KLIK means ready when you are, never "about to go". It follows the speaking a line at a time and smoothly, never word by word —
+ * line and goes green: KLIK, the presenter's to take when ready. **Autoplay is the autocue's own option**
+ * ([Settings.autoplay], off unless asked for): on, the show continues by itself once each state is done, voice or
+ * no voice, and the foot counts down to that click for the whole of every state — AUTO, the seconds, a line
+ * coming down — while the next divider says AUTO in blue rather than KLIK in green. It follows the speaking a line at a time and smoothly, never word by word —
  * see [reading]. The click starts the next state's line from its first word. A speaker who is
  * slower than the estimate finds the words just above the line; one who clicks early sees the scroll ease
  * on to where the click took the wall. Nothing scrolls past a click that has not been made.
@@ -197,7 +199,7 @@ class Autocue(
     private class Block(val entry: Entry, val divider: Double, val top: Double, val bottom: Double, val lines: List<Line>)
 
     /** The status the foot shows, and the reading line's colour. */
-    enum class Status { SPEAKING, WAITING, READY, END }
+    enum class Status { SPEAKING, WAITING, READY, AUTO, END }
 
     /** What the driver hands over each frame. */
     class Now(
@@ -213,7 +215,15 @@ class Autocue(
         val nextLabel: String, val next: String,
         val clock: String,
         /** For the pulse of a click that is ready. */
-        val frame: Int
+        val frame: Int,
+        /** Whether the next divider stands on the reading line: the line said and the wall still. */
+        val offered: Boolean = status == Status.READY,
+        /** Under [Status.AUTO], how much of the wait to the click is still to go, 1 coming down to 0. */
+        val countdown: Double = 0.0,
+        /** Whether the speaking stands paused (space): the scroll, the voice and autoplay hold, and the foot says so. */
+        val paused: Boolean = false,
+        /** A click just made, 1 coming down to 0: the status box flashes light, so every click is seen to land. */
+        val felt: Double = 0.0
     )
 
     private var blocks: List<Block> = emptyList()
@@ -328,7 +338,10 @@ class Autocue(
     private fun script(drawer: Drawer, now: Now) {
         val font = face ?: return
         val current = blockAt[now.index to now.step] ?: -1
-        val offered = now.status == Status.READY
+        val offered = now.offered
+        // the click is the presenter's in green, the show's own in blue
+        val auto = now.status == Status.AUTO
+        val go = if (auto) AUTO else GREEN
         val off = READ_Y - now.scroll
         // the reading band, behind the words
         drawer.fill = BAND
@@ -340,11 +353,11 @@ class Autocue(
             val b = blocks[i]
             if (b.divider + off - DIVIDER > AREA_BOTTOM) break
             divider(drawer, b, off, when {
-                i == current + 1 && offered -> GREEN
+                i == current + 1 && offered -> go
                 i == current + 1 -> LABEL
                 i == current -> LABEL
                 else -> DARK
-            }, i == current + 1, offered)
+            }, i == current + 1, offered, if (auto) "AUTO" else "KLIK")
             if (b.lines.isEmpty()) {
                 small?.let { s ->
                     drawer.fill = if (i == current) LABEL else DARK
@@ -373,10 +386,11 @@ class Autocue(
         drawer.rectangle(0.0, AREA_BOTTOM - FADE_FOOT, WIDTH, FADE_FOOT)
         drawer.shadeStyle = null
 
-        // The reading line's two marks, green when the click is offered and amber while the wall still moves.
-        drawer.fill = when (now.status) {
-            Status.READY -> GREEN
-            Status.WAITING -> AMBER
+        // The reading line's two marks: green when the click is offered (blue when the show will make it), amber
+        // while the wall still moves.
+        drawer.fill = when {
+            offered -> go
+            now.status == Status.WAITING -> AMBER
             else -> MARK
         }
         val t = MARK_SIZE
@@ -397,8 +411,8 @@ class Autocue(
         return lo
     }
 
-    /** A state's divider: a hairline with its name over it, and on the next click, KLIK. */
-    private fun divider(drawer: Drawer, b: Block, off: Double, colour: ColorRGBa, next: Boolean, offered: Boolean) {
+    /** A state's divider: a hairline with its name over it, and on the next click [word] — KLIK, or AUTO when the show makes it. */
+    private fun divider(drawer: Drawer, b: Block, off: Double, colour: ColorRGBa, next: Boolean, offered: Boolean, word: String) {
         val s = small ?: return
         val y = b.divider + off
         val e = b.entry
@@ -407,14 +421,14 @@ class Autocue(
         drawer.fill = colour
         drawer.rectangle(COL_LEFT, y - 0.75, COLUMN, 1.5)
         // the label stands in a gap cut out of the hairline
-        val klik = if (next) "KLIK  " else ""
+        val klik = if (next) "$word  " else ""
         val width = s.advanceWithSubscripts(klik + name) + (if (next) SMALL * 0.9 else 0.0)
         drawer.fill = BLACK
         drawer.rectangle(x - 12.0, y - SMALL * 0.7, width + 24.0, SMALL * 1.4)
         drawer.fill = colour
         if (next) {
-            drawer.setLine("KLIK", s, Vector2(x, y + SMALL * 0.36), SMALL, SMALL)
-            x += s.advanceWithSubscripts("KLIK ")
+            drawer.setLine(word, s, Vector2(x, y + SMALL * 0.36), SMALL, SMALL)
+            x += s.advanceWithSubscripts("$word ")
             val t = SMALL * 0.32
             drawer.contour(ShapeContour.fromPoints(listOf(
                 Vector2(x, y - t), Vector2(x + t * 1.5, y), Vector2(x, y + t)), true))
@@ -456,13 +470,15 @@ class Autocue(
         // The status: what the speaker is to do now.
         val pill = Rectangle(MARGIN, AREA_BOTTOM + 34.0, 440.0, 120.0)
         val pulse = 0.82 + 0.18 * sin(now.frame / FPS.toDouble() * PI * 1.4)
-        val sign = when (now.status) {
+        val sign = if (now.paused) Sign(WAIT_GROUND, AMBER, "PAUZE", "spatie: verder") else when (now.status) {
             Status.READY -> Sign(GREEN.opacify(pulse), BLACK, "KLIK", "")
+            Status.AUTO -> Sign(AUTO_GROUND, AUTO, "AUTO", "klikt over ${secondsText(now.left)}")
             Status.WAITING -> Sign(WAIT_GROUND, AMBER, "WACHT", if (now.left > 0.05) secondsText(now.left) else "")
             Status.SPEAKING -> Sign(SPEAK_GROUND, NOW, "SPREKEN", "nog ${secondsText(now.left)}")
             Status.END -> Sign(SPEAK_GROUND, LABEL, "EINDE", "")
         }
-        drawer.fill = sign.ground
+        // Lit by a click, taken or refused: toward white and back.
+        drawer.fill = sign.ground.mix(ColorRGBa.WHITE, CLICK_LIGHT * now.felt.coerceIn(0.0, 1.0))
         drawer.rectangle(pill)
         drawer.fill = sign.ink
         if (now.status == Status.READY) {
@@ -479,6 +495,13 @@ class Autocue(
                 drawer.rectangle(pill.x, pill.y + pill.height - 6.0, pill.width, 6.0)
                 drawer.fill = NOW
                 drawer.rectangle(pill.x, pill.y + pill.height - 6.0, pill.width * now.said.coerceIn(0.0, 1.0), 6.0)
+            }
+            // The wait to the show's own click, as a line coming down — the show's countdown, in the autocue's blue.
+            if (now.status == Status.AUTO) {
+                drawer.fill = DARK
+                drawer.rectangle(pill.x, pill.y + pill.height - 8.0, pill.width, 8.0)
+                drawer.fill = AUTO
+                drawer.rectangle(pill.x, pill.y + pill.height - 8.0, pill.width * now.countdown.coerceIn(0.0, 1.0), 8.0)
             }
         }
 
@@ -568,6 +591,10 @@ class Autocue(
         val AMBER: ColorRGBa = ColorRGBa.fromHex("FFB020")
         private val WAIT_GROUND = ColorRGBa.fromHex("2A2110")
         private val SPEAK_GROUND = ColorRGBa.fromHex("1A1C20")
+        private val AUTO = ColorRGBa.fromHex("7FA6FF")
+        /** How far toward white a click lights the status box at its height. */
+        private const val CLICK_LIGHT = 0.55
+        private val AUTO_GROUND = ColorRGBa.fromHex("101A30")
 
         /** Seconds as the speaker reads them: "4 s", "1,2 s", "1:05". */
         fun secondsText(s: Double): String = when {

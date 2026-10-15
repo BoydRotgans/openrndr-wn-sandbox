@@ -850,6 +850,9 @@ faster than it plays. **Every animation is counted down by one line, bottom left
 - **A refused click swells it** in weight and toward the blue, so the click is seen to land.
 - **One drawing, two callers**: the course transition draws it into its wall, and the driver draws it on
   the window over every other animation while the mode is on, stepping aside on a slide that `holds`.
+- **Off the wall while the autocue is up** (15 October 2026): the autocue counts every wait down itself, so the
+  driver's line and the transition's both stand aside (`Countdown.hidden`, set each frame), and a refused click is
+  answered by the dot instead. A film, a still and a bench have no autocue and keep the line.
 
 It went through a red dot, a shrinking bar and the transition's m:ss plate on the same day before it
 became one system. "Still moving" is the handover still running, the click still playing, or, on an opening state
@@ -1483,6 +1486,13 @@ the rehearsal page:
 than copied, so a printed sheet opens the page to whoever holds it. `tools/speaker_notes_pdf.py` is the
 older sheet, off the client's pptx.
 
+**The slides on their own are a third sheet** (15 October): `tools/slides_pdf.py` writes
+`export/wn-slides-per-klik.pdf`, a landscape A4 page per click with the picture and no lines, off the same
+order, film and moment as the speaker's sheets (it imports them). A slide's page is its own 1920 pane, which
+fills a landscape page, since its chapter card stands unchanged all chapter; a backdrop or scene (the
+catalogue's `wide`) is the whole wall, a strip across the page. The section, the slide's name and its
+letter stand over each picture. 176 pages and 44 MB off the 2 October film.
+
 #### The extended voice-over, and the presented run
 
 There are **two subtitle tracks**, the same shape, in two files. `show-subtitles.json` is the
@@ -1499,14 +1509,36 @@ courses have no line, since the speaker is silent there. `SLIDES_SUBTITLES_EXTEN
 selector in the top bar switches it while the show runs, and the launcher keeps it across starts the way
 it keeps the mute. `SubtitleTrack` in `Subtitles.kt` is the whole of the type.
 
-**The extended track presents.** With subtitles on, the deck runs itself on it: every state is held for
-`standFrames` — the state finished moving plus its reading time, or its line said plus a beat, whichever
-is longer — and then clicked on, so what is on the wall is the talk being given rather than a deck being
-clicked. It is the same rule the cue list a filmed run writes uses, lifted out of `autoCues` so the two
-cannot disagree: `SLIDES_SUBTITLE_MODE=true SLIDES_SUBTITLE_TRACK=extended` watched is the same run as
-with `SLIDES_CUES=auto SLIDES_RECORD=true` added. The arrows still work — a click lands on a new state,
-whose clock starts from there — and the deck stands where it runs out. The default track leaves the deck
-to the arrows, as before. A written cue list (`SLIDES_CUES`) and stills take precedence over it.
+**The track no longer presents by itself** (15 October 2026). With subtitles or the voice on, the extended
+track used to run the deck: every state held for `standFrames` — the state finished moving plus its reading
+time, or its line said plus a beat, whichever is longer — and then clicked on. That is **autoplay, which is
+now the autocue's option** (see [the autocue](#the-autocue)): it runs on any track, voice or not, and only
+while the autocue is up. `standFrames` is still the one rule, shared with the cue list a filmed run writes
+(`autoCues`), so `SLIDES_CUES=auto SLIDES_RECORD=true` films the run a watched autoplay gives.
+
+#### The aligned voice-over
+
+**`show-subtitles-aligned.json` is the extended track rewritten to the wall** (15 October 2026), after the
+client found the text and the slides out of step. The same shape and the same states, a third
+`SubtitleTrack` (`aligned`), `SLIDES_SUBTITLES_ALIGNED` naming it and `SLIDES_SUBTITLE_TRACK=aligned` or the
+organizer's voice-over selector reading it; the organizer edits it under its own tab, the Subtitles tab opens
+on it and compares it side by side with the other two, and `tools/voiceover_render.py --track aligned` renders
+it. Its lines were written with the picture of each state beside them — the frames of the 2
+October film cut per state, and the drawers — and the `voiceover.slides` note under each slide says what each
+state shows, which is what its lines are held to. The rule: **a line says what is on the wall at that state,
+in the wall's own words, in the order it appears**, and nothing the wall contradicts — **but it is Erik
+speaking to a room at dinner, never a voice describing the screen.** The first pass said "naast mij verschijnt
+de naam", "de camera duwt in", "het veld zakt weg", and read as an audio description of the slides; the
+second pass (the same day) names what the wall shows as content, keeps a presenter's pointing (links, rechts,
+in het rood) and drops every word about how it moves. Three things it put
+right: the ladder's six states now walk the five rungs, the group's rung with the lines pointing at it, the
+collapse into three bars, the new trede 1, treden 2 and 3, and the group on trede 1; the factory map says
+twelve sites in Belgium and one in Luxembourg, where the extended track said Belgium, the Netherlands and
+France; and the certificate, the charts' nine bullets, the life-cycle columns and the webtool's labels are
+said as they stand. It is about 15% longer than the extended track (24 300 characters against 21 100; 25.5
+minutes of rendered speech), since naming what is on the wall costs words; the Subtitles tab's draaiboek times
+say where that binds. Its voice is rendered in Piper like the extended one, 161 of its 163 states (the two
+missing are the shelved `demontabel-in-de-stad`).
 
 **Both tracks are edited in the organizer**, under the same Subtitles section: `default` / `extended`
 tabs choose which file the rows edit, the voice-over selector in the top bar moves the tabs with it so
@@ -1552,13 +1584,9 @@ state of the running order a line, under its slide, chapter and moment, the exte
   field, and saved half.
 - **A line whose voice is not rendered for its text has an amber edge** and `♪ not rendered` or `♪ older text`
   beside it, the render command in its tooltip; the bar's `♪ n to render ▸` goes to the next one.
-- **Autoplay or wait for click**: on the extended track with subtitles or the voice on, the show clicks on by
-  itself once each line is said (`autoplay`), or says the line and holds the state for a click. The switch is
-  in the top bar too (`autoplay: on/off`, 12 October 2026), beside voice and subtitles, since on the
-  Subtitles tab alone it went unfound and a show restarted with the voice on from `.env` seemed to play by itself. `SLIDES_AUTOPLAY`
-  (`Settings.autoplay`) is where it starts, `POST /api/autoplay` switches the running show (`Remote.Autoplay`),
-  and the launcher keeps it for the next start like the mute. Switched back on, a state whose line is said moves
-  on at once.
+- **Autoplay is not here any more**: it was this tab's "autoplay / wait for click" and then a top-bar switch
+  beside voice and subtitles, tied to the extended track. Since 15 October 2026 it is the autocue's option and
+  stands beside `autocue` in the top bar.
 - **The draaiboek's times stand at every moment and chapter**, with the slot's length and how long the section's
   lines take to say on the track shown (the rendered voice, else 15 characters a second; amber when longer than
   the slot), and each course its gang and clearing. [`Draaiboek`](src/main/kotlin/slideshow/Draaiboek.kt) reads the
@@ -1600,8 +1628,8 @@ spelled for it, `CEM I` becomes `CEM één`, `[Naam]` is read as "onze gast" (`s
 
 **The voice is its own switch, apart from the subtitles.** `voice: on/off` in the organizer's top bar,
 `v` in the show, `SLIDES_VOICE_ON` in `.env` (off as committed), kept by the launcher across starts: the
-talk can be heard with or without its words on the wall, and on the extended track either one being on
-makes the deck present itself. With the voice off the holds and the cards go back to the text rule.
+talk can be heard with or without its words on the wall. Neither runs the deck any more: that is autoplay,
+the autocue's option. With the voice off the holds and the cards go back to the text rule.
 
 **The organizer plays it too.** Each rendered state in the Subtitles pane has a ▶ with its length, `▶ play
 slide` plays a slide's states in order with a breath between and marks the row being said, and the top bar
@@ -1693,6 +1721,11 @@ grid with it.)
   number and title on its first, the nameplate's letter on every one), then the line of the track the show
   reads, set large (`SLIDES_AUTOCUE_TEXT`, 64 px, about 44 characters a line), or `stil — geen tekst`. The
   speaker reads on through the evening as a teleprompter runs, the next state's words below the one being said.
+- **The script is read in Arial Bold** (`SLIDES_AUTOCUE_FONT`, 15 October 2026), the teleprompter recommendation —
+  white on black, ranged left, sentence case, which it already was — where it had been the talk's Rockwell; the
+  labels round it keep the talk's face. Arial Bold has every character the tracks use but the subscript ₂, which
+  `setLine` sets itself. The picture and its faces are composed at twice the resolution (`AUTOCUE_SCALE`), since a
+  1x picture fitted to a window larger than 1920 came out soft.
 - **It scrolls as the line is said, and stops for the click.** The reading line stands at 0.38 of the script's
   height, marked at both ends. Through a state it moves through the line on the subtitles' own cards
   ([`CueTiming`](src/main/kotlin/slideshow/Autocue.kt) off `Pace.cards`): the voice's words with the voice on,
@@ -1700,10 +1733,23 @@ grid with it.)
   stopped moving (`stillMoving`, the wait for the animation's rule, and a slide that `holds`), the next divider
   glides onto the reading line and turns green: KLIK. A click eases in from where the scroll stood (0.6 s); a
   jump further than a screen is cut. Lines said are dimmed, the next state's grey.
-- **The presenter clicks, always** (asked for on 14 October 2026). While the autocue is up nothing in the show
-  clicks on by itself — not autoplay's presented run, not a cue list, not the autostep — so the KLIK is the
-  presenter's to take when ready. Their clocks are held while it is up, so switching it off does not catch up on
-  the clicks held back; the organizer's autoplay button says `autoplay: off (autocue)` meanwhile.
+- **Autoplay is the autocue's own option** (14 and 15 October 2026), `autoplay` beside `autocue` in the top bar,
+  `SLIDES_AUTOPLAY`, off unless asked for and kept across starts like the autocue. **Off, the presenter clicks**:
+  nothing clicks on by itself, a cue list and the autostep included (their clocks held at the frame, so nothing is
+  caught up afterwards), and the KLIK is the presenter's to take when ready. **On, the show continues by itself**
+  once each state is done, by `standFrames`: its line said — the voice's own length where the voice is on, the
+  reading rule where it is not — or its moving done and a hold where it has no line. **No voice or subtitles are
+  needed**; it was the extended track's presented run until 15 October, and is that run lifted out of the voice.
+  It does nothing while the autocue is off, and the page dims it then. **Space pauses the speaking** (15 October
+  2026), with the autocue up, and space again carries on: the voice stops mid-word (`Speakers.pause`, OpenAL's own
+  pause) and resumes from that word, and the clock the subtitles, the autocue's scroll and autoplay all run on —
+  frames since the state was reached — stands still, carried forward by the frames that pass, so everything picks up
+  exactly where it stood. The wall's own animation plays on. The foot says PAUZE in amber; a click still moves the
+  show, and the state it reaches waits, silent, for space. Switching the autocue off ends a pause. The foot counts down to the click **for
+  the whole of every state** — AUTO, "klikt over 12 s", a blue line coming down — and the next divider says AUTO
+  in blue and comes onto the reading line once the line is said. Three versions went first: autoplay overridden
+  outright with a dead `autoplay: off (autocue)` button; the autocue's switching turning autoplay off, which undid
+  a deliberate choice at every start; and an AUTO countdown shown for only the last second.
 - **It follows the speaking a line at a time, never a word at a time.** Each line's middle stands on the band
   as its middle is said, and the path between is averaged over 1.4 s either side (`Autocue.reading`). Word by
   word it hiccuped: the voice's word times are matched to the script by letters, so where Whisper heard a
@@ -1712,9 +1758,13 @@ grid with it.)
   fastest second 1.7 times the median rather than 2.5, and the band a fifth of a line off the line being said at
   the median, never a whole line — the same at a 0.6 s window, so the wider one costs nothing.
 - **The foot says what to do**: SPREKEN with what is left of the line, WACHT while the wall still moves (the
-  marks turn amber), KLIK pulsing green, EINDE on the last state. Beside it what the next click brings, and in its own
-  window, the wall small. The header has the chapter or moment, the slide, its state, the time and the slide
-  count. The labels are Dutch: it is the speaker's screen, and the script is Dutch.
+  marks turn amber), KLIK pulsing green, EINDE on the last state. Beside it what the next click brings; the wall
+  drawn small beside that went on 15 October 2026, as not needed. The header has the chapter or moment, the slide,
+  its state, and top right the current time to the second with the slide count under it. The labels are Dutch: it
+  is the speaker's screen, and the script is Dutch.
+- **Every click is answered in the foot** (15 October 2026): forward or back, the keys, the clicker or the page's
+  arrows, taken or refused, the status box flashes toward white and fades over 0.45 s (`CLICK_PULSE`), so the
+  speaker always sees the click land, even one the wait for the animation turned away.
 - **Where it goes is the Projection tab's**, kept in `show-projection.json` as `autocue`
   ([`AutocueSetup`](src/main/kotlin/slideshow/Autocue.kt)), and every part of it moves the running show:
   - `wall`: on top of the show's own window, its 1920 by 1080 at x, y on the canvas at a scale — over the left
@@ -1738,11 +1788,27 @@ grid with it.)
   - **It is handed the show's keys**: `keyDown` and `keyUp` are functions both windows listen with, so the
     clicker works whichever window has the focus. Not yet checked with a real key on the second window.
   - **The focus goes back to the wall** as it opens, since GLFW gives a new window the focus.
+  - **It can be resized by hand, and the picture follows** (15 October 2026): the 1920 by 1080 is fitted whole and
+    centred, black round it. OPENRNDR keeps a child window's size cached and does not follow a manual resize, so the
+    picture stayed at its opening size in the window's lower left corner; the draw now reads the window's points and
+    framebuffer off GLFW every frame and sets the viewport and the ortho itself. A size dragged by hand holds until
+    the Projection tab's setup changes, which sets it again.
 - Checked on a muted show, by a throwaway readback of both windows' framebuffers to png, since removed
   (screenshots do not work on this machine): the window drew its picture with the wall small in its foot
   and the wall's own window untouched; a click eased into the next slide's line from its first word; moved onto
   the wall it covered the left projector, then half size on the right, its window hidden; off, then its window
   back; on a short line, SPREKEN gave way to the green KLIK. The tab was checked in headless Chrome.
+
+**A filmed run can film the autocue beside the wall** (`SLIDES_AUTOCUE_FILM`, 15 October 2026), for the
+rehearsal page, which plays it under the film. It is the presenter's autocue, not autoplay's: nothing counts
+down, and once a line is said and the wall is still KLIK stands, since on the page the client is the one who
+clicks. The clock in its head is the time into the run, where the hour of the filming would mean nothing.
+Every cue-list click lights the status box as a presenter's click does. It is taken on **every draw the wall's
+recorder takes**, so the two films are frame for frame: the autocue's picture, composed at twice its 1920 by
+1080 as always, drawn down into a 1280 wide target (`SLIDES_AUTOCUE_FILM_WIDTH`) and read back through a
+`FramePipe` — the wall recorder's non-blocking read-back, lifted out of `WallRecorder` for it, ffmpeg's
+arguments word for word (`FramePipe.h264`). `SLIDES_AUTOCUE_FILM_CRF` (28) is its quality; the film's own
+pieces (`FilmKt`) never film it.
 
 ### The refactor of 16 September
 
@@ -2094,8 +2160,13 @@ count is what is agreed and not built yet, and the top bar counts open, to build
   de weg dood"). The
   crowd's titles turn to Governance with the arrow. Every takeaway ends on a question for the table. The
   case studies are a click a view again (`cycle = null`). The ending has no QR code (`EndingScene(qr =
-  false)`). The circle catalogue leaves 13 round pieces out (`CircleCatalogue.exclude`): rods, lifting
-  eyes, anchors, piles and void formers read as discs at the sheet's size.
+  false)`). The circle catalogue leaves the round pieces out (`CircleCatalogue.exclude`): rods, lifting
+  eyes, anchors, piles and void formers read as discs at the sheet's size. **All of them since 15
+  October**: the first pass took 13 off the meshes and let 11 more through, and was asked again. Found
+  by measuring how many directions each piece's faces turn through about one axis and then looking at
+  all 115 drawn from the ring's corner: the six `KONN_ANKER`s and two `KONN_EIND` rods, the two
+  `DOORSTORTSYMBOOL` cones and `PUNTLAST_P2`'s cone. 24 out, 91 on the ring. A round *detail* on a
+  straight piece stays — `HPKM39`'s bent plate, the angles' fillets, the columns' notches.
 
 ### One slide on its own
 
@@ -4450,7 +4521,8 @@ arrive on. Only while the slide is on its opening state, so stepping back finds 
 **The director speaks first** (1 October): `director-is-speaking` is a `NameTag` for the director of Willy
 Naessens, first in the Opening moment, before Erik's. The director gives the first welcome, and the click
 after it is Erik's own tag, from where the opening goes on as before. Its name is a PLACEHOLDER, "Voornaam Achternaam":
-as long as a real name, so the tag stands as large as Erik's, where `[Naam]` read as a smaller one. It carries no cue and no subtitle line, so it is silent: the director speaks live.
+as long as a real name, so the tag stands as large as Erik's, where `[Naam]` read as a smaller one. It carries no subtitle line, since the director speaks live; since the release of 15 October it arrives
+with the name tag's sound, as Erik's does.
 
 **The programme is the intro wall** since 22 September: [`IntroWall`](src/main/kotlin/slideshow/backdrop-drawers/IntroWall.kt)
 stands Erik's `NameTag` settled in the left projector — the same block in the same place as
@@ -4460,7 +4532,9 @@ click is the wall's own: the programme gives way under a sheet of the ground ove
 the guest from StudioBuik, who introduces the dinner, builds as a `NameTag` in the right projector
 over the second, level with Erik, on the click's linear time. `NameTag.tag(drawer, stage, seconds)` is
 that build as a function of seconds, so a tag can be handed a click's clock. The guest is Else de
-Bruin of StudioBuik (named 1 October); her title is PLACEHOLDER. `het-programma` keeps its id and its cues A to F; G, the guest, has its own
+Bruin of StudioBuik (named 1 October); her title is left off until it is known (15 October), its empty line keeping its room so her name stays level
+with Erik's. The list ends on Case studies en vragen and Dessert since 15 October: the Uitloop went, and Vragen became
+Case studies en vragen. `het-programma` keeps its id and its cues A to F; G, the guest, has its own
 since the release of 24 September.
 
 #### The project highlights
@@ -4532,14 +4606,33 @@ photo apart on both sides; one with no photos shows drawing a left and b right. 
 | Kivits, Ridderkerk (the blueprints' "Kievits II") | 2 | a, b |
 | Intervest, Herstal | 3 | none |
 | Panattoni Almelo | 2 | its own pdf, rendered and inverted to `panattoni-almelo-a.png` |
-| Panattoni Waalwijk, Sas van Gent, Prohuis | none | a, b |
 
-**It goes round on its own and keeps the photos in the grid**, since 22 September. `cycle = 6.0`
-holds each view six seconds and hands over to the next, the last back round to the first, off the
-frame — one state, the way a backdrop runs, where it was a click a view. `dissolves = false` keeps
-a photo seen through the marks rather than dissolving into the whole picture; a drawing still
-dissolves out of its concrete, because that is the only way it is seen — with every picture held
-in the grid the right pane was a field of stone tiles and no drawing at all.
+**It is a click-through of the five cases in the client's mail** (15 October 2026), in the mail's
+order: Panattoni Almelo, Van Cranenbroek, VGP, Kivits, Intervest. Panattoni Waalwijk, Sas van Gent
+and Prohuis, drawings with no facts and no story, went then, and the meeting's wish of 30 September
+to close on Almelo was dropped for the mail's order. A click a view (`cycle = null`, since 30
+September, so the wall waits for Erik), which comes to 12 states: A–B Almelo, C–D Van Cranenbroek,
+E–G VGP, H–I Kivits, J–L Intervest.
+- **The mail is what each client lay awake over and how Willy Naessens answered it**, and it is in
+  the script only, never on the wall: a project's first view carries its question, the next "Ons
+  antwoord", a third (VGP, Intervest) the rest of the answer, and L closes on "binnen planning,
+  binnen budget en met kwaliteit" (both subtitle tracks, the extended one voiced). "Geen gezeik"
+  for Van Cranenbroek is said as korte lijnen, vroeg meedenken en zonder gedoe.
+- **Kivits' "zekerheid over de prijs" reads the mail's "prijszekerheid was belangrijk" as given**,
+  which the mail implies but does not say. Intervest is in Herstal, though the mail speaks of
+  Willy Naessens Nederland.
+- **The voice reads BREEAM as "Brie-em"** (`SPOKEN` in `voiceover_render.py`). K had a colon before
+  "vier loodsen" and the check heard its tail as "veert die 104 km"; with a full stop there it
+  reads back at 0.94.
+
+`cycle = 6.0` makes it go round on its own instead, each view held six seconds, one state, the way
+a backdrop runs (22 to 30 September). `dissolves = false` keeps a photo seen through the marks
+rather than dissolving into the whole picture; a drawing still dissolves out of its concrete,
+because that is the only way it is seen — with every picture held in the grid the right pane was a
+field of stone tiles and no drawing at all. **The show dissolves every photo since 15 October**, as
+the project highlights do: held in the grid (22 September to 15 October) a photograph was never seen
+whole. Each view builds, holds 0.3 s and dissolves over 1.5 s, and a click breaks it back into its
+marks before the handover.
 
 **Each project carries its facts**, off `data/other/project-details-case-studies.txt`: Functie,
 Opdrachtgever, Locatie and Realisatietijd, set **in the four corners of both projectors**, the same
@@ -4548,8 +4641,7 @@ it, the function on two lines top right from just past the pane's middle, the pl
 "Realisatie: …" bottom right. The grid has no hole for a label any more; a band of shade under the
 top and the foot of each pane keeps white type readable over a bright photograph. Panattoni Almelo
 opens the wall. Each function is the area and a short line cut from the paragraph given
-there; VGP is blocks B and C together, as the file asks; Intervest has no realisation time; the
-three Panattoni sites without photos and Prohuis are not in the file and keep their one line.
+there; VGP is blocks B and C together, as the file asks; Intervest has no realisation time.
 
 **Two panes, one wall.** Each projector is its own `PhotoMosaic` on the same six-by-six grid, so
 the joints line up across the seam. Their fronts are the two halves of one sweep, so the build and
@@ -4968,9 +5060,10 @@ landed. The webtool notes the grid's click the same way, so it opens on the shee
   order the pieces were laid along the mark, over 2 s. The sheet ends up square to the grid and still: the iso
   sheet in the round.
 - **Which piece takes which cell**: a minimum-cost matching of places on the mark to cells (the Hungarian method,
-  115 by 115), which also keeps the paths from crossing.
-- **The sheet**: 15 by 8, the columns and rows that let the median piece be largest. The last row holds 10 and is
-  centred, so there is no hole in the sheet.
+  n by n), which also keeps the paths from crossing.
+- **The sheet**: the columns and rows that let the median piece be largest — 16 by 6 for the 91 pieces left
+  since 15 October, the last row holding 11, centred so there is no hole in the sheet (15 by 8 for the whole
+  catalogue).
 - **Each piece fits its cell** by its projected box at the quarter turn it rests on, the sheet's own rule. The box
   comes from the mesh's points, four boxes a piece, worked out at load.
 - **The title** pops to the grid's own as the first piece leaves.
@@ -5042,6 +5135,8 @@ the pane:
 - **Grid to webtool**: the frames either side of the cut are identical, 0.000, with the sheet to scale as with
   the sheet in cells.
 
+The note counts in this section were measured on the whole catalogue, before the round pieces went: a note a piece,
+so with 91 pieces each lane carrying the pieces is that much shorter, and the files in `midi/` want exporting again.
 The grid's score is 233 notes: 115 off the ring, 116 to scale (every piece, and the figure) and its two states.
 With the click out (29 September) it is 116, the 115 off the ring and the one state, over 2.55 s of a 6.05 s
 clip (`WALL_MIDI_SLIDE=100-elementen WALL_MIDI_CLICKS=true`). Checked against the clip: every moving frame from
@@ -5395,6 +5490,39 @@ takeaway to chapter 2's opening, the domino, the kit wall: 5 297 frames, compare
 
 The voice folder is re-read every four seconds only under the organizer, where lines are rendered. Log
 level and the overlays were never the weight: the log is at INFO and nothing is written per frame.
+
+### The stress test of 15 October
+
+The show with the autocue up, in its own window, and autoplay on was run through the whole running order
+twice in one process — a test organizer of its own on another port, started muted, driven through the
+organizer's API — with storms of clicks, jumps and switches between the passes and the Second course wall left
+standing for ten minutes. **`SLIDES_PERF_LOG`** is what reads a running show: a line every so many seconds with
+the draws and paints, the gap from one draw to the next (mean, 99th percentile, the longest and on which
+state), the CPU a draw took and the heap ([`PerfLog`](src/main/kotlin/slideshow/DrawTimes.kt)). A bench steps
+its own clock and cannot show a show that is watched.
+
+- **Autoplay held every state for what the rule says** — all 176 within the monitor's second of the cue list's
+  holds — and **every voice line played**, 160 asked and 160 confirmed by OpenAL.
+- **No leak.** The heap after a full collection stayed at 130–166 MB through the pass, 400 clicks against the
+  wait, 300 fast ones without it, 200 jumps, the autocue switched 60 times and moved between the wall and its
+  window 40 times, voice, subtitles and track switched 80 times. The footprint (`footprint`, which counts the
+  GPU's memory) rises as slides are drawn for the first time, 4.6 to 5.9 GB over the first pass, and then
+  holds: 5.8 GB through the soak and at the end of the second pass, whose heap ended where the first began
+  (135 MB). Threads held at 48–51.
+- **The autocue costs well under a millisecond a frame**: the same state held with it on and off, 25 s each,
+  measured 0.3 to 1 ms of CPU a draw between them.
+- **Two walls were CPU-bound, and both were draw calls.** `domino-effect`'s third grid drew each of its 25
+  trees' 46 links and 46 labels one by one — 1150 strokes and 1150 texts a frame, held at 30–36 frames a
+  second. The links are now sampled once a zoom step and drawn as one `lineStrips` a tree, and the labels as
+  one `texts` a tree: 39.2 to 13.4 ms a draw on the bench, the picture the same but for single pixels at glyph
+  and stroke edges. (`drawer.contours` is no batch: it calls `contour` for each.) The Second course's climb
+  drew six storeys of 154 pieces six times each — the light's pass, the face, four nudged edge passes — though
+  most stood below the frame: 47 frames a second. A piece landing wholly below the frame is now left out of
+  both passes; 27.7 to 15.3 ms, and nine stills across three angles and half an hour byte-identical.
+- **The long shadow's caches are synchronised**: `/api/show` asks every chapter opening how long it settles on
+  the server's thread, which fills the same maps the draw loop does.
+- Two one-off stalls of about 120 ms remain where a chapter card lays its title out for the first time — behind
+  the opening's walls, before anyone is watching for them.
 
 ### A wall's timing as MIDI
 
@@ -5927,16 +6055,17 @@ not have is dropped the same way: nothing is wrong on the wall and nothing is wr
 folder, and the cue is simply never reached. The report is what to read after a sheet lands:
 
 ```
-cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sounds/P4 — 33 slides, 131 cues
+cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sounds/P4 — 34 slides, 133 cues
   who-is-speaking                    A
   het-programma                      A B C D E F G
+  director-is-speaking               A
   hoe-bouw-je-een-wereld             A B
   the-catalogue-city                 A B C
   everything-a-build-answers-to      A B C D E
   the-globe                          A
   verticale-integratie               A B C D E F G H I J
   de-cijfers                         A B C D E F G H I
-  de-fabrieken                       A B C D E F G H
+  de-fabrieken                       A B C D E F G H I
   kernboodschap-1                    A
   esg-is-geen-checklist              A B
   esg-beoordelingskader              A B C D
@@ -5966,6 +6095,19 @@ cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sound
 
 Read against the running order's click counts, every letter falls inside its slide's states. The one
 line over is `100-elementen-B`, kept for the grid's click to scale, which the show has out for now.
+
+**The release of 15 October** (`UI samples-20261015T074058Z-1-001.zip`, in `archive/releases/`) is the 1
+October set with two files added, nothing re-cut and nothing taken out; the course soundtracks are unchanged.
+The set it replaced, as placed, is in `archive/2026-10-01-1732/`; the placed set differs from it in exactly
+the two files. The sheets now place **133 cues on 34 slides**, every letter inside its slide's states.
+
+- **The director's tag has a sound**: `00-02-director-is-speaking-A` is byte-identical to `who-is-speaking-A`
+  and `het-programma-G`, the name tag's build, so the three tags of the opening arrive alike. 3.05 s, so it
+  rings out. The tag was silent until now.
+- **The six countries have a sound**: `P1-13-de-fabrieken-I`, cut to the build as it stands. A sweep under the
+  camera's move and the first country, then a hit a country at 2.90, 3.77, 4.64, 5.57 and 6.46 s, about a
+  quarter second after each starts to light (1.7 s into the click and 0.9 s apart, `lightsAt`), so it lands as
+  each comes up. The file is 14 s with sound for its first 6.97 s, at −52.4 LUFS, so it fades with its slide.
 
 **The release of 1 October** (`UI samples-20261001T153234Z-1-001.zip`, in `archive/releases/`) is the 30
 September set with ten files re-cut, nothing added and nothing taken out, and the course soundtracks
@@ -7587,6 +7729,15 @@ the practice-cut recipe; three decisions carry it.
   carries — a plain `VITE_` key would be written into it, and the client, holding the practice page's
   code, could then read the review's key out of it. Checked on a production build: neither plain key
   appears in it. Notes are one per state key in Supabase's `speaker_notes`, kept in the browser first.
+- **The autocue under the film** (15 October 2026). A cut's manifest may carry `autocue`, the presenter's
+  autocue filmed on the same run (`SLIDES_AUTOCUE_FILM`, see the autocue) and copied in by `release_build.py
+  --autocue`. The page plays it left of the notes, following the film (`Film`'s `follow`): it plays, pauses
+  and seeks with it, is pulled back when it drifts past a few frames, and on a held click stands on the
+  film's own frame — KLIK. **Autocue** in the head, or A, hides it. With it the subtitle over the film went
+  **off by default**, under a new storage key so every browser starts off; the CC button or S puts it back.
+  `--track aligned` names the track the cut was voiced from, and the page's lines are that track's alone.
+- **The review site carries the aligned track** as a third voice-over tab (`voiceoverAligned` in the
+  manifest, `voiceover_aligned` comments), on releases built since it existed.
 
 ### The audio timeline review
 

@@ -123,23 +123,25 @@ class Subtitles(
 }
 
 /**
- * Which of the two subtitle files the show reads: the **default** track is the voice-over script
+ * Which of the three subtitle files the show reads: the **default** track is the voice-over script
  * as delivered, placed on the states (`show-subtitles.json`); the **extended** track is the full
  * presentation as it would be given, a line for every state, developed from it
- * (`show-subtitles-extended.json`). Both are [Subtitles]; only the file differs.
+ * (`show-subtitles-extended.json`); and the **aligned** track is the extended one rewritten so
+ * that every line says what is on the wall at that state, in the wall's own words and in the
+ * order it appears (`show-subtitles-aligned.json`, 15 October 2026). All three are [Subtitles];
+ * only the file differs. [Settings.subtitlesFile] names the file a track reads.
  *
- * **The extended track presents.** With subtitles on, the deck runs itself on it: every state is
- * held until its line has been said and a beat after — the rule a hands-off run holds a state for
- * — and then clicks on, so what is on the wall is the talk being given rather than a deck being
- * clicked. The default track leaves the deck to the arrows, as it always did.
+ * Switching between them is the organizer's voice-over selector, or `SLIDES_SUBTITLE_TRACK`. The
+ * voice is rendered per track, into a folder named by the track's [key], so a track with no folder
+ * is held and timed by the text rule rather than by speech.
  */
 enum class SubtitleTrack {
-    DEFAULT, EXTENDED;
+    DEFAULT, EXTENDED, ALIGNED;
 
     val key: String get() = name.lowercase()
 
     companion object {
-        /** `default` or `extended`, any case; anything else is the default track. */
+        /** `default`, `extended` or `aligned`, any case; anything else is the default track. */
         fun of(name: String?): SubtitleTrack = entries.firstOrNull { it.key == name?.trim()?.lowercase() } ?: DEFAULT
     }
 }
