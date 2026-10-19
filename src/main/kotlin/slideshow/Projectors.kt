@@ -55,7 +55,7 @@ data class Projector(
 data class ProjectorSetup(
     val left: Projector = Projector(),
     val right: Projector = Projector(),
-    /** The left projector's top left corner on the desktop, in points; null to take the rightmost two displays. */
+    /** The left projector's top left corner on the desktop, in points; null to take [Projectors.wallScreens]' two. */
     val desktopX: Int? = null,
     val desktopY: Int? = null,
     /** Where the speaker's autocue goes, over the wall or on a screen of its own — all of it live. See [Autocue]. */
@@ -130,7 +130,7 @@ object Projectors {
         val o = buildJsonObject {
             put("about", "The two projectors of the wall and where its 1920x1080 halves stand on them, set in the organizer's Projection tab. " +
                     "width and height are each projector's size in points, read at the start; x, y and scale place the half on it and move the running show at once. " +
-                    "desktop is the left projector's top left corner on the desktop, null for the rightmost two displays. " +
+                    "desktop is the left projector's top left corner on the desktop, null for the first two of three screens besides the laptop, else the rightmost two. " +
                     "autocue is where the speaker's screen goes: place wall draws it over the canvas at x, y and scale; place window gives it a window of its own " +
                     "at window.x, window.y in points (null: where macOS puts it), window.width by window.height, undecorated to fill a screen; all of it moves the running show. " +
                     "SLIDES_PROJECTORS names the file.")
@@ -150,7 +150,7 @@ object Projectors {
 
     fun describe(s: ProjectorSetup) = listOf("left" to s.left, "right" to s.right).joinToString(", ") { (side, p) ->
         "$side ${p.model?.let { "$it " } ?: ""}${p.width}x${p.height}, half at %.0f,%.0f x%.3f".format(p.x, p.y, p.scale)
-    } + (s.desktopX?.let { ", desktop at $it,${s.desktopY ?: 0}" } ?: ", on the rightmost displays") +
+    } + (s.desktopX?.let { ", desktop at $it,${s.desktopY ?: 0}" } ?: ", on the displays found at the start") +
             ", autocue " + s.autocue.let { a ->
                 if (a.ownWindow) "in its own window ${a.width}x${a.height}" + (a.windowX?.let { " at $it,${a.windowY ?: 0}" } ?: "") + (a.display?.let { " on $it" } ?: "")
                 else "on the wall at %.0f,%.0f x%.2f".format(a.x, a.y, a.scale)
@@ -210,6 +210,81 @@ object Projectors {
             .redirectErrorStream(true).start().inputStream.bufferedReader().readText()
         JsonArray(Json.parseToJsonElement(out).jsonArray.sortedBy { it.jsonObject["x"]?.jsonPrimitive?.doubleOrNull ?: 0.0 })
     }.getOrElse { JsonArray(emptyList()) }
+
+    /** A display macOS has, in points, top left and y down: what [displays] lists, read back. */
+    class Screen(val name: String?, val x: Int, val y: Int, val width: Int, val height: Int) {
+        /** The laptop's own screen, which is never a projector or the speaker's. */
+        val builtIn: Boolean get() = name?.contains("built-in", ignoreCase = true) == true
+        fun holds(px: Int, py: Int) = px >= x && px < x + width && py >= y && py < y + height
+    }
+
+    /** [displays] as [Screen]s, left to right. Empty off a Mac. */
+    fun screens(): List<Screen> = displays().mapNotNull { e ->
+        val o = runCatching { e.jsonObject }.getOrNull() ?: return@mapNotNull null
+        fun n(k: String) = o[k]?.jsonPrimitive?.doubleOrNull?.let { Math.round(it).toInt() }
+        Screen(o["name"]?.jsonPrimitive?.contentOrNull, n("x") ?: return@mapNotNull null, n("y") ?: 0, n("width") ?: 0, n("height") ?: 0)
+    }
+
+    /** True when [cue]'s own window has been put on screen [s], by name or by place. */
+    private fun cueTakes(cue: AutocueSetup, s: Screen): Boolean {
+        if (!cue.ownWindow) return false
+        cue.display?.let { return it == s.name }
+        return cue.windowX?.let { s.holds(it, cue.windowY ?: 0) } ?: false
+    }
+
+    /**
+     * The two screens the wall stands on, left and right; null where two cannot be found.
+     *
+     * At the desktop place [setup] names, the screen there and the one beside it. With no place: **with
+     * three or more screens besides the laptop's own, the first two of them, left to right** — the third is
+     * the speaker's ([withAutoCue]) — and with fewer, the rightmost two, which is where a wall plugged in
+     * beside a laptop ends up. Either way a screen the autocue's window has been put on is left out.
+     */
+    fun wallScreens(setup: ProjectorSetup, screens: List<Screen> = screens()): List<Screen>? {
+        setup.desktopX?.let { dx ->
+            val left = screens.firstOrNull { it.x == dx && it.y == (setup.desktopY ?: 0) } ?: return null
+            val right = screens.firstOrNull { it.x == left.x + left.width } ?: return null
+            return listOf(left, right)
+        }
+        val outside = screens.filterNot { it.builtIn }
+        val three = outside.size >= 3
+        val free = (if (three) outside else screens).filterNot { cueTakes(setup.autocue, it) }
+        return (if (three) free.take(2) else free.takeLast(2)).takeIf { it.size == 2 }
+    }
+
+    /** Where the wall's window goes when [setup] names no desktop place: the left one of [wallScreens]' top left corner, in points. */
+    fun autoPlace(setup: ProjectorSetup): Pair<Int, Int>? = wallScreens(setup)?.first()?.let { it.x to it.y }
+
+    /**
+     * [setup] with the autocue's window on the screen it belongs on, read once as the show starts.
+     *
+     * - **Put on a screen by name** (clicked in the tab's map): that screen as it stands now, filled. A
+     *   screen's place moves whenever one left of it changes size — the laptop's went from 1512 to 1800
+     *   points wide in one afternoon on 19 October 2026 — so a place kept in the file goes stale where the
+     *   name does not.
+     * - **With no place at all, and three or more screens besides the laptop's own**: the first of them the
+     *   wall does not stand on, filled — its place and size, no title bar.
+     *
+     * A place typed by hand is left where it is, and so is everything off a Mac or with fewer screens.
+     */
+    fun withAutoCue(setup: ProjectorSetup): ProjectorSetup {
+        val cue = setup.autocue
+        if (!cue.ownWindow) return setup
+        cue.display?.let { name ->
+            val s = screens().firstOrNull { it.name == name } ?: return setup
+            if (s.x == cue.windowX && s.y == cue.windowY && s.width == cue.width && s.height == cue.height) return setup
+            println("autocue: on $name, which now stands at ${s.x},${s.y} (${s.width}x${s.height})")
+            return setup.copy(autocue = cue.copy(windowX = s.x, windowY = s.y, width = s.width, height = s.height, undecorated = true))
+        }
+        if (cue.windowX != null) return setup
+        val screens = screens()
+        val outside = screens.filterNot { it.builtIn }
+        if (outside.size < 3) return setup
+        val wall = wallScreens(setup, screens).orEmpty()
+        val s = outside.firstOrNull { o -> wall.none { it.x == o.x && it.y == o.y } } ?: return setup
+        println("autocue: on ${s.name}, the screen beside the wall's two (${s.width}x${s.height} at ${s.x},${s.y})")
+        return setup.copy(autocue = cue.copy(windowX = s.x, windowY = s.y, width = s.width, height = s.height, undecorated = true, display = s.name))
+    }
 
     private val pretty = Json { prettyPrint = true }
 }

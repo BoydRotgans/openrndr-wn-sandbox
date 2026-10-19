@@ -45,6 +45,8 @@ class Presentation(
     @Volatile var voice: Boolean = false,
     /** Whether the presented run clicks on by itself or waits for a click: the page's autoplay button, kept across starts. */
     @Volatile var autoplay: Boolean = true,
+    /** How fast the autocue reads a line where no voice times it, in characters a second: the page's pace slider, kept across starts. */
+    @Volatile var autocueCps: Double = 13.0,
     /** The mix the show starts at: the page's faders, kept across starts. See [Layer]. */
     val mix: MutableMap<Layer, Double> = java.util.concurrent.ConcurrentHashMap(Layer.entries.associateWith { 1.0 })
 ) {
@@ -69,7 +71,7 @@ class Presentation(
         val child = ProcessBuilder(command)
             .directory(workingDir)
             .redirectErrorStream(true)
-            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + ("SLIDES_PRACTICE" to "$practice") + ("SLIDES_WAIT_FOR_ANIMATION" to "$waitForAnimation") + ("SLIDES_AUTOCUE" to "$autocue") + ("SLIDES_SUBTITLE_MODE" to "$subtitles") + ("SLIDES_SUBTITLE_TRACK" to subtitleTrack.key) + ("SLIDES_VOICE_ON" to "$voice") + ("SLIDES_AUTOPLAY" to "$autoplay") + mix.entries.associate { (l, g) -> "SLIDES_MIX_${l.name}" to "$g" } + extra) }
+            .also { it.environment().putAll(environment + placed + ("SLIDES_MUTED" to "$muted") + ("SLIDES_PRACTICE" to "$practice") + ("SLIDES_WAIT_FOR_ANIMATION" to "$waitForAnimation") + ("SLIDES_AUTOCUE" to "$autocue") + ("SLIDES_SUBTITLE_MODE" to "$subtitles") + ("SLIDES_SUBTITLE_TRACK" to subtitleTrack.key) + ("SLIDES_VOICE_ON" to "$voice") + ("SLIDES_AUTOPLAY" to "$autoplay") + ("SLIDES_AUTOCUE_CPS" to "$autocueCps") + mix.entries.associate { (l, g) -> "SLIDES_MIX_${l.name}" to "$g" } + extra) }
             .start()
         process = child
         println("presentation: starting" + if (projection) " on the projectors (${placed["SLIDES_WINDOW_X"]}, ${placed["SLIDES_WINDOW_Y"]})" else " in a window")

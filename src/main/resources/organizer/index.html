@@ -241,6 +241,19 @@
   #colourNote { font-size: 11px; color: var(--dim); white-space: nowrap; }
   .colour + .colourReset { margin: 0 8px 0 -2px; padding: 0 6px; height: 22px; line-height: 20px; font-size: 13px; }
   .colourReset:disabled { opacity: 0.35; cursor: default; }
+  /* the autocue's settings: its reading pace, opened from the gear beside its button */
+  #cueWrap { position: relative; }
+  #cueOptBtn { padding: 0 7px; margin-left: -4px; }
+  #cuePanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; background: var(--panel); border: 1px solid var(--line-2);
+    border-radius: var(--radius); padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18); width: 320px; white-space: normal; }
+  #cuePanel[hidden] { display: none; }
+  #cuePanel .h { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  #cuePanel .row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 11px; color: var(--dim); }
+  #cuePanel .row input[type=range] { width: 100%; }
+  #cuePanel .val { font-size: 12px; margin: 6px 0; font-variant-numeric: tabular-nums; }
+  #cuePanel .val span { color: var(--dim); }
+  #cuePanel .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  #cuePanel .hint { font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.4; }
   /* the mix: a fader per track of the sound, all three playing together */
   #mixWrap { position: relative; }
   #mixPanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; background: var(--panel); border: 1px solid var(--line-2);
@@ -458,6 +471,14 @@
   .projCard .row > .k { width: 74px; color: var(--dim); }
   .projCard input[type=number] { width: 86px; }
   .projCard .note { color: var(--dim); font-size: 11.5px; line-height: 1.45; }
+  /* Erik's stage directions under a line: amber, read only — what the autocue draws apart from the script */
+  .regie { color: var(--warn); font-size: 11.5px; line-height: 1.4; border-left: 3px solid var(--warn); padding: 1px 0 1px 7px; margin: 3px 0 2px; }
+  .regie div + div { margin-top: 2px; }
+  /* who reads a state on Erik's autocue: the autocue's own pill, small */
+  .who { display: inline-block; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; padding: 0 5px; margin: 0 0 2px;
+    border-radius: 2px; background: #d8dadf; color: #000; }
+  .who.guest { background: #4fc3f7; }
+  .who.stage { background: none; color: var(--warn); border: 1px solid var(--warn); }
   .projCard .note.warn { color: var(--warn); }
   .projCard .displays { display: flex; flex-direction: column; gap: 4px; font: 11.5px ui-monospace, Menlo, monospace; color: var(--dim); }
   /* the autocue: amber wherever it is drawn — over the wall on the stage, or as a window on the screens map */
@@ -605,7 +626,14 @@
       <span id="live"><i></i><span id="liveText">connecting…</span></span>
       <button class="ghost" id="practiceBtn" title="Practice mode: the clicker's screen button (hold to start over) and play button (twice for the overview of every slide) work. Off, they do nothing, so a wrong press in front of the room changes nothing; forward and back always work">practice mode: off</button>
       <button class="ghost" id="waitBtn" title="Wait for the animation: a forward click (the clicker, the arrows, this page) is refused until the state on the wall has finished moving, and while it moves, a countdown line bottom left comes down with how much is left. Back always works">wait for animation: off</button>
-      <button class="ghost" id="autocueBtn" title="The autocue: the speaker's screen — what is to be said over the state on the wall, scrolling as it is said, and a green KLIK once the line is said and the wall is still (c in the show). Beside it, autoplay: off, the presenter clicks; on, the show continues by itself and the autocue counts down to the click. Where it goes — on top of the show window, or a window of its own on a screen — is set in the Projection tab. Switches the running show at once and is kept for the next start">autocue: off</button>
+      <button class="ghost" id="autocueBtn" title="The autocue: the speaker's screen — what is to be said over the state on the wall, scrolling as it is said, and a green KLIK once the line is said and the wall is still (c in the show). Beside it, autoplay: off, the presenter clicks; on, the show continues by itself and the autocue counts down to the click. Where it goes — on top of the show window, or a window of its own on a screen — is set in the Projection tab. Switches the running show at once and is kept for the next start">autocue: off</button><span id="cueWrap"><button class="ghost" id="cueOptBtn" title="The autocue's settings: how fast it reads a line">⚙</button>
+        <div id="cuePanel" hidden>
+          <div class="h">Autocue · reading pace</div>
+          <div class="row"><span>slower</span><input type="range" id="cueCps" min="6" max="24" step="0.5"><span>faster</span></div>
+          <div class="val"><b id="cueCpsVal">13.0</b> characters a second <span id="cueCpsRel"></span></div>
+          <div class="btns"><button class="ghost" id="cueSlower" title="Half a character a second slower">− slower</button><button class="ghost" id="cueFaster" title="Half a character a second faster">faster +</button><button class="ghost" id="cueReset" title="Back to 13, the default">reset to 13</button></div>
+          <div class="hint">How fast the autocue scrolls a line, offers the KLIK and counts SPREKEN down, where no voice times it — and, under autoplay, when it clicks on. Lower is slower; the subtitles run at 15. Moves the running autocue at once and is kept for the next start.</div>
+        </div></span>
       <button class="ghost" id="autoplayBtn" title="The autocue's own option: with the autocue up, the show continues by itself once each state is done — its line said (by the voice if it is on, at reading pace if not) or its hold — and the autocue counts down to the click. Off, the presenter clicks. Does nothing while the autocue is off. Switches the running show at once and is kept for the next start">autoplay: off</button>
       <button class="ghost" id="projectionBtn" hidden title="Start the presentation on the two projectors — undecorated, 1:1, across the wall — rather than in a window">projection: off</button>
       <button id="presentBtn" hidden title="Start the show in a window of its own; the page steers it">▶ start presentation</button>
@@ -644,10 +672,11 @@
         </div></span>
     </span>
     <span class="grp"><span class="cap">voice-over</span>
-      <select class="ghost" id="subTrack" title="Which voice-over the subtitles read. default: the script as delivered. extended: the whole presentation as it would be given, a line for every state. aligned: the extended track rewritten to what is on the wall at each state, in the wall's own words">
+      <select class="ghost" id="subTrack" title="Which voice-over the subtitles read. default: the script as delivered. extended: the whole presentation as it would be given, a line for every state. aligned: the extended track rewritten to what is on the wall at each state, in the wall's own words. Erik autocue: Erik's own script for the evening, verbatim off the production's Word file, with its stage directions on the autocue">
         <option value="default">default</option>
         <option value="extended">extended</option>
         <option value="aligned">aligned</option>
+        <option value="erik">Erik autocue</option>
       </select>
       <button class="ghost" id="voiceBtn" title="Speak the rendered voice under each state (v in the show). Independent of the subtitles: hear the talk with or without its words on the wall. Only a track with a rendered voice can be heard">voice: off</button>
       <span id="voiceCount" title="States of this track rendered as speech by tools/voiceover_render.py — refreshed while the render runs"></span>
@@ -692,12 +721,14 @@
 <section id="script" hidden>
   <div id="scriptBar">
     <span class="seg" id="scriptTracks" title="Which track the script shows. Aligned: the talk as given, every line saying what is on the wall. Extended: the talk as it is given, a line a state. Default: the voice-over script as delivered">
+      <button data-track="erik" title="Erik's own script for the evening, read verbatim: what the autocue shows on the Erik autocue track, with its stage directions under the lines">Erik autocue</button>
       <button data-track="aligned">aligned</button>
       <button data-track="extended">extended</button>
       <button data-track="default">default</button>
       <button data-track="both">side by side</button>
     </span>
     <span class="seg" id="scriptCompare" hidden title="What side by side compares: the tracks, which are edited here, and the voice-over script as delivered, read only">
+      <button data-col="erik" title="Erik's own script, off the production's Word file — edited here">Erik autocue</button>
       <button data-col="aligned" title="The talk as given, each line on what the wall shows — edited here">aligned</button>
       <button data-col="extended" title="The talk as given, a line a state — edited here">extended</button>
       <button data-col="default" title="The voice-over script placed on the states — edited here">default</button>
@@ -798,7 +829,7 @@
       <div class="bar">
         <h3>Subtitles</h3>
         <span class="count" id="subCount"></span>
-        <span id="subTabs"><button class="ghost on" data-track="default" title="The script as delivered, placed on the states">default</button><button class="ghost" data-track="extended" title="The presentation as given: a line for every state">extended</button><button class="ghost" data-track="aligned" title="The extended track rewritten to what is on the wall at each state">aligned</button></span>
+        <span id="subTabs"><button class="ghost on" data-track="default" title="The script as delivered, placed on the states">default</button><button class="ghost" data-track="extended" title="The presentation as given: a line for every state">extended</button><button class="ghost" data-track="aligned" title="The extended track rewritten to what is on the wall at each state">aligned</button><button class="ghost" data-track="erik" title="Erik's own script for the evening, with its stage directions">Erik</button></span>
         <span class="spacer"></span>
         <button class="ghost" id="voicePlaySlide" title="Play this slide's rendered voice, state by state, as it would be said">▶ play slide</button>
         <button class="ghost" id="subFromNotes" title="Fill the empty states from the speaker notes of the frames this slide covers, a note a state">from speaker notes</button>
@@ -887,17 +918,47 @@
   let subtitles = {};       // id -> { A: text, B: text }, what is said over each state; saved to show-subtitles.json
   let subtitlesExt = {};    // the extended track, the same shape; saved to show-subtitles-extended.json
   let subtitlesAln = {};    // the aligned track, the same shape; saved to show-subtitles-aligned.json
+  let subtitlesErk = {};    // Erik's autocue, the same shape; saved to show-subtitles-erik.json
+  let directionsErk = {};   // id -> { A: [what is done over the state] }: Erik's stage directions, read only (tools/autocue_docx.py)
+  let speakersErk = {};     // id -> { A: name } where someone other than the track's own speaker reads; speakerErk is that own speaker
+  let speakerErk = '';
   let editTrack = 'default'; // which track the detail pane edits
   // The tracks, as SubtitleTrack names them: the name the show's json carries each under, and the file it is saved to.
-  const TRACKS = ['default', 'extended', 'aligned'];
-  const TRACK_KEY = { default: 'subtitles', extended: 'subtitlesExtended', aligned: 'subtitlesAligned' };
-  const KEY_TRACK = { subtitles: 'default', subtitlesExtended: 'extended', subtitlesAligned: 'aligned' };
+  const TRACKS = ['default', 'extended', 'aligned', 'erik'];
+  const TRACK_KEY = { default: 'subtitles', extended: 'subtitlesExtended', aligned: 'subtitlesAligned', erik: 'subtitlesErik' };
+  const KEY_TRACK = { subtitles: 'default', subtitlesExtended: 'extended', subtitlesAligned: 'aligned', subtitlesErik: 'erik' };
   const trackFile = t => show && show[TRACK_KEY[t] + 'File'] || `show-subtitles${t === 'default' ? '' : '-' + t}.json`;
-  const subsOf = t => t === 'extended' ? subtitlesExt : t === 'aligned' ? subtitlesAln : subtitles;
+  const subsOf = t => t === 'extended' ? subtitlesExt : t === 'aligned' ? subtitlesAln : t === 'erik' ? subtitlesErk : subtitles;
+  /** What is done over a state of [id] on [track] rather than said: only Erik's autocue carries any. */
+  const directionsOf = (track, id, k) => track === 'erik' ? ((directionsErk[id] || {})[k] || []) : [];
+  /** Who reads a state on [track]: a pill as the autocue draws one — the track's own speaker grey, anyone else cyan, REGIE amber. */
+  function whoTag(track, id, k) {
+    if (track !== 'erik') return null;
+    const line = ((subtitlesErk[id] || {})[k] || '').trim();
+    const guest = (speakersErk[id] || {})[k];
+    const who = guest || (line ? speakerErk : '');
+    const regie = !who && directionsOf(track, id, k).length;
+    if (!who && !regie) return null;
+    const t = document.createElement('span');
+    t.className = 'who' + (guest && guest !== speakerErk ? ' guest' : regie ? ' stage' : '');
+    t.textContent = who || 'REGIE';
+    t.title = who ? who + ' reads this state — so the autocue says' : 'Nothing to read here: a stage direction';
+    return t;
+  }
+  /** The directions under a line, amber and read only — what the autocue draws apart from the script. */
+  function regieNote(track, id, k) {
+    const ds = directionsOf(track, id, k);
+    if (!ds.length) return null;
+    const n = document.createElement('div'); n.className = 'regie';
+    n.title = 'A stage direction of Erik\'s script: drawn on the autocue in amber, never read aloud or put on the wall. From the Word file — import it again with tools/autocue_docx.py';
+    ds.forEach(d => { const l = document.createElement('div'); l.textContent = d; n.appendChild(l); });
+    return n;
+  }
   let voiceover = {};       // id -> { heading, text, note?, unplaced? }: the script's passage for a slide, read only
   let voiceoverExt = {};    // the extended track's own heading and stage note per slide, read only
   let voiceoverAln = {};    // the aligned track's: what each state shows, which its lines are written to
-  const voiceoverOf = t => t === 'extended' ? voiceoverExt : t === 'aligned' ? voiceoverAln : voiceover;
+  let voiceoverErk = {};    // Erik's autocue's: which clicks of the Word file each slide is
+  const voiceoverOf = t => t === 'extended' ? voiceoverExt : t === 'aligned' ? voiceoverAln : t === 'erik' ? voiceoverErk : voiceover;
   let subDrafts = new Set(); // slides whose lines are not in the voice-over script
   let feedback = {};        // id -> [{text,done,at}], the notes written against a slide; saved as written
   let meeting = { slides: {} }; // the meeting tasks: { meetings, slides: { id: { said, tasks } } }; saved as decided
@@ -2149,7 +2210,7 @@
   const SAVED_WITH_BUTTON = ['order', 'modules', 'intents'];
   function fileName(k) {
     return ({ order: show.orderFile, modules: show.modulesFile, intents: show.intentsFile, subtitles: show.subtitlesFile,
-      subtitlesExtended: show.subtitlesExtendedFile, subtitlesAligned: show.subtitlesAlignedFile, feedback: show.feedbackFile, midi: show.midiFile, meeting: show.meetingFile,
+      subtitlesExtended: show.subtitlesExtendedFile, subtitlesAligned: show.subtitlesAlignedFile, subtitlesErik: show.subtitlesErikFile, feedback: show.feedbackFile, midi: show.midiFile, meeting: show.meetingFile,
       subtitleFeedback: show.subtitleFeedbackFile })[k] || k;
   }
   /** Takes the files' contents off a /api/show answer: all of them, or the [only] named. */
@@ -2178,6 +2239,18 @@
     if (want('subtitlesAligned')) {
       voiceoverAln = (s.subtitlesAligned && s.subtitlesAligned.voiceover && s.subtitlesAligned.voiceover.slides) || {};
       subtitlesAln = readTrack(s.subtitlesAligned);
+    }
+    if (want('subtitlesErik')) {
+      voiceoverErk = (s.subtitlesErik && s.subtitlesErik.voiceover && s.subtitlesErik.voiceover.slides) || {};
+      subtitlesErk = readTrack(s.subtitlesErik);
+      speakerErk = (s.subtitlesErik && s.subtitlesErik.speaker) || '';
+      speakersErk = {};
+      Object.entries((s.subtitlesErik && s.subtitlesErik.speakers) || {}).forEach(([id, v]) => { speakersErk[id] = typeof v === 'string' ? { A: v } : Object.assign({}, v); });
+      directionsErk = {};
+      Object.entries((s.subtitlesErik && s.subtitlesErik.directions) || {}).forEach(([id, v]) => {
+        const by = typeof v === 'string' || Array.isArray(v) ? { A: v } : v;
+        directionsErk[id] = Object.fromEntries(Object.entries(by).map(([k, d]) => [k, (Array.isArray(d) ? d : [d]).filter(x => (x || '').trim())]));
+      });
     }
     if (want('feedback')) { feedback = {}; Object.entries((s.feedback && s.feedback.feedback) || {}).forEach(([id, ns]) => feedback[id] = ns.map(n => ({ ...n }))); }
     if (want('midi')) midiWanted = new Set(((s.midi && s.midi.midi) || []));
@@ -2391,6 +2464,7 @@
       renderPractice(s.practice);
       renderWait(s.waitForAnimation);
       renderAutocue(s.autocue, s.autocueWindow);
+      renderCuePace(s.autocueCps);
       renderSubMode(s.subtitles);
       renderVoiceMode(s.voice);
       renderMix(s.mix);
@@ -2443,6 +2517,7 @@
       renderPractice(p.practice);
       renderWait(p.waitForAnimation);
       renderAutocue(p.autocue);
+      renderCuePace(p.autocueCps);
       renderSubMode(p.subtitles);
       renderVoiceMode(p.voice);
       renderMix(p.mix);
@@ -2496,7 +2571,9 @@
       h.textContent = 'Voice-over · ' + editTrack + (v && v.heading ? ' · ' + v.heading : '');
       vo.appendChild(h);
       const t = document.createElement('div'); t.className = 't';
-      t.textContent = (v && v.text) || (editTrack === 'aligned'
+      t.textContent = (v && v.text) || (editTrack === 'erik'
+        ? 'Erik\'s own script for the evening, read verbatim off the production\'s Word file a click at a time (tools/autocue_docx.py). The amber notes are its stage directions: drawn on the autocue, never read aloud.'
+        : editTrack === 'aligned'
         ? 'The extended track rewritten to what is on the wall: every line says what the audience sees at that state, in the wall\'s own words and in the order it appears. The note under each slide says what each state shows.'
         : 'The presentation as given: a line for every state, in the speaker\'s voice, developed from the default track.');
       vo.appendChild(t);
@@ -2538,6 +2615,7 @@
       });
       ta.addEventListener('blur', flushSubs);
       row.appendChild(ta); row.appendChild(cards);
+      const rg = regieNote(editTrack, c.id, k); if (rg) row.appendChild(rg);
       list.appendChild(row);
       requestAnimationFrame(() => grow(ta));
       subCards(cards, ta.value);
@@ -2569,7 +2647,7 @@
         w.title = 'The best of its renders still did not read back cleanly: listen, and reword or re-render it';
         cell.appendChild(w);
       }
-    } else if (hasLine) { cell.textContent = 'not rendered yet'; cell.classList.add('pending'); }
+    } else if (hasLine && editTrack !== 'erik') { cell.textContent = 'not rendered yet'; cell.classList.add('pending'); }
   }
   function markPlaying() {
     document.querySelectorAll('#subList .sub').forEach(r => r.classList.toggle('playing', r.dataset.key === playingKey));
@@ -2795,10 +2873,11 @@
     renderVoiceMode(on);   // at once, rather than on the next poll
     await post('/api/voice-mode', { on });
     // The voice is rendered for a track; switched on over one that has none, it would say nothing,
-    // so it takes the first track that has one — the aligned track, else the extended one.
+    // so it takes the first track that has one — the aligned track, else the extended one. Not off Erik's
+    // autocue: he speaks it himself, and moving the track would take his script off the autocue.
     const has = t => Object.keys((show.voice && show.voice[t]) || {}).length > 0;
     const voiced = ['aligned', 'extended', 'default'].find(has);
-    if (on && !has(subTrack) && voiced) {
+    if (on && subTrack !== 'erik' && !has(subTrack) && voiced) {
       renderSubTrack(voiced);
       if (editTrack !== voiced) { editTrack = voiced; const c = selected && info(selected); if (c) renderSubs(c); }
       await post('/api/subtitle-track', { track: voiced });
@@ -2878,6 +2957,39 @@
     renderAutocue(on);   // at once, rather than on the next poll
     await post('/api/autocue', { on });
   });
+
+  // ---------- the autocue's reading pace: how fast it reads a line where no voice times it ----------
+  // Characters a second, 13 by default, a little slower than the subtitles' 15 (Settings.autocueCps). The slider moves
+  // the running autocue at once, and the launcher keeps it for the next start, as it keeps the mix.
+  const CUE_CPS = 13, CUE_MIN = 6, CUE_MAX = 24;
+  let cueCps = CUE_CPS, cueTouched = 0;
+  function paintCuePace() {
+    $('#cueCps').value = cueCps;
+    $('#cueCpsVal').textContent = cueCps.toFixed(1);
+    const rel = Math.round((15 / cueCps - 1) * 100);
+    $('#cueCpsRel').textContent = rel === 0 ? '· the subtitles\' pace' : `· ${Math.abs(rel)}% ${rel > 0 ? 'slower' : 'faster'} than the subtitles`;
+    const b = $('#cueOptBtn');
+    b.textContent = cueCps === CUE_CPS ? '⚙' : `⚙ ${cueCps.toFixed(1)}`;
+    b.classList.toggle('primary', cueCps !== CUE_CPS);
+  }
+  /** The pace the show (or the launcher) reports; left alone while the slider is being moved. */
+  function renderCuePace(cps) {
+    if (cps == null || Date.now() - cueTouched < 1500) return;
+    cueCps = +cps; paintCuePace();
+  }
+  const sendCuePace = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => post('/api/autocue-pace', { cps: cueCps }), 80); }; })();
+  function setCuePace(v) {
+    cueTouched = Date.now();
+    cueCps = Math.round(Math.min(CUE_MAX, Math.max(CUE_MIN, v)) * 2) / 2;
+    paintCuePace(); sendCuePace();
+  }
+  $('#cueCps').addEventListener('input', ev => setCuePace(+ev.target.value));
+  $('#cueSlower').addEventListener('click', () => setCuePace(cueCps - 0.5));
+  $('#cueFaster').addEventListener('click', () => setCuePace(cueCps + 0.5));
+  $('#cueReset').addEventListener('click', () => setCuePace(CUE_CPS));
+  $('#cueOptBtn').addEventListener('click', ev => { ev.stopPropagation(); ev.currentTarget.blur(); $('#cuePanel').hidden = !$('#cuePanel').hidden; });
+  document.addEventListener('click', ev => { if (!$('#cueWrap').contains(ev.target)) $('#cuePanel').hidden = true; });
+  paintCuePace();
 
   $('#projectionBtn').addEventListener('click', async () => {
     await post('/api/presentation', { action: 'projection' });
@@ -2986,8 +3098,8 @@
   // there is nothing to remember to save. Only the lines this page changed are kept apart: when
   // another tab has written the file since, the save reads it again and lays those lines over it,
   // rather than putting this page's whole copy back over the other tab's.
-  const SUB_KEYS = ['subtitles', 'subtitlesExtended', 'subtitlesAligned'];
-  const subEdits = { default: new Map(), extended: new Map(), aligned: new Map() };   // 'id\tLETTER' -> text ('' for removed)
+  const SUB_KEYS = ['subtitles', 'subtitlesExtended', 'subtitlesAligned', 'subtitlesErik'];
+  const subEdits = { default: new Map(), extended: new Map(), aligned: new Map(), erik: new Map() };   // 'id\tLETTER' -> text ('' for removed)
   const subTimer = {}, subBusy = {}, subAgain = {};
   let subSaved = null, subError = '';
   function subPending(track) { return subEdits[track].size > 0 || !!subBusy[track]; }
@@ -3049,7 +3161,7 @@
   // the show is on is marked and kept in view, so clicking through the presentation walks down the
   // script; a line being edited when the show moves on hands the caret to the next one. Edits go
   // through setLine above, so each is in the file and on the wall a moment after it is typed.
-  let scriptTrack = 'aligned';
+  let scriptTrack = 'erik';
   try { const t = localStorage.getItem('organizer-script-track'); if ([...TRACKS, 'both'].includes(t)) scriptTrack = t; } catch (e) {}
   // what side by side compares: any of the tracks, and the voice-over script as delivered
   let scriptCompare = new Set(['aligned', 'extended']);
@@ -3060,10 +3172,10 @@
   let scriptStale = false;       // a rebuild waiting for the field being typed in to be left
   let scriptScrollDue = false;   // a scroll to the live line waiting for the same
   let voiceTextsAt = 0;
-  const voiceTexts = { default: {}, extended: {}, aligned: {} };   // 'id-LETTER' -> the text its voice was rendered from
+  const voiceTexts = { default: {}, extended: {}, aligned: {}, erik: {} };   // 'id-LETTER' -> the text its voice was rendered from
   const scriptPlayer = new Audio(); let scriptPlaying = null;
   const scriptVisible = () => document.body.classList.contains('view-subtitles');
-  const tracksShown = () => scriptTrack === 'both' ? ['aligned', 'extended', 'default'].filter(t => scriptCompare.has(t)) : [scriptTrack];
+  const tracksShown = () => scriptTrack === 'both' ? ['erik', 'aligned', 'extended', 'default'].filter(t => scriptCompare.has(t)) : [scriptTrack];
   const scriptShown = () => scriptTrack === 'both' && scriptCompare.has('script');
   const voicedIn = tr => (show && show.voice && show.voice[tr]) || {};
   const letterIndex = k => { let n = 0; for (const ch of k) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; };
@@ -3094,7 +3206,7 @@
       b.disabled = b.dataset.col !== 'script' && scriptCompare.has(b.dataset.col) && cols.length === 1;
     });
     if (scriptTrack === 'both') {
-      const label = { aligned: 'aligned — the talk as given, on what the wall shows', extended: 'extended — the talk as given', default: 'default — the script on the states' };
+      const label = { erik: 'Erik autocue — his script, verbatim', aligned: 'aligned — the talk as given, on what the wall shows', extended: 'extended — the talk as given', default: 'default — the script on the states' };
       const h = document.createElement('div'); h.className = 'colhead';
       const tr = document.createElement('div'); tr.className = 'tracks';
       tr.appendChild(document.createElement('span'));
@@ -3304,7 +3416,8 @@
       const notes = document.createElement('div'); notes.className = 'lfb';
       const list = document.createElement('div'); list.className = 'notes';
       notes.appendChild(list);
-      cell.append(main, notes);
+      const rg = regieNote(tr, id, k), wt = whoTag(tr, id, k);
+      cell.append(...[wt, main, rg, notes].filter(Boolean));
       row.appendChild(cell);
       paintScriptMeta(cell); paintFeedback(cell);
     }
@@ -3616,9 +3729,10 @@
     }
     const st = $('#scriptShowTrack');
     st.innerHTML = '';
-    st.append('the show says: ' + subTrack);
+    const named = t => t === 'erik' ? 'Erik autocue' : t;
+    st.append('the show says: ' + named(subTrack));
     if (scriptTrack !== 'both' && scriptTrack !== subTrack) {
-      const b = document.createElement('button'); b.className = 'ghost'; b.textContent = 'say ' + scriptTrack;
+      const b = document.createElement('button'); b.className = 'ghost'; b.textContent = 'say ' + named(scriptTrack);
       b.title = 'Switch the show to the track this script shows';
       b.addEventListener('click', () => { const sel = $('#subTrack'); sel.value = scriptTrack; sel.dispatchEvent(new Event('change')); });
       st.append(' ', b);
@@ -4051,6 +4165,9 @@
         textContent: 'Its corner in canvas pixels, 3840 × 1080 across the wall. Drawn on the window, never into the canvas: it reaches the projectors while it is on, but never a film, a still or a preview. Drag it on the stage above.' }));
     } else {
       card.appendChild(row('screen', screensMap(a)));
+      const auto = autoCueScreen();
+      if (auto) card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
+        textContent: `No place of its own: as the show starts it fills ${auto.name} (${Math.round(auto.width)} × ${Math.round(auto.height)}), the screen after the wall's two, no title bar. Click a screen to put it elsewhere.` }));
       const field = (key) => {
         const i = document.createElement('input'); i.type = 'number'; i.step = 1; i.placeholder = 'auto';
         i.value = w[key] ?? '';
@@ -4072,7 +4189,7 @@
       bare.querySelector('input').addEventListener('change', (e) => { w.undecorated = e.target.checked; changed(); });
       card.appendChild(row('', bare));
       card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
-        textContent: 'Click a screen to fill it with the autocue — its place and size, no title bar; or set the window by hand, 960 × 540 to look at beside the code. The picture is composed at 1920 × 1080 and fitted. It opens the first time it is wanted and moves, resizes and hides at once; closed by hand, the autocue is off until it is switched on again.' }));
+        textContent: 'Click a screen to fill it with the autocue — its place and size, no title bar, kept by the screen\'s name so it follows the screen when another changes size; or set the window by hand, 960 × 540 to look at beside the code. The picture is composed at 1920 × 1080 and fitted. It opens the first time it is wanted and moves, resizes and hides at once; closed by hand, the autocue is off until it is switched on again.' }));
       if ((displays || []).length > 2) card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
         textContent: 'On the night: the autocue\'s screen beside the two projectors, all three in one arrangement in System Settings › Displays, and “Displays have separate Spaces” off.' }));
     }
@@ -4101,17 +4218,70 @@
       });
       box.appendChild(el);
     });
-    if (setup.desktop && setup.desktop.x != null) {
+    // The wall where it will open: at the place set, or on the screens the empty setting takes.
+    const ws = wallDisplays();
+    const wallAt = setup.desktop && setup.desktop.x != null ? { x: setup.desktop.x, y: setup.desktop.y || 0 } : ws.length ? { x: ws[0].x, y: ws[0].y } : null;
+    if (wallAt) {
       const wall = document.createElement('div'); wall.className = 'wallwin'; wall.title = 'the wall';
-      place(wall, setup.desktop.x, setup.desktop.y || 0, setup.left.width + setup.right.width, Math.max(setup.left.height, setup.right.height));
+      place(wall, wallAt.x, wallAt.y, setup.left.width + setup.right.width, Math.max(setup.left.height, setup.right.height));
       box.appendChild(wall);
     }
-    if (a.window.x != null) {
+    // The autocue where it will open: on its screen by name as that screen stands now, or where the empty setting puts it.
+    const auto = autoCueScreen() || (a.place === 'window' && a.display ? ds.find((d) => d.name === a.display) : null);
+    if (a.window.x != null || auto) {
       const cue = document.createElement('div'); cue.className = 'cuewin';
-      place(cue, a.window.x, a.window.y || 0, a.window.width, a.window.height);
+      if (auto) { cue.title = `the autocue, filling ${auto.name}`; place(cue, auto.x, auto.y, auto.width, auto.height); }
+      else place(cue, a.window.x, a.window.y || 0, a.window.width, a.window.height);
       box.appendChild(cue);
     }
     return box;
+  }
+
+  /** True when the autocue's own window fills or starts on display [s]. */
+  function onCueScreen(s) {
+    const a = setup.autocue, w = a.window;
+    if (a.place !== 'window') return false;
+    if (a.display) return a.display === s.name;
+    return w.x != null && w.x >= s.x && w.x < s.x + s.width && (w.y || 0) >= s.y && (w.y || 0) < s.y + s.height;
+  }
+  const outsideScreens = () => (displays || []).filter((s) => !/built-in/i.test(s.name));
+  /**
+   * The displays the wall will stand on: the one at the desktop place set and the one beside it; with no place,
+   * the first two of three or more screens besides the laptop's own, else the rightmost two — leaving out a screen
+   * the autocue's window has been put on. The launcher's own rule (Projectors.wallScreens).
+   */
+  function wallDisplays() {
+    const ds = displays || [], d = setup.desktop || {};
+    if (d.x == null) {
+      const outside = outsideScreens(), three = outside.length >= 3;
+      const free = (three ? outside : ds).filter((s) => !onCueScreen(s));
+      return three ? free.slice(0, 2) : free.slice(-2);
+    }
+    const left = ds.find((s) => Math.round(s.x) === d.x && Math.round(s.y) === (d.y || 0));
+    const right = left && ds.find((s) => Math.round(s.x) === Math.round(left.x + left.width));
+    return left && right ? [left, right] : [];
+  }
+  /**
+   * The screen an autocue window with no place of its own fills as the show starts: with three or more screens
+   * besides the laptop's own, the first the wall does not stand on (Projectors.withAutoCue). Null otherwise.
+   */
+  function autoCueScreen() {
+    const a = setup.autocue;
+    if (a.place !== 'window' || a.window.x != null || a.display) return null;
+    const outside = outsideScreens();
+    if (outside.length < 3) return null;
+    const wall = wallDisplays();
+    return outside.find((o) => !wall.some((w) => w.x === o.x && w.y === o.y)) || null;
+  }
+  /** Three screens besides the laptop's own, left to right: the wall's two and the speaker's. Null with fewer. */
+  function speakerTrio() {
+    const outside = outsideScreens();
+    return outside.length >= 3 ? outside.slice(0, 3) : null;
+  }
+  /** True when the setup already leaves the wall to the trio's first two and keeps the autocue on its third. */
+  function trioSet([, , c]) {
+    const d = setup.desktop || {}, a = setup.autocue;
+    return d.x == null && a.place === 'window' && a.display === c.name;
   }
 
   function desktopCard() {
@@ -4127,7 +4297,7 @@
     };
     card.appendChild(row('window at', field('x'), field('y')));
     card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
-      textContent: 'Where the left projector\'s top left corner is on the desktop, in points, when the presentation starts with projection on. Empty is the rightmost two displays, top aligned.' }));
+      textContent: 'Where the left projector\'s top left corner is on the desktop, in points, when the presentation starts with projection on. Empty: with three screens besides the laptop\'s own, the first two (the third is the autocue\'s); with fewer, the rightmost two.' }));
     const list = document.createElement('div'); list.className = 'displays';
     (displays || []).forEach((s) => {
       list.appendChild(Object.assign(document.createElement('div'), {
@@ -4148,15 +4318,44 @@
     const again = document.createElement('button'); again.className = 'ghost'; again.textContent = 'detect again';
     again.addEventListener('click', load);
     card.appendChild(row('', use, again));
+    // A third screen for the speaker: of the screens besides the laptop's own, left to right, the first two
+    // are the wall and the third is the autocue's, filled by its window. The wall's place is left empty and
+    // the autocue's screen kept by name, so both are found again at every start: a screen's place moves
+    // whenever one left of it changes size, and a place kept in the file would go stale.
+    const three = speakerTrio();
+    const trio = document.createElement('button'); trio.textContent = 'wall on the first two, autocue on the third';
+    trio.disabled = !three;
+    trio.className = three && trioSet(three) ? 'primary' : '';
+    trio.title = !three ? 'Needs three displays besides the laptop\'s own'
+      : `The wall on ${three[0].name} (left) and ${three[1].name} (right), found again at every start; the autocue in its own window filling ${three[2].name}, no title bar. The wall at the next start, the autocue at once`;
+    trio.addEventListener('click', () => {
+      const [l, r, c] = three;
+      if (!live) {
+        setup.left.width = Math.round(l.width); setup.left.height = Math.round(l.height);
+        setup.right.width = Math.round(r.width); setup.right.height = Math.round(r.height);
+      }
+      d.x = null; d.y = null;
+      const a = setup.autocue;
+      a.place = 'window'; a.display = c.name;
+      Object.assign(a.window, { x: Math.round(c.x), y: Math.round(c.y), width: Math.round(c.width), height: Math.round(c.height), undecorated: true });
+      changed();
+    });
+    card.appendChild(row('', trio));
+    if (three) card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
+      textContent: `${trioSet(three) ? 'Set: ' : 'Left empty, the same happens by itself: '}the wall on ${three[0].name} (left) + ${three[1].name} (right), the autocue on ${three[2].name} (${Math.round(three[2].width)} × ${Math.round(three[2].height)}). The wall takes its place at the next start; the autocue moves at once, and shows while “autocue” in the top bar is on.` }));
     const warn = [];
-    if (two.length === 2 && Math.round(two[0].y) !== Math.round(two[1].y)) warn.push('The two rightmost displays are not top aligned: line them up in System Settings › Displays.');
+    // Checked against the displays the wall will stand on, which need not be the two rightmost.
+    const wall = wallDisplays();
+    if (setup.desktop && setup.desktop.x != null && wall.length < 2 && (displays || []).length)
+      warn.push(`No two displays stand side by side at ${setup.desktop.x}, ${setup.desktop.y || 0}: the wall would open off its screens. Use one of the buttons above, or empty the place.`);
+    if (wall.length === 2 && Math.round(wall[0].y) !== Math.round(wall[1].y)) warn.push(`${wall[0].name} and ${wall[1].name} are not top aligned: line them up in System Settings › Displays.`);
     // What macOS is sending against what the setup expects: a mismatch is the likeliest fault on site.
-    if (two.length === 2) SIDES.forEach((side, i) => {
-      const p = setup[side], s = two[i];
+    if (wall.length === 2) SIDES.forEach((side, i) => {
+      const p = setup[side], s = wall[i];
       if (Math.round(s.width) !== p.width || Math.round(s.height) !== p.height)
         warn.push(`${s.name} is at ${Math.round(s.width)} × ${Math.round(s.height)} in macOS, but the ${side} projector is set to ${p.width} × ${p.height}: set the display's resolution in System Settings › Displays, or change the setup.`);
     });
-    if (two.some((s) => s.scale > 1)) warn.push('A display is in a scaled (Retina) mode: its size here is in points, not pixels.');
+    if (wall.some((s) => s.scale > 1)) warn.push('A display is in a scaled (Retina) mode: its size here is in points, not pixels.');
     warn.push('The window spans both projectors only with “Displays have separate Spaces” off (System Settings › Desktop & Dock).');
     warn.forEach((t, i) => card.appendChild(Object.assign(document.createElement('div'), { className: 'note' + (i < warn.length - 1 ? ' warn' : ''), textContent: t })));
     return card;

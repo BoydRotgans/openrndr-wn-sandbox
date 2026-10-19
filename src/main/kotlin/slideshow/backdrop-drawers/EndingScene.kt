@@ -44,10 +44,17 @@ class EndingScene(
     override val background: ColorRGBa = Palette.onBlack.paper,
     override val sound: Sound? = null,
     /** Whether the QR code stands between the action and the address. */
-    private val qr: Boolean = true
+    private val qr: Boolean = true,
+    /**
+     * How many states the wall stands for. Nothing on it changes on a click — it plays on its own clock — so
+     * the clicks are the speaker's: the closing words read off the autocue a section a click, as Karim Weiss's
+     * are (19 October 2026), while the call to action stands.
+     */
+    private val clicks: Int = 1
 ) : Backdrop() {
 
     override val name = "Ending"
+    override val steps get() = clicks.coerceAtLeast(1)
     override val settle get() = frames(1.5)
 
     private lateinit var bold: FontImageMap

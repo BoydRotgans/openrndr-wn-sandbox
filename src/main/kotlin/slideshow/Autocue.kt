@@ -182,6 +182,21 @@ class CueTiming private constructor(private val at: IntArray, private val chars:
  *
  * It is set in the talk's own face, through [setLine] so CO₂ is set. The labels are Dutch: it is the
  * speaker's screen, and the script is Dutch.
+ *
+ * **What is done is drawn apart from what is said** (19 October 2026). A track may carry directions beside its
+ * lines ([Subtitles.directions]) — Erik's autocue does, off the REGIE blocks of his script — and a state's
+ * directions stand under its line in amber, in the labels' face and a bar beside each, never in the script's
+ * white: a direction is not to be read aloud. The reading follows the spoken lines; a state with a direction
+ * and nothing to say stands its direction on the reading line.
+ *
+ * **A line keeps the breaks it was written with**, and a blank line between two is a paragraph (19 October 2026):
+ * a speech written a sentence a line, with lists in it — Karim Weiss's welcome — is read the way it was written,
+ * where run together it would be a wall of text.
+ *
+ * **Who speaks is always marked, small** (19 October 2026): a pill with the speaker's name on every state's divider
+ * and for the state on the wall in the header — the track's own speaker in light grey, anyone else in cyan (Karim
+ * Weiss's welcome and closing in Erik's script), and an amber outlined REGIE where a state has a direction and
+ * nothing to say. Amber stays the colour of what is not read aloud.
  */
 class Autocue(
     private val face: FontImageMap?,
@@ -190,13 +205,23 @@ class Autocue(
     private val small: FontImageMap?,
     private val large: FontImageMap?
 ) {
-    /** One state of the running order: its slide's [index] and [number] in it, the slide's [title], and the line [said] over it. */
-    class Entry(val index: Int, val step: Int, val number: Int, val title: String, val said: String)
+    /**
+     * One state of the running order: its slide's [index] and [number] in it, the slide's [title], the line
+     * [said] over it, and what is done over it instead or besides, [directions].
+     */
+    class Entry(val index: Int, val step: Int, val number: Int, val title: String, val said: String,
+                val directions: List<String> = emptyList(), val speaker: String? = null,
+                /** Whether [speaker] is someone other than the script's own speaker. */
+                val guest: Boolean = false)
 
     /** A line of a block, [start] to [next] the characters of the state's flat line it carries. */
     private class Line(val text: String, val top: Double, val start: Int, val next: Int)
 
-    private class Block(val entry: Entry, val divider: Double, val top: Double, val bottom: Double, val lines: List<Line>)
+    /** A line of a direction, the [group]-th of its state's directions. */
+    private class Cue(val text: String, val top: Double, val group: Int)
+
+    private class Block(val entry: Entry, val divider: Double, val top: Double, val bottom: Double, val lines: List<Line>,
+                        val cues: List<Cue> = emptyList())
 
     /** The status the foot shows, and the reading line's colour. */
     enum class Status { SPEAKING, WAITING, READY, AUTO, END }
@@ -223,7 +248,15 @@ class Autocue(
         /** Whether the speaking stands paused (space): the scroll, the voice and autoplay hold, and the foot says so. */
         val paused: Boolean = false,
         /** A click just made, 1 coming down to 0: the status box flashes light, so every click is seen to land. */
-        val felt: Double = 0.0
+        val felt: Double = 0.0,
+        /** The track the script is read from, named in the header: "Erik autocue", "aligned". */
+        val track: String = "",
+        /** Who reads this state: "Erik Koremans", "Karim Weiss"; null where nothing is said. */
+        val speaker: String? = null,
+        /** Whether [speaker] is someone other than the script's own speaker. */
+        val guest: Boolean = false,
+        /** Whether the state has a direction and nothing to say: marked REGIE. */
+        val regie: Boolean = false
     )
 
     private var blocks: List<Block> = emptyList()
@@ -244,20 +277,44 @@ class Autocue(
             y += DIVIDER
             val top = y
             val flat = CueTiming.flat(e.said)
-            val wrapped = if (font == null || flat.isEmpty()) emptyList() else wrap(flat, font)
-            val lines = wrapped.mapIndexed { i, (text, start) ->
-                Line(text, top + i * lead, start, wrapped.getOrNull(i + 1)?.second ?: flat.length)
+            // Each line of the source wrapped on its own and started on a fresh line, a blank line before it a
+            // paragraph. The pieces are the flat line cut where it had a break, so every character keeps its
+            // place in the flat line the timing counts in.
+            val wrapped = mutableListOf<Triple<String, Int, Boolean>>()
+            if (font != null && flat.isNotEmpty()) {
+                var at = 0
+                var gap = false
+                for (raw in e.said.split('\n')) {
+                    val piece = CueTiming.flat(raw)
+                    if (piece.isEmpty()) { if (wrapped.isNotEmpty()) gap = true; continue }
+                    wrap(piece, font).forEachIndexed { i, (text, start) -> wrapped += Triple(text, at + start, gap && i == 0) }
+                    at += piece.length + 1
+                    gap = false
+                }
             }
-            y += if (lines.isEmpty()) lead * SILENT else lines.size * lead
-            out += Block(e, divider, top, y, lines)
+            var ly = top
+            val lines = wrapped.mapIndexed { i, (text, start, paragraph) ->
+                if (paragraph) ly += lead * PARAGRAPH
+                Line(text, ly, start, wrapped.getOrNull(i + 1)?.second ?: flat.length).also { ly += lead }
+            }
+            val directions = e.directions.map { CueTiming.flat(it) }.filter { it.isNotEmpty() }
+            y = if (lines.isEmpty()) y + (if (directions.isEmpty()) lead * SILENT else 0.0) else ly
+            // The directions under the line, in the labels' face: a group a direction, a little apart.
+            val cues = mutableListOf<Cue>()
+            val cueFont = large
+            if (cueFont != null) directions.forEachIndexed { g, d ->
+                y += if (g == 0) (if (lines.isEmpty()) CUE_GAP / 2.0 else CUE_GAP) else CUE_SPACE
+                for ((text, _) in wrap(d, cueFont, CUE_COLUMN)) { cues += Cue(text, y, g); y += CUE_LEAD }
+            }
+            out += Block(e, divider, top, y, lines, cues)
             y += GAP
         }
         blocks = out
         blockAt = out.withIndex().associate { (i, b) -> (b.entry.index to b.entry.step) to i }
     }
 
-    /** [flat] broken between words to the column, each line with the character it starts on. */
-    private fun wrap(flat: String, font: FontImageMap): List<Pair<String, Int>> {
+    /** [flat] broken between words to [column], each line with the character it starts on. */
+    private fun wrap(flat: String, font: FontImageMap, column: Double = COLUMN): List<Pair<String, Int>> {
         val space = font.advanceWithSubscripts(" ")
         val out = mutableListOf<Pair<String, Int>>()
         val line = StringBuilder()
@@ -266,7 +323,7 @@ class Autocue(
         var c = 0
         for (word in flat.split(' ')) {
             val w = font.advanceWithSubscripts(word)
-            if (line.isNotEmpty() && width + space + w > COLUMN) {
+            if (line.isNotEmpty() && width + space + w > column) {
                 out += line.toString() to start
                 line.clear()
             }
@@ -293,7 +350,7 @@ class Autocue(
      * smoothed, it never jumps and still says where in the line the voice is to within a line.
      */
     private fun reading(b: Block, timing: CueTiming, t: Double): Double {
-        if (b.lines.isEmpty()) return b.top + lead * SILENT / 2.0
+        if (b.lines.isEmpty()) return b.cues.firstOrNull()?.let { it.top + CUE_LEAD / 2.0 } ?: (b.top + lead * SILENT / 2.0)
         val times = DoubleArray(b.lines.size) { timing.timeAt((b.lines[it].start + b.lines[it].next) / 2.0) }
         val ys = DoubleArray(b.lines.size) { b.lines[it].top + lead / 2.0 }
         fun path(u: Double): Double {
@@ -358,7 +415,7 @@ class Autocue(
                 i == current -> LABEL
                 else -> DARK
             }, i == current + 1, offered, if (auto) "AUTO" else "KLIK")
-            if (b.lines.isEmpty()) {
+            if (b.lines.isEmpty() && b.cues.isEmpty()) {
                 small?.let { s ->
                     drawer.fill = if (i == current) LABEL else DARK
                     drawer.setLine("stil — geen tekst", s, Vector2(COL_LEFT, b.top + off + lead * SILENT * 0.62), SMALL, SMALL)
@@ -373,6 +430,11 @@ class Autocue(
                 }
                 drawer.setLine(l.text, font, Vector2(COL_LEFT, top + lead * BASELINE), size, size)
             }
+            cues(drawer, b, off, when {
+                i < current -> CUE_PAST
+                i == current -> AMBER
+                else -> CUE_AHEAD
+            })
             i++
         }
         drawer.drawStyle.clip = null
@@ -400,6 +462,20 @@ class Autocue(
             Vector2(COL_RIGHT + 82.0, READ_Y - t), Vector2(COL_RIGHT + 82.0 - t * 1.5, READ_Y), Vector2(COL_RIGHT + 82.0, READ_Y + t)), true))
     }
 
+    /** [b]'s directions, [off] down the screen in [colour]: each in the labels' face with a bar beside it. */
+    private fun cues(drawer: Drawer, b: Block, off: Double, colour: ColorRGBa) {
+        val l = large ?: return
+        if (b.cues.isEmpty()) return
+        drawer.fill = colour
+        for (group in b.cues.groupBy { it.group }.values) {
+            val top = group.first().top + off
+            val bottom = group.last().top + CUE_LEAD + off
+            if (bottom < AREA_TOP || top > AREA_BOTTOM) continue
+            drawer.rectangle(COL_LEFT - 30.0, top + CUE_LEAD * 0.18, 6.0, bottom - top - CUE_LEAD * 0.36)
+            for (c in group) drawer.setLine(c.text, l, Vector2(COL_LEFT, c.top + off + CUE_LEAD * 0.7), LARGE, LARGE)
+        }
+    }
+
     /** The first block whose foot is below [y], by halving. */
     private fun firstBelow(y: Double): Int {
         var lo = 0
@@ -417,12 +493,14 @@ class Autocue(
         val y = b.divider + off
         val e = b.entry
         val name = if (e.step == 0) "${e.number}  ${e.title}   ${letter(e.step)}" else letter(e.step)
+        val who = marker(e.speaker, e.guest, b.lines.isEmpty() && b.cues.isNotEmpty())
         var x = COL_LEFT
         drawer.fill = colour
         drawer.rectangle(COL_LEFT, y - 0.75, COLUMN, 1.5)
         // the label stands in a gap cut out of the hairline
         val klik = if (next) "$word  " else ""
-        val width = s.advanceWithSubscripts(klik + name) + (if (next) SMALL * 0.9 else 0.0)
+        val width = s.advanceWithSubscripts(klik + name) + (if (next) SMALL * 0.9 else 0.0) +
+                (who?.let { pillWidth(s, it.first) + PILL_GAP } ?: 0.0)
         drawer.fill = BLACK
         drawer.rectangle(x - 12.0, y - SMALL * 0.7, width + 24.0, SMALL * 1.4)
         drawer.fill = colour
@@ -436,6 +514,38 @@ class Autocue(
             if (!offered) drawer.fill = DARK.mix(colour, 0.5)
         }
         drawer.setLine(name, s, Vector2(x, y + SMALL * 0.36), SMALL, SMALL)
+        // who reads it, a pill after the name: dimmed on the states gone by and the ones far ahead
+        who?.let { (text, kind) -> pill(drawer, s, text, kind, x + s.advanceWithSubscripts(name) + PILL_GAP, y, dim = colour == DARK) }
+    }
+
+    /** What a state's pill says and how it is drawn: the speaker, or REGIE where only a direction stands; null for neither. */
+    private fun marker(speaker: String?, guest: Boolean, regie: Boolean): Pair<String, Int>? = when {
+        speaker != null -> speaker.uppercase() to (if (guest) PILL_GUEST else PILL_OWN)
+        regie -> "REGIE" to PILL_REGIE
+        else -> null
+    }
+
+    private fun pillWidth(s: FontImageMap, text: String) = s.advanceWithSubscripts(text) * PILL / SMALL + PILL_PAD * 2.0
+
+    /** A small pill naming who speaks, its left edge at [x] and its middle on [y]: filled for a speaker, outlined in amber for REGIE. */
+    private fun pill(drawer: Drawer, s: FontImageMap, text: String, kind: Int, x: Double, y: Double, dim: Boolean = false) {
+        val w = pillWidth(s, text)
+        val h = PILL * 1.45
+        val ground = when (kind) { PILL_GUEST -> GUEST; PILL_OWN -> OWN; else -> AMBER }.let { if (dim) it.mix(BLACK, 0.55) else it }
+        if (kind == PILL_REGIE) {
+            drawer.fill = BLACK
+            drawer.stroke = ground
+            drawer.strokeWeight = 2.0
+            drawer.rectangle(x, y - h / 2.0, w, h)
+            drawer.stroke = null
+            drawer.fill = ground
+        } else {
+            drawer.fill = ground
+            drawer.rectangle(x, y - h / 2.0, w, h)
+            drawer.fill = BLACK
+        }
+        // the face is loaded at SMALL: set at PILL, scaled from it
+        drawer.setLine(text, s, Vector2(x + PILL_PAD, y + PILL * 0.36), PILL, SMALL)
     }
 
     private fun header(drawer: Drawer, now: Now) {
@@ -444,7 +554,26 @@ class Autocue(
         drawer.fill = BLACK
         drawer.rectangle(0.0, 0.0, WIDTH, AREA_TOP - 8.0)
         drawer.fill = LABEL
-        drawer.setLine(fit(now.section.ifBlank { " " }, s, 1200.0), s, Vector2(MARGIN, 52.0), SMALL, SMALL)
+        val section = fit(now.section.ifBlank { " " }, s, 1200.0)
+        drawer.setLine(section, s, Vector2(MARGIN, 52.0), SMALL, SMALL)
+        // who reads this state: the same pill as its divider, larger
+        marker(now.speaker, now.guest, now.regie)?.let { (text, kind) ->
+            val x = MARGIN + s.advanceWithSubscripts(section) + 24.0
+            val y = 43.0
+            val w = s.advanceWithSubscripts(text) + PILL_PAD * 2.0
+            val h = SMALL * 1.4
+            val ground = when (kind) { PILL_GUEST -> GUEST; PILL_OWN -> OWN; else -> AMBER }
+            if (kind == PILL_REGIE) {
+                drawer.fill = BLACK; drawer.stroke = ground; drawer.strokeWeight = 2.0
+                drawer.rectangle(x, y - h / 2.0, w, h)
+                drawer.stroke = null; drawer.fill = ground
+            } else {
+                drawer.fill = ground
+                drawer.rectangle(x, y - h / 2.0, w, h)
+                drawer.fill = BLACK
+            }
+            drawer.setLine(text, s, Vector2(x + PILL_PAD, y + SMALL * 0.36), SMALL, SMALL)
+        }
         val state = "   ${letter(now.step)}  ${now.step + 1}/${now.steps}"
         val title = fit("${now.number}  ${now.title}", l, 1200.0 - l.advanceWithSubscripts(state))
         drawer.fill = NOW
@@ -454,7 +583,8 @@ class Autocue(
         drawer.fill = NOW
         drawer.setLine(now.clock, l, Vector2(WIDTH - MARGIN, 68.0), LARGE, LARGE, align = 1.0)
         drawer.fill = LABEL
-        drawer.setLine("dia ${now.number} van ${now.count}", s, Vector2(WIDTH - MARGIN, 106.0), SMALL, SMALL, align = 1.0)
+        drawer.setLine("dia ${now.number} van ${now.count}" + (if (now.track.isNotBlank()) "  ·  ${now.track}" else ""),
+            s, Vector2(WIDTH - MARGIN, 106.0), SMALL, SMALL, align = 1.0)
         drawer.fill = DARK
         drawer.rectangle(MARGIN, AREA_TOP - 8.0, WIDTH - 2 * MARGIN, 1.5)
     }
@@ -554,7 +684,21 @@ class Autocue(
         private const val BASELINE = 0.74
         /** The silent state's height, in lines. */
         private const val SILENT = 0.8
+        /** The room a blank line in the source leaves between two paragraphs, in lines. */
+        private const val PARAGRAPH = 0.5
+        /** The speaker's pill on a divider: its type size, the room inside it either side, and before it. */
+        private const val PILL = 21.0
+        private const val PILL_PAD = 9.0
+        private const val PILL_GAP = 18.0
+        private const val PILL_OWN = 0
+        private const val PILL_GUEST = 1
+        private const val PILL_REGIE = 2
         private const val DIVIDER = 64.0
+        /** A direction's line height, the room above a state's first direction, and between two of them. */
+        private const val CUE_LEAD = LARGE * 1.32
+        private const val CUE_GAP = 22.0
+        private const val CUE_SPACE = 12.0
+        private const val CUE_COLUMN = COLUMN
         private const val GAP = 26.0
         private const val AREA_TOP = 132.0
         private const val AREA_BOTTOM = 900.0
@@ -589,6 +733,12 @@ class Autocue(
         private val BAND = ColorRGBa.fromHex("15171B")
         val GREEN: ColorRGBa = ColorRGBa.fromHex("2BD45A")
         val AMBER: ColorRGBa = ColorRGBa.fromHex("FFB020")
+        /** The script's own speaker's pill, and anyone else's. */
+        private val OWN = ColorRGBa.fromHex("D8DADF")
+        private val GUEST = ColorRGBa.fromHex("4FC3F7")
+        /** A direction of a state still to come, and of one gone by. */
+        private val CUE_AHEAD = ColorRGBa.fromHex("A8771A")
+        private val CUE_PAST = ColorRGBa.fromHex("5A4417")
         private val WAIT_GROUND = ColorRGBa.fromHex("2A2110")
         private val SPEAK_GROUND = ColorRGBa.fromHex("1A1C20")
         private val AUTO = ColorRGBa.fromHex("7FA6FF")

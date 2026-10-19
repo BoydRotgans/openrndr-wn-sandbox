@@ -1086,11 +1086,21 @@ slide needs the launcher restarted, since the child runs the launcher's compiled
 **`projection` in the top bar puts the next start on the wall**: the child gets
 `SLIDES_UNDECORATED=true`, `SLIDES_WINDOW_SCALE=1.0` and `SLIDES_WINDOW_X/_Y` from the Projection
 tab's desktop place, else `SLIDES_PROJECTION_X/_Y`, and `SLIDES_PROJECTION` is where the toggle
-starts. With neither the projectors are taken to be the rightmost displays, top aligned — the
-desktop's right edge off Finder less the two projectors' width, asked at each start so a wall
-plugged in later is found. That is a guess and says so: on a desk with no projectors it lands the
-window off to one side (-400 on a 3440-wide desk), so on site set the place once the arrangement is
-known. `esc` or the stop button closes it.
+starts. With neither, the wall's screens are found at each start off macOS's display list
+(`Projectors.wallScreens`), so a wall plugged in later is found:
+- **Three or more screens besides the laptop's own** (19 October 2026): the first is the left half,
+  the second the right half, and the third is the speaker's autocue, which an autocue window with no
+  place of its own fills (`Projectors.withAutoCue`). The rightmost two, the rule until then, put the
+  wall one screen too far right, on the second projector and the speaker's screen.
+- **Fewer**: the rightmost two, leaving out a screen the autocue's window has been put on.
+- **macOS will not list its displays**: the desktop's right edge off Finder, less the two projectors'
+  width. On a desk with no projectors that lands the window off to one side (-400 on a 3440-wide desk).
+
+A place written in the file goes stale when a screen to its left changes size: the laptop's went
+from 1512 to 1800 points wide in one afternoon and moved every screen right of it. So leave the
+desktop place empty unless the arrangement needs one. An autocue put on a screen is kept by the
+screen's **name** and takes that screen's current place at each start. `esc` or the stop button
+closes it.
 
 **The Projection tab is the wall set up on site** (29 September): the two projectors' resolutions,
 where the wall's two 1920x1080 halves stand on them, and where the pair is on the desktop, kept in
@@ -1122,7 +1132,11 @@ is all of it.
   projector showing the signal unscaled with overscan off. Another model is one entry in `MODELS` in the
   page.
 - **Detect displays** reads macOS's displays (name, size and place in points, `NSScreen` through
-  `osascript`) and `use the two rightmost` takes their sizes and the left one's place. Sizes are points:
+  `osascript`) and `use the two rightmost` takes their sizes and the left one's place. `wall on the first
+  two, autocue on the third` is the three-screen setup made explicit: the projectors' sizes off the first two
+  screens besides the laptop's own, the wall's place left empty so it is found again at each start, and the
+  autocue's window filling the third, kept by name. The tab's warnings check the screens the wall will really
+  stand on, not the rightmost two. Sizes are points:
   a projector in a scaled mode is not its pixel count, and the tab says so. The window can only span two
   displays with "Displays have separate Spaces" off, which the tab says too, and where macOS has a display
   at another resolution than the setup expects — 1920 x 1080 against an Epson's 1920 x 1200 — the tab
@@ -1729,7 +1743,14 @@ grid with it.)
 - **It scrolls as the line is said, and stops for the click.** The reading line stands at 0.38 of the script's
   height, marked at both ends. Through a state it moves through the line on the subtitles' own cards
   ([`CueTiming`](src/main/kotlin/slideshow/Autocue.kt) off `Pace.cards`): the voice's words with the voice on,
-  the 15 cps estimate otherwise. At the end of the line it stops. Once the line is said **and** the state has
+  and otherwise the speaker's pace, `SLIDES_AUTOCUE_CPS` — 13 characters a second since 19 October 2026, a
+  little slower than the subtitles' 15, to keep step with a speaker reading aloud rather than run ahead of him.
+  The KLIK, the SPREKEN countdown and autoplay's click follow the same pace; the wall's subtitles and a filmed
+  run (autocue film included) keep `SLIDES_SUBTITLE_CPS`, so the films' clicks do not move. **The pace is set in the
+  organizer**: the ⚙ beside `autocue` in the top bar opens a slider, 6 to 24 in half steps, with slower, faster and
+  reset to 13 (`POST /api/autocue-pace`, `Remote.AutocuePace`). It moves the running autocue at once and the launcher
+  keeps it for the next start as `SLIDES_AUTOCUE_CPS`, as it keeps the mix; the gear shows the pace whenever it is
+  not 13. At the end of the line it stops. Once the line is said **and** the state has
   stopped moving (`stillMoving`, the wait for the animation's rule, and a slide that `holds`), the next divider
   glides onto the reading line and turns green: KLIK. A click eases in from where the scroll stood (0.6 s); a
   jump further than a screen is cut. Lines said are dimmed, the next state's grey.
@@ -1772,7 +1793,9 @@ grid with it.)
     it reaches the projectors (ProjectorSplit lays the window out after it) but never a film, still or preview.
     It is the rehearsal with nothing more to plug in.
   - `window`: a window of its own, 1920 by 1080, or 960 by 540 to look at on a laptop, placed in points;
-    clicking a screen on the tab's map fills it (its place and size, no title bar).
+    clicking a screen on the tab's map fills it (its place and size, no title bar), kept by the screen's name,
+    so it follows the screen if one to its left changes size. With no place at all and three screens besides
+    the laptop's, it fills the third (see `projection` in the top bar).
 - **The second window is OPENRNDR 0.4.5's `Program.window`**, a GLFW window sharing the wall's GL context. It
   draws one thing: the autocue's picture, which the wall's draw composes into a target of its own (with a
   stencil, since its marks are filled contours) once a frame that changes. Shared contexts share textures, so
@@ -1809,6 +1832,64 @@ recorder takes**, so the two films are frame for frame: the autocue's picture, c
 `FramePipe` — the wall recorder's non-blocking read-back, lifted out of `WallRecorder` for it, ffmpeg's
 arguments word for word (`FramePipe.h264`). `SLIDES_AUTOCUE_FILM_CRF` (28) is its quality; the film's own
 pieces (`FilmKt`) never film it.
+
+#### Erik autocue
+
+**Erik's own script is a fourth track, `erik`, labelled "Erik autocue"** (19 October 2026):
+`show-subtitles-erik.json` (`SLIDES_SUBTITLES_ERIK`), chosen in the voice-over selector like the other three,
+and the autocue reads whichever track the show reads. It comes off the production's Word file,
+`input/autocue/Concrete_Force_Experience_Autocue_Met_KLIK_Aanwijzingen.docx` ("definitieve redactie – per
+klikbeeld"), through `tools/autocue_docx.py`. That file is a heading a click (`SLIDE 003 / 176`), the moment
+or chapter, then **AUTOCUE – letterlijk uitspreken** with the words, or **REGIE – geen spreektekst** with what
+to do instead.
+
+- **A click is a state, by position.** The document names no slide: it was written off the slides-per-click
+  pdf, a page a state, so SLIDE n is the n-th state of the running order. The tool refuses unless the counts
+  agree *and* the document's sections change on exactly the states where the order's moments and chapters
+  change. Change the order, and the document no longer fits until it is rewritten to the new order.
+- **What is said and what is done are apart.** The words are the track's `subtitles`. Everything not to be
+  read aloud is `directions`, the same shape: a REGIE block, a `▸` cue inside a passage (the programme's last
+  state), a `REGIE:` or `BEELDCUE:` line under one, the closing EINDE PRESENTATIE.
+  `Subtitles.directions(id, step)` reads them; only the autocue draws them, never the wall's subtitles or the
+  voice.
+- **On the autocue a direction is amber** in the labels' face, with a bar beside it, under the state's line
+  or in its place. A state with only a direction stands it on the reading line. The header names the track
+  ("dia 4 van 56 · Erik autocue"), so it can be seen which script is up.
+- **One block is headed REGIE but is speech**: the ending's thanks (klik 175, `ending-A`). It is taken as
+  speech, and the tool says so. Karim Weiss's closing has since taken that state (below).
+- **What the Word file does not carry is laid over it** from `show-autocue-additions.json`, by state key rather
+  than place, so a new import keeps it. As of 19 October that is Karim Weiss, CEO, **in the autocue's click
+  system**, a section a click like Erik's script: his welcome in eight, A to H after the paragraphs he wrote it in,
+  on the director's tag (the slide before Erik's first, whose REGIE note it clears; H, the hand-over, ends on the
+  direction "Brug naar Erik"), and his closing in three on the call to action, `ending` (the thanks, the message, the
+  farewell; A writes over the Word file's thanks from Erik). A state the Word file does not count is marked `added`,
+  and the pairing leaves it out, so the document's 176 clicks still meet 176 of the order's now 185 states. The
+  slides' click counts in `Slideshow.kt` are kept to the file: change one without the other and the import refuses.
+  It also carries Erik's own lines where they were rewritten for good, so an import keeps them: Levenscyclusanalyse
+  A–E and Verduurzamen van beton A–C, made compact after the aligned track and click for click to the wall (the
+  Word file's version ran a click behind the LCA slide). The tool lists every line it writes over. Lines edited only
+  in the organizer are not in it, and an import writes over them.
+- **Who speaks is marked on every state** (`Subtitles.speaker`): the track's root `speaker` (Erik Koremans, the
+  tool's `--speaker`) for every line, and `speakers` (a name a letter) where someone else reads. The autocue draws
+  it as a small pill on each state's divider and on the header: Erik in light grey, Karim in cyan, and an amber
+  outlined REGIE where a state has only a direction. The organizer's Subtitles tab carries the same pill on each
+  line, and names the slide's speakers in its heading.
+- **A line keeps its line breaks on the autocue**, and a blank line is a paragraph. Karim's welcome is written a
+  sentence a line with lists in it, and reads that way; every other line has no breaks, so nothing else moved. The
+  wall's subtitles still run a line together.
+- **It is the presentation's default** (`SLIDES_SUBTITLE_TRACK=erik` in `.env` and `.env.example`, and the
+  Subtitles tab opens on it): it is what the autocue shows Erik on the night. A film or rehearsal that wants
+  the rendered voice passes `SLIDES_SUBTITLE_TRACK=aligned` for that run, since on `erik` nothing is said.
+- **No voice.** Erik speaks it himself, so nothing is rendered for it, the slide pane does not mark its lines
+  "not rendered", and switching the voice on leaves the track on Erik where on any other track without a voice
+  it would move to one with one.
+- **The organizer edits it** like the other tracks (the Subtitles tab's `Erik autocue`, the slide pane's
+  `Erik`), the directions shown read only, in amber, under each state. Running the tool again writes over
+  lines edited there.
+
+Checked by drawing six states of it to png (a direction alone, a passage, a passage with its cues, a
+transition, a case study, the last state) and by the Subtitles tab in headless Chrome: 149 states to read,
+28 with a direction, on 56 slides.
 
 ### The refactor of 16 September
 
@@ -4520,9 +4601,13 @@ arrive on. Only while the slide is on its opening state, so stepping back finds 
 
 **The director speaks first** (1 October): `director-is-speaking` is a `NameTag` for the director of Willy
 Naessens, first in the Opening moment, before Erik's. The director gives the first welcome, and the click
-after it is Erik's own tag, from where the opening goes on as before. Its name is a PLACEHOLDER, "Voornaam Achternaam":
-as long as a real name, so the tag stands as large as Erik's, where `[Naam]` read as a smaller one. It carries no subtitle line, since the director speaks live; since the release of 15 October it arrives
-with the name tag's sound, as Erik's does.
+after it is Erik's own tag, from where the opening goes on as before. The director is **Karim Weiss**, "CEO Willy
+Naessens Nederland B.V." (19 October; a placeholder until then), the line as given and the role line left empty as
+the guest's is. His welcome, which ends handing over to Erik, is on Erik's autocue (below), **a section a click**: the
+tag stands for eight states (`NameTag(clicks = 8)`), A to H, and nothing on the wall changes on them, since the tag
+builds on its own clock. The ending wall likewise stands for three (`EndingScene(clicks = 3)`), his closing. The
+other tracks carry no line on those states, so a hands-off film on them holds each for `SLIDES_HOLD_BACKDROP`; since
+the release of 15 October the tag arrives with the name tag's sound, as Erik's does.
 
 **The programme is the intro wall** since 22 September: [`IntroWall`](src/main/kotlin/slideshow/backdrop-drawers/IntroWall.kt)
 stands Erik's `NameTag` settled in the left projector — the same block in the same place as

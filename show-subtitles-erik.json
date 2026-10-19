@@ -1,0 +1,768 @@
+{
+  "note": "Erik's autocue, the erik track: what is read over each state (subtitles), who reads it where it is not the track's own speaker (speakers), and what is done instead or besides (directions, drawn on the autocue only). Written by tools/autocue_docx.py from input/autocue/Concrete_Force_Experience_Autocue_Met_KLIK_Aanwijzingen.docx, with show-autocue-additions.json laid over it, on 2026-10-19; a click of the document is a state of the running order, in order. Lines edited in the organizer are kept here; importing the document again writes over them.",
+  "speaker": "Erik Koremans",
+  "autocue": {
+    "source": "input/autocue/Concrete_Force_Experience_Autocue_Met_KLIK_Aanwijzingen.docx",
+    "title": "Concrete Force Experience",
+    "edition": "Definitieve redactie – per klikbeeld · 28 oktober 2026 · bewerkbaar",
+    "instructions": [
+      "Lees de AUTOCUE-tekst letterlijk. Na ieder klikbeeld staat in rood KLIK → VOLGENDE BEELD: klik pas wanneer de bijbehorende tekst of regie is afgerond. Bij de laatste slide staat EINDE PRESENTATIE.",
+      "Bron: slides van 15 oktober en uitgebreide sprekersnotities van 2 oktober 2026. Cijfers en certificeringsclaims zijn uit de aangeleverde presentatie overgenomen, niet onafhankelijk gecontroleerd."
+    ],
+    "clicks": {
+      "opening-scene-A": 1,
+      "director-is-speaking-A": 2,
+      "who-is-speaking-A": 3,
+      "het-programma-A": 4,
+      "het-programma-B": 5,
+      "het-programma-C": 6,
+      "het-programma-D": 7,
+      "het-programma-E": 8,
+      "het-programma-F": 9,
+      "het-programma-G": 10,
+      "course-transition-to-chapter-1-A": 11,
+      "hoe-bouw-je-een-wereld-A": 12,
+      "hoe-bouw-je-een-wereld-B": 13,
+      "the-catalogue-city-A": 14,
+      "the-catalogue-city-B": 15,
+      "the-catalogue-city-C": 16,
+      "everything-a-build-answers-to-A": 17,
+      "everything-a-build-answers-to-B": 18,
+      "everything-a-build-answers-to-C": 19,
+      "everything-a-build-answers-to-D": 20,
+      "everything-a-build-answers-to-E": 21,
+      "the-globe-A": 22,
+      "verticale-integratie-A": 23,
+      "verticale-integratie-B": 24,
+      "verticale-integratie-C": 25,
+      "verticale-integratie-D": 26,
+      "verticale-integratie-E": 27,
+      "verticale-integratie-F": 28,
+      "verticale-integratie-G": 29,
+      "verticale-integratie-H": 30,
+      "verticale-integratie-I": 31,
+      "verticale-integratie-J": 32,
+      "de-cijfers-A": 33,
+      "de-cijfers-B": 34,
+      "de-cijfers-C": 35,
+      "de-cijfers-D": 36,
+      "de-cijfers-E": 37,
+      "de-cijfers-F": 38,
+      "de-cijfers-G": 39,
+      "de-cijfers-H": 40,
+      "de-cijfers-I": 41,
+      "de-fabrieken-A": 42,
+      "de-fabrieken-B": 43,
+      "de-fabrieken-C": 44,
+      "de-fabrieken-D": 45,
+      "de-fabrieken-E": 46,
+      "de-fabrieken-F": 47,
+      "de-fabrieken-G": 48,
+      "de-fabrieken-H": 49,
+      "de-fabrieken-I": 50,
+      "projecthighlight-1-A": 51,
+      "projecthighlight-1-B": 52,
+      "kernboodschap-1-A": 53,
+      "studiobuik-voorgerecht-A": 54,
+      "sketch-flow-v2-out-of-a-concrete-block-A": 55,
+      "course-transition-to-chapter-2-A": 56,
+      "esg-is-geen-checklist-A": 57,
+      "esg-is-geen-checklist-B": 58,
+      "esg-beoordelingskader-A": 59,
+      "esg-beoordelingskader-B": 60,
+      "esg-beoordelingskader-C": 61,
+      "esg-beoordelingskader-D": 62,
+      "co2-prestatieladder-A": 63,
+      "co2-prestatieladder-B": 64,
+      "co2-prestatieladder-C": 65,
+      "co2-prestatieladder-D": 66,
+      "co2-prestatieladder-E": 67,
+      "co2-prestatieladder-F": 68,
+      "co2-behaald-A": 69,
+      "co2-behaald-B": 70,
+      "co2-behaald-C": 71,
+      "co2-behaald-D": 72,
+      "geen-compensatie-A": 73,
+      "geen-compensatie-B": 74,
+      "geen-compensatie-C": 75,
+      "geen-compensatie-D": 76,
+      "geen-compensatie-E": 77,
+      "domino-effect-A": 78,
+      "domino-effect-B": 79,
+      "domino-effect-C": 80,
+      "domino-effect-D": 81,
+      "esg-social-governance-A": 82,
+      "esg-social-governance-B": 83,
+      "esg-social-governance-C": 84,
+      "esg-social-governance-D": 85,
+      "esg-social-governance-E": 86,
+      "projecthighlight-2-A": 87,
+      "projecthighlight-2-B": 88,
+      "projecthighlight-2-C": 89,
+      "kernboodschap-2-A": 90,
+      "studiobuik-eerste-gang-A": 91,
+      "shadow-mosaic-A": 92,
+      "course-transition-to-chapter-3-A": 93,
+      "we-gieten-kennis-A": 94,
+      "we-gieten-kennis-B": 95,
+      "co2-impact-van-beton-A": 96,
+      "co2-impact-van-beton-B": 97,
+      "co2-impact-van-beton-C": 98,
+      "de-fasen-a-b-en-c-A": 99,
+      "de-fasen-a-b-en-c-B": 100,
+      "de-fasen-a-b-en-c-C": 101,
+      "levenscyclus-van-betonproducten-A": 102,
+      "levenscyclus-van-betonproducten-B": 103,
+      "levenscyclus-van-betonproducten-C": 104,
+      "levenscyclus-van-betonproducten-D": 105,
+      "levenscyclus-van-betonproducten-E": 106,
+      "levenscyclus-van-betonproducten-F": 107,
+      "levenscyclus-van-betonproducten-G": 108,
+      "levenscyclus-van-betonproducten-H": 109,
+      "levenscyclus-van-betonproducten-I": 110,
+      "levenscyclusanalyse-A": 111,
+      "levenscyclusanalyse-B": 112,
+      "levenscyclusanalyse-C": 113,
+      "levenscyclusanalyse-D": 114,
+      "levenscyclusanalyse-E": 115,
+      "verduurzamen-van-beton-A": 116,
+      "verduurzamen-van-beton-B": 117,
+      "verduurzamen-van-beton-C": 118,
+      "verborgen-verhaal-A": 119,
+      "verborgen-verhaal-B": 120,
+      "verborgen-verhaal-C": 121,
+      "verborgen-verhaal-D": 122,
+      "recyclage-A": 123,
+      "recyclage-B": 124,
+      "recyclage-C": 125,
+      "recyclage-D": 126,
+      "recyclage-E": 127,
+      "projecthighlight-3-A": 128,
+      "projecthighlight-3-B": 129,
+      "kernboodschap-3-A": 130,
+      "studiobuik-tweede-gang-A": 131,
+      "sketch-climb-lowered-in-and-layers-by-turns-A": 132,
+      "course-transition-to-chapter-4-A": 133,
+      "we-bouwen-vandaag-A": 134,
+      "we-bouwen-vandaag-B": 135,
+      "the-circle-in-elementen-A": 136,
+      "100-elementen-A": 137,
+      "gebouw-uit-de-webtool-A": 138,
+      "gebouw-uit-de-webtool-B": 139,
+      "gebouw-uit-de-webtool-C": 140,
+      "gebouw-uit-de-webtool-D": 141,
+      "gebouw-uit-de-webtool-E": 142,
+      "gebouw-uit-de-webtool-F": 143,
+      "gebouw-uit-de-webtool-G": 144,
+      "gebouw-uit-de-webtool-H": 145,
+      "gebouw-uit-de-webtool-I": 146,
+      "reductie-carbon-footprint-A": 147,
+      "reductie-carbon-footprint-B": 148,
+      "reductie-carbon-footprint-C": 149,
+      "reductie-carbon-footprint-D": 150,
+      "the-circle-en-esg-A": 151,
+      "the-circle-en-esg-B": 152,
+      "the-circle-en-esg-C": 153,
+      "the-circle-en-esg-D": 154,
+      "the-circle-en-esg-E": 155,
+      "projecthighlight-4-A": 156,
+      "projecthighlight-4-B": 157,
+      "projecthighlight-4-C": 158,
+      "kernboodschap-4-A": 159,
+      "studiobuik-derde-gang-A": 160,
+      "sketch-kit-two-screens-quiet-A": 161,
+      "case-studies-A": 162,
+      "case-studies-B": 163,
+      "case-studies-C": 164,
+      "case-studies-D": 165,
+      "case-studies-E": 166,
+      "case-studies-F": 167,
+      "case-studies-G": 168,
+      "case-studies-H": 169,
+      "case-studies-I": 170,
+      "case-studies-J": 171,
+      "case-studies-K": 172,
+      "case-studies-L": 173,
+      "studiobuik-dessert-A": 174,
+      "ending-A": 175,
+      "sketch-kit-two-screens-wn-landscape-jump-cuts-A": 176
+    }
+  },
+  "voiceover": {
+    "slides": {
+      "opening-scene": {
+        "heading": "Erik autocue · klik 001 · AANKOMST",
+        "note": ""
+      },
+      "director-is-speaking": {
+        "heading": "Erik autocue · klik 002 · OPENING · Karim Weiss",
+        "note": "A is klik 002. B is toegevoegd. C is toegevoegd. D is toegevoegd. E is toegevoegd. F is toegevoegd. G is toegevoegd. H is toegevoegd."
+      },
+      "who-is-speaking": {
+        "heading": "Erik autocue · klik 003 · OPENING · Erik Koremans",
+        "note": ""
+      },
+      "het-programma": {
+        "heading": "Erik autocue · klik 004–010 · OPENING · Erik Koremans",
+        "note": "A is klik 004. B is klik 005. C is klik 006. D is klik 007. E is klik 008. F is klik 009. G is klik 010."
+      },
+      "course-transition-to-chapter-1": {
+        "heading": "Erik autocue · klik 011 · OPENING",
+        "note": ""
+      },
+      "hoe-bouw-je-een-wereld": {
+        "heading": "Erik autocue · klik 012–013 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": "A is klik 012. B is klik 013."
+      },
+      "the-catalogue-city": {
+        "heading": "Erik autocue · klik 014–016 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": "A is klik 014. B is klik 015. C is klik 016."
+      },
+      "everything-a-build-answers-to": {
+        "heading": "Erik autocue · klik 017–021 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": "A is klik 017. B is klik 018. C is klik 019. D is klik 020. E is klik 021."
+      },
+      "the-globe": {
+        "heading": "Erik autocue · klik 022 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": ""
+      },
+      "verticale-integratie": {
+        "heading": "Erik autocue · klik 023–032 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": "A is klik 023. B is klik 024. C is klik 025. D is klik 026. E is klik 027. F is klik 028. G is klik 029. H is klik 030. I is klik 031. J is klik 032."
+      },
+      "de-cijfers": {
+        "heading": "Erik autocue · klik 033–041 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": "A is klik 033. B is klik 034. C is klik 035. D is klik 036. E is klik 037. F is klik 038. G is klik 039. H is klik 040. I is klik 041."
+      },
+      "de-fabrieken": {
+        "heading": "Erik autocue · klik 042–050 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": "A is klik 042. B is klik 043. C is klik 044. D is klik 045. E is klik 046. F is klik 047. G is klik 048. H is klik 049. I is klik 050."
+      },
+      "projecthighlight-1": {
+        "heading": "Erik autocue · klik 051–052 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": "A is klik 051. B is klik 052."
+      },
+      "kernboodschap-1": {
+        "heading": "Erik autocue · klik 053 · HOOFDSTUK 1 · DE WERELD VAN BOUWEN · Erik Koremans",
+        "note": ""
+      },
+      "studiobuik-voorgerecht": {
+        "heading": "Erik autocue · klik 054 · VOORGERECHT",
+        "note": ""
+      },
+      "sketch-flow-v2-out-of-a-concrete-block": {
+        "heading": "Erik autocue · klik 055 · VOORGERECHT",
+        "note": ""
+      },
+      "course-transition-to-chapter-2": {
+        "heading": "Erik autocue · klik 056 · VOORGERECHT",
+        "note": ""
+      },
+      "esg-is-geen-checklist": {
+        "heading": "Erik autocue · klik 057–058 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 057. B is klik 058."
+      },
+      "esg-beoordelingskader": {
+        "heading": "Erik autocue · klik 059–062 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 059. B is klik 060. C is klik 061. D is klik 062."
+      },
+      "co2-prestatieladder": {
+        "heading": "Erik autocue · klik 063–068 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 063. B is klik 064. C is klik 065. D is klik 066. E is klik 067. F is klik 068."
+      },
+      "co2-behaald": {
+        "heading": "Erik autocue · klik 069–072 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 069. B is klik 070. C is klik 071. D is klik 072."
+      },
+      "geen-compensatie": {
+        "heading": "Erik autocue · klik 073–077 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 073. B is klik 074. C is klik 075. D is klik 076. E is klik 077."
+      },
+      "domino-effect": {
+        "heading": "Erik autocue · klik 078–081 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 078. B is klik 079. C is klik 080. D is klik 081."
+      },
+      "esg-social-governance": {
+        "heading": "Erik autocue · klik 082–086 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 082. B is klik 083. C is klik 084. D is klik 085. E is klik 086."
+      },
+      "projecthighlight-2": {
+        "heading": "Erik autocue · klik 087–089 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": "A is klik 087. B is klik 088. C is klik 089."
+      },
+      "kernboodschap-2": {
+        "heading": "Erik autocue · klik 090 · HOOFDSTUK 2 · WAARDEKADER EN VERANTWOORDELIJKHEID · Erik Koremans",
+        "note": ""
+      },
+      "studiobuik-eerste-gang": {
+        "heading": "Erik autocue · klik 091 · EERSTE GANG",
+        "note": ""
+      },
+      "shadow-mosaic": {
+        "heading": "Erik autocue · klik 092 · EERSTE GANG",
+        "note": ""
+      },
+      "course-transition-to-chapter-3": {
+        "heading": "Erik autocue · klik 093 · EERSTE GANG",
+        "note": ""
+      },
+      "we-gieten-kennis": {
+        "heading": "Erik autocue · klik 094–095 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 094. B is klik 095."
+      },
+      "co2-impact-van-beton": {
+        "heading": "Erik autocue · klik 096–098 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 096. B is klik 097. C is klik 098."
+      },
+      "de-fasen-a-b-en-c": {
+        "heading": "Erik autocue · klik 099–101 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 099. B is klik 100. C is klik 101."
+      },
+      "levenscyclus-van-betonproducten": {
+        "heading": "Erik autocue · klik 102–110 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 102. B is klik 103. C is klik 104. D is klik 105. E is klik 106. F is klik 107. G is klik 108. H is klik 109. I is klik 110."
+      },
+      "levenscyclusanalyse": {
+        "heading": "Erik autocue · klik 111–115 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 111. B is klik 112. C is klik 113. D is klik 114. E is klik 115."
+      },
+      "verduurzamen-van-beton": {
+        "heading": "Erik autocue · klik 116–118 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 116. B is klik 117. C is klik 118."
+      },
+      "verborgen-verhaal": {
+        "heading": "Erik autocue · klik 119–122 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 119. B is klik 120. C is klik 121. D is klik 122."
+      },
+      "recyclage": {
+        "heading": "Erik autocue · klik 123–127 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 123. B is klik 124. C is klik 125. D is klik 126. E is klik 127."
+      },
+      "projecthighlight-3": {
+        "heading": "Erik autocue · klik 128–129 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": "A is klik 128. B is klik 129."
+      },
+      "kernboodschap-3": {
+        "heading": "Erik autocue · klik 130 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
+        "note": ""
+      },
+      "studiobuik-tweede-gang": {
+        "heading": "Erik autocue · klik 131 · TWEEDE GANG",
+        "note": ""
+      },
+      "sketch-climb-lowered-in-and-layers-by-turns": {
+        "heading": "Erik autocue · klik 132 · TWEEDE GANG",
+        "note": ""
+      },
+      "course-transition-to-chapter-4": {
+        "heading": "Erik autocue · klik 133 · TWEEDE GANG",
+        "note": ""
+      },
+      "we-bouwen-vandaag": {
+        "heading": "Erik autocue · klik 134–135 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": "A is klik 134. B is klik 135."
+      },
+      "the-circle-in-elementen": {
+        "heading": "Erik autocue · klik 136 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": ""
+      },
+      "100-elementen": {
+        "heading": "Erik autocue · klik 137 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": ""
+      },
+      "gebouw-uit-de-webtool": {
+        "heading": "Erik autocue · klik 138–146 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": "A is klik 138. B is klik 139. C is klik 140. D is klik 141. E is klik 142. F is klik 143. G is klik 144. H is klik 145. I is klik 146."
+      },
+      "reductie-carbon-footprint": {
+        "heading": "Erik autocue · klik 147–150 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": "A is klik 147. B is klik 148. C is klik 149. D is klik 150."
+      },
+      "the-circle-en-esg": {
+        "heading": "Erik autocue · klik 151–155 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": "A is klik 151. B is klik 152. C is klik 153. D is klik 154. E is klik 155."
+      },
+      "projecthighlight-4": {
+        "heading": "Erik autocue · klik 156–158 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": "A is klik 156. B is klik 157. C is klik 158."
+      },
+      "kernboodschap-4": {
+        "heading": "Erik autocue · klik 159 · HOOFDSTUK 4 · THE CIRCLE: EEN NIEUWE MANIER VAN DENKEN · Erik Koremans",
+        "note": ""
+      },
+      "studiobuik-derde-gang": {
+        "heading": "Erik autocue · klik 160 · DERDE GANG",
+        "note": ""
+      },
+      "sketch-kit-two-screens-quiet": {
+        "heading": "Erik autocue · klik 161 · DERDE GANG",
+        "note": ""
+      },
+      "case-studies": {
+        "heading": "Erik autocue · klik 162–173 · VRAGEN · Erik Koremans",
+        "note": "A is klik 162. B is klik 163. C is klik 164. D is klik 165. E is klik 166. F is klik 167. G is klik 168. H is klik 169. I is klik 170. J is klik 171. K is klik 172. L is klik 173."
+      },
+      "studiobuik-dessert": {
+        "heading": "Erik autocue · klik 174 · DESSERT",
+        "note": ""
+      },
+      "ending": {
+        "heading": "Erik autocue · klik 175 · UITLOOP · Karim Weiss",
+        "note": "A is klik 175. B is toegevoegd. C is toegevoegd."
+      },
+      "sketch-kit-two-screens-wn-landscape-jump-cuts": {
+        "heading": "Erik autocue · klik 176 · UITLOOP",
+        "note": ""
+      }
+    }
+  },
+  "speakers": {
+    "director-is-speaking": {
+      "A": "Karim Weiss",
+      "B": "Karim Weiss",
+      "C": "Karim Weiss",
+      "D": "Karim Weiss",
+      "E": "Karim Weiss",
+      "F": "Karim Weiss",
+      "G": "Karim Weiss",
+      "H": "Karim Weiss"
+    },
+    "ending": {
+      "A": "Karim Weiss",
+      "B": "Karim Weiss",
+      "C": "Karim Weiss"
+    }
+  },
+  "directions": {
+    "opening-scene": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "director-is-speaking": {
+      "H": "Brug naar Erik"
+    },
+    "het-programma": {
+      "G": [
+        "Else de Bruin stelt StudioBuik voor, live.",
+        "Klik een halve minuut vóór 18:20: de wand dooft uit en telt 0:33 af, linksonder; bij 0:00 klik naar hoofdstuk 1."
+      ]
+    },
+    "course-transition-to-chapter-1": {
+      "A": [
+        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
+        "REGIE: overgang of afstemming met techniek / StudioBuik."
+      ]
+    },
+    "studiobuik-voorgerecht": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "sketch-flow-v2-out-of-a-concrete-block": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "course-transition-to-chapter-2": {
+      "A": [
+        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
+        "BEELDCUE: Overgang naar hoofdstuk 2"
+      ]
+    },
+    "studiobuik-eerste-gang": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "shadow-mosaic": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "course-transition-to-chapter-3": {
+      "A": [
+        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
+        "BEELDCUE: Overgang naar hoofdstuk 3"
+      ]
+    },
+    "studiobuik-tweede-gang": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "sketch-climb-lowered-in-and-layers-by-turns": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "course-transition-to-chapter-4": {
+      "A": [
+        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
+        "BEELDCUE: Overgang naar hoofdstuk 4"
+      ]
+    },
+    "studiobuik-derde-gang": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "sketch-kit-two-screens-quiet": {
+      "A": [
+        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
+        "BEELDCUE: Wand: de bouwdoos op twee schermen"
+      ]
+    },
+    "case-studies": {
+      "B": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "C": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "D": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "E": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "F": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "G": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "H": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "I": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "J": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "K": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
+      "L": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken."
+    },
+    "studiobuik-dessert": {
+      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+    },
+    "sketch-kit-two-screens-wn-landscape-jump-cuts": {
+      "A": [
+        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
+        "EINDE PRESENTATIE"
+      ]
+    }
+  },
+  "subtitles": {
+    "director-is-speaking": {
+      "A": "Dames en heren, beste gasten,\n\nVan harte welkom bij Willy Naessens.\nWat fijn dat u vanavond met zoveel mensen aanwezig bent.\nNamens onze hele organisatie wil ik u hartelijk danken voor uw komst.",
+      "B": "Voor degenen die mij nog niet kennen: ik ben Karim Weiss. Per 1 maart heb ik als algemeen directeur het stokje overgenomen van Jeroen de Bonth.\nJeroen heeft een stapje terug gedaan, maar blijft gelukkig commercieel betrokken bij onze organisatie.\nOok blijft hij met zijn kennis en ervaring bijdragen aan de verdere ontwikkeling van onze visie en strategie.",
+      "C": "Als we naar de huisvestingsmarkt kijken, zien we dat de uitdagingen steeds groter worden.\nWe hebben te maken met:\n– netcongestie\n– de beschikbare vierkante meters worden steeds schaarser\n– vergunningstrajecten duren vaak langer.\n– Tegelijkertijd worden de eisen op het gebied van duurzaamheid steeds hoger.",
+      "D": "En ondanks al die uitdagingen moeten gebouwen natuurlijk functioneel, flexibel én financieel haalbaar blijven.\nDat roept interessante vragen op.\n– Hoe kunnen we bedrijfsruimte stapelen zonder in te leveren op functionaliteit?\n– Hoe maken we gestapelde logistiek rendabel?\n– Hoe combineren we bedrijfsruimte met andere stedelijke functies, zoals tijdelijk wonen?\n– En hoe kunnen we duurzame en modulaire bedrijfsgebouwen blijven ontwikkelen én financieren?",
+      "E": "Dit zijn vraagstukken die we niet alleen kunnen oplossen.\nDaarvoor hebben we elkaar nodig: opdrachtgevers, ontwikkelaars, adviseurs, gebruikers en bouwpartners.\nJuist wanneer we onze kennis vroeg bij elkaar brengen, ontstaan betere plannen.\nDan krijgen we eerder inzicht in de mogelijkheden, de haalbaarheid, de kosten en de risico’s.",
+      "F": "Willy Naessens heeft inmiddels ruim 65 jaar ervaring.\nMet onze geïntegreerde bouwaanpak en onze dertien eigen betonfabrieken hebben we veel kennis en capaciteit zelf in huis.\nDaardoor kunnen wij niet alleen bouwen.\nWe kunnen juist al vanaf het eerste idee meedenken over het ontwerp, de maakbaarheid, de planning, de kosten en de duurzaamheid.",
+      "G": "Vanavond willen we u op een bijzondere manier meenemen in onze wereld.\nNiet alleen door te vertellen wie we zijn en wat we doen, maar vooral door te laten zien hoe wij samen met onze opdrachtgevers complexe huisvestingsvragen kunnen vertalen naar concrete en haalbare oplossingen.",
+      "H": "Om u door het programma van vanavond te leiden, geef ik graag het woord aan Erik Koremans.\nErik neemt u mee langs de verschillende onderdelen van het programma.\nEen avond waarin kennis, inspiratie en ontmoeting bij elkaar komen.\nIk wens iedereen een inspirerende en vooral plezierige avond toe. Geniet van het programma, van de gesprekken en natuurlijk: laat het u smaken.\nErik, aan jou het woord."
+    },
+    "who-is-speaking": {
+      "A": "Goedenavond allemaal, wat fijn dat u er bent. Leuk om hier vanavond zoveel bekende én nieuwe gezichten te zien. Ik ben Erik Koremans en binnen Willy Naessens Nederland houd ik me bezig met commercie en duurzaamheid. Vanavond wil ik u vooral iets laten zien: hoe wij bouwen, welke keuzes we daarbij maken en hoe we samen kunnen bouwen aan de toekomst. Geen traditionele presentatie, maar een verhaal in de vorm van een beleving."
+    },
+    "het-programma": {
+      "A": "We nemen u vanavond mee in vier korte hoofdstukken. Die horen bij elkaar. We beginnen bij de wereld waarin we bouwen. Daarna kijken we naar de verantwoordelijkheid die daarbij hoort. Vervolgens gaan we naar ons belangrijkste materiaal: beton. En tot slot laten we zien hoe we met The Circle anders naar de toekomst van gebouwen kijken.",
+      "B": "Om te beginnen: een gebouw lijkt misschien vanzelfsprekend zodra het er staat. Maar wat komt er allemaal kijken bij het realiseren ervan? En hoe zorgen we ervoor dat u als opdrachtgever kunt rekenen op kwaliteit, snelheid en zekerheid? Daar begint ons verhaal.",
+      "C": "Vervolgens kijken we verder dan het gebouw zelf. Want bouwen heeft invloed op het milieu, op mensen en op de samenleving. Welke verantwoordelijkheid nemen we daarin? En hoe maken we die bij Willy Naessens concreet? Dat bespreken we in het tweede deel.",
+      "D": "Dan komen we bij beton. Een materiaal waar we als Willy Naessens groot mee zijn geworden, maar ook een materiaal dat moet veranderen. We laten u zien waar de impact vandaan komt, hoe we die meten en vooral wat we doen om die te verkleinen.",
+      "E": "En daarmee komen we vanzelf bij The Circle. Want stel dat een gebouw ooit niet meer nodig is op zijn huidige plek. Waarom zouden we de betonelementen dan slopen als we ze ook opnieuw kunnen gebruiken? Dat vraagt een andere manier van ontwerpen, bouwen én samenwerken.",
+      "F": "Die vier hoofdstukken vormen samen één verhaal: van de keuzes die we vandaag maken naar de mogelijkheden van morgen. Tussendoor gaan we vooral ook genieten van het diner. En ik hoop dat de beelden, waarbij onze eigen betonelementen steeds centraal staan en de gerechten straks aanleiding geven tot mooie gesprekken aan tafel.",
+      "G": "Maar eerst het eten. Ik geef graag het woord aan Else de Bruin van StudioBuik, die u vertelt wat er vanavond op tafel komt. Daarna beginnen we met het eerste hoofdstuk: de wereld van bouwen."
+    },
+    "hoe-bouw-je-een-wereld": {
+      "A": "We gaan beginnen met het eerste hoofdstuk: de wereld van bouwen. En ik wil jullie meteen een vraag meegeven.",
+      "B": "Hoe zorgen we ervoor dat we vandaag gebouwen maken die stevig en betrouwbaar zijn, maar tegelijkertijd zo min mogelijk belasting vormen voor de wereld van morgen? Dat is de rode draad van ons verhaal."
+    },
+    "the-catalogue-city": {
+      "A": "Kijkt u eens naar deze kaart van Den Bosch. Van bovenaf ziet u vooral een verzameling gebouwen. Maar achter ieder gebouw schuilt een verhaal.",
+      "B": "We zoomen wat verder in. U ziet kantoren, scholen, distributiecentra en productiebedrijven. Gebouwen die we iedere dag gebruiken en waar we nauwelijks bij stilstaan.",
+      "C": "En als we nog verder inzoomen, komen we uiteindelijk uit bij één onderdeel. Eén betonelement. Laten we daar eens naar kijken."
+    },
+    "everything-a-build-answers-to": {
+      "A": "Want zelfs achter één enkel element gaat al een wereld aan keuzes schuil. Het begint met de locatie: waar gaan we bouwen?",
+      "B": "Dan komt de vraag: welke materialen gebruiken we? En waar komen die vandaan?",
+      "C": "Vervolgens: hoe gaan we dat element produceren? Zo efficiënt en zorgvuldig mogelijk.",
+      "D": "En hoe brengen we het vervolgens op de bouwplaats? Ook transport maakt deel uit van die afweging.",
+      "E": "Maar daarmee zijn we er nog lang niet. Kijk eens hoeveel zaken hier samenkomen: vergunningen, netcongestie, arbeidsmarkt, financiering, stikstof en nog veel meer. Al die keuzes beïnvloeden elkaar."
+    },
+    "the-globe": {
+      "A": "En dat brengt ons bij een belangrijke gedachte. Iedere keuze in de bouw heeft gevolgen. Niet alleen voor het gebouw, maar ook voor de wereld eromheen. Daar hebben wij als bouwbedrijf een verantwoordelijkheid in."
+    },
+    "verticale-integratie": {
+      "A": "Hoe gaan wij daar bij Willy Naessens mee om? Door zo veel mogelijk van het bouwproces zelf te organiseren. Dat noemen we verticale integratie. Het begint bij onze eigen ontwerp- en engineeringafdeling.",
+      "B": "Vervolgens produceren we onze prefab betonelementen in onze eigen fabrieken.",
+      "C": "Ook de grond- en omgevingswerken kunnen we vanuit de groep zelf verzorgen.",
+      "D": "Net als de funderingen, met onze eigen ploegen en machines.",
+      "E": "Het transport van de fabriek naar de bouwplaats organiseren we eveneens zelf.",
+      "F": "En op de bouwplaats hebben we onze eigen montageploegen, die de elementen samenbrengen tot een gebouw.",
+      "G": "Ook voor de dakdichting beschikken we binnen de groep over eigen expertise.",
+      "H": "En voor het aluminium schrijnwerk en glaswerk van de gevels.",
+      "I": "Daarnaast hebben we een eigen technische afdeling.",
+      "J": "En ook na de oplevering blijven we betrokken, met beheer en service. U ziet: van ontwerp tot nazorg hebben we een groot deel van de keten zelf in handen. Voor u als klant betekent dat vooral grip op planning, kwaliteit en kosten."
+    },
+    "de-cijfers": {
+      "A": "Wat betekent die organisatie in de praktijk? Ik laat u een paar cijfers zien. We beginnen bij Willy Naessens Nederland.",
+      "B": "We realiseren ongeveer dertig projecten per jaar.",
+      "C": "Dat doen we in Nederland met zo’n vijfentachtig medewerkers.",
+      "D": "En met een jaarlijkse omzet van ongeveer honderdvijftig miljoen euro.",
+      "E": "Maar Nederland is natuurlijk onderdeel van een veel grotere groep. Die ziet u hier in het rood.",
+      "F": "Op groepsniveau spreken we over ongeveer tweehonderdvijftig bouwprojecten per jaar.",
+      "G": "Met een omzet van circa 1,2 miljard euro.",
+      "H": "En ongeveer 2.750 medewerkers.",
+      "I": "Inmiddels heeft de groep meer dan negenduizend referenties. Die ervaring en schaal brengen we ook mee naar uw project."
+    },
+    "de-fabrieken": {
+      "A": "En waar gebeurt dat allemaal? Hier ziet u het netwerk van onze productielocaties. Dertien productiesites. 12 in België en 1 in Luxemburg.",
+      "B": "Ik licht er één uit: Seveton, een van onze betonfabrieken.",
+      "C": "Seveton.",
+      "D": "Ook de naam vertelt iets over ons familiebedrijf: Sem, Veerle en beton. Dat familiale karakter zit bij ons diep in de organisatie.",
+      "E": "En vlak daarbij ziet u Transwinaton. Geen betonfabriek, maar ons eigen transportbedrijf.",
+      "F": "Transwinaton.",
+      "G": "Ook die naam verwijst naar Willy Naessens en beton. We organiseren dus niet alleen de productie, maar ook het vervoer van onze elementen zelf.",
+      "H": "Zo vormen de fabrieken, het transport en onze bouwprojecten samen één netwerk.",
+      "I": "Vanuit dat netwerk zijn we actief in verschillende Europese landen, met België als thuisbasis en onder meer Nederland, Frankrijk, Luxemburg en Scandinavië als werkgebied."
+    },
+    "projecthighlight-1": {
+      "A": "Ik wil u laten zien wat dat concreet oplevert. Dit is Van Cranenbroek in Budel. Voor deze klant draaide het vooral om continuïteit en ruimte voor groei. Hé Mark.",
+      "B": "We realiseerden hier een afhaalmagazijn met kantoor van ruim dertienduizend vierkante meter. In vierendertig weken. Dankzij onze eigen kolommen, productie en uitvoering konden we snelheid en zekerheid combineren."
+    },
+    "kernboodschap-1": {
+      "A": "En daarmee zijn we terug bij de kern van dit eerste hoofdstuk. Achter ieder gebouw zit een wereld van keuzes. Onze kracht is dat we die keuzes in samenhang kunnen maken. Mijn vraag aan u is dan ook: waar ligt ú wakker van bij uw bouwplannen? Daarover praten we straks graag verder. Maar eerst geef ik het woord aan Else de Bruin van StudioBuik, voor het voorgerecht."
+    },
+    "esg-is-geen-checklist": {
+      "A": "Welkom terug. In het eerste hoofdstuk hebben we gezien hoeveel keuzes er bij één gebouw komen kijken. Maar hoe bepalen we nu of we de goede keuzes maken? Daarover gaat dit tweede hoofdstuk.",
+      "B": "Daar gebruiken we onder meer ESG voor. Dat klinkt misschien als een ingewikkelde afkorting, maar het is eigenlijk heel praktisch: we kijken niet alleen naar wat een gebouw kost en oplevert, maar ook naar de gevolgen van onze keuzes."
+    },
+    "esg-beoordelingskader": {
+      "A": "ESG bestaat uit drie onderdelen. De E staat voor Environmental: milieu. Hoe gaan we om met energie, grondstoffen, uitstoot en klimaat? Bij Willy Naessens kijken we daarbij onder andere naar onze fabrieken, materialen en transport.",
+      "B": "De S staat voor Social: mensen. Denk aan veilig werken, goede arbeidsomstandigheden, opleiding en de invloed van een bouwproject op zijn omgeving. Want zonder mensen kunnen we niets bouwen.",
+      "C": "En de G staat voor Governance: goed bestuur. Dat betekent eerlijk en transparant werken, risico’s beheersen en afspraken nakomen. Dus niet alleen mooie ambities uitspreken, maar ook laten zien wat we doen.",
+      "D": "Die drie onderdelen horen bij elkaar. Een duurzaam gebouw is niet alleen een gebouw met weinig uitstoot. Het moet ook veilig worden gemaakt en verantwoord worden bestuurd. Zo gebruiken wij ESG als een kompas bij onze beslissingen."
+    },
+    "co2-prestatieladder": {
+      "A": "Laten we beginnen bij het milieu, en dan vooral bij CO₂. Om onze uitstoot niet alleen te bespreken, maar ook echt te meten en te verminderen, werken we met de CO₂-Prestatieladder. Dat is een certificeringssysteem dat organisaties helpt hun uitstoot inzichtelijk te maken, doelen te stellen en verbeteringen aan te tonen.",
+      "B": "Op de oude ladder waren er vijf treden. Willy Naessens was in 2025 gecertificeerd op trede drie. Daarmee lieten we zien dat we onze eigen uitstoot in kaart brachten en gericht werkten aan vermindering.",
+      "C": "De ladder is inmiddels vernieuwd. Waar de oude versie vijf treden kende, werkt de nieuwe versie met drie niveaus. De eerste drie oude treden zijn in deze presentatie samengebracht in het nieuwe eerste niveau.",
+      "D": "Op trede één gaat het om onze eigen organisatie. Hoeveel CO₂ veroorzaken onze gebouwen, machines en voertuigen? We meten dat, stellen reductiedoelen en nemen maatregelen. Denk aan energie besparen en elektrificeren.",
+      "E": "Trede twee kijkt verder dan onze eigen poort: naar de keten. Dus ook naar de materialen die we inkopen en het vervoer door anderen. Trede drie richt zich op een verdere route naar vrijwel geen uitstoot, met een voortrekkersrol en open rapportage.",
+      "F": "Op de nieuwe ladder staat Willy Naessens op trede één en we werken aan trede twee. Dat is geen stap achteruit: het systeem is veranderd. Onze opgave is om steeds verder te kijken, van onze eigen activiteiten naar de hele keten."
+    },
+    "co2-behaald": {
+      "A": "Wat levert dat op? Links ziet u onze uitstoot afgezet tegen de omzet. Tussen 2020 en 2024 is die volgens onze cijfers met 26 procent gedaald. Dat is een resultaat van gericht meten en verbeteren.",
+      "B": "De lijn geeft onze doelstelling weer. De staven laten de daadwerkelijke ontwikkeling zien. Juist door beide naast elkaar te zetten, kunnen we volgen of de maatregelen voldoende effect hebben.",
+      "C": "Rechts ziet u onze eigen productie van groene stroom. In 2024 was dat 5,2 gigawattuur. Voor 2026 is in een verdere stijging voorzien. Zo proberen we een groter deel van onze energie zelf duurzaam op te wekken.",
+      "D": "En het blijft niet bij stroom. Onze betonfabrieken hebben het CSC Silver-certificaat. We vangen regenwater op, winnen zand en grind uit spoelwater terug en zetten op bouwplaatsen elektrische aansluitingen en batterijen in. Zo maken we de productie stap voor stap schoner."
+    },
+    "geen-compensatie": {
+      "A": "We hebben onze CO₂-uitstoot altijd gecompenseerd en waren daarmee op papier CO₂-neutraal. Maar voor ons is compenseren niet het einddoel. Door te betalen voor onze uitstoot leggen we onszelf bewust een financiële prikkel op om die te verminderen. Want hoe minder we uitstoten, hoe minder we hoeven te compenseren. Uiteindelijk willen we toe naar een situatie waarin we onze uitstoot zó ver hebben teruggebracht dat compensatie niet meer nodig is. Niet alleen betalen voor onze impact, maar vooral zorgen dat die impact steeds kleiner wordt.",
+      "B": "Daarom is onze boodschap eenvoudig: niet compenseren als eerste oplossing, maar reduceren. De echte winst zit in een schoner proces.",
+      "C": "Hier ziet u een voorbeeld: elektrische kranen. Daarmee kunnen we het gebruik van diesel op de bouwplaats terugdringen.",
+      "D": "En ook het transport verandert. Elektrische vrachtwagens zijn een volgende stap om uitstoot bij het vervoer van onze elementen te beperken.",
+      "E": "Hetzelfde geldt voor elektrische bussen, groene stroom en batterijopslag. Niet één grote ingreep, maar een reeks concrete maatregelen die samen verschil maken."
+    },
+    "domino-effect": {
+      "A": "Kijk wat er gebeurt als we één bewuste keuze maken voor een duurzamer bouwelement. Dat is het begin van een groter effect.",
+      "B": "Dat element staat niet op zichzelf. Het maakt deel uit van een gebouw. Als we de onderdelen slimmer kiezen, verbeteren we stap voor stap de milieuprestatie van dat hele gebouw.",
+      "C": "En gebouwen staan weer samen in een straat, een wijk en uiteindelijk een stad. Dáár zit het domino-effect: veel concrete keuzes op elementniveau kunnen samen een groot verschil maken. Niet automatisch, maar doordat we ze telkens opnieuw toepassen.",
+      "D": "Het woord dat hier ontstaat, is duurzaam. Voor ons begint dat dus niet bij een etiket op een gebouw, maar bij de keuzes die we maken voor de onderdelen."
+    },
+    "esg-social-governance": {
+      "A": "Dan de S van ESG: Social. Bij ons begint dat bij mensen. Willy Naessens zei altijd dat niet de machines of de gebouwen, maar de mensen zijn grootste kapitaal waren. Die gedachte is nog steeds belangrijk.",
+      "B": "Daarom investeren we in opleiding, veiligheid en werkzekerheid. Want goed bouwen begint bij mensen die hun vak verstaan en veilig kunnen werken.",
+      "C": "En die verantwoordelijkheid stopt niet bij onze eigen medewerkers. We kijken ook naar de omgeving waarin we bouwen en naar de mensen die de gebouwen straks gebruiken.",
+      "D": "Tot slot de G: Governance. Dat betekent dat we onze verantwoordelijkheid bestuurlijk ook goed organiseren. Met duidelijke afspraken, controles, certificeringen, transparante rapportage en langdurige relaties met onze partners.",
+      "E": "Als u deze beelden samen ziet, is dit eigenlijk de kern van ESG: milieu, mensen en goed bestuur. Geen drie losse onderwerpen, maar drie kanten van dezelfde verantwoordelijkheid."
+    },
+    "projecthighlight-2": {
+      "A": "Kijk Gijs; Een mooi voorbeeld is VGP Park Nijmegen, gebouw B en C. Hier komen schaal, uitvoering en aandacht voor duurzaamheid samen in een logistiek project van ruim 130.000 vierkante meter.",
+      "B": "Het project is in 104 weken gebouwd voor VGP Group. Dat laat zien hoe we onze kennis en organisatie inzetten bij grote opgaven en ook binnen planning en budget kunnen bouwen.",
+      "C": "En kijkt u naar het dak: zonnepanelen maken opwekking van groene stroom mogelijk. Zo wordt de E van ESG zichtbaar in een echt gebouw."
+    },
+    "kernboodschap-2": {
+      "A": "Wat ik u uit dit hoofdstuk wil meegeven: duurzaamheid is voor ons geen apart onderwerp naast het bouwen. Het bepaalt mede hoe we bouwen. En de vraag voor straks aan tafel is: welke keuze die we vandaag maken, is over twintig jaar nog steeds de juiste? Ik geef graag het woord aan Else voor de volgende gang."
+    },
+    "we-gieten-kennis": {
+      "A": "We hebben gezien hoe we bouwen en hoe we onze verantwoordelijkheid nemen. Nu gaan we naar het materiaal waar ons bedrijf groot mee is geworden: beton. En vooral naar de vraag hoe we dat steeds beter kunnen maken.",
+      "B": "Beton is de constructief gezien de ruggengraat van veel gebouwen. Maar dat betekent niet dat we het moeten blijven maken zoals we dat altijd deden. Juist bij dit materiaal ligt voor ons een kans een belangrijke opdracht."
+    },
+    "co2-impact-van-beton": {
+      "A": "Co2 impact van beton; De productie van beton heeft wereldwijd een grote impact op het milieu. Ongeveer 8% van de totale wereldwijde CO₂-uitstoot wordt veroorzaakt door de productie van beton. De rode balk laat zien dat cement verreweg het meest milieubelastende bestanddeel van beton is.",
+      "B": "Bij Willy Naessens werken betontechnologen voortdurend aan het verbeteren van de samenstelling van beton. Dit leidt tot aanzienlijke CO₂-reducties. De bouwbehoefte is wereldwijd zo groot dat we niet zonder beton kunnen. Juist daarom vinden we het belangrijk om onze verantwoordelijkheid te nemen. Als we beton nodig hebben, willen we ervoor zorgen dat we het zo duurzaam mogelijk produceren en toepassen. Zo werken we stap voor stap aan het verminderen van onze impact op het milieu.",
+      "C": "Ook in Nederland speelt dat. We kunnen beton niet zomaar wegdenken uit onze gebouwen. De vraag is dus niet óf we beton gebruiken, maar hoe we de impact ervan aantoonbaar verlagen."
+    },
+    "de-fasen-a-b-en-c": {
+      "A": "Om dat goed uit te leggen, analyseren we een betonelement door zijn hele levenscyclus. We delen deze levenscyclus analyse op in drie delen: A, B en C. A begint bij de grondstoffen en loopt door tot en met de bouw. Het gaat hier dus over grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats en montage.",
+      "B": "B staat voor de gebruiksfase van het gebouw, en tijdens de gebruiksfase vindt er onderhoud plaats, reparatie en eventueel vervanging en verbouwing. Deze fase kan tientallen jaren duren, ons beton gaat minstens 100 jaar mee.",
+      "C": "En C gaat over het einde van de levensduur van het gebouw; de vraag is dan demonteren of slopen. Juist daar over de verwerking van dit afval willen we anders over gaan nadenken. Want de vraag is; is dit wel afval? Samenvattend ziet u nog even de hele levensloop overzichtelijk bij elkaar."
+    },
+    "levenscyclus-van-betonproducten": {
+      "A": "We beginnen bij A, bij de grondstoffen. Iedere stap vraagt energie en materialen en heeft dus een eigen milieu-impact.",
+      "B": "Vervolgens maken we het element in de fabriek en brengen we het naar de bouwplaats. Ook productie, transport en montage tellen mee in de milieubelasting.",
+      "C": "Daarna wordt het gebouw gebruikt. In deze lange fase kijken we naar onderhoud, reparaties en veranderingen die nodig zijn om het gebouw bruikbaar te houden.",
+      "D": "En aan het einde van de traditionele route volgt sloop en afvalverwerking. Dat noemen we een lineaire keten: maken, gebruiken en afdanken. Take, Make, Waste.",
+      "E": "Maar waarom zouden we een goed betonelement na één gebouw afschrijven? Hier begint ons andere denken: niet afdanken wat nog functioneel is dus nog waarde heeft.",
+      "F": "De eerste stap is dan zorgvuldig demonteren, zodat het element heel blijft en opnieuw inzetbaar is.",
+      "G": "Vervolgens moet dat element worden vervoerd. Ook die stap hoort bij het verhaal; hergebruik is alleen zinvol als we de hele keten bekijken.",
+      "H": "Soms is het element niet meteen opnieuw nodig. Dan moet het veilig worden opgeslagen en goed herkenbaar blijven.",
+      "I": "En uiteindelijk krijgt het een plek in een volgend gebouw. Zo maken we van een eindpunt een nieuw begin. Daar komen we straks bij The Circle uitgebreid op terug."
+    },
+    "levenscyclusanalyse": {
+      "A": "Dus hoe weten we of een duurzame keuze echt echt duurzamer is? Dat rekenen we uit met de levenscyclusanalyse berekening. Het begint bij alles wat we inkopen: van elk materiaal kennen we de herkomst, het transport en de CO₂-impact.",
+      "B": "Daarnaast kennen we onze eigen betonmengsels: welk cement en welke bindmiddelen erin zitten.",
+      "C": "Die twee voegen we samen in één berekening: de levenscyclusanalyse berekening.",
+      "D": "Zo berekenen we per product hoeveel CO₂ er in de materialen zit, en wat een andere keuze oplevert."
+    },
+    "verduurzamen-van-beton": {
+      "A": "Wat doen we met die kennis? We verduurzamen beton op drie manieren. Eén: de samenstelling aan te passen. Andere bindmiddelen en toeslag materialen.",
+      "B": "Twee: de productie. Zuinig met water, energie en grondstoffen, en we hergebruiken wat vrijkomt.",
+      "C": "En drie: bemeten. Met de levenscyclusanalyse kennen we de CO₂-voetafdruk van elk product, en zien we wat elke verbetering oplevert."
+    },
+    "verborgen-verhaal": {
+      "A": "Achter ieder betonelement zit dus meer informatie dan u aan de buitenkant ziet. Niet alleen de vorm en de sterkte, maar ook de samenstelling en de milieu-impact.",
+      "B": "Door die informatie vast te leggen, kunnen we beter uitleggen waarom we voor een bepaald mengsel kiezen. Dat helpt onszelf én onze opdrachtgevers.",
+      "C": "Zo wordt een element niet alleen een bouwproduct, maar ook een product waarvan we de milieuprestatie steeds beter kennen.",
+      "D": "En precies die kennis hebben we nodig als we straks een element opnieuw willen inzetten. Dan weten we beter wat we hebben en welke waarde we behouden."
+    },
+    "recyclage": {
+      "A": "Naast slimmer produceren kijken we ook naar wat er met beton gebeurt wanneer een gebouw verandert of verdwijnt. De gebruikelijke route is recyclen.",
+      "B": "Bij recycling wordt beton gebroken en worden de vrijkomende materialen opnieuw gebruikt. Daarmee behouden we grondstoffen, maar het oorspronkelijke element gaat verloren.",
+      "C": "Dat is nuttig, maar er zit een verschil tussen materiaal hergebruiken en een compleet element opnieuw gebruiken.",
+      "D": "Als we een element heel kunnen houden, hoeven we een belangrijk deel van het maakproces niet opnieuw te doorlopen. Dat is de gedachte achter losmaakbaar bouwen.",
+      "E": "Dus: eerst kijken of we een element kunnen behouden en opnieuw inzetten. En pas als dat niet kan, kijken we naar recycling van de grondstoffen."
+    },
+    "projecthighlight-3": {
+      "A": "Hoe ziet onze manier van bouwen er in de praktijk uit? Hier ziet u een pand van onze opdrachtgever WDP; waar Kivits huurder is: een logistiek gebouw waarin onze prefab aanpak volledig tot zijn recht komt. Ook binnen planning en binnen budget.",
+      "B": "Voor opdrachtgevers draait het uiteindelijk om een goed gebouw, met zekerheid over uitvoering en kwaliteit. En voor ons hoort daar steeds vaker een aantoonbaar lagere milieu-impact bij."
+    },
+    "kernboodschap-3": {
+      "A": "De kern van dit hoofdstuk is eenvoudig: we blijven bouwen met beton, maar we verbeteren het recept, het productieproces en de manier waarop we met elementen omgaan. Straks laat ik u zien hoe we dat laatste met The Circle verder brengen. Nu geef ik weer het woord aan Else, voor de toelichting op de volgende gang."
+    },
+    "we-bouwen-vandaag": {
+      "A": "We hebben gezien hoe we beton verbeteren en de impact ervan berekenen. Maar er is nog een grotere vraag: waarom zouden we een goed betonelement na einde levensduur niet meer gebruiken? Daarmee komen we bij hoofdstuk vier: The Circle.",
+      "B": "Kijk naar de onderdelen die samen een gebouw vormen. Wij willen dat die onderdelen later ook weer uit elkaar kunnen. Niet slopen en vermalen als eerste optie, maar demonteren en opnieuw gebruiken."
+    },
+    "the-circle-in-elementen": {
+      "A": "Hier ziet u het uitgangspunt van The Circle: niet één gebouw als eindproduct, maar een verzameling bouwstenen die we ook bij een volgend gebouw kunnen inzetten. Daarvoor moeten maatvoering en verbindingen vanaf het ontwerp kloppen."
+    },
+    "100-elementen": {
+      "A": "Dit zijn de gestandaardiseerde elementen waaruit we kunnen ontwerpen. Door met een vaste familie van bouwstenen te werken, maken we gebouwen voorspelbaar én bereiden we hergebruik voor."
+    },
+    "gebouw-uit-de-webtool": {
+      "A": "Hoe werkt dat voor een opdrachtgever? We beginnen bij de digitale ontwerptool. Hier ontstaat het gebouw eerst als ontwerp, voordat er ook maar één element wordt gemaakt.",
+      "B": "De bouwstenen staan klaar in die tool. Daardoor hoeven we niet telkens helemaal opnieuw te beginnen; we combineren bestaande oplossingen tot een gebouw dat past bij de vraag.",
+      "C": "Hier krijgt het ontwerp vorm in drie dimensies. De tool kan snel een eerste ontwerp en kostenindicatie geven. Zo kunnen we al vroeg met een klant bespreken wat wel en niet werkt.",
+      "D": "En uit dat model volgen de plannen. Dat helpt om ontwerpkeuzes direct concreet te maken en sneller met elkaar af te stemmen.",
+      "E": "Naast het ontwerp en de kosten willen we ook de CO₂-impact zichtbaar maken. Zo kunnen we al in deze fase kijken wat de materiaalkeuzes betekenen, in plaats van pas achteraf.",
+      "F": "Let op hoe de onderdelen met elkaar verbonden zijn. Het uitgangspunt is dat we ze later weer los kunnen maken, zonder ze onnodig te beschadigen.",
+      "G": "En juist doordat de bouwstenen heel blijven, kunnen we ze opnieuw inzetten. Een kolom of balk hoeft dan niet opnieuw geproduceerd te worden voor iedere volgende toepassing.",
+      "H": "Standaardisatie biedt nog een voordeel: bepaalde elementen kunnen vooraf geproduceerd en beschikbaar gehouden worden. Dat kan helpen bij snelheid en leveringszekerheid, mits de vraag en voorraad daarop zijn afgestemd.",
+      "I": "En hier ziet u hoe die losse bouwstenen weer één geheel vormen. Dat is de gedachte achter The Circle: vandaag een goed gebouw maken, met de mogelijkheid om morgen opnieuw te bouwen."
+    },
+    "reductie-carbon-footprint": {
+      "A": "Laten we de milieu-impact vergelijken. Links ziet u de gebruikelijke route: grondstoffen winnen, vervoeren, produceren en uiteindelijk een element in een gebouw toepassen.",
+      "B": "Rechts komt daar een tweede route naast: we gebruiken een bestaand element opnieuw. Dan begint het verhaal niet opnieuw bij de groeve of de fabriek.",
+      "C": "Kijk naar de stappen die daardoor in het ideale hergebruikscenario wegvallen: nieuwe grondstofwinning en de productie van een nieuw element. Natuurlijk blijven demonteren, controleren en vervoeren nodig.",
+      "D": "De illustratie laat zien hoeveel verschil dat volgens het hier getoonde scenario kan maken. Het genoemde aandeel van twintig procent is een scenario-uitkomst, geen algemene garantie voor ieder project. Daarom rekenen we de werkelijke impact per toepassing door."
+    },
+    "the-circle-en-esg": {
+      "A": "Hier verbinden we The Circle met ESG. Bij de E, milieu, gaat het om minder nieuwe grondstoffen en een lagere materiaalgebonden impact door hergebruik.",
+      "B": "De S gaat over mensen en samenleving. Een gebouw dat kan veranderen en waarvan onderdelen bruikbaar blijven, kan beter meebewegen met toekomstige behoeften van mensen.",
+      "C": "En de G gaat over de manier waarop je bestuurlijk besluiten neemt. Als opdrachtgever wil je weten welke prestaties, risico’s en afspraken bij een gebouw horen. Ook bij terugname en hergebruik moet dat goed geregeld zijn.",
+      "D": "U herkent de drie pijlers van eerder vanavond. Met The Circle brengen we ze samen in één manier van ontwerpen en bouwen.",
+      "E": "Zo komt de cirkel rond: niet alleen een duurzaam materiaal, maar ook een doordacht ontwerp, transparante informatie en afspraken voor later gebruik."
+    },
+    "projecthighlight-4": {
+      "A": "En dit is niet alleen een idee op een scherm. Hier ziet u het project Intervest in Herstal in België, waar The Circle voor het eerst al is toegepast. Het gaat om vier loodsen met samen circa veertigduizend vierkante meter.",
+      "B": "Kijk naar de binnenkant. De kolommen, balken en andere onderdelen volgen een herkenbare systematiek. Juist die standaardisatie helpt om een gebouw later aan te passen of te demonteren.",
+      "C": "Van buiten ziet u een volwaardig gebouw. Het bijzondere zit voor een groot deel in wat u níét ziet: de manier waarop de elementen zijn ontworpen om ook na deze gebruiksfase waarde te houden."
+    },
+    "kernboodschap-4": {
+      "A": "Daarmee zijn we aan het einde van onze vier hoofdstukken. U heeft gezien hoe we de bouwketen organiseren, hoe we onze keuzes beoordelen, hoe we beton verbeteren en hoe we met The Circle vooruitkijken. Uiteindelijk gaat het om één vraag: hoe bouwen we vandaag goed, zonder de mogelijkheden van morgen uit het oog te verliezen?"
+    },
+    "case-studies": {
+      "A": "Tot slot laat ik u nog een aantal projecten zien. U ziet telkens het gerealiseerde gebouw naast de technische uitwerking. Dat is de verbinding tussen wat we ontwerpen en wat we daadwerkelijk bouwen."
+    },
+    "ending": {
+      "A": "Dames en heren,\nWe zijn alweer aan het einde gekomen van deze bijzondere avond.\nAllereerst wil ik Erik bedanken voor de begeleiding van het programma.\nDaarnaast wil ik alle collega’s en betrokkenen bedanken die deze avond mogelijk hebben gemaakt.\nEn natuurlijk dank aan u. Voor uw komst, uw belangstelling en de waardevolle gesprekken.",
+      "B": "Als er één boodschap is die ik u vanavond graag wil meegeven, dan is het deze:\nWanneer u nadenkt over een nieuw huisvestingsvraagstuk, betrek ons dan vroegtijdig en daag ons uit!\n\nJuist aan de voorkant kunnen wij met onze kennis, ervaring en geïntegreerde aanpak echt waarde toevoegen.",
+      "C": "Nogmaals hartelijk dank voor uw komst en voor het vertrouwen in Willy Naessens.\nIk hoop dat we elkaar bij een volgend huisvestingsvraagstuk opnieuw weten te vinden.\n\nIk wens u een goede en veilige reis naar huis. Dank u wel en graag tot ziens."
+    },
+    "course-transition-to-chapter-3": {
+      "A": "van"
+    }
+  }
+}

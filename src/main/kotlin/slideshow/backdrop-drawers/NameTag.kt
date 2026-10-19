@@ -54,10 +54,17 @@ class NameTag(
     /** The whole tag's size against the one it was designed at. */
     private val scale: Double = 1.0,
     override val background: ColorRGBa = ColorRGBa.BLACK,
-    override val sound: Sound? = null
+    override val sound: Sound? = null,
+    /**
+     * How many states the tag stands for. The tag itself never changes on a click — it builds on its own
+     * clock — so the clicks are the speaker's: a speech read off the autocue a section a click, as Karim
+     * Weiss's welcome is (19 October 2026), steps through them while the tag stands.
+     */
+    private val clicks: Int = 1
 ) : Backdrop() {
 
     override val name = "Name tag"
+    override val steps get() = clicks.coerceAtLeast(1)
     /** The speaker's own card builds itself as they are named, and the programme cuts on from it invisibly. */
     override val buildsIn get() = false
 

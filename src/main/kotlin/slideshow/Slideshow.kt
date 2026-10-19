@@ -1178,20 +1178,23 @@ val show = slideshow {
     // title card wants. See NameTag in backdrop-drawers/.
     // The director's tag comes first: the director gives the first word of welcome, and the click after
     // it hands over to Erik's tag, the talk going on from there as before (1 October). The same name tag,
-    // so the two read as one kind of moment, at one size: NameTag sets each line off the wall's height, so a
-    // placeholder as long as a real name stands as large as Erik's ("[Naam]" read as a smaller tag). PLACEHOLDER:
-    // the director's name, and the company line.
+    // so the two read as one kind of moment, at one size. The director is Karim Weiss (19 October): his name and
+    // his line as given, the role line left empty as the guest's is, so the two lines stand where Erik's do.
     backdrop(
         NameTag(
-            presenter = "Voornaam Achternaam",
-            organisation = "Willy Naessens",
-            role = "Directeur",
+            presenter = "Karim Weiss",
+            organisation = "CEO Willy Naessens Nederland B.V.",
+            role = "",
             fontPath = boldFont,
-            accent = wnRed
+            accent = wnRed,
+            // His welcome, a section a click on the autocue (show-autocue-additions.json, A to H): the tag stands
+            // through all eight, and the last hands over to Erik. Change the count with the file, or the import
+            // refuses.
+            clicks = 8
         ),
         title = "Director is speaking",
-        notes = "Het eerste welkom, door de directeur van Willy Naessens; de click erna is Erik. " +
-                "PLACEHOLDER: naam en bedrijfsregel van de directeur."
+        notes = "Het eerste welkom, door Karim Weiss, CEO van Willy Naessens Nederland; de click erna is Erik. " +
+                "Zijn welkom staat op Erik's autocue (show-autocue-additions.json)."
     )
     backdrop(
         NameTag(
@@ -2713,7 +2716,10 @@ val show = slideshow {
             // wall. The export of 15 September went silent at the ending.
             sound = ambience,
             // "Take away the qr code from the screen" (30 September): the action and the address alone.
-            qr = false
+            qr = false,
+            // Karim Weiss's closing, a section a click on the autocue (show-autocue-additions.json, A to C):
+            // the thanks, the message, the farewell. The wall stands through all three.
+            clicks = 3
         ),
         title = "Ending",
         notes = "The call to action, before the exit wall. Sentence, action and address are " +
@@ -2821,6 +2827,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         waitForAnimation = Env["${prefix}_WAIT_FOR_ANIMATION"]?.let { Env.boolean("${prefix}_WAIT_FOR_ANIMATION") } ?: settings.waitForAnimation,
         autocue = Env["${prefix}_AUTOCUE"]?.let { Env.boolean("${prefix}_AUTOCUE") } ?: settings.autocue,
         autocueText = Env["${prefix}_AUTOCUE_TEXT"]?.toDoubleOrNull()?.takeIf { it in 24.0..160.0 } ?: settings.autocueText,
+        autocueCps = Env["${prefix}_AUTOCUE_CPS"]?.toDoubleOrNull()?.takeIf { it in slideshow.CUE_CPS_MIN..slideshow.CUE_CPS_MAX } ?: settings.autocueCps,
         // A path with a space in it, as every system font has, is copied somewhere loadFont can parse — see usableFont.
         // A file that is not there falls back to the talk's bold rather than stopping the show.
         autocueFont = Env["${prefix}_AUTOCUE_FONT"]?.takeIf { it.isNotBlank() }?.let { usableFont(it, fallback = boldFont) } ?: settings.autocueFont,
@@ -2850,6 +2857,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         subtitles = Env["${prefix}_SUBTITLES"]?.takeIf { it.isNotBlank() } ?: settings.subtitles,
         subtitlesExtended = Env["${prefix}_SUBTITLES_EXTENDED"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesExtended,
         subtitlesAligned = Env["${prefix}_SUBTITLES_ALIGNED"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesAligned,
+        subtitlesErik = Env["${prefix}_SUBTITLES_ERIK"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesErik,
         subtitleTrack = Env["${prefix}_SUBTITLE_TRACK"]?.takeIf { it.isNotBlank() }?.let { slideshow.SubtitleTrack.of(it) } ?: settings.subtitleTrack,
         subtitleMode = Env["${prefix}_SUBTITLE_MODE"]?.let { Env.boolean("${prefix}_SUBTITLE_MODE") } ?: settings.subtitleMode,
         subtitleCps = Env["${prefix}_SUBTITLE_CPS"]?.toDoubleOrNull() ?: settings.subtitleCps,

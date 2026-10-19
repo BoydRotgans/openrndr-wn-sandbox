@@ -132,6 +132,13 @@ data class Settings(
     /** The autocue's type size, in pixels of the 1920 by 1080 it is composed at. */
     val autocueText: Double = Autocue.TEXT,
     /**
+     * The pace, in characters a second, the autocue scrolls a line at where no voice is rendered for it — and
+     * offers the click at, counts SPREKEN down by and, under autoplay, clicks on at. A little slower than the
+     * subtitles' [subtitleCps] (13 against 15, 19 October 2026), so it keeps step with a speaker reading aloud
+     * to a room rather than running ahead of him. The subtitles, the voice and a filmed run keep their own pace.
+     */
+    val autocueCps: Double = 13.0,
+    /**
      * The face the autocue's script is read in, a font file; null takes the talk's own. Arial Bold as committed
      * (15 October 2026), the teleprompter recommendation: an even sans at a heavy weight reads from further off
      * and at a glance better than the talk's slab serif. The labels round it stay in the talk's face.
@@ -264,7 +271,12 @@ data class Settings(
      */
     val subtitlesAligned: String? = null,
     /**
-     * Which file is read: `default`, `extended` or `aligned`. The organizer's `voice-over`
+     * Erik's autocue: his script for the evening, a line a state, with the stage directions the
+     * autocue draws beside it — see [SubtitleTrack]. Null, or no file there, has none.
+     */
+    val subtitlesErik: String? = null,
+    /**
+     * Which file is read: `default`, `extended`, `aligned` or `erik`. The organizer's `voice-over`
      * selector switches it while the show runs.
      */
     val subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
@@ -417,4 +429,5 @@ fun Settings.subtitlesFile(track: SubtitleTrack): String = when (track) {
     SubtitleTrack.DEFAULT -> subtitles ?: "show-subtitles.json"
     SubtitleTrack.EXTENDED -> subtitlesExtended ?: "show-subtitles-extended.json"
     SubtitleTrack.ALIGNED -> subtitlesAligned ?: "show-subtitles-aligned.json"
+    SubtitleTrack.ERIK -> subtitlesErik ?: "show-subtitles-erik.json"
 }

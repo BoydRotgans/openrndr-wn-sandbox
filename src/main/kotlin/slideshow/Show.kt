@@ -134,8 +134,9 @@ private fun org.openrndr.ApplicationBuilder.present(
     val references = if (organizing) References.read(File(settings.references ?: "export/references"), quiet = true) else References.NONE
     // The two projectors the window spans and where the halves stand on them — see Projectors. Read
     // once: their sizes are the window's. A film, a still or a bench is the canvas and nothing else.
+    // With three screens besides the laptop's, an autocue window with no place takes the third.
     val projectors = if (settings.record || settings.stills || settings.bench) null
-        else Projectors.read(Projectors.plain(settings.width, settings.height)).also { Projectors.started = it }
+        else Projectors.withAutoCue(Projectors.read(Projectors.plain(settings.width, settings.height))).also { Projectors.started = it }
     val spanned = projectors?.takeUnless { it.plain(settings.width / 2, settings.height) }
     spanned?.let { println("projection: " + Projectors.describe(it)) }
 
@@ -209,6 +210,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 subtitlesFile = File(settings.subtitles ?: "show-subtitles.json"),
                 subtitlesExtendedFile = File(settings.subtitlesFile(SubtitleTrack.EXTENDED)),
                 subtitlesAlignedFile = File(settings.subtitlesFile(SubtitleTrack.ALIGNED)),
+                subtitlesErikFile = File(settings.subtitlesFile(SubtitleTrack.ERIK)),
                 meetingFile = File(settings.meeting ?: "show-meeting-tasks.json"),
                 draaiboekFile = settings.draaiboek?.let { File(it) },
                 draaiboekTab = settings.draaiboekTab,
@@ -637,6 +639,14 @@ private fun org.openrndr.ApplicationBuilder.present(
         }
         var subtitleMode = settings.subtitleMode
         val pace = Pace(settings.subtitleCps)
+        // The autocue reads a line at the speaker's pace, a little slower than the subtitles' (Settings.autocueCps),
+        // where no voice is rendered to time it — but a filmed run's autocue keeps the film's own pace, so the two
+        // films still click on the same frames.
+        // The organizer's pace slider moves it while the show runs (Remote.AutocuePace).
+        var autocueCps = settings.autocueCps
+        var cuePace = if (settings.record) pace else Pace(autocueCps)
+        /** The pace the autocue times [index]'s state [step] at: the voice's where one is rendered and on, else the speaker's. */
+        fun readPace(index: Int, step: Int) = if (voiceFrames(index, step) != null) pace else cuePace
         val subtitleOverlay = SubtitleOverlay(
             runCatching { loadFont(Type.file, SubtitleOverlay.EM, TYPE_CHARACTERS, contentScale = 1.0) }.getOrNull(),
             SubtitleOverlay.EM
@@ -1398,8 +1408,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // clicked on. The voice's own length where it is on, the line's reading time where it is not, and a
                 // state with no line its hold: no voice and no subtitles are needed. The arrows still work: a click
                 // lands on a new state, whose clock starts again from there. It stands where the deck runs out.
-                val stand = standFrames(deck.slide, deck.step, subtitles()[ids.getOrElse(deck.index) { "" }, deck.step], settings, pace,
-                    voiceFrames(deck.index, deck.step), voice()?.speech(ids.getOrElse(deck.index) { "" }, deck.step))
+                val stand = standFrames(deck.slide, deck.step, subtitles()[ids.getOrElse(deck.index) { "" }, deck.step], settings,
+                    readPace(deck.index, deck.step), voiceFrames(deck.index, deck.step), voice()?.speech(ids.getOrElse(deck.index) { "" }, deck.step))
                 val more = deck.step < deck.slide.steps - 1 || deck.index < slides.lastIndex
                 if (more && !autoplayPaused && frame - subtitleSince >= stand) forward()
             } else if (autoStepFrames > 0 && frame - lastAutoStep >= autoStepFrames) {
@@ -1766,14 +1776,15 @@ private fun org.openrndr.ApplicationBuilder.present(
                 autocue.layout(listOf(ids, subtitles(), slides.size)) {
                     slides.indices.flatMap { i ->
                         (0 until slides[i].steps).map { step ->
-                            Autocue.Entry(i, step, i + 1, cueTitle(i), subtitles()[idAt(i), step])
+                            Autocue.Entry(i, step, i + 1, cueTitle(i), subtitles()[idAt(i), step], subtitles().directions(idAt(i), step),
+                                subtitles().speaker(idAt(i), step), subtitles().guest(idAt(i), step))
                         }
                     }
                 }
                 val id = idAt(deck.index)
                 val step = deck.step
                 val said = subtitles()[id, step]
-                val timing = CueTiming.of(said, pace, voiceFrames(deck.index, step)?.let { pace.spoken(it) }, voice()?.speech(id, step))
+                val timing = readPace(deck.index, step).let { p -> CueTiming.of(said, p, voiceFrames(deck.index, step)?.let { p.spoken(it) }, voice()?.speech(id, step)) }
                 val elapsed = frame - subtitleSince
                 val moving = stillMoving().first
                 val holding = aside == null && deck.slide.holds(deck.frame - deck.startedAt)
@@ -1786,7 +1797,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 val auto: Pair<Int, Int>? = when {
                     !autoplay || last || cueFilm != null -> null
                     holds.isNotEmpty() -> if (cue < cueFrames.size) (cueAt + cueFrames[cue] - frame) to cueFrames[cue] else null
-                    else -> standFrames(deck.slide, step, said, settings, pace, voiceFrames(deck.index, step), voice()?.speech(id, step))
+                    else -> standFrames(deck.slide, step, said, settings, readPace(deck.index, step), voiceFrames(deck.index, step), voice()?.speech(id, step))
                         .let { (it - elapsed) to it }
                 }
                 val status = when {
@@ -1817,7 +1828,9 @@ private fun org.openrndr.ApplicationBuilder.present(
                     val place = show.outline[deck.index]
                     val (nextLabel, next) = when {
                         step < deck.slide.steps - 1 -> "VOLGENDE KLIK  ${letter(step + 1)}" to
-                                CueTiming.flat(subtitles()[id, step + 1]).ifEmpty { "stil — geen tekst" }
+                                CueTiming.flat(subtitles()[id, step + 1]).ifEmpty {
+                                    subtitles().directions(id, step + 1).firstOrNull()?.let { "regie — ${CueTiming.flat(it)}" } ?: "stil — geen tekst"
+                                }
                         deck.index < slides.lastIndex -> "VOLGENDE DIA" to
                                 "${deck.index + 2}  ${cueTitle(deck.index + 1)}"
                         else -> "EINDE" to "de laatste stand van de show"
@@ -1850,6 +1863,10 @@ private fun org.openrndr.ApplicationBuilder.present(
                         offered = offered,
                         countdown = auto?.let { (left, all) -> if (all > 0) left.toDouble() / all else 0.0 } ?: 0.0,
                         paused = autoplayPaused,
+                        track = subtitleTrack.label,
+                        speaker = subtitles().speaker(id, step),
+                        guest = subtitles().guest(id, step),
+                        regie = said.isBlank() && subtitles().directions(id, step).isNotEmpty(),
                         // full at the click and gone over CLICK_PULSE, so a click is seen at once
                         felt = if (clickFeltAt < 0) 0.0 else ((frame - clickFeltAt) / (CLICK_PULSE * FPS)).let { t ->
                             if (t in 0.0..1.0) (1.0 - t) * (1.0 - t) else 0.0 }
@@ -2026,6 +2043,11 @@ private fun org.openrndr.ApplicationBuilder.present(
                             // said again from its start, so an edited line is seen whole
                             if (command.track == subtitleTrack) subtitleState = -1 to -1
                         }
+                        is Remote.AutocuePace -> {
+                            autocueCps = command.cps
+                            if (!settings.record) cuePace = Pace(autocueCps)
+                            println("organizer: autocue pace %.1f characters a second".format(autocueCps))
+                        }
                         is Remote.Mix -> {
                             speakers.setMix(command.layer, command.gain)
                             println("organizer: mix ${command.layer.key} %.2f".format(command.gain))
@@ -2144,7 +2166,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                     muted = speakers.muted, hasSound = speakers.ready, practice = practice, waitForAnimation = waitForAnimation,
                     subtitles = subtitleMode, subtitleTrack = subtitleTrack, voice = voiceOn,
                     mix = Layer.entries.associateWith { speakers.mixOf(it) }, autoplay = autoplay,
-                    autocue = autocueOn, autocueWindow = autocueWindow != null && autocueVisible
+                    autocue = autocueOn, autocueWindow = autocueWindow != null && autocueVisible,
+                    autocueCps = autocueCps
                 )
             }
 

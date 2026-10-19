@@ -56,6 +56,7 @@ import java.util.concurrent.Executors
  *     POST /api/subtitle-track   { "track": "extended" }       which track is read: default, extended or aligned
  *     POST /api/voice-mode       { "on": true }?               the rendered voice spoken or not
  *     POST /api/mix              { "layer": "voice", "gain": 0.3 }  one track of the sound's level
+ *     POST /api/autocue-pace     { "cps": 13 }                   how fast the autocue reads a line where no voice times it
  *     POST /api/colours          { "red": "FF0000" }, "blue", "save": true
  *                                                              show a house colour on the wall at once;
  *                                                              with save, keep it for the next start
@@ -111,6 +112,8 @@ class Remote(
     private val subtitlesExtendedFile: File = File("show-subtitles-extended.json"),
     /** The aligned track's file — see [SubtitleTrack]. */
     private val subtitlesAlignedFile: File = File("show-subtitles-aligned.json"),
+    /** Erik's autocue's file — see [SubtitleTrack]. */
+    private val subtitlesErikFile: File = File("show-subtitles-erik.json"),
     /** The meeting tasks — see [MeetingTasks]. */
     private val meetingFile: File = File("show-meeting-tasks.json"),
     /** The production's draaiboek and its Show tab, read for the evening's times — see [Draaiboek]. Null has none. */
@@ -152,6 +155,8 @@ class Remote(
     data class WaitForAnimation(val on: Boolean?) : Command
     /** The speaker's autocue on or off; null flips it. Where it goes is the Projection tab's. See [Autocue]. */
     data class Autocue(val on: Boolean?) : Command
+    /** The autocue's reading pace, in characters a second — see [Settings.autocueCps]. */
+    data class AutocuePace(val cps: Double) : Command
     /** Subtitle mode on or off; null flips it. See [Subtitles]. */
     data class Subtitle(val on: Boolean?) : Command
     /** Say these lines from now on — a save from the page, played at once — on [track]. */
@@ -197,7 +202,9 @@ class Remote(
         val autoplay: Boolean = true,
         val autocue: Boolean = false,
         /** Whether the autocue's own window is open and showing. */
-        val autocueWindow: Boolean = false
+        val autocueWindow: Boolean = false,
+        /** The autocue's reading pace, in characters a second. */
+        val autocueCps: Double = 13.0
     )
 
     val commands = ConcurrentLinkedQueue<Command>()
@@ -262,26 +269,35 @@ class Remote(
     var subtitlesAligned: Subtitles = Subtitles.readOrEmpty(subtitlesAlignedFile.path)
         private set
 
+    /** Erik's autocue, as last read or saved. */
+    @Volatile
+    var subtitlesErik: Subtitles = Subtitles.readOrEmpty(subtitlesErikFile.path)
+        private set
+
     /** A track's file, the name the page writes it under, and its lines as last read or saved. */
     private fun trackFile(track: SubtitleTrack): File = when (track) {
         SubtitleTrack.DEFAULT -> subtitlesFile
         SubtitleTrack.EXTENDED -> subtitlesExtendedFile
         SubtitleTrack.ALIGNED -> subtitlesAlignedFile
+        SubtitleTrack.ERIK -> subtitlesErikFile
     }
     private fun trackKey(track: SubtitleTrack): String = when (track) {
         SubtitleTrack.DEFAULT -> "subtitles"
         SubtitleTrack.EXTENDED -> "subtitlesExtended"
         SubtitleTrack.ALIGNED -> "subtitlesAligned"
+        SubtitleTrack.ERIK -> "subtitlesErik"
     }
     private fun trackLines(track: SubtitleTrack): Subtitles = when (track) {
         SubtitleTrack.DEFAULT -> subtitles
         SubtitleTrack.EXTENDED -> subtitlesExtended
         SubtitleTrack.ALIGNED -> subtitlesAligned
+        SubtitleTrack.ERIK -> subtitlesErik
     }
     private fun setTrackLines(track: SubtitleTrack, lines: Subtitles) = when (track) {
         SubtitleTrack.DEFAULT -> subtitles = lines
         SubtitleTrack.EXTENDED -> subtitlesExtended = lines
         SubtitleTrack.ALIGNED -> subtitlesAligned = lines
+        SubtitleTrack.ERIK -> subtitlesErik = lines
     }
 
     /** The pace the show cuts and times its cards at; the page asks for cards at the same one. */
@@ -339,6 +355,7 @@ class Remote(
         get() = mapOf(
             "order" to orderFile, "modules" to modulesFile, "intents" to intentsFile,
             "subtitles" to subtitlesFile, "subtitlesExtended" to subtitlesExtendedFile, "subtitlesAligned" to subtitlesAlignedFile,
+            "subtitlesErik" to subtitlesErikFile,
             "feedback" to feedbackFile, "midi" to midiFile, "meeting" to meetingFile,
             "subtitleFeedback" to subtitleFeedbackFile
         )
@@ -473,6 +490,11 @@ class Remote(
                     p.subtitles = on ?: !p.subtitles
                     if (!p.live) return exchange.json(200, presentationJson(p))
                 }
+                if (path == "/api/autocue-pace" && method == "POST") {
+                    runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["cps"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
+                        ?.takeIf { it.isFinite() }?.let { p.autocueCps = it.coerceIn(CUE_CPS_MIN, CUE_CPS_MAX) }
+                    if (!p.live) return exchange.json(200, presentationJson(p))
+                }
                 if (path == "/api/mix" && method == "POST") {
                     runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject }.getOrNull()?.let { o ->
                         val layer = Layer.of(o["layer"]?.jsonPrimitive?.contentOrNull)
@@ -541,6 +563,11 @@ class Remote(
                 path == "/api/subtitle-mode" && method == "POST" -> {
                     commands += Subtitle(exchange.body()["on"]?.jsonPrimitive?.booleanOrNull)
                     exchange.json(202, ok())
+                }
+                path == "/api/autocue-pace" && method == "POST" -> {
+                    val cps = exchange.body()["cps"]?.jsonPrimitive?.doubleOrNull?.takeIf { it.isFinite() }
+                    if (cps == null) exchange.json(400, error("autocue-pace needs cps, characters a second"))
+                    else { commands += AutocuePace(cps.coerceIn(CUE_CPS_MIN, CUE_CPS_MAX)); exchange.json(202, ok()) }
                 }
                 path == "/api/mix" && method == "POST" -> {
                     val b = exchange.body()
@@ -820,6 +847,8 @@ class Remote(
             put("subtitlesExtended", subtitlesExtended.toJson())
             put("subtitlesAlignedFile", subtitlesAlignedFile.path)
             put("subtitlesAligned", subtitlesAligned.toJson())
+            put("subtitlesErikFile", subtitlesErikFile.path)
+            put("subtitlesErik", subtitlesErik.toJson())
             // The voices rendered per track, seconds a state — read off the folder each time, since
             // the renderer writes it from outside the show.
             put("voiceDir", voiceDir?.path ?: "")
@@ -913,7 +942,7 @@ class Remote(
             put("muted", s.muted); put("hasSound", s.hasSound); put("practice", s.practice); put("subtitles", s.subtitles)
             put("waitForAnimation", s.waitForAnimation)
             put("subtitleTrack", s.subtitleTrack.key); put("voice", s.voice); put("autoplay", s.autoplay)
-            put("autocue", s.autocue); put("autocueWindow", s.autocueWindow)
+            put("autocue", s.autocue); put("autocueWindow", s.autocueWindow); put("autocueCps", s.autocueCps)
             put("mix", buildJsonObject { s.mix.forEach { (l, g) -> put(l.key, g) } })
             put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
             put("exportFrame", exportFrame); put("exportFrames", exportFrames)
@@ -963,7 +992,7 @@ class Remote(
         put("projection", p.projection); put("muted", p.muted); put("practice", p.practice); put("subtitles", p.subtitles)
         put("waitForAnimation", p.waitForAnimation)
         put("subtitleTrack", p.subtitleTrack.key); put("voice", p.voice); put("autoplay", p.autoplay)
-        put("autocue", p.autocue)
+        put("autocue", p.autocue); put("autocueCps", p.autocueCps)
         put("mix", buildJsonObject { p.mix.forEach { (l, g) -> put(l.key, g) } })
     }
 
@@ -1035,6 +1064,7 @@ class Remote(
         subtitles = Subtitles.readOrEmpty(subtitlesFile.path)
         subtitlesExtended = Subtitles.readOrEmpty(subtitlesExtendedFile.path)
         subtitlesAligned = Subtitles.readOrEmpty(subtitlesAlignedFile.path)
+        subtitlesErik = Subtitles.readOrEmpty(subtitlesErikFile.path)
         midi = if (midiFile.isFile) runCatching { MidiWanted.read(midiFile) }.getOrDefault(MidiWanted.EMPTY) else MidiWanted.EMPTY
         catalogue = runCatching { catalogue.withModules(modules, references) }.getOrDefault(catalogue)
         show = runCatching { catalogue.arranged(currentOrder()) }.getOrDefault(catalogue)
@@ -1138,3 +1168,7 @@ class Remote(
         const val PREVIEW_WIDTH = 768
     }
 }
+
+/** The autocue's reading pace the page may set, in characters a second: a crawl to a gallop either side of its 13. */
+const val CUE_CPS_MIN = 6.0
+const val CUE_CPS_MAX = 24.0

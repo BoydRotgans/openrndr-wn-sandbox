@@ -53,7 +53,8 @@ fun main() {
         subtitles = settings.subtitleMode,
         subtitleTrack = settings.subtitleTrack,
         voice = settings.voiceOn,
-        autoplay = settings.autoplay
+        autoplay = settings.autoplay,
+        autocueCps = settings.autocueCps
     ).also { p -> settings.levels.forEach { (layer, gain) -> p.mix[layer] = gain } }
     remote = Remote(
         declared, File(settings.order ?: "show-order.json"), settings.organizerPort, File("build/previews"),
@@ -64,6 +65,7 @@ fun main() {
         subtitlesFile = File(settings.subtitles ?: "show-subtitles.json"),
         subtitlesExtendedFile = File(settings.subtitlesFile(SubtitleTrack.EXTENDED)),
         subtitlesAlignedFile = File(settings.subtitlesFile(SubtitleTrack.ALIGNED)),
+        subtitlesErikFile = File(settings.subtitlesFile(SubtitleTrack.ERIK)),
         meetingFile = File(settings.meeting ?: "show-meeting-tasks.json"),
         draaiboekFile = settings.draaiboek?.let { File(it) },
         draaiboekTab = settings.draaiboekTab,
@@ -97,14 +99,17 @@ private fun showCommand(): List<String> {
  * show already reads for that, see `SLIDES_UNDECORATED` in `.env.example`.
  *
  * Where, in screen points: the desktop place set in the Projection tab (see [slideshow.Projectors]),
- * else `SLIDES_PROJECTION_X/_Y`. With neither the projectors are taken to be the rightmost displays,
- * top aligned: the right edge of the whole desktop less the two projectors' width, read off Finder,
- * which is where a wall plugged in beside a laptop ends up.
+ * else `SLIDES_PROJECTION_X/_Y`. With neither: with three screens besides the laptop's own, the first
+ * two, the third being the speaker's autocue; with fewer, the rightmost two, which is where a wall
+ * plugged in beside a laptop ends up ([slideshow.Projectors.wallScreens]). Where macOS will not list
+ * its displays, the right edge of the whole desktop less the two projectors' width, read off Finder.
  */
 private fun projectionEnvironment(canvasWidth: Int, canvasHeight: Int): Map<String, String> {
     val setup = slideshow.Projectors.read(slideshow.Projectors.plain(canvasWidth, canvasHeight))
-    val x = setup.desktopX ?: Env["SLIDES_PROJECTION_X"]?.toIntOrNull() ?: desktopRight()?.let { it - setup.width } ?: 0
-    val y = setup.desktopY ?: Env["SLIDES_PROJECTION_Y"]?.toIntOrNull() ?: 0
+    val envX = Env["SLIDES_PROJECTION_X"]?.toIntOrNull()
+    val auto = if (setup.desktopX == null && envX == null) slideshow.Projectors.autoPlace(setup) else null
+    val x = setup.desktopX ?: envX ?: auto?.first ?: desktopRight()?.let { it - setup.width } ?: 0
+    val y = setup.desktopY ?: Env["SLIDES_PROJECTION_Y"]?.toIntOrNull() ?: auto?.second ?: 0
     return mapOf(
         "SLIDES_UNDECORATED" to "true",
         "SLIDES_WINDOW_SCALE" to "1.0",

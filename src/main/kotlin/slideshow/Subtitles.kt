@@ -53,6 +53,57 @@ class Subtitles(
     /** The line for [step] of the slide [id], or empty where nothing is said. */
     operator fun get(id: String, step: Int): String = lines[id]?.get(step).orEmpty()
 
+    /**
+     * What is done over a state rather than said: `directions`, the same shape as the lines, a letter's
+     * value one string or a list of them. Only Erik's autocue carries them ([SubtitleTrack.ERIK]) — the
+     * REGIE blocks of his script, a cue inside a passage, the closing EINDE PRESENTATIE — and only the
+     * autocue draws them, apart from the script; the wall's subtitles and the voice never read them.
+     */
+    val directions: Map<String, Map<Int, List<String>>> by lazy {
+        val body = runCatching { extra["directions"]?.jsonObject }.getOrNull() ?: return@lazy emptyMap()
+        fun list(v: JsonElement): List<String> = when (v) {
+            is JsonArray -> v.mapNotNull { runCatching { it.jsonPrimitive.contentOrNull }.getOrNull()?.trim() }
+            else -> listOfNotNull(runCatching { v.jsonPrimitive.contentOrNull }.getOrNull()?.trim())
+        }.filter { it.isNotEmpty() }
+        body.mapValues { (_, value) ->
+            when (value) {
+                is JsonObject -> value.entries.mapNotNull { (key, todo) -> stepOf(key)?.let { it to list(todo) } }.toMap()
+                else -> mapOf(0 to list(value))
+            }.filterValues { it.isNotEmpty() }
+        }.filterValues { it.isNotEmpty() }
+    }
+
+    /** The directions for [step] of the slide [id]; empty where there are none. */
+    fun directions(id: String, step: Int): List<String> = directions[id]?.get(step).orEmpty()
+
+    /** Who reads the track's lines unless `speakers` says otherwise: its root `speaker`, Erik Koremans on his autocue. */
+    val ownSpeaker: String? by lazy {
+        runCatching { extra["speaker"]?.jsonPrimitive?.contentOrNull }.getOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    /**
+     * Who reads a state's line where it is not the track's own speaker: `speakers`, a name a letter. Erik's
+     * autocue names Karim Weiss on his welcome and his closing, which stand in Erik's script; only the autocue
+     * shows it.
+     */
+    val speakers: Map<String, Map<Int, String>> by lazy {
+        val body = runCatching { extra["speakers"]?.jsonObject }.getOrNull() ?: return@lazy emptyMap()
+        body.mapValues { (_, value) ->
+            when (value) {
+                is JsonObject -> value.entries.mapNotNull { (key, who) ->
+                    stepOf(key)?.let { s -> runCatching { who.jsonPrimitive.contentOrNull }.getOrNull()?.trim()?.takeIf { it.isNotEmpty() }?.let { s to it } }
+                }.toMap()
+                else -> listOfNotNull(runCatching { value.jsonPrimitive.contentOrNull }.getOrNull()?.trim()?.takeIf { it.isNotEmpty() }?.let { 0 to it }).toMap()
+            }
+        }.filterValues { it.isNotEmpty() }
+    }
+
+    /** Who reads [step] of the slide [id]: the one `speakers` names, else the track's own where there is a line; null when nothing is said or the track names nobody. */
+    fun speaker(id: String, step: Int): String? = speakers[id]?.get(step) ?: ownSpeaker?.takeIf { get(id, step).isNotBlank() }
+
+    /** Whether [step] of the slide [id] is read by someone other than the track's own speaker. */
+    fun guest(id: String, step: Int): Boolean = speakers[id]?.get(step).let { it != null && it != ownSpeaker }
+
     /** Slides with at least one line. */
     val size: Int get() = lines.count { (_, states) -> states.values.any { it.isNotBlank() } }
 
@@ -123,25 +174,31 @@ class Subtitles(
 }
 
 /**
- * Which of the three subtitle files the show reads: the **default** track is the voice-over script
+ * Which of the four subtitle files the show reads: the **default** track is the voice-over script
  * as delivered, placed on the states (`show-subtitles.json`); the **extended** track is the full
  * presentation as it would be given, a line for every state, developed from it
- * (`show-subtitles-extended.json`); and the **aligned** track is the extended one rewritten so
+ * (`show-subtitles-extended.json`); the **aligned** track is the extended one rewritten so
  * that every line says what is on the wall at that state, in the wall's own words and in the
- * order it appears (`show-subtitles-aligned.json`, 15 October 2026). All three are [Subtitles];
- * only the file differs. [Settings.subtitlesFile] names the file a track reads.
+ * order it appears (`show-subtitles-aligned.json`, 15 October 2026); and **Erik autocue** is Erik's
+ * own script for the evening, read verbatim off the production's Word file a click at a time, with
+ * the stage directions beside it (`show-subtitles-erik.json`, `tools/autocue_docx.py`, 19 October
+ * 2026). All four are [Subtitles]; only the file differs. [Settings.subtitlesFile] names the file a
+ * track reads.
  *
  * Switching between them is the organizer's voice-over selector, or `SLIDES_SUBTITLE_TRACK`. The
  * voice is rendered per track, into a folder named by the track's [key], so a track with no folder
  * is held and timed by the text rule rather than by speech.
  */
 enum class SubtitleTrack {
-    DEFAULT, EXTENDED, ALIGNED;
+    DEFAULT, EXTENDED, ALIGNED, ERIK;
 
     val key: String get() = name.lowercase()
 
+    /** The track as the autocue and the organizer name it. */
+    val label: String get() = if (this == ERIK) "Erik autocue" else key
+
     companion object {
-        /** `default`, `extended` or `aligned`, any case; anything else is the default track. */
+        /** `default`, `extended`, `aligned` or `erik`, any case; anything else is the default track. */
         fun of(name: String?): SubtitleTrack = entries.firstOrNull { it.key == name?.trim()?.lowercase() } ?: DEFAULT
     }
 }
