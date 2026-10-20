@@ -157,6 +157,18 @@ travel as they are. The site's own **Export CSV** is the human-readable copy.
 a time, with room for their own speaker notes. Nothing of the review is on it, and **no voice-over
 is ever heard there and no subtitles are burned into its film**.
 
+**The autocue text can be edited there** (19 October), above the speaker notes: Erik's autocue as the
+show has it, exported with `pnpm export-script` to `public/releases/practice/script.json` (run it, and
+deploy, whenever the show's text has changed). Every edit keeps the text it was made from: a changed click
+says **Gewijzigd**, shows the original with what was taken out struck through and what was added marked,
+and can be set back; **Wijzigingen** in the head lists every changed click, in the show's order, and
+downloads them. Edits are saved through `/api/script` into `speaker_notes` under `script:` keys (no new
+table). `pnpm pull-script` writes them to `../show-script-edits.json`, to take into the show.
+
+**The text is locked until "Bewerk deze tekst" is clicked.** Editing then is a mode: the field turns to
+paper, the rest of the page is dimmed and stands still (clicker and keys included), and the change is
+written only on **Opslaan** (⌘/Ctrl + Enter). **Annuleren** leaves the text as it was.
+
 **The autocue plays under the film** (15 October): the speaker's own screen, filmed on the same run as
 the film (`SLIDES_AUTOCUE_FILM`) and so frame for frame with it — the script scrolling on as the click
 plays, SPREKEN, WACHT, and KLIK standing at the click's end, exactly as the presenter will see it on the

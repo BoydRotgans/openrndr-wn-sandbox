@@ -287,7 +287,7 @@
     "levenscyclus-van-betonproducten": {
       "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt. Hier is de hele levenscyclus van een betonproduct. Eerst de productfase: grondstofwinning, transport naar de fabriek, productie.",
       "B": "Dan de bouwfase: transport naar de bouwplaats, en montage.",
-      "C": "De gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing. Tientallen jaren.",
+      "C": "De gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing.",
       "D": "En dan het einde van de levensduur: sloop, transport, afvalverwerking, verwijdering. Zo gaat het nu. Lineair.",
       "E": "Wij vervangen die laatste kolom. In plaats van sloop komt The Circle: vier stappen, met in elk vak een echt element uit onze catalogus.",
       "F": "Elementen demonteren, in plaats van slopen.",
@@ -299,8 +299,7 @@
       "A": "Hoe weten we wat een element werkelijk kost aan CO₂? Met een levenscyclusanalyse. Aan de ene kant een database van alle aangekochte materialen.",
       "B": "Aan de andere kant een database van onze betonmengsels: elke samenstelling, elk bindmiddel.",
       "C": "Die twee brengen we samen in de analyse.",
-      "D": "En dat maakt mogelijk wat vroeger een schatting was: de materiaalgebonden CO₂-uitstoot, product per product.",
-      "E": "Levenscyclusanalyse laat objectief toe om de verduurzaming van betonproducten in kaart te brengen. En die informatie, over de materialen en de mengsels, leveren we mee met elk gebouw."
+      "D": "En dat maakt mogelijk wat vroeger een schatting was: de materiaalgebonden CO₂-uitstoot, product per product. Levenscyclusanalyse laat objectief toe om de verduurzaming van betonproducten in kaart te brengen. En die informatie, over de materialen en de mengsels, leveren we mee met elk gebouw."
     },
     "verduurzamen-van-beton": {
       "A": "De Willy Naessens Group benadert beton op drie niveaus. Ten eerste op samenstelling: minder cement, lagere klinker, nieuwe bindmiddelen, zelfs beton zonder cement. De wolk die u ziet mengen is precies dat: verschillende samenstellingen die in elkaar overgaan.",
@@ -393,7 +392,7 @@
     },
     "de-fasen-a-b-en-c": {
       "A": "Eerst drie letters, die u zo op elk vak terugziet. Volg de weg van een betonelement: A is alles van grondstof tot gebouw, de productie en de bouw.",
-      "B": "Dan B, het langste stuk van de weg: het gebruik. Tientallen jaren onderhoud, reparatie en verbouwing.",
+      "B": "Dan B, het langste stuk van de weg: het gebruik. Onderhoud, reparatie en verbouwing.",
       "C": "En C is het einde van de levensduur: sloop, transport, afvalverwerking en verwijdering. Daar loopt de weg dood."
     }
   }

@@ -43,7 +43,8 @@ export const prefs = {
   getTrack: () => read<string>(TRACK, 'film'),
   setTrack: (key: string) => write(TRACK, key),
   /** Which subtitle track the voice-over panel was last left on. */
-  getVoiceTrack: () => read<string>(VOICE_TRACK, 'voiceover'),
+  // Erik's autocue first: the script presented (19 October 2026); a release without it falls back to its first tab
+  getVoiceTrack: () => read<string>(VOICE_TRACK, 'voiceover_erik'),
   setVoiceTrack: (key: string) => write(VOICE_TRACK, key),
 }
 

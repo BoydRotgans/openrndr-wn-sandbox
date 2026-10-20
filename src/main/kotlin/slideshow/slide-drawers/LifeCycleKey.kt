@@ -15,15 +15,20 @@ import org.openrndr.draw.loadImage
 import org.openrndr.draw.shadeStyle
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import slideshow.Arrival
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
+import slideshow.Want
+import slideshow.linear
+import slideshow.voiced
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
 import slideshow.easeInOutCubic
 import slideshow.frames
 import slideshow.smoothstep
 import java.io.File
+import kotlin.math.roundToInt
 
 /**
  * The letters of the life cycle, explained before it is shown: A, B and C as one road, a stretch a
@@ -299,6 +304,55 @@ class LifeCycleKey(
         return lines
     }
 
+    // --- the build as a score ------------------------------------------------------------- //
+
+    private var paneW = 1920.0
+    private var paneH = 1080.0
+
+    override fun layOut(width: Int, height: Int) {
+        paneW = width.toDouble()
+        paneH = height.toDouble()
+    }
+
+    override val lanes: List<String> get() = listOf("road", "letters", "stops", "dead end", "states")
+
+    /**
+     * The road's build, read off [paint]'s own arithmetic: a stretch as it is drawn, its letter and
+     * meaning coming up over the first [LABEL_IN] of it, a stop as the head passes it (its dot, code,
+     * drawing and line in the list all come up on that one ramp), and C's bar shutting the road at the
+     * end. A draws on the slide's own clock, B and C on their clicks, and a stretch's head stands at the
+     * deck's ease of the share gone, so [linear] reads the frame back exactly. Pitch is where on the road
+     * a thing stands, left lowest, so the road is heard rising as it is drawn.
+     */
+    override fun arrivals(clicks: List<Int>): List<Arrival> {
+        val states = super.arrivals(clicks).map { it.copy(lane = STATES_LANE) }
+        val left = paneW * ROAD_LEFT
+        val length = paneW * (ROAD_RIGHT - ROAD_LEFT)
+        fun pitch(x: Double) = (x / paneW * (NOTES - 1)).roundToInt().coerceIn(0, NOTES - 1)
+        val wants = ArrayList<Want>()
+        for (i in 0 until minOf(letters.size, clicks.size + 1)) {
+            val start = left + length * (0 until i).sumOf { share(it) } + paneW * BREAK * i
+            val span = length * share(i)
+            val from = if (i == 0) 0 else clicks[i - 1]
+            val run = if (i == 0) frames(OPEN) else stepLength(i)
+            /** The frame this stretch's head has drawn [t] of it on. */
+            fun at(t: Double) = from + (linear(t) * run).roundToInt()
+            fun want(lane: Int, x: Double, a: Double, b: Double) =
+                Want(lane, pitch(x), at(a), (at(b) - at(a)).coerceAtLeast(frames(0.05)), 0, NOTES - 1)
+
+            wants += want(ROAD_LANE, start, 0.0, 1.0)
+            wants += want(LETTERS_LANE, start, 0.0, LABEL_IN)
+            val pop = paneH * POP / span
+            val n = letters[i].steps.size
+            for (k in 0 until n) {
+                val t = (k + 0.5) / n
+                wants += want(STOPS_LANE, start + span * t, t, (t + pop).coerceAtMost(1.0))
+            }
+            if (i == letters.lastIndex) wants += want(END_LANE, start + span, 0.97, 1.0)
+        }
+        return voiced(wants) + states
+    }
+
     /** One line, centred on [at]. */
     private fun line(drawer: Drawer, content: String, face: FontImageMap, at: Vector2, scale: Double) {
         drawer.isolated {
@@ -375,5 +429,13 @@ class LifeCycleKey(
         )
         /** B's buildings at different heights, so the use stretch reads as a street. */
         val ICON_HEIGHTS = mapOf("B1" to 0.74, "B2" to 0.58, "B3" to 0.68, "B4" to 0.54, "B5" to 0.64)
+
+        /** The score: four octaves across the road, left lowest, and its lanes in [lanes]' order. */
+        const val NOTES = 48
+        const val ROAD_LANE = 0
+        const val LETTERS_LANE = 1
+        const val STOPS_LANE = 2
+        const val END_LANE = 3
+        const val STATES_LANE = 4
     }
 }

@@ -65,6 +65,7 @@ export function forRehearsal(path: string) {
     path.startsWith('/assets/r/') ||
     path === '/releases/practice.json' ||
     path.startsWith('/releases/practice/') ||
-    path === '/api/notes'
+    path === '/api/notes' ||
+    path === '/api/script'
   )
 }

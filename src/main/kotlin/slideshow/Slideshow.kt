@@ -1075,6 +1075,20 @@ paper = ColorRGBa.fromHex("2B2D31"),     // a dark grey ground
         unitsOnClick = unitsOnClick
     ).let(tweak)
 
+/** The director of Willy Naessens Nederland, who may give the first welcome and the closing (19 October 2026). */
+const val karimWeiss = "Karim Weiss"
+
+/**
+ * Whose lines are on the autocue besides Erik's, whose autocue it is: `SLIDES_SPEAKERS`, names separated by commas, and
+ * empty for Erik alone, which is the default (20 October 2026: "default only Erik"). The organizer's `speakers` ticks
+ * them and hands them to the next start. A speaker left out still has their slides — Karim's tag stands, and he speaks
+ * his own words over it — but no line on the autocue ([slideshow.Subtitles.forSpeakers]) and no clicks that were only
+ * there to step through those lines; their text stays in the files for when they are in again.
+ */
+fun speakersInShow(prefix: String = "SLIDES"): Set<String> =
+    // `none` and not an empty value says "Erik alone" over a .env that names someone: Env reads blank as unset.
+    Env["${prefix}_SPEAKERS"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() && !it.equals("none", true) }?.toSet().orEmpty()
+
 val show = slideshow {
 
     // --- how it is shown --------------------------------------------------- //
@@ -1178,23 +1192,26 @@ val show = slideshow {
     // title card wants. See NameTag in backdrop-drawers/.
     // The director's tag comes first: the director gives the first word of welcome, and the click after
     // it hands over to Erik's tag, the talk going on from there as before (1 October). The same name tag,
-    // so the two read as one kind of moment, at one size. The director is Karim Weiss (19 October): his name and
-    // his line as given, the role line left empty as the guest's is, so the two lines stand where Erik's do.
+    // so the two read as one kind of moment, at one size. The director is Karim Weiss (19 October), labelled as
+    // Erik is (20 October): the company on the middle line, word for word Erik's, and his title under it.
+    // **The tag always stands**, whoever is on the autocue: Karim speaks his own words over it (20 October).
     backdrop(
         NameTag(
-            presenter = "Karim Weiss",
-            organisation = "CEO Willy Naessens Nederland B.V.",
-            role = "",
+            presenter = karimWeiss,
+            organisation = "Willy Naessens NEDERLAND",
+            role = "Chief Executive Officer (CEO)",
             fontPath = boldFont,
             accent = wnRed,
-            // His welcome, a section a click on the autocue (show-autocue-additions.json, A to H): the tag stands
-            // through all eight, and the last hands over to Erik. Change the count with the file, or the import
-            // refuses.
-            clicks = 8
+            // With Karim among SLIDES_SPEAKERS, his welcome is on the autocue a section a click
+            // (show-autocue-additions.json, A to H): the tag stands through all eight, and the last hands over to
+            // Erik; change the count with the file, or the import refuses. Without him (the default, 20 October) he
+            // speaks his own words, the autocue being Erik's alone, and the tag is the one click of the Word file.
+            clicks = if (karimWeiss in speakersInShow()) 8 else 1
         ),
         title = "Director is speaking",
         notes = "Het eerste welkom, door Karim Weiss, CEO van Willy Naessens Nederland; de click erna is Erik. " +
-                "Zijn welkom staat op Erik's autocue (show-autocue-additions.json)."
+                "Hij spreekt zijn eigen tekst; zijn welkom staat alleen op Erik's autocue (show-autocue-additions.json) " +
+                "als Karim bij de sprekers staat (SLIDES_SPEAKERS, of speakers in de organizer)."
     )
     backdrop(
         NameTag(
@@ -1703,7 +1720,10 @@ val show = slideshow {
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
-                ink = wnRed
+                ink = wnRed,
+                // Four clicks, not five: the definition comes up with the conclusion (19 October 2026), the
+                // fifth click having nothing said over it on Erik's autocue.
+                definedWithConclusion = true
             ),
             title = "Levenscyclusanalyse",
             notes = "The two databases arrive, are gathered into the analysis, and then what " +
@@ -2718,8 +2738,9 @@ val show = slideshow {
             // "Take away the qr code from the screen" (30 September): the action and the address alone.
             qr = false,
             // Karim Weiss's closing, a section a click on the autocue (show-autocue-additions.json, A to C):
-            // the thanks, the message, the farewell. The wall stands through all three.
-            clicks = 3
+            // the thanks, the message, the farewell. The wall stands through all three. Without him the ending
+            // is the one click it is in the Word file, with Erik's own thanks (20 October 2026).
+            clicks = if (karimWeiss in speakersInShow()) 3 else 1
         ),
         title = "Ending",
         notes = "The call to action, before the exit wall. Sentence, action and address are " +
@@ -2859,6 +2880,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         subtitlesAligned = Env["${prefix}_SUBTITLES_ALIGNED"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesAligned,
         subtitlesErik = Env["${prefix}_SUBTITLES_ERIK"]?.takeIf { it.isNotBlank() } ?: settings.subtitlesErik,
         subtitleTrack = Env["${prefix}_SUBTITLE_TRACK"]?.takeIf { it.isNotBlank() }?.let { slideshow.SubtitleTrack.of(it) } ?: settings.subtitleTrack,
+        speakers = Env["${prefix}_SPEAKERS"]?.let { speakersInShow(prefix) } ?: settings.speakers,
         subtitleMode = Env["${prefix}_SUBTITLE_MODE"]?.let { Env.boolean("${prefix}_SUBTITLE_MODE") } ?: settings.subtitleMode,
         subtitleCps = Env["${prefix}_SUBTITLE_CPS"]?.toDoubleOrNull() ?: settings.subtitleCps,
         voice = Env["${prefix}_VOICE"]?.takeIf { it.isNotBlank() && it != "none" } ?: settings.voice,

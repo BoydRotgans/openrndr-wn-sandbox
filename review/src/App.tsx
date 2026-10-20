@@ -376,9 +376,11 @@ export default function App() {
       : c.kind === 'voiceover' ? `${who} changed the voice-over`
       : c.kind === 'voiceover_extended' ? `${who} changed the extended voice-over`
       : c.kind === 'voiceover_aligned' ? `${who} changed the aligned voice-over`
+      : c.kind === 'voiceover_erik' ? `${who} changed Erik's autocue`
       : c.kind === 'voiceover_note' ? `${who} wrote about the voice-over`
       : c.kind === 'voiceover_extended_note' ? `${who} wrote about the extended voice-over`
       : c.kind === 'voiceover_aligned_note' ? `${who} wrote about the aligned voice-over`
+      : c.kind === 'voiceover_erik_note' ? `${who} wrote about Erik's autocue`
       : !you && c.assignees?.includes(name) ? `${who} assigned you a note`
       : c.clip ? `${who} wrote about ${sound}`
       : `${who} added ${general ? 'a general comment' : `a ${c.topic} note`}`
@@ -714,6 +716,8 @@ export default function App() {
             state={state}
             tracks={[
               ...([
+                // Erik's autocue first, the script presented, on the releases built since it existed (19 October 2026)
+                ...(state.voiceoverErik !== undefined ? [{ key: 'voiceover_erik', label: 'Erik autocue', text: state.voiceoverErik }] : []),
                 { key: 'voiceover', label: 'subtitle', text: state.voiceover ?? '' },
                 { key: 'voiceover_extended', label: 'extended', text: state.voiceoverExtended ?? '' },
                 // the aligned track, on the releases built since it existed (15 October 2026)

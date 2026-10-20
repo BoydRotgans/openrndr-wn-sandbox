@@ -25,6 +25,11 @@ export interface StateInfo {
    * talk rewritten to what each state shows. Only on releases built since it existed.
    */
   voiceoverAligned?: string
+  /**
+   * The same state in **Erik's autocue** (show-subtitles-erik.json, 19 October 2026): the script presented, and the
+   * track every release is filmed on since. Only on releases built since it existed.
+   */
+  voiceoverErik?: string
 }
 
 /** What tools/release_build.py writes beside a release's thumbnails and video. */
@@ -81,10 +86,12 @@ export type CommentKind =
   | 'voiceover'
   | 'voiceover_extended'
   | 'voiceover_aligned'
+  | 'voiceover_erik'
   /** A remark about a line rather than a change to it — it stands under the line, and takes replies. */
   | 'voiceover_note'
   | 'voiceover_extended_note'
   | 'voiceover_aligned_note'
+  | 'voiceover_erik_note'
   /**
    * Where a sound in the audio timeline stands: `body` is a [ClipStatus], `clip` the slot. The
    * latest row for a slot is its status, across releases — a status follows the sound, not the film.

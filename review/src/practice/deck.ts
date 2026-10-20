@@ -76,10 +76,11 @@ export async function loadCut(): Promise<Cut | null> {
     fps: m.fps,
     duration: m.duration,
     // The lines are kept apart from the states, for the subtitle over the film; nothing is played.
-    states: m.states.map(({ voiceover: _v, voiceoverExtended: _x, voiceoverAligned: _a, ...s }) => s),
+    states: m.states.map(({ voiceover: _v, voiceoverExtended: _x, voiceoverAligned: _a, voiceoverErik: _e, ...s }) => s),
     lines: Object.fromEntries(m.states.flatMap((s) => {
       // the track the voice was rendered from, where the cut names it: a click silent there stays silent
-      const line = (m.track === 'aligned' ? s.voiceoverAligned
+      const line = (m.track === 'erik' ? s.voiceoverErik
+        : m.track === 'aligned' ? s.voiceoverAligned
         : m.track === 'extended' ? s.voiceoverExtended
         : m.track === 'default' ? s.voiceover
         : s.voiceoverExtended || s.voiceover) ?? ''

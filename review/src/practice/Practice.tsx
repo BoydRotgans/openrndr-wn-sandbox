@@ -4,6 +4,8 @@ import Overview from './Overview'
 import { copy, sectionName, slideTitle, type Lang } from './copy'
 import { deckOf, loadCut, thumbFrame, thumbUrl, type Cut, type Deck } from './deck'
 import { Notes, type SaveState } from './notes'
+import { Script } from './script'
+import { wordDiff } from './diff'
 import { practiceLink } from '../lib/access'
 import { cardAt, cards as cardsOf } from './subtitles'
 
@@ -15,6 +17,12 @@ const SUBS = 'wn-practice.subtitles-v2'
 const CUE = 'wn-practice.autocue'
 const CUE_PLACE = 'wn-practice.autocue-place'
 
+/** The autocue text of one click while it is being edited: what it said as editing began, and the draft. */
+interface Draft { key: string; slide: string; from: string; text: string }
+/** The keys that move the show, held while the text is being edited. */
+const NAV_KEYS = new Set(['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', ' ', 'Enter', 'r', 'R', 'o', 'O'])
+/** The same text, give or take white space. */
+const same = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim()
 
 function remembered<T>(key: string, fallback: T): T {
   try {
@@ -56,12 +64,23 @@ export default function Practice() {
   const film = useRef<FilmHandle>(null)
 
   const notes = useMemo(() => new Notes(), [])
+  const script = useMemo(() => new Script(), [])
+  const [changesOpen, setChangesOpen] = useState(false)
+  // The autocue text is edited behind a lock: "Bewerk deze tekst" opens a draft, the rest of the page stands
+  // still under a veil until it is saved or cancelled, and only the save writes the change (script.ts).
+  const [edit, setEdit] = useState<Draft | null>(null)
+  const editing = useRef<Draft | null>(null)
+  editing.current = edit
+  const [nudged, setNudged] = useState(0)
+  const nudge = () => setNudged((n) => n + 1)
   const [, redraw] = useReducer((n: number) => n + 1, 0)
   useEffect(() => notes.subscribe(redraw), [notes])
+  useEffect(() => script.subscribe(redraw), [script])
   useEffect(() => {
     notes.load()
-    const away = () => { if (document.visibilityState === 'hidden') notes.flush(true) }
-    const leave = () => notes.flush(true)
+    script.load()
+    const away = () => { if (document.visibilityState === 'hidden') { notes.flush(true); script.flush(true) } }
+    const leave = () => { notes.flush(true); script.flush(true) }
     document.addEventListener('visibilitychange', away)
     window.addEventListener('pagehide', leave)
     return () => {
@@ -69,6 +88,14 @@ export default function Practice() {
       window.removeEventListener('pagehide', leave)
     }
   }, [notes])
+
+  // A draft not yet saved is asked about before the page is left.
+  useEffect(() => {
+    if (!edit || same(edit.text, edit.from)) return
+    const ask = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', ask)
+    return () => window.removeEventListener('beforeunload', ask)
+  }, [edit])
 
   useEffect(() => { remember(LANG, lang); document.documentElement.lang = lang }, [lang])
   useEffect(() => { remember(MUTED, muted) }, [muted])
@@ -112,10 +139,12 @@ export default function Practice() {
 
   const go = useCallback((i: number) => {
     if (!cut) return
+    if (editing.current) { nudge(); return }
     const k = Math.max(0, Math.min(cut.states.length - 1, i))
     const s = cut.states[k]
     setCurrent(k)
     setOverview(false)
+    setChangesOpen(false)
     setPhase('waiting')
     setStartedAt((at) => at ?? Date.now())
     film.current?.play(s.start, s.end)
@@ -147,11 +176,26 @@ export default function Practice() {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const target = e.target as HTMLElement
       const typing = target.tagName === 'TEXTAREA' || target.tagName === 'INPUT'
+      // While the text is being edited nothing else moves: the clicker and the keys only say to save first,
+      // and Esc leaves only a draft that has not been changed.
+      const draft = editing.current
+      if (draft) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          if (same(draft.text, draft.from)) setEdit(null)
+          else nudge()
+        } else if (e.key === 'PageDown' || e.key === 'PageUp' || e.key === 'F5' || (!typing && NAV_KEYS.has(e.key))) {
+          e.preventDefault()
+          nudge()
+        }
+        return
+      }
       if (e.key === 'PageDown') { e.preventDefault(); goNext(); return }
       if (e.key === 'PageUp') { e.preventDefault(); goPrev(); return }
       if (e.key === 'F5') { e.preventDefault(); setOverview((v) => !v); return }
       if (e.key === 'Escape') {
         if (overview) setOverview(false)
+        else if (changesOpen) setChangesOpen(false)
         else if (typing) target.blur()
         return
       }
@@ -225,6 +269,7 @@ export default function Practice() {
   const last = current === states.length - 1
   const save: SaveState = notes.state
   const cueShown = cueOn && !!cut.autocueUrl
+  const changes = script.changes()
 
   return (
     <div className={`practice phase-${phase}`}>
@@ -233,6 +278,11 @@ export default function Practice() {
         <button className="ghost" onClick={() => setOverview(true)} title={`${t.overview} (O)`}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="6" height="5" rx="1" /><rect x="9" y="2" width="6" height="5" rx="1" /><rect x="1" y="9" width="6" height="5" rx="1" /><rect x="9" y="9" width="6" height="5" rx="1" /></svg>
           {t.overview}
+        </button>
+        <button className={`ghost${changes.length ? ' p-changes-btn' : ''}`} onClick={() => setChangesOpen(true)} title={t.changesHint}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12.5 11 4.5l1.5 1.5-8 8H3z" /><path d="M9.5 6 11 7.5" /></svg>
+          {t.changes}
+          {changes.length > 0 && <span className="p-count">{changes.length}</span>}
         </button>
         <Sheets t={t} cut={cut} />
         {cut.autocueUrl && (
@@ -345,6 +395,17 @@ export default function Practice() {
         {cueShown && <FloatingCue t={t} src={cut.autocueUrl!} video={cueFilm} onHide={() => setCueOn(false)} />}
 
         <div className="p-lower">
+          <div className="p-left">
+          <ScriptPanel t={t} script={script} stateKey={state.key} title={title}
+            click={t.clickOf(click + 1, slide.states.length)} onChanges={() => setChangesOpen(true)} count={changes.length}
+            draft={edit?.key === state.key ? edit.text : null} nudged={nudged}
+            onEdit={(text) => setEdit({ key: state.key, slide: state.slide, from: script.text(state.key), text: text ?? script.text(state.key) })}
+            onDraft={(text) => setEdit((d) => (d ? { ...d, text } : d))}
+            onSave={() => {
+              if (edit && !same(edit.text, edit.from)) { script.set(edit.key, edit.slide, edit.text); script.flush() }
+              setEdit(null)
+            }}
+            onCancel={() => setEdit(null)} />
           <section className="p-notes">
             <header>
               <div>
@@ -368,6 +429,7 @@ export default function Practice() {
               </button>
             </footer>
           </section>
+          </div>
 
           <aside className="p-upnext">
             <h2>{t.upNext}</h2>
@@ -392,9 +454,225 @@ export default function Practice() {
         <p className="p-keys">{t.keys}</p>
       </main>
 
+      {edit && <div className="p-edit-veil" onPointerDown={(e) => { e.preventDefault(); nudge() }} title={t.saveFirst} />}
       {overview && (
-        <Overview t={t} cut={cut} deck={deck} current={current} hasNote={(k) => notes.has(k)} onPick={go} onClose={() => setOverview(false)} />
+        <Overview t={t} cut={cut} deck={deck} current={current} hasNote={(k) => notes.has(k)} isChanged={(k) => script.changed(k)} onPick={go} onClose={() => setOverview(false)} />
       )}
+      {changesOpen && (
+        <Changes t={t} cut={cut} deck={deck} script={script} onGo={go} onClose={() => setChangesOpen(false)} />
+      )}
+    </div>
+  )
+}
+
+/** A change as it reads: the old words struck through where they went, the new ones marked where they came. */
+function Diff({ before, after }: { before: string; after: string }) {
+  return (
+    <p className="p-diff">
+      {wordDiff(before, after).map((piece, i) => {
+        const gap = i > 0 ? ' ' : ''
+        return piece.kind === 'same' ? <span key={i}>{gap}{piece.text}</span>
+          : piece.kind === 'out' ? <span key={i}>{gap}<del>{piece.text}</del></span>
+          : <span key={i}>{gap}<ins>{piece.text}</ins></span>
+      })}
+    </p>
+  )
+}
+
+/**
+ * The autocue's text for this click — above the speaker notes, since it is what is said. Who reads it and any stage
+ * direction stand over it; once the text differs from what it was, the panel says so, shows the change against the
+ * original, and offers to set it back. Every edit is kept with the text it was made from (script.ts).
+ *
+ * **It is read only until "Bewerk deze tekst" is clicked**, so the text is never changed by a stray keystroke while
+ * the show is being clicked through. Editing is a mode: the field turns to paper, the rest of the page stands still
+ * under a veil, and nothing is written until "Opslaan" — "Annuleren" leaves the text as it was.
+ */
+function ScriptPanel({ t, script, stateKey, title, click, onChanges, count, draft, nudged, onEdit, onDraft, onSave, onCancel }: {
+  t: (typeof copy)['nl']; script: Script; stateKey: string; title: string; click: string; onChanges(): void; count: number
+  draft: string | null; nudged: number; onEdit(text?: string): void; onDraft(text: string): void; onSave(): void; onCancel(): void
+}) {
+  const editing = draft !== null
+  const text = editing ? draft : script.text(stateKey)
+  const original = script.original(stateKey)
+  const changed = editing ? !same(draft, original) : script.changed(stateKey)
+  const who = script.speaker(stateKey)
+  const directions = script.directions(stateKey)
+  const save = script.state
+  const box = useRef<HTMLElement>(null)
+  const field = useRef<HTMLTextAreaElement>(null)
+
+  // Into edit mode: the panel comes to the middle of the window and the caret to the end of the text.
+  useEffect(() => {
+    if (!editing) return
+    box.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    const f = field.current
+    if (f) { f.focus({ preventScroll: true }); f.setSelectionRange(f.value.length, f.value.length) }
+  }, [editing])
+
+  // A key or a click elsewhere while editing shakes the bar that says how to get out.
+  const bar = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!nudged || !bar.current) return
+    bar.current.classList.remove('nudge')
+    void bar.current.offsetWidth
+    bar.current.classList.add('nudge')
+  }, [nudged])
+
+  return (
+    <section ref={box} className={`p-script${changed ? ' changed' : ''}${editing ? ' editing' : ''}`} title={editing ? undefined : t.scriptAbout}>
+      {editing && (
+        <div className="p-edit-bar" ref={bar}>
+          <span className="p-edit-tag">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12.5 11 4.5l1.5 1.5-8 8H3z" /><path d="M9.5 6 11 7.5" /></svg>
+            {t.editing}
+          </span>
+          <span className="p-edit-hint">{t.editingHint}</span>
+        </div>
+      )}
+      <header>
+        <div>
+          <h2>
+            {t.script}
+            {changed && <span className="p-badge">{t.changed}</span>}
+          </h2>
+          <p>
+            {t.scriptFor(title, click)}
+            {who && <span className={`p-who${script.guest(stateKey) ? ' guest' : ''}`}>{who}</span>}
+          </p>
+        </div>
+        {editing ? null : (
+          <div className="p-script-side">
+            <span className={`p-save ${save}`}>{save === 'saving' ? t.saving : save === 'saved' ? t.saved : save === 'local' ? t.local : ''}</span>
+            <button className="p-edit-open" onClick={() => onEdit()}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12.5 11 4.5l1.5 1.5-8 8H3z" /><path d="M9.5 6 11 7.5" /></svg>
+              {t.editText}
+            </button>
+          </div>
+        )}
+      </header>
+      {directions.length > 0 && (
+        <div className="p-regie">
+          <b>{t.regie}</b>
+          {directions.map((d, i) => <span key={i}>{d}</span>)}
+        </div>
+      )}
+      {editing ? (
+        <textarea
+          ref={field}
+          value={draft}
+          placeholder={t.scriptEmptyEdit}
+          onChange={(e) => onDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onSave() } }}
+          spellCheck
+          lang="nl"
+        />
+      ) : (
+        <div className={`p-script-text${text.trim() ? '' : ' empty'}`}>{text.trim() ? text : t.scriptEmpty}</div>
+      )}
+      {changed && (
+        <div className="p-was">
+          <div className="p-was-head">
+            <span>{t.was}</span>
+            <button className="link" onClick={() => (editing ? onDraft(original) : onEdit(original))}>{t.restore}</button>
+          </div>
+          <Diff before={original} after={text} />
+          {!editing && script.moved(stateKey) && <p className="p-moved">{t.moved}</p>}
+        </div>
+      )}
+      <footer>
+        {editing ? (
+          <>
+            <span className="p-edit-keys">{t.saveKeys}</span>
+            <button className="ghost small" onClick={onCancel}>{t.cancel}</button>
+            <button className="p-edit-save" onClick={onSave}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" /></svg>
+              {t.save}
+            </button>
+          </>
+        ) : (
+          <button className="ghost small" onClick={onChanges}>
+            {t.changesTitle}{count > 0 ? ` · ${count}` : ''}
+          </button>
+        )}
+      </footer>
+    </section>
+  )
+}
+
+/**
+ * Every click whose text was changed here, in the order of the show: where it is, the change against what it said
+ * before, when, and a way to go there or set it back — so what was changed, on which click, can be read off one list.
+ * A click the film on the page does not have (a later version's) is listed apart, by its key.
+ */
+function Changes({ t, cut, deck, script, onGo, onClose }: {
+  t: (typeof copy)['nl']; cut: Cut; deck: Deck; script: Script; onGo(i: number): void; onClose(): void
+}) {
+  const index = new Map(cut.states.map((s, i) => [s.key, i]))
+  const changes = script.changes()
+  const placed = changes.filter((c) => index.has(c.key)).sort((a, b) => index.get(a.key)! - index.get(b.key)!)
+  const elsewhere = changes.filter((c) => !index.has(c.key))
+  const when = (iso: string) => new Date(iso).toLocaleString(t.locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  const where = (key: string) => {
+    const i = index.get(key)
+    if (i == null) return { section: t.elsewhere, slide: key, click: '' }
+    const sl = deck.slideOf[i]
+    const moment = sl.section.kind === 'moment'
+    return {
+      section: moment ? t.moments[sl.section.name] ?? sl.section.name : `${t.chapter(sl.section.number)} · ${sectionName(sl.section.name)}`,
+      slide: `${t.slideOf(sl.number, deck.slides.length)} — ${slideTitle(t, sl.title, moment)}`,
+      click: t.clickOf(sl.states.indexOf(i) + 1, sl.states.length),
+    }
+  }
+  const download = () => {
+    const lines = [`${t.changesTitle} — ${new Date().toLocaleDateString(t.locale, { day: 'numeric', month: 'long', year: 'numeric' })}`, '']
+    for (const c of [...placed, ...elsewhere]) {
+      const w = where(c.key)
+      lines.push(`${w.section}`, `  ${w.slide}${w.click ? `, ${w.click}` : ''}  (${c.key})`, `  ${t.was}:   ${c.original.replace(/\s+/g, ' ').trim() || '—'}`, `  ${t.becomes}: ${c.text.replace(/\s+/g, ' ').trim() || '—'}`, '')
+    }
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }))
+    a.download = `${t.changesTitle.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.txt`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  }
+  const item = (c: (typeof changes)[number]) => {
+    const w = where(c.key)
+    const i = index.get(c.key)
+    return (
+      <li key={c.key} className="ch-item">
+        <div className="ch-where">
+          <span className="ch-section">{w.section}</span>
+          <b>{w.slide}</b>
+          {w.click && <span>{w.click}</span>}
+          <span className="ch-when">{t.changedAt(when(c.updatedAt))}</span>
+        </div>
+        <Diff before={c.original} after={c.text} />
+        {script.moved(c.key) && <p className="p-moved">{t.moved}</p>}
+        <div className="ch-actions">
+          {i != null && <button className="ghost small" onClick={() => onGo(i)}>{t.goTo}</button>}
+          <button className="ghost small" onClick={() => script.revert(c.key, c.slide)}>{t.restore}</button>
+        </div>
+      </li>
+    )
+  }
+  return (
+    <div className="changes" role="dialog" aria-modal="true" aria-label={t.changesTitle}>
+      <div className="changes-head">
+        <div>
+          <h2>{t.changesTitle}{changes.length > 0 && <span className="p-count">{changes.length}</span>}</h2>
+          <p>{t.changesHint}</p>
+        </div>
+        <div className="changes-tools">
+          {changes.length > 0 && <button className="ghost" onClick={download}>{t.downloadChanges}</button>}
+          <button className="ghost big" onClick={onClose}>{t.close} <kbd>Esc</kbd></button>
+        </div>
+      </div>
+      <div className="changes-list">
+        {!changes.length && <p className="ch-none">{t.noChanges}</p>}
+        <ol>{placed.map(item)}</ol>
+        {elsewhere.length > 0 && <ol className="ch-elsewhere">{elsewhere.map(item)}</ol>}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 {
-  "note": "What Erik's autocue carries that the production's Word file does not, laid over it by tools/autocue_docx.py. A state is named by its key (slide id and letter), not by its place, so a new import of the Word file keeps it. said replaces the state's line, a line of text a line on the autocue and an empty one a paragraph; speaker names who reads it, shown on the autocue; directions, where given, replace the state's directions ([] clears them); added marks a state the Word file does not count, a click of a speech it does not carry, which the import leaves out when it pairs the Word file's clicks with the running order. Karim Weiss's welcome (the director's tag, A to H) and closing (the ending, A to C), a section a click, 19 October 2026: the slides' click counts in Slideshow.kt (NameTag clicks = 8, EndingScene clicks = 3) are kept to these. Levenscyclusanalyse A–E and Verduurzamen van beton A–C rewritten compact, after the aligned track and to what the wall shows at each click (19 October 2026).",
+  "note": "What Erik's autocue carries that the production's Word file does not, laid over it by tools/autocue_docx.py. A state is named by its key (slide id and letter), not by its place, so a new import of the Word file keeps it. said replaces the state's line, a line of text a line on the autocue and an empty one a paragraph; speaker names who reads it, shown on the autocue; directions, where given, replace the state's directions ([] clears them); added marks a state the Word file does not count, a click of a speech it does not carry, which the import leaves out when it pairs the Word file's clicks with the running order. Karim Weiss's welcome (the director's tag, A to H) and closing (the ending, A to C), a section a click, 19 October 2026: the slides' click counts in Slideshow.kt (NameTag clicks = 8, EndingScene clicks = 3) are kept to these. Levenscyclusanalyse A–E and Verduurzamen van beton A–C rewritten compact, after the aligned track and to what the wall shows at each click (19 October 2026). The case studies, A to L: each client's question on the project's first picture and our answer after it, from the client's mail of 15 October and the project facts (19 October 2026). skip names clicks of the Word file the show no longer has. directions also stand on their own (20 October 2026): the Word file's long REGIE text on the walls, 'Laat het beeld spreken…', is written over with a short direction after the draaiboek, 'Geen tekst · klik als iedereen zit'. without, on a state another speaker reads, is what the state carries when that speaker is not among SLIDES_SPEAKERS, in place of the Word file's own (the director's tag: Karim speaks his own words).",
   "states": {
     "director-is-speaking-A": {
       "speaker": "Karim Weiss",
@@ -10,7 +10,13 @@
         "Van harte welkom bij Willy Naessens.",
         "Wat fijn dat u vanavond met zoveel mensen aanwezig bent.",
         "Namens onze hele organisatie wil ik u hartelijk danken voor uw komst."
-      ]
+      ],
+      "without": {
+        "directions": [
+          "Geen tekst · klik als Karim begint",
+          "Karim spreekt nu; daarna klik"
+        ]
+      }
     },
     "director-is-speaking-B": {
       "added": true,
@@ -118,28 +124,155 @@
       ]
     },
     "levenscyclusanalyse-A": {
-      "said": "Hoe weten we of een keuze echt duurzamer is? Dat rekenen we uit met een levenscyclusanalyse. Het begint bij alles wat we inkopen: van elk materiaal kennen we de herkomst, het transport en de CO₂-impact."
+      "said": "Dus hoe weten we of een duurzame keuze echt echt duurzamer is? Dat rekenen we uit met de levenscyclusanalyse berekening. Het begint bij alles wat we inkopen: van elk materiaal kennen we de herkomst, het transport en de CO₂-impact."
     },
     "levenscyclusanalyse-B": {
       "said": "Daarnaast kennen we onze eigen betonmengsels: welk cement en welke bindmiddelen erin zitten."
     },
     "levenscyclusanalyse-C": {
-      "said": "Die twee voegen we samen in één berekening: de levenscyclusanalyse."
+      "said": "Die twee voegen we samen in één berekening: de levenscyclusanalyse berekening."
     },
     "levenscyclusanalyse-D": {
       "said": "Zo berekenen we per product hoeveel CO₂ er in de materialen zit, en wat een andere keuze oplevert."
     },
-    "levenscyclusanalyse-E": {
-      "said": "Dat is de CO₂ die een product veroorzaakt: bij de productie en over zijn hele levensduur. Zo kunnen we keuzes eerlijk met elkaar vergelijken."
-    },
     "verduurzamen-van-beton-A": {
-      "said": "Wat doen we met die kennis? We verduurzamen beton op drie manieren. Eén: de samenstelling. Minder cement, nieuwe bindmiddelen, zelfs beton zonder cement."
+      "said": "Wat doen we met die kennis? We verduurzamen beton op drie manieren. Eén: de samenstelling aan te passen. Andere bindmiddelen en toeslag materialen."
     },
     "verduurzamen-van-beton-B": {
       "said": "Twee: de productie. Zuinig met water, energie en grondstoffen, en we hergebruiken wat vrijkomt."
     },
     "verduurzamen-van-beton-C": {
-      "said": "En drie: meten. Met de levenscyclusanalyse kennen we de CO₂-voetafdruk van elk product, en zien we wat elke verbetering oplevert."
+      "said": "En drie: bemeten. Met de levenscyclusanalyse kennen we de CO₂-voetafdruk van elk product, en zien we wat elke verbetering oplevert."
+    },
+    "case-studies-A": {
+      "said": "Tot slot een paar projecten, telkens met de vraag waar de klant mee zat en ons antwoord daarop. Panattoni Almelo: 55.000 vierkante meter warehouse. Panattoni bouwde hier op risico, nog zonder huurder."
+    },
+    "case-studies-B": {
+      "said": "Ons antwoord: snel bouwen, met duurzaamheid erin verwerkt, zoals de zonnepanelen op het dak. Gebouwd in 62 weken, en opgeleverd als BREEAM Excellent.",
+      "directions": []
+    },
+    "case-studies-C": {
+      "said": "Van Cranenbroek in Budel: een afhaalmagazijn met kantoor van 13.250 vierkante meter. Hier gaven de prijs en de planning de doorslag.",
+      "directions": []
+    },
+    "case-studies-D": {
+      "said": "Ons antwoord: heel scherp aanbieden en snel bouwen. Met goede communicatie, korte lijnen, vroeg meedenken en zonder gedoe. Gebouwd in 34 weken.",
+      "directions": []
+    },
+    "case-studies-E": {
+      "said": "VGP Park Nijmegen, gebouw B en C: samen zo'n 130.000 vierkante meter. Hier moesten we binnen het gestelde budget bouwen, en snel, want er wachtte een huurder.",
+      "directions": []
+    },
+    "case-studies-F": {
+      "said": "Ons antwoord: binnen dat budget, in 104 weken.",
+      "directions": []
+    },
+    "case-studies-G": {
+      "said": "En op tijd voor de huurder: de eerste fase is al in gebruik genomen.",
+      "directions": []
+    },
+    "case-studies-H": {
+      "said": "Kivits in Ridderkerk, voor WDP: een koelopslag van 34.000 vierkante meter. Hier waren de prijszekerheid en de planning belangrijk.",
+      "directions": []
+    },
+    "case-studies-I": {
+      "said": "Ons antwoord: zekerheid over de prijs, en een planning die we haalden. Dit gebouw hebben we in 52 weken kunnen bouwen.",
+      "directions": []
+    },
+    "case-studies-J": {
+      "said": "Intervest in Herstal: vier loodsen, samen 40.000 vierkante meter. Intervest wilde vooral betaalbaar bouwen: binnen budget, snel en flexibel.",
+      "directions": []
+    },
+    "case-studies-K": {
+      "said": "Want met de groei moet het gebouw snel kunnen worden aangepast. Ons antwoord was The Circle: een gebouw uit vaste bouwstenen.",
+      "directions": []
+    },
+    "case-studies-L": {
+      "said": "Losmaakbaar en terugneembaar: dat maakte hier het verschil. Zo bouwen we: binnen planning, binnen budget en met kwaliteit.",
+      "directions": []
+    },
+    "opening-scene-A": {
+      "directions": [
+        "Geen tekst · klik als iedereen zit"
+      ]
+    },
+    "het-programma-G": {
+      "directions": [
+        "Else stelt StudioBuik voor · daarna klik: aftellen naar hoofdstuk 1"
+      ]
+    },
+    "course-transition-to-chapter-1-A": {
+      "directions": [
+        "Geen tekst · bij 0:00 klik naar hoofdstuk 1"
+      ]
+    },
+    "studiobuik-voorgerecht-A": {
+      "directions": [
+        "Geen tekst · Else licht de gang toe; klik als ze klaar is"
+      ]
+    },
+    "sketch-flow-v2-out-of-a-concrete-block-A": {
+      "directions": [
+        "Geen tekst · klik als er is uitgehaald"
+      ]
+    },
+    "course-transition-to-chapter-2-A": {
+      "directions": [
+        "Geen tekst · bij 0:00 klik naar hoofdstuk 2"
+      ]
+    },
+    "studiobuik-eerste-gang-A": {
+      "directions": [
+        "Geen tekst · Else licht de gang toe; klik als ze klaar is"
+      ]
+    },
+    "shadow-mosaic-A": {
+      "directions": [
+        "Geen tekst · klik als er is uitgehaald"
+      ]
+    },
+    "course-transition-to-chapter-3-A": {
+      "directions": [
+        "Geen tekst · bij 0:00 klik naar hoofdstuk 3"
+      ]
+    },
+    "studiobuik-tweede-gang-A": {
+      "directions": [
+        "Geen tekst · Else licht de gang toe; klik als ze klaar is"
+      ]
+    },
+    "sketch-climb-lowered-in-and-layers-by-turns-A": {
+      "directions": [
+        "Geen tekst · klik als er is uitgehaald"
+      ]
+    },
+    "course-transition-to-chapter-4-A": {
+      "directions": [
+        "Geen tekst · bij 0:00 klik naar hoofdstuk 4"
+      ]
+    },
+    "studiobuik-derde-gang-A": {
+      "directions": [
+        "Geen tekst · Else licht de gang toe; klik als ze klaar is"
+      ]
+    },
+    "sketch-kit-two-screens-quiet-A": {
+      "directions": [
+        "Geen tekst · klik als er is uitgehaald"
+      ]
+    },
+    "studiobuik-dessert-A": {
+      "directions": [
+        "Geen tekst · Else licht het dessert toe; klik als ze klaar is"
+      ]
+    },
+    "sketch-kit-two-screens-wn-landscape-jump-cuts-A": {
+      "directions": [
+        "Einde presentatie · de wand blijft staan"
+      ]
     }
+  },
+  "skip": {
+    "115": "levenscyclusanalyse-E, taken out of the show on 19 October 2026: its definition now comes up with the conclusion on D, and nothing was said over it"
   }
 }

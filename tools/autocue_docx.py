@@ -28,13 +28,21 @@ on the director's tag and his closing on the ending wall (19 October 2026). A st
 not its place, so a new import keeps it. `said` replaces the line, given as a list of lines (an empty one is a
 paragraph), which the autocue keeps as written; `speaker` names who reads it, which the autocue shows; and
 `directions`, where given, replace the state's own ([] clears them); and `added` marks a click the Word file
-does not count, a section of a speech it does not carry, which the pairing leaves out. Karim's welcome is the
+does not count, a section of a speech it does not carry, which the pairing leaves out; and the file's `skip`
+names clicks of the Word file the show no longer has, a state taken out of a slide (click 115, the life-cycle
+analysis's last, on 19 October 2026), which the pairing leaves out the other way. Karim's welcome is the
 director's tag's eight states and his closing the ending's three, a section a click, so the slides' click counts
 in Slideshow.kt are kept to the file. The lines written over from the Word file are listed as the tool runs.
 
 **Every state read aloud has a speaker**: `--speaker` (Erik Koremans) for the track as a whole, written as its
 `speaker`, and the additions' `speaker` where someone else reads, written under `speakers`. The autocue shows
 who it is.
+
+**A speaker can be out of the show** (`SLIDES_SPEAKERS`, 20 October 2026: Erik alone by default), and then the
+show leaves out their slides, their clicks and their lines. Where another speaker's line is laid over the Word
+file's own, the Word file's line and directions are kept under `replaced`, with who wrote over them, so the show
+can give Erik's line back (the ending's thanks); an addition's `without` says what goes there instead. The pairing needs every speaker's clicks, so the tool refuses a
+show that leaves a speaker out: tick every speaker in the organizer's `speakers`, ▶ start, and run it again.
 
     --docx   the Word file (default input/autocue/Concrete_Force_Experience_Autocue_Met_KLIK_Aanwijzingen.docx)
     --show   the organizer's /api/show, a url or a saved copy (default http://127.0.0.1:8765/api/show)
@@ -179,11 +187,21 @@ def main():
     args = ap.parse_args()
 
     head, clicks = read_docx(args.docx)
-    states = states_of(read_show(args.show))
-    extra = {}
+    show = read_show(args.show)
+    states = states_of(show)
+    extra, skip = {}, {}
     if args.extra and os.path.isfile(args.extra):
         with open(args.extra) as f:
-            extra = json.load(f).get("states", {})
+            root = json.load(f)
+        extra = root.get("states", {})
+        # Clicks of the Word file the show no longer has: a state taken out of a slide.
+        skip = {int(n): why for n, why in root.get("skip", {}).items()}
+    # The pairing counts every speaker's clicks: a show that leaves one out has fewer states than the document.
+    present = set(show.get("speakers", [])) if "speakers" in show else None
+    guests = {v["speaker"] for v in extra.values() if v.get("speaker") and v["speaker"] != args.speaker}
+    if present is not None and guests - present:
+        refuse([f"the show leaves out {', '.join(sorted(guests - present))}, whose clicks the pairing needs: tick every "
+                "speaker under speakers in the organizer, ▶ start the show, and run this again while it is up"])
     # A click of a speech the Word file does not carry is no click of the Word file: left out of the pairing.
     added = {k for k, v in extra.items() if v.get("added")}
     paired = [s for s in states if f"{s[0]}-{s[1]}" not in added]
@@ -201,6 +219,12 @@ def main():
         problems.append("the clicks are not numbered 1 to n in order")
     if clicks and any(c["of"] != len(clicks) for c in clicks):
         problems.append(f"the clicks say they are of {clicks[0]['of']}, but there are {len(clicks)}")
+    for n, why in skip.items():
+        if not any(c["n"] == n for c in clicks):
+            problems.append(f"{args.extra}: skips click {n}, which the Word file does not have")
+        else:
+            print(f"  click {n:03} skipped: {why}")
+    clicks = [c for c in clicks if c["n"] not in skip]
     if len(clicks) != len(paired):
         problems.append(f"{len(clicks)} clicks against {len(paired)} states: the running order has changed since the document was written"
                         + (", or a slide's click count no longer matches the states added for it" if added else ""))
@@ -215,13 +239,21 @@ def main():
                                 f"the order's {'does' if show else 'does not'} ({paired[i - 1][2]} → {paired[i][2]})")
     refuse(problems)
 
-    subtitles, directions, speakers, slides, notes = {}, {}, {}, {}, []
+    subtitles, directions, speakers, slides, notes, replaced = {}, {}, {}, {}, [], {}
     by_key = {f"{sid}-{let}": c for c, (sid, let, _) in zip(clicks, paired)}
     for sid, let, where in states:
         key = f"{sid}-{let}"
         c = by_key.get(key)
         said, todo, note = split(c) if c else ("", [], None)
         over = extra.get(key)
+        who = (over or {}).get("speaker") or args.speaker
+        # What another speaker writes over: the Word file's own, for a show without that speaker — or, given, the
+        # addition's `without`, what the state carries then (the director's tag: Karim speaks his own words).
+        if c and over and who != args.speaker and ("said" in over or "directions" in over):
+            without = over.get("without", {})
+            back = without.get("said", said)
+            replaced.setdefault(sid, {})[let] = {"by": who, "said": "\n".join(back) if isinstance(back, list) else back,
+                                                 "directions": list(without.get("directions", todo))}
         if over:
             if "said" in over:
                 text = over["said"]
@@ -231,7 +263,6 @@ def main():
                 said, note = text.strip(), None
             if "directions" in over:
                 todo = list(over["directions"])
-        who = (over or {}).get("speaker") or args.speaker
         if said:
             subtitles.setdefault(sid, {})[let] = said
             if who != args.speaker:
@@ -276,6 +307,7 @@ def main():
         },
         "voiceover": {"slides": voiceover},
         "speakers": speakers,
+        "replaced": replaced,
         "directions": directions,
         "subtitles": subtitles,
     }

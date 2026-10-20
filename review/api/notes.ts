@@ -7,6 +7,9 @@ import { roleOf } from '../server/gate.js'
  *
  *     GET  /api/notes   every note: [{ state_key, slide_id, body, updated_at }]
  *     POST /api/notes   the same shape, upserted on state_key
+ *
+ * The table also holds the page's edits to the autocue text, under `script:` keys (api/script.ts); this route
+ * neither reads nor writes those.
  */
 const SUPABASE = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/$/, '')
 const KEY = process.env.VITE_SUPABASE_ANON_KEY || ''
@@ -17,7 +20,7 @@ const json = (body: unknown, status = 200) =>
 
 export async function GET(request: Request) {
   if (!(await roleOf(request))) return json({ error: 'private' }, 401)
-  const r = await fetch(`${SUPABASE}/rest/v1/speaker_notes?select=state_key,slide_id,body,updated_at`, { headers })
+  const r = await fetch(`${SUPABASE}/rest/v1/speaker_notes?select=state_key,slide_id,body,updated_at&state_key=not.like.script%3A*`, { headers })
   return r.ok ? json(await r.json()) : json({ error: `supabase ${r.status}` }, 502)
 }
 
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
   }
   const clean = Array.isArray(rows)
     ? rows.filter((r) =>
-        r && typeof r.state_key === 'string' && r.state_key.length > 0 && r.state_key.length <= 200 &&
+        r && typeof r.state_key === 'string' && r.state_key.length > 0 && r.state_key.length <= 200 && !r.state_key.startsWith('script:') &&
         typeof r.slide_id === 'string' && r.slide_id.length <= 200 &&
         typeof r.body === 'string' && r.body.length <= 20000 &&
         typeof r.updated_at === 'string' && !Number.isNaN(Date.parse(r.updated_at)))

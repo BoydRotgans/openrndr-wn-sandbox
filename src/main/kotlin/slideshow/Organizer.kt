@@ -20,9 +20,11 @@ import java.util.concurrent.CountDownLatch
  *     ./gradlew run -Popenrndr.application=OrganizerKt
  *
  * The show is started as a process of its own — see [Presentation] for why not a thread — on
- * the classes this launcher was started with, so a change to a slide needs the launcher
- * restarted to be picked up. While the show is up the page steers it through here; when its
- * window closes the page stays, reading the files the show saved.
+ * the code as it stands: each start builds the project and runs the show on that build
+ * ([buildForShow]), so a change to a slide is on the wall at the next ▶ start. A change to
+ * the launcher itself (this file, [Remote]) still needs it restarted. While the show is up the
+ * page steers it through here; when its window closes the page stays, reading the files the
+ * show saved.
  */
 fun main() {
     // Building the show touches AWT (the shadow wall's masks), and this JVM never opens a window.
@@ -44,6 +46,7 @@ fun main() {
             "SLIDES_STILLS" to "false"
         ),
         onStopped = { remote.reload() },
+        prepare = if (Env.boolean("SLIDES_ORGANIZER_REBUILD", true)) ::buildForShow else null,
         projectionEnvironment = { projectionEnvironment(settings.width, settings.height) },
         projection = Env.boolean("SLIDES_PROJECTION"),
         muted = settings.muted,
@@ -54,7 +57,8 @@ fun main() {
         subtitleTrack = settings.subtitleTrack,
         voice = settings.voiceOn,
         autoplay = settings.autoplay,
-        autocueCps = settings.autocueCps
+        autocueCps = settings.autocueCps,
+        speakers = settings.speakers
     ).also { p -> settings.levels.forEach { (layer, gain) -> p.mix[layer] = gain } }
     remote = Remote(
         declared, File(settings.order ?: "show-order.json"), settings.organizerPort, File("build/previews"),
@@ -126,3 +130,61 @@ private fun desktopRight(): Int? = runCatching {
 }.getOrNull()
 
 private fun freePort(): Int = ServerSocket(0).use { it.localPort }
+
+/**
+ * Builds the code as it stands and hands back [base] with its class folders swapped for a copy of that build, so the
+ * show starts on today's code rather than on the launcher's snapshot from when it came up.
+ *
+ * **A copy, not Gradle's own output**: a build made while the show runs would rewrite the class files under it, and a
+ * JVM loads classes as they are first used, so a slide reached later would load the new class beside the old ones it
+ * was built against. `build/show-cp/` is written only while no show runs, since a start is refused while one does.
+ *
+ * **A build that fails does not stop the show.** It starts on the last copy that built, and the page is told why, the
+ * first compile error included; with no copy yet, on the launcher's own classes. Run on Gradle's own output (`./gradlew
+ * run`), the launcher's classes are what a build would write, so it builds nothing and starts as it always did.
+ */
+private fun buildForShow(base: List<String>): Presentation.Prepared {
+    val root = File(".").absoluteFile.normalize()
+    val at = base.indexOf("-cp")
+    if (at < 0) return Presentation.Prepared(base)
+    val entries = base[at + 1].split(File.pathSeparator)
+    val gradleOutput = File(root, "build/classes").path
+    val gradlew = File(root, "gradlew")
+    if (!gradlew.canExecute() || entries.any { File(it).absoluteFile.normalize().path.startsWith(gradleOutput) })
+        return Presentation.Prepared(base)
+
+    val target = File(root, "build/show-cp")
+    target.mkdirs()
+    val log = File(target, "build.log")
+    println("presentation: building the code as it stands")
+    val started = System.nanoTime()
+    val build = ProcessBuilder(gradlew.path, "classes", "-q", "--console=plain")
+        .directory(root).redirectErrorStream(true).redirectOutput(log).start()
+    val done = build.waitFor(10, java.util.concurrent.TimeUnit.MINUTES)
+    if (!done) build.destroyForcibly()
+    val folders = listOf("kotlin" to "build/classes/kotlin/main", "java" to "build/classes/java/main", "resources" to "build/resources/main")
+    // The class folders swapped for the copy's, the jars as they were.
+    fun onCopy(): List<String> {
+        val classpath = folders.map { (name, _) -> File(target, name).path } + entries.filterNot { File(it).isDirectory }
+        return base.toMutableList().also { it[at + 1] = classpath.joinToString(File.pathSeparator) }
+    }
+    if (!done || build.exitValue() != 0) {
+        val error = log.takeIf { it.isFile }?.readLines()?.firstOrNull { it.startsWith("e: ") }
+            ?.replace(Regex("""^e: file://\S*?/src/main/kotlin/"""), "")
+        val why = if (!done) "the build took over ten minutes" else error ?: "see build/show-cp/build.log"
+        val copied = File(target, "kotlin").isDirectory
+        return Presentation.Prepared(
+            if (copied) onCopy() else base,
+            "the code does not build (${why.take(300)}), so the show starts on " +
+                    (if (copied) "the last code that built" else "the launcher's own classes")
+        )
+    }
+    for ((name, from) in folders) {
+        val copy = File(target, name)
+        copy.deleteRecursively()
+        val source = File(root, from)
+        if (source.isDirectory) source.copyRecursively(copy, overwrite = true) else copy.mkdirs()
+    }
+    println("presentation: built and copied in %.1f s".format((System.nanoTime() - started) / 1e9))
+    return Presentation.Prepared(onCopy())
+}

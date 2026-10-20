@@ -43,7 +43,7 @@ interface CommentRow {
 }
 
 /** The kinds besides a plain comment: the voice-over panel's, and a sound's status in the audio timeline. */
-const KINDS = ['voiceover', 'voiceover_extended', 'voiceover_aligned', 'voiceover_note', 'voiceover_extended_note', 'voiceover_aligned_note', 'audio_status', 'audio_gain'] as const
+const KINDS = ['voiceover', 'voiceover_extended', 'voiceover_aligned', 'voiceover_erik', 'voiceover_note', 'voiceover_extended_note', 'voiceover_aligned_note', 'voiceover_erik_note', 'audio_status', 'audio_gain'] as const
 
 const toRelease = (r: ReleaseRow): Release => ({
   id: r.id,

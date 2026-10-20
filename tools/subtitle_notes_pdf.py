@@ -22,7 +22,7 @@ preview (`build/previews`). With no organizer the film's own order stands.
     --film     the film the pictures come off (a clean one: no subtitles in the picture)
     --cut      the state log of that film: the .states file beside it, or a review site manifest
     --show     the organizer's /api/show, a url or a saved file
-    --track    default, extended, aligned or both (all three)
+    --track    erik, default, extended, aligned or both (all four)
 """
 import argparse
 import html
@@ -42,6 +42,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 TRACKS = {
+    "erik": {
+        "file": "show-subtitles-erik.json",
+        "out": "export/wn-sprekersnotities-autocue.pdf",
+        "title": "Erik autocue",
+    },
     "default": {
         "file": "show-subtitles.json",
         "out": "export/wn-sprekersnotities-standaard.pdf",
@@ -620,7 +625,7 @@ h3 { font-family: Rockwell, Georgia, serif; font-size: 10.5pt; font-weight: norm
 .pic img { width: 100%; display: block; }
 .nopic { width: 100%; aspect-ratio: 3840/1080; background: #eee; color: #aaa; display: flex;
   align-items: center; justify-content: center; font-size: 8pt; }
-.line { flex: 1 1 auto; min-width: 0; font-size: 10pt; line-height: 1.45; }
+.line { flex: 1 1 auto; min-width: 0; font-size: 10pt; line-height: 1.45; white-space: pre-line; }
 
 /* A state nothing is said over is only there to keep your place, so its picture is drawn
    smaller, in the same column so the lines still start at one edge. */
@@ -661,7 +666,7 @@ def main():
     ap.add_argument("--cut", default=None, help="defaults to the .states log beside the film")
     ap.add_argument("--show", default="http://localhost:8765/api/show")
     ap.add_argument("--order", default=os.path.join(ROOT, "show-order.json"))
-    ap.add_argument("--track", choices=["default", "extended", "aligned", "both"], default="both")
+    ap.add_argument("--track", choices=["erik", "default", "extended", "aligned", "both"], default="both")
     ap.add_argument("--width", type=int, default=900, help="picture width in pixels (60 mm on the page)")
     ap.add_argument("--quality", type=int, default=5, help="ffmpeg jpeg q, 2 best to 31 worst")
     args = ap.parse_args()
@@ -701,7 +706,7 @@ def main():
     warn = lambda m: (warnings.append(m), print("note:", m))
     data_d, _ = track_lines("default", steps, lambda m: None)
     data_e, _ = track_lines("extended", steps, lambda m: None)
-    for track in (["default", "extended", "aligned"] if args.track == "both" else [args.track]):
+    for track in (["erik", "default", "extended", "aligned"] if args.track == "both" else [args.track]):
         data, lines = track_lines(track, steps, warn)
         markup = build_html(track, order, where, heads, pics, lines, data, data_d, data_e,
                             os.path.basename(args.film), rehearsal, times, cues, day)

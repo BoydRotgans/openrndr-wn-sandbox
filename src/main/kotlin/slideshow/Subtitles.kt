@@ -101,11 +101,48 @@ class Subtitles(
     /** Who reads [step] of the slide [id]: the one `speakers` names, else the track's own where there is a line; null when nothing is said or the track names nobody. */
     fun speaker(id: String, step: Int): String? = speakers[id]?.get(step) ?: ownSpeaker?.takeIf { get(id, step).isNotBlank() }
 
+    /** Every state read by someone other than the track's own speaker, as slide id and step. */
+    val guestStates: Set<Pair<String, Int>> by lazy {
+        speakers.flatMap { (id, states) -> states.filterValues { it != ownSpeaker }.keys.map { id to it } }.toSet()
+    }
+
     /** Whether [step] of the slide [id] is read by someone other than the track's own speaker. */
     fun guest(id: String, step: Int): Boolean = speakers[id]?.get(step).let { it != null && it != ownSpeaker }
 
     /** Slides with at least one line. */
     val size: Int get() = lines.count { (_, states) -> states.values.any { it.isNotBlank() } }
+
+    /**
+     * The track as the presentation reads it when only [guests] speak besides its own speaker (20 October 2026,
+     * `SLIDES_SPEAKERS`). A state read by a speaker who is out loses its line and its directions; where that line was
+     * laid over the Word file's own, the Word file's comes back — `replaced`, which `tools/autocue_docx.py` writes
+     * (the ending's A: Erik's own thanks where Karim Weiss's closing stood). **The file is never changed**: only the
+     * show reads this, while the organizer edits and saves the whole track, the absent speaker's lines kept for later.
+     */
+    fun forSpeakers(guests: Set<String>): Subtitles {
+        val out = speakers.flatMap { (id, states) ->
+            states.filterValues { it != ownSpeaker && it !in guests }.map { (step, who) -> Triple(id, step, who) }
+        }
+        if (out.isEmpty()) return this
+        val replaced = runCatching { extra["replaced"]?.jsonObject }.getOrNull()
+        val kept = lines.mapValues { it.value.toMutableMap() }.toMutableMap()
+        var directionsJson = extra["directions"]
+        var speakersJson = extra["speakers"]
+        for ((id, step, who) in out) {
+            val key = letter(step)
+            val back = runCatching { replaced?.get(id)?.jsonObject?.get(key)?.jsonObject }.getOrNull()
+                ?.takeIf { runCatching { it["by"]?.jsonPrimitive?.contentOrNull }.getOrNull() == who }
+            val said = back?.get("said")?.let { sentences(it) }.orEmpty()
+            if (said.isNotBlank()) kept.getOrPut(id) { mutableMapOf() }[step] = said else kept[id]?.remove(step)
+            val todo = back?.get("directions")?.takeIf { it is JsonArray && it.isNotEmpty() || it is JsonPrimitive }
+            directionsJson = edited(directionsJson, id, key, todo)
+            speakersJson = edited(speakersJson, id, key, null)
+        }
+        val extraOut = extra.toMutableMap()
+        directionsJson?.let { extraOut["directions"] = it } ?: extraOut.remove("directions")
+        speakersJson?.let { extraOut["speakers"] = it } ?: extraOut.remove("speakers")
+        return Subtitles(kept.filterValues { it.isNotEmpty() }, note, extraOut)
+    }
 
     fun toJson(): JsonObject = buildJsonObject {
         note?.let { put("note", it) }
@@ -156,6 +193,22 @@ class Subtitles(
                 note = root["note"]?.jsonPrimitive?.contentOrNull,
                 extra = root.filterKeys { it != "note" && it != "subtitles" }
             )
+        }
+
+        /**
+         * [body], a slide a key and a state a letter under it, with the state [key] of the slide [id] set to [value],
+         * or taken out where [value] is null. A slide given as one value is its state A.
+         */
+        private fun edited(body: JsonElement?, id: String, key: String, value: JsonElement?): JsonElement? {
+            val slides = (body as? JsonObject)?.toMutableMap() ?: mutableMapOf()
+            val states = when (val v = slides[id]) {
+                null -> mutableMapOf()
+                is JsonObject -> v.toMutableMap()
+                else -> mutableMapOf("A" to v)
+            }
+            if (value == null) states.remove(key) else states[key] = value
+            if (states.isEmpty()) slides.remove(id) else slides[id] = JsonObject(states)
+            return JsonObject(slides).takeIf { it.isNotEmpty() }
         }
 
         /** One string, or a list of sentences run together. */

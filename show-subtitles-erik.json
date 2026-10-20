@@ -433,91 +433,76 @@
       "C": "Karim Weiss"
     }
   },
+  "replaced": {
+    "director-is-speaking": {
+      "A": {
+        "by": "Karim Weiss",
+        "said": "",
+        "directions": [
+          "Geen tekst · klik als Karim begint",
+          "Karim spreekt nu; daarna klik"
+        ]
+      }
+    },
+    "ending": {
+      "A": {
+        "by": "Karim Weiss",
+        "said": "Dank u wel voor uw aandacht en vooral voor uw aanwezigheid vanavond. Ik hoop dat u niet alleen mooie projecten heeft gezien, maar ook beter begrijpt welke keuzes daarachter zitten. Praat er vooral met ons over door tijdens het dessert.",
+        "directions": []
+      }
+    }
+  },
   "directions": {
     "opening-scene": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · klik als iedereen zit"
     },
     "director-is-speaking": {
       "H": "Brug naar Erik"
     },
     "het-programma": {
-      "G": [
-        "Else de Bruin stelt StudioBuik voor, live.",
-        "Klik een halve minuut vóór 18:20: de wand dooft uit en telt 0:33 af, linksonder; bij 0:00 klik naar hoofdstuk 1."
-      ]
+      "G": "Else stelt StudioBuik voor · daarna klik: aftellen naar hoofdstuk 1"
     },
     "course-transition-to-chapter-1": {
-      "A": [
-        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
-        "REGIE: overgang of afstemming met techniek / StudioBuik."
-      ]
+      "A": "Geen tekst · bij 0:00 klik naar hoofdstuk 1"
     },
     "studiobuik-voorgerecht": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · Else licht de gang toe; klik als ze klaar is"
     },
     "sketch-flow-v2-out-of-a-concrete-block": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · klik als er is uitgehaald"
     },
     "course-transition-to-chapter-2": {
-      "A": [
-        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
-        "BEELDCUE: Overgang naar hoofdstuk 2"
-      ]
+      "A": "Geen tekst · bij 0:00 klik naar hoofdstuk 2"
     },
     "studiobuik-eerste-gang": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · Else licht de gang toe; klik als ze klaar is"
     },
     "shadow-mosaic": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · klik als er is uitgehaald"
     },
     "course-transition-to-chapter-3": {
-      "A": [
-        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
-        "BEELDCUE: Overgang naar hoofdstuk 3"
-      ]
+      "A": "Geen tekst · bij 0:00 klik naar hoofdstuk 3"
     },
     "studiobuik-tweede-gang": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · Else licht de gang toe; klik als ze klaar is"
     },
     "sketch-climb-lowered-in-and-layers-by-turns": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · klik als er is uitgehaald"
     },
     "course-transition-to-chapter-4": {
-      "A": [
-        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
-        "BEELDCUE: Overgang naar hoofdstuk 4"
-      ]
+      "A": "Geen tekst · bij 0:00 klik naar hoofdstuk 4"
     },
     "studiobuik-derde-gang": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · Else licht de gang toe; klik als ze klaar is"
     },
     "sketch-kit-two-screens-quiet": {
-      "A": [
-        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
-        "BEELDCUE: Wand: de bouwdoos op twee schermen"
-      ]
-    },
-    "case-studies": {
-      "B": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "C": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "D": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "E": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "F": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "G": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "H": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "I": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "J": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "K": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken.",
-      "L": "[Beeld laten spreken.] Bekijk samen met de gasten het projectbeeld en de tekening. Alleen toelichten wanneer er een concreet projectgegeven is bevestigd; anders rustig doorklikken."
+      "A": "Geen tekst · klik als er is uitgehaald"
     },
     "studiobuik-dessert": {
-      "A": "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig."
+      "A": "Geen tekst · Else licht het dessert toe; klik als ze klaar is"
     },
     "sketch-kit-two-screens-wn-landscape-jump-cuts": {
-      "A": [
-        "Laat het beeld spreken. Klik op het afgesproken moment door; hier is geen afzonderlijke spreektekst nodig.",
-        "EINDE PRESENTATIE"
-      ]
+      "A": "Einde presentatie · de wand blijft staan"
     }
   },
   "subtitles": {
@@ -754,7 +739,18 @@
       "A": "Daarmee zijn we aan het einde van onze vier hoofdstukken. U heeft gezien hoe we de bouwketen organiseren, hoe we onze keuzes beoordelen, hoe we beton verbeteren en hoe we met The Circle vooruitkijken. Uiteindelijk gaat het om één vraag: hoe bouwen we vandaag goed, zonder de mogelijkheden van morgen uit het oog te verliezen?"
     },
     "case-studies": {
-      "A": "Tot slot laat ik u nog een aantal projecten zien. U ziet telkens het gerealiseerde gebouw naast de technische uitwerking. Dat is de verbinding tussen wat we ontwerpen en wat we daadwerkelijk bouwen."
+      "A": "Tot slot een paar projecten, telkens met de vraag waar de klant mee zat en ons antwoord daarop. Panattoni Almelo: 55.000 vierkante meter warehouse. Panattoni bouwde hier op risico, nog zonder huurder.",
+      "B": "Ons antwoord: snel bouwen, met duurzaamheid erin verwerkt, zoals de zonnepanelen op het dak. Gebouwd in 62 weken, en opgeleverd als BREEAM Excellent.",
+      "C": "Van Cranenbroek in Budel: een afhaalmagazijn met kantoor van 13.250 vierkante meter. Hier gaven de prijs en de planning de doorslag.",
+      "D": "Ons antwoord: heel scherp aanbieden en snel bouwen. Met goede communicatie, korte lijnen, vroeg meedenken en zonder gedoe. Gebouwd in 34 weken.",
+      "E": "VGP Park Nijmegen, gebouw B en C: samen zo'n 130.000 vierkante meter. Hier moesten we binnen het gestelde budget bouwen, en snel, want er wachtte een huurder.",
+      "F": "Ons antwoord: binnen dat budget, in 104 weken.",
+      "G": "En op tijd voor de huurder: de eerste fase is al in gebruik genomen.",
+      "H": "Kivits in Ridderkerk, voor WDP: een koelopslag van 34.000 vierkante meter. Hier waren de prijszekerheid en de planning belangrijk.",
+      "I": "Ons antwoord: zekerheid over de prijs, en een planning die we haalden. Dit gebouw hebben we in 52 weken kunnen bouwen.",
+      "J": "Intervest in Herstal: vier loodsen, samen 40.000 vierkante meter. Intervest wilde vooral betaalbaar bouwen: binnen budget, snel en flexibel.",
+      "K": "Want met de groei moet het gebouw snel kunnen worden aangepast. Ons antwoord was The Circle: een gebouw uit vaste bouwstenen.",
+      "L": "Losmaakbaar en terugneembaar: dat maakte hier het verschil. Zo bouwen we: binnen planning, binnen budget en met kwaliteit."
     },
     "ending": {
       "A": "Dames en heren,\nWe zijn alweer aan het einde gekomen van deze bijzondere avond.\nAllereerst wil ik Erik bedanken voor de begeleiding van het programma.\nDaarnaast wil ik alle collega’s en betrokkenen bedanken die deze avond mogelijk hebben gemaakt.\nEn natuurlijk dank aan u. Voor uw komst, uw belangstelling en de waardevolle gesprekken.",

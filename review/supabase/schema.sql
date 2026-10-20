@@ -114,6 +114,8 @@ create policy "releases bucket update" on storage.objects for update using (buck
 -- The client's speaker notes on the practice page (/practice): one text per click, keyed by the
 -- state's 'slide-LETTER' so a note stays with its click from one film to the next. The same
 -- no-sign-in rule as the comments: anyone with the anon key may read and write them.
+-- The rehearsal page's edits to the autocue text ride in this table too, under keys of their own,
+-- 'script:<slide-LETTER>', with { "text", "original" } as JSON in body (api/script.ts); /api/notes leaves them out.
 create table if not exists public.speaker_notes (
   state_key   text primary key,
   slide_id    text not null default '',

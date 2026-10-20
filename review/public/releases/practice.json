@@ -55,6 +55,32 @@
      "file": "sprekersnotities-standaard.pdf"
     }
    ]
+  },
+  {
+   "slug": "2026-10-19",
+   "name": "Rehearsal 19 October",
+   "created": "2026-10-19",
+   "folder": "practice/2026-10-19",
+   "audio": "film",
+   "about": "The show of 19 October on Erik's autocue, filmed without subtitles (video/wn-experience_2026-10-19-clean.mp4), with the speaker's autocue filmed on the same run (video/wn-experience_2026-10-19-autocue.mp4); no voice-over, none being rendered for Erik's script, so the film's own sound plays; its states are frame for frame those of Release 19 October.",
+   "sheets": [
+    {
+     "key": "autocue",
+     "file": "sprekersnotities-autocue.pdf"
+    },
+    {
+     "key": "uitgelijnd",
+     "file": "sprekersnotities-uitgelijnd.pdf"
+    },
+    {
+     "key": "uitgebreid",
+     "file": "sprekersnotities-uitgebreid.pdf"
+    },
+    {
+     "key": "standaard",
+     "file": "sprekersnotities-standaard.pdf"
+    }
+   ]
   }
  ]
 }

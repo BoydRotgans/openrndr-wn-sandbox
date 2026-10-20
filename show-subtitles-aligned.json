@@ -304,15 +304,15 @@
     },
     "de-fasen-a-b-en-c": {
       "A": "Eerst drie letters, die u zo op elk vak terugziet: A, B en C, de fasen van een levenscyclus. Volg de weg van een betonelement. A is van grondstof tot gebouw: grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats, en montage.",
-      "B": "Dan B, het langste stuk van de weg: in gebruik. Gebruik, onderhoud, reparatie, vervanging, verbouwing. Tientallen jaren.",
+      "B": "Dan B, het langste stuk van de weg: in gebruik. Gebruik, onderhoud, reparatie, vervanging, verbouwing.",
       "C": "En C, in het rood: einde levensduur. Sloop, transport, afvalverwerking, verwijdering. Daar loopt de weg dood."
     },
     "levenscyclus-van-betonproducten": {
       "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt. Hier is de levenscyclus van een betonproduct. Eerst A één tot A drie, de productfase: grondstofwinning, transport naar de fabriek, productie.",
       "B": "A vier en A vijf, de bouwfase: transport naar de bouwplaats, en montage.",
-      "C": "B één tot B vijf, de gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing. Tientallen jaren.",
+      "C": "B één tot B vijf, de gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing.",
       "D": "En C één tot C vier, einde levensduur: sloop, transport, afvalverwerking, verwijdering. Zo gaat het nu. Lineair.",
-      "E": "Wij vervangen die laatste kolom. In plaats van einde levensduur komt The Circle: vier stappen, met in elke stap een echt element uit onze catalogus.",
+      "E": "Wij vervangen die laatste kolom. In plaats van einde levensduur komt The Circle, in vier stappen.",
       "F": "Elementen demonteren, in plaats van slopen.",
       "G": "Transport.",
       "H": "Opslag.",
@@ -322,8 +322,7 @@
       "A": "Hoe weten we wat een element werkelijk kost aan CO₂? Met een levenscyclusanalyse. Aan de ene kant een database van alle aangekochte materialen. Van elk materiaal kennen we vijf dingen: het materiaal zelf, de leverancier, de transportwijze, de herkomst en de CO₂-impact.",
       "B": "Aan de andere kant de database van onze betonmengsels: elke samenstelling, elk bindmiddel, met dezelfde vijf gegevens.",
       "C": "Die twee brengen we samen in de levenscyclusanalyse.",
-      "D": "En dat maakt mogelijk wat vroeger een schatting was: de berekening van de materiaalgebonden CO₂-uitstoot.",
-      "E": "Dat is de hoeveelheid CO₂ die een product veroorzaakt bij de productie en over zijn volledige levensduur. De levenscyclusanalyse laat objectief toe om de verduurzaming van betonproducten in kaart te brengen. En die informatie, over de materialen en de mengsels, leveren we mee met elk gebouw."
+      "D": "En dat maakt mogelijk wat vroeger een schatting was: de berekening van de materiaalgebonden CO₂-uitstoot. Dat is de hoeveelheid CO₂ die een product veroorzaakt bij de productie en over zijn volledige levensduur. De levenscyclusanalyse laat objectief toe om de verduurzaming van betonproducten in kaart te brengen. En die informatie, over de materialen en de mengsels, leveren we mee met elk gebouw."
     },
     "verduurzamen-van-beton": {
       "A": "De Willy Naessens Group verduurzaamt beton op drie niveaus. Ten eerste door samenstelling: minder cement, lagere klinker, nieuwe bindmiddelen, zelfs beton zonder cement. Die wolk van rode, witte en blauwe punten is precies dat: verschillende samenstellingen die in elkaar overgaan.",
@@ -332,7 +331,7 @@
     },
     "verborgen-verhaal": {
       "A": "Elk element, van gevelpaneel tot gewelf, heeft een verborgen verhaal: hoeveel CO₂ erin belichaamd is, welke mengsels gebruikt zijn, welke verbeteringen mogelijk zijn. Dit is zo'n element: wand zevenentwintig uit onze catalogus, een wandpaneel met een deuropening, met de drie hefbomen van daarnet eromheen: samenstelling, productie en meting.",
-      "B": "Het rode deel is wat eraf ging. In de betonsamenstelling van gevelelementen haalden we dertig procent CO₂ weg, ten opzichte van het mengsel van 2024. Hoe: minder cementgebruik, de overstap van CEM I naar CEM II, het gebruik van CEM III A, en alternatieve samenstellingen. Dezelfde kwaliteit, met minder CO₂. Dat mengsel hebben we jarenlang ontwikkeld met onze betontechnologen.",
+      "B": "Het rode deel is onze besparing. In de betonsamenstelling van gevelelementen haalden we dertig procent CO₂ weg, ten opzichte van het mengsel van 2024. Hoe: minder cementgebruik, de overstap van CEM I naar CEM II, het gebruik van CEM III A, en alternatieve samenstellingen. Dezelfde kwaliteit, met minder CO₂. Dat mengsel hebben we jarenlang ontwikkeld met onze betontechnologen.",
       "C": "In gewelven, zoals deze TT-plaat van bijna dertien meter: vijftien procent.",
       "D": "En in gewapend beton, zoals deze tandbalk: twintig procent. Elk van die reducties volgen we via de levenscyclusanalyse. Geen belofte, maar een meting."
     },
@@ -345,7 +344,7 @@
     },
     "projecthighlight-3": {
       "A": "Een project waar beton letterlijk de ruggengraat is: Kivits in Ridderkerk, een koelopslag voor WDP. De vraag: het moest snel. Vierendertigduizend vierkante meter met dertig koelcellen, gebouwd in tweeënvijftig weken, dankzij onze verticale integratie.",
-      "B": "Van binnen ziet u waar het om ging: kratten vol groente en fruit, onder een betonnen dak. Koelen vraagt massa, en daar is beton bij uitstek geschikt voor: het accumulerend vermogen houdt de temperatuur stabiel. Dat geldt voor voedsel, maar ook voor pharma en defensie. Twee jaar lang hebben we een stalen en een betonnen gebouw gemonitord: in beton waren de energiekosten lager en stabieler. En beton is bestand tegen hittestress."
+      "B": "Van binnen ziet u waar het om ging: kratten vol groente en fruit, die koel bewaard moeten worden. Koelen vraagt massa, en daar is beton bij uitstek geschikt voor: het accumulerend vermogen houdt de temperatuur stabiel. Dat geldt voor voedsel, maar ook voor pharma en defensie. Twee jaar lang hebben we een stalen en een betonnen gebouw gemonitord: in beton waren de energiekosten lager en stabieler. En beton is bestand tegen hittestress."
     },
     "kernboodschap-3": {
       "A": "Om mee te nemen: we hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer. En de vraag voor aan tafel: wat gebeurt er met uw gebouw na zijn eerste leven? Ik geef het woord aan Else de Bruin, voor de tweede gang."

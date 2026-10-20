@@ -303,14 +303,47 @@ def verdict(audio, sr, asked, ear, tmp: Path, cut=False):
 PASS_SCORE = 0.8
 
 # The file each track reads, as SubtitleTrack names them; the voice goes to data/sounds/voice/<track>.
-TRACK_FILES = {"default": "show-subtitles.json", "extended": "show-subtitles-extended.json", "aligned": "show-subtitles-aligned.json"}
+TRACK_FILES = {"default": "show-subtitles.json", "extended": "show-subtitles-extended.json", "aligned": "show-subtitles-aligned.json",
+               "erik": "show-subtitles-erik.json"}
+
+
+def own_lines(doc, subs, guests):
+    """The lines the track's own speaker says, as the show reads them with only [guests] besides him
+    (Subtitles.forSpeakers): a state another speaker reads is left out, or, where that speaker's line was laid over
+    the Word file's own (`replaced`), the Word file's line is said — the ending's thanks on Erik's autocue. The voice
+    is the track's own speaker's, so a guest's line is never rendered, ticked or not."""
+    own = doc.get("speaker")
+    replaced = doc.get("replaced", {})
+    out = {sid: dict(states) for sid, states in subs.items()}
+    for sid, by in doc.get("speakers", {}).items():
+        by = by if isinstance(by, dict) else {"A": by}
+        for let, who in by.items():
+            if who == own:
+                continue
+            step = next((k for k in out.get(sid, {}) if letter(k) == let), None)
+            back = replaced.get(sid, {}).get(let) if who not in guests else None
+            said = (back or {}).get("said", "") if back and back.get("by") == who else ""
+            if said.strip():
+                out.setdefault(sid, {})[step if step is not None else LETTER_STEP(let)] = said.strip()
+            elif step is not None:
+                del out[sid][step]
+    return {sid: states for sid, states in out.items() if states}
+
+
+def LETTER_STEP(let):
+    n = 0
+    for c in let: n = n * 26 + (ord(c) - 64)
+    return n - 1
 
 
 # ---------------------------------------------------------------------------- main ------- //
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--track", default="extended", choices=["default", "extended", "aligned"])
+    ap.add_argument("--track", default="extended", choices=["default", "extended", "aligned", "erik"])
+    ap.add_argument("--speakers", default="", help="who speaks besides the track's own speaker, as SLIDES_SPEAKERS "
+                                                   "says; their lines are left unvoiced either way, and the empty "
+                                                   "default gives the Word file's own line back where one was laid over")
     ap.add_argument("--engine", default="chatterbox", choices=["chatterbox", "say", "piper"])
     ap.add_argument("--device", default="mps")
     ap.add_argument("--voice", default=None, help="a reference clip to clone (Chatterbox), or a say voice name")
@@ -331,6 +364,8 @@ def main():
     file = ROOT / TRACK_FILES[a.track]
     doc = json.loads(file.read_text())
     subs = {sid: lines_of(v) for sid, v in doc.get("subtitles", {}).items()}
+    if doc.get("speakers"):
+        subs = own_lines(doc, subs, {g.strip() for g in a.speakers.split(",") if g.strip() and g.strip().lower() != "none"})
     order = json.loads((ROOT / "show-order.json").read_text())
     ids = [e[0] for e in order_entries(order)]
     ids += [s for s in subs if s not in ids and s not in set(order.get("archive", []))]

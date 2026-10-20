@@ -46,7 +46,7 @@ fun main() {
     val ids = show.slideIds
     val start = startIndex(slides, settings.start)
     val until = untilIndex(slides, settings.until, start)
-    val subtitles = if (settings.subtitleMode || settings.voiceOn) Subtitles.readOrEmpty(settings.subtitlesFile(settings.subtitleTrack)) else null
+    val subtitles = if (settings.subtitleMode || settings.voiceOn) Subtitles.readOrEmpty(settings.subtitlesFile(settings.subtitleTrack)).forSpeakers(settings.speakers) else null
     val voice = if (settings.voiceOn) VoiceTrack.read(settings.voice, settings.subtitleTrack, settings.voiceGain) else null
     val holds = autoCues(slides, ids, start, until, settings, subtitles, Pace(settings.subtitleCps), voice)
     val perSlide = MutableList(slides.size) { 0.0 }

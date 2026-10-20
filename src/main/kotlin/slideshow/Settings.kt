@@ -281,6 +281,11 @@ data class Settings(
      */
     val subtitleTrack: SubtitleTrack = SubtitleTrack.DEFAULT,
     /**
+     * Whose lines are on the autocue besides its own speaker, Erik's: `SLIDES_SPEAKERS`. A speaker not here keeps their
+     * slides but has no line on the autocue — see [Subtitles.forSpeakers]. Empty, the default, is Erik alone.
+     */
+    val speakers: Set<String> = emptySet(),
+    /**
      * Subtitle mode: the line said over the state on the wall, a card at a time at a speaker's
      * pace, drawn into the canvas so a filmed run carries it — and a hands-off run
      * (`SLIDES_CUES=auto`) holds every state until its last card has been read. The organizer's

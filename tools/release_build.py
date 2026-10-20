@@ -101,8 +101,10 @@ def main():
                     help="the extended track — the longer line the voice actually speaks — carried beside it")
     ap.add_argument("--subtitles-aligned", default="show-subtitles-aligned.json",
                     help="the aligned track, the voice-over written to what each state shows (15 October 2026)")
+    ap.add_argument("--subtitles-erik", default="show-subtitles-erik.json",
+                    help="Erik's autocue, the script presented and the one every release is filmed on (19 October 2026)")
     ap.add_argument("--track", default="",
-                    help="the subtitle track the film's voice was rendered from — default, extended or aligned — "
+                    help="the subtitle track the film was made on — erik, aligned, extended or default — "
                          "which the rehearsal page reads its lines off; empty leaves the page its old rule")
     ap.add_argument("--autocue", help="the autocue's film of the same run (SLIDES_AUTOCUE_FILM), copied in for the rehearsal page")
     ap.add_argument("--autocue-width", type=int, default=1280)
@@ -151,12 +153,15 @@ def main():
     # with the film — carried beside the default so the page can show and edit either.
     voice_extended = track(a.subtitles_extended)
     voice_aligned = track(a.subtitles_aligned)
+    voice_erik = track(a.subtitles_erik)
+    flat = lambda v: " ".join(v) if isinstance(v, list) else (v or "")
 
     for i, s in enumerate(states):
         s["index"] = i
         s["voiceover"] = voice.get(s["slide"], {}).get(s["letter"], "")
         s["voiceoverExtended"] = voice_extended.get(s["slide"], {}).get(s["letter"], "")
         s["voiceoverAligned"] = voice_aligned.get(s["slide"], {}).get(s["letter"], "")
+        s["voiceoverErik"] = flat(voice_erik.get(s["slide"], {}).get(s["letter"], ""))
         s["key"] = f"{s['slide']}-{s['letter']}"
         s["start"] = round(s["frame"] / fps, 3)
         end = states[i + 1]["frame"] / fps if i + 1 < len(states) else duration
@@ -245,7 +250,7 @@ def main():
         width=w, height=h, video=video_name, waveform=waveform_name, audio=tracks, states=[
             {k: s[k] for k in ("key", "index", "slide", "step", "letter", "title", "chapter",
                                 "chapterKind", "slideKind", "start", "end", "thumb", "voiceover", "voiceoverExtended",
-                                "voiceoverAligned")}
+                                "voiceoverAligned", "voiceoverErik")}
             for s in states
         ],
     )

@@ -223,6 +223,107 @@ kbd {
 .p-notes textarea:focus { outline: none; border-color: #5a606b; }
 .p-notes footer { display: flex; justify-content: flex-end; padding: 10px 16px 14px; }
 
+/* --- the autocue text, above the notes: what is said, editable, every change shown against the original --- */
+:root { --changed: #b48cff; --changed-bg: rgba(180, 140, 255, 0.12); --regie: #ffb020; --own: #d8dadf; --guest: #4fc3f7; }
+.p-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.p-notes textarea { min-height: 120px; }
+.p-script { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.p-script.changed { border-color: var(--changed); box-shadow: inset 3px 0 0 var(--changed); }
+.p-script header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px 8px; }
+.p-script h2 { margin: 0; font-size: 15px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+.p-script header p { margin: 3px 0 0; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.p-badge { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #12081f; background: var(--changed); border-radius: 4px; padding: 2px 6px; }
+.p-who { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #000; background: var(--own); border-radius: 3px; padding: 1px 6px; }
+.p-who.guest { background: var(--guest); }
+.p-regie { margin: 0 16px 8px; padding: 6px 10px; border-left: 3px solid var(--regie); color: var(--regie); font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 2px; }
+.p-regie b { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.p-script textarea {
+  min-height: 110px; margin: 0 16px; padding: 14px 16px; resize: vertical;
+  background: var(--bg); border: 1px solid var(--line-2); border-radius: 10px;
+  font-size: 18px; line-height: 1.55; color: var(--text); field-sizing: content; max-height: 420px;
+}
+.p-script.changed textarea { border-color: var(--changed); }
+.p-script textarea::placeholder { color: var(--faint); font-style: italic; }
+.p-script textarea:focus { outline: none; border-color: #5a606b; }
+.p-was { margin: 10px 16px 0; padding: 10px 12px; border-radius: 10px; background: var(--changed-bg); border: 1px solid rgba(180, 140, 255, 0.35); }
+.p-was-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
+.p-was-head span { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--changed); }
+.p-was-head .link { font-size: 13px; text-decoration: underline; }
+.p-diff { margin: 0; font-size: 15px; line-height: 1.6; color: #c9ccd2; white-space: pre-wrap; }
+.p-diff del { color: #ff7b7b; text-decoration: line-through; text-decoration-thickness: 2px; }
+.p-diff ins { color: #eafff2; background: rgba(62, 194, 122, 0.32); text-decoration: none; border-radius: 3px; padding: 0 2px; }
+.p-moved { margin: 6px 0 0; font-size: 12px; color: var(--regie); }
+.p-script footer { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 10px 16px 14px; }
+
+/* read only until "Bewerk deze tekst": the text stands as text, not as a field */
+.p-script-text {
+  margin: 0 16px; padding: 14px 16px; min-height: 60px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); font-size: 18px; line-height: 1.55; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.p-script-text.empty { color: var(--faint); font-style: italic; }
+.p-script.changed .p-script-text { border-color: var(--changed); }
+.p-edit-open {
+  display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+  background: var(--panel-2); border: 1px solid var(--line-2); color: var(--text);
+}
+.p-edit-open:hover { border-color: var(--paper); background: #26282d; }
+.p-script-side { display: flex; align-items: center; gap: 12px; flex: none; }
+.p-script-side .p-save { padding-top: 0; }
+
+/* editing is a mode: a warmer panel above a veil over the rest of the page, the field turned to paper and ink */
+:root { --paper: #f4efe2; --ink: #17181b; --edit-panel: #1f1c15; }
+.p-edit-veil {
+  position: fixed; inset: 0; z-index: 30; background: rgba(5, 6, 8, 0.74); backdrop-filter: blur(2px);
+  cursor: not-allowed; animation: appear 0.15s ease;
+}
+.p-script.editing {
+  position: relative; z-index: 31; background: var(--edit-panel); border-color: var(--paper); box-shadow: 0 0 0 1px var(--paper), 0 24px 70px rgba(0, 0, 0, 0.7);
+}
+.p-edit-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 16px; border-radius: 11px 11px 0 0;
+  background: var(--paper); color: var(--ink); font-size: 13px;
+}
+.p-edit-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.p-edit-hint { color: #4a4740; }
+.p-edit-bar.nudge { animation: nudge 0.42s ease; }
+@keyframes nudge { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } }
+.p-script.editing textarea {
+  background: var(--paper); color: var(--ink); border-color: var(--paper); caret-color: var(--accent);
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-size: 19px; min-height: 140px;
+}
+.p-script.editing textarea::placeholder { color: #8a857a; }
+.p-script.editing textarea:focus { border-color: var(--paper); box-shadow: 0 0 0 3px rgba(244, 239, 226, 0.25); }
+.p-script.editing .p-badge { background: var(--paper); }
+.p-edit-keys { margin-right: auto; font-size: 12px; color: var(--muted); }
+.p-edit-save {
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  background: var(--paper); border: 1px solid var(--paper); color: var(--ink);
+}
+.p-edit-save:hover { background: #fffaf0; }
+.p-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 2px; border-radius: 10px;
+  background: var(--changed); color: #12081f; font-size: 12px; font-weight: 700; }
+.ghost.p-changes-btn { border-color: var(--changed); }
+
+/* every change on one list */
+.changes {
+  position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column;
+  background: rgba(9, 10, 12, 0.97); backdrop-filter: blur(6px); animation: appear 0.15s ease;
+}
+.changes-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px var(--gutter) 14px; border-bottom: 1px solid var(--line); }
+.changes-head h2 { margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+.changes-head p { margin: 4px 0 0; color: var(--muted); max-width: 640px; }
+.changes-tools { display: flex; gap: 8px; flex-shrink: 0; }
+.changes-list { flex: 1; overflow: auto; padding: 16px var(--gutter) 40px; }
+.changes-list ol { list-style: none; margin: 0 auto; padding: 0; max-width: 900px; display: flex; flex-direction: column; gap: 12px; }
+.ch-elsewhere { margin-top: 24px !important; opacity: 0.8; }
+.ch-none { color: var(--muted); text-align: center; margin-top: 40px; }
+.ch-item { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--changed); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ch-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; color: var(--muted); }
+.ch-where b { color: var(--text); font-size: 15px; font-weight: 650; }
+.ch-section { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; width: 100%; }
+.ch-when { margin-left: auto; color: var(--faint); font-size: 12px; }
+.ch-actions { display: flex; gap: 8px; }
+
 .p-upnext { padding: 14px 16px; gap: 10px; }
 .p-upnext h2 { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
 .p-upnext-card {
@@ -299,6 +400,8 @@ kbd {
   content: ''; position: absolute; right: -3px; top: -3px; width: 8px; height: 8px; border-radius: 50%;
   background: #e0a400; box-shadow: 0 0 0 2px var(--panel);
 }
+.ov-click.changed { border-color: var(--changed); color: var(--changed); }
+.ov-click.changed.on { color: white; box-shadow: 0 0 0 2px var(--changed); }
 .ov-count { margin-left: 4px; font-size: 12px; color: var(--faint); }
 
 /* --- shut ----------------------------------------------------------------------------------- */

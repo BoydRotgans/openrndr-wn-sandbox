@@ -69,13 +69,19 @@ class LifeCycleAnalysis(
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val stepFrames: Int = frames(0.8),
     override val sound: Sound? = null,
-    override val stepCues: List<Sound> = emptyList()
+    override val stepCues: List<Sound> = emptyList(),
+    /**
+     * Whether what the conclusion means comes up on the conclusion's own click, a moment after it, rather
+     * than on a click of its own. On in the show since 19 October 2026: that last click had nothing said
+     * over it on Erik's autocue, and an empty click is a click the speaker has to make for nothing.
+     */
+    private val definedWithConclusion: Boolean = false
 ) : Slide() {
 
     override val name = "LCA"
 
-    /** A click a source, one to gather them, one for the conclusion, one for what it means. */
-    override val steps = sources.size + 3
+    /** A click a source, one to gather them, one for the conclusion, and one for what it means unless it comes with it. */
+    override val steps = sources.size + if (definedWithConclusion) 2 else 3
 
     private val gathered get() = sources.size
     private val concluded get() = sources.size + 1
@@ -83,7 +89,7 @@ class LifeCycleAnalysis(
 
     override fun stepName(step: Int) = when (step) {
         gathered -> "gather"
-        concluded -> "what it makes possible"
+        concluded -> if (definedWithConclusion) "what it makes possible, and what that means" else "what it makes possible"
         defined -> "what that means"
         else -> sources.getOrNull(step)?.caption
     }
@@ -152,7 +158,8 @@ class LifeCycleAnalysis(
             block(drawer, conclusion, text, box, stage.height * SAYS, analysisY - stage.height * 0.075, up = true)
         }
 
-        val means = stage.on(defined)
+        // With the conclusion's click, the second half of it: the conclusion is read first, then what it means.
+        val means = if (definedWithConclusion) ((says - 0.45) / 0.55).coerceIn(0.0, 1.0) else stage.on(defined)
         if (means > 0.0) {
             drawer.fill = ColorRGBa.WHITE.opacify(means)
             val box = Rectangle(stage.width * SAYS_X, 0.0, stage.width * (0.985 - SAYS_X), stage.height)

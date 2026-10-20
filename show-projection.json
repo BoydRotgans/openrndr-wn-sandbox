@@ -21,10 +21,10 @@
         "y": null
     },
     "autocue": {
-        "place": "window",
-        "x": 0.0,
-        "y": 0.0,
-        "scale": 1.0,
+        "place": "wall",
+        "x": 944.0,
+        "y": 524.0,
+        "scale": 0.5,
         "window": {
             "x": 5640,
             "y": 0,

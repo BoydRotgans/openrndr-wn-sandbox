@@ -36,17 +36,25 @@ class VoiceTrack private constructor(
     /** States (`id-LETTER`) whose best render still failed the renderer's read-back check. */
     val flagged: Set<String> = emptySet()
 ) {
+    /**
+     * States the voice is not to say, whatever the folder holds: on Erik's autocue, a state another speaker reads
+     * (20 October 2026). The voice is Erik's, rendered off his lines alone, so with Karim Weiss ticked under the
+     * speakers the ending's A says Erik's thanks while the autocue gives Karim's closing; it is left silent instead.
+     * Set by the show off the track it reads ([Subtitles.guestStates]).
+     */
+    @Volatile var silent: Set<Pair<String, Int>> = emptySet()
+
     /** The voice for [step] of [id], or null where none was rendered. */
-    fun sound(id: String, step: Int): Sound? = sounds[id to step]
+    fun sound(id: String, step: Int): Sound? = sounds[id to step]?.takeIf { (id to step) !in silent }
 
     /** Frames the voice for [step] of [id] runs, or null where none was rendered. */
-    fun frames(id: String, step: Int): Int? = lengths[id to step]
+    fun frames(id: String, step: Int): Int? = lengths[id to step]?.takeIf { (id to step) !in silent }
 
     /**
      * The words of [step] of [id] with the frames each was said on, or null where the render
      * predates the word times (the manifest's `words`) — then the text rule stands for it.
      */
-    fun speech(id: String, step: Int): Speech? = speeches[id to step]
+    fun speech(id: String, step: Int): Speech? = speeches[id to step]?.takeIf { (id to step) !in silent }
 
     val all: List<Sound> get() = sounds.values.toList()
     val size: Int get() = sounds.size

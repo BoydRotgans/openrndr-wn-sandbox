@@ -603,9 +603,13 @@ private fun org.openrndr.ApplicationBuilder.present(
         // Every track is read, so the organizer's selector can switch between them mid-show;
         // `subtitles` is whichever is in force. See SubtitleTrack.
         voices.forEach { (track, v) -> println("voice: ${track.key} — ${v.size} states rendered under ${v.dir.path}") }
-        val tracks = SubtitleTrack.entries.associateWith { Subtitles.readOrEmpty(settings.subtitlesFile(it)) }.toMutableMap()
+        // Each as the evening reads it: a speaker not among SLIDES_SPEAKERS has no line on it (Subtitles.forSpeakers).
+        val tracks = SubtitleTrack.entries.associateWith { Subtitles.readOrEmpty(settings.subtitlesFile(it)).forSpeakers(settings.speakers) }.toMutableMap()
         var subtitleTrack = settings.subtitleTrack
         fun subtitles(): Subtitles = tracks[subtitleTrack] ?: Subtitles.EMPTY
+        // The voice says the track's own speaker's lines only — see VoiceTrack.silent.
+        fun silence(track: SubtitleTrack) { voices[track]?.silent = tracks[track]?.guestStates.orEmpty() }
+        SubtitleTrack.entries.forEach(::silence)
         // Spoken or not, apart from whether the words are on the wall — see Settings.voiceOn.
         var voiceOn = settings.voiceOn
         // Whether, with the autocue up, the show continues by itself once each state is done — see Settings.autoplay.
@@ -647,10 +651,12 @@ private fun org.openrndr.ApplicationBuilder.present(
         var cuePace = if (settings.record) pace else Pace(autocueCps)
         /** The pace the autocue times [index]'s state [step] at: the voice's where one is rendered and on, else the speaker's. */
         fun readPace(index: Int, step: Int) = if (voiceFrames(index, step) != null) pace else cuePace
-        val subtitleOverlay = SubtitleOverlay(
-            runCatching { loadFont(Type.file, SubtitleOverlay.EM, TYPE_CHARACTERS, contentScale = 1.0) }.getOrNull(),
-            SubtitleOverlay.EM
-        )
+        // Taken out for now (20 October 2026): the subtitles on the wall are not needed. Commented out rather than deleted, to come back.
+        // The tracks stay, since the autocue reads Erik's script from them; only the drawing on the wall is out.
+        // val subtitleOverlay = SubtitleOverlay(
+        //     runCatching { loadFont(Type.file, SubtitleOverlay.EM, TYPE_CHARACTERS, contentScale = 1.0) }.getOrNull(),
+        //     SubtitleOverlay.EM
+        // )
         // The state the line is being said over, and the frame it was reached on: a card's time is
         // counted from there, so a click back or a replay says the line again from its start.
         var subtitleState = -1 to -1
@@ -903,7 +909,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 event.name == "r" -> deck.replay()
                 event.name == "d" -> debug = !debug
                 event.name == "g" -> gridOn = !gridOn
-                event.name == "s" -> subtitleMode = !subtitleMode
+                // event.name == "s" -> subtitleMode = !subtitleMode   // the wall's subtitles are out for now (20 October 2026)
                 event.name == "v" -> voiceOn = !voiceOn
                 event.name == "c" && watched -> switchAutocue(!autocueOn, "show")
 
@@ -1725,6 +1731,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                     val was = voices[track]?.size ?: 0
                     speakers.load(fresh.all)
                     voices[track] = fresh
+                    silence(track)
                     if (fresh.size != was) println("voice: ${track.key} — ${fresh.size} states rendered")
                 }
             }
@@ -1746,19 +1753,20 @@ private fun org.openrndr.ApplicationBuilder.present(
                             if (speakers.isPlaying(v)) "playing" else "NOT PLAYING")
                 }
             }
-            if (subtitleMode && fresh) {
-                val said = subtitles()[ids.getOrElse(deck.index) { "" }, deck.step]
-                val fit = voiceFrames(deck.index, deck.step)?.let { pace.spoken(it) }
-                val heard = voice()?.speech(ids.getOrElse(deck.index) { "" }, deck.step)
-                pace.at(said, frame - subtitleSince, fit, heard)?.let { card ->
-                    drawer.isolatedWithTarget(canvas) {
-                        drawer.ortho(canvas)
-                        val pane = if (hasPanels) Rectangle(slideOffsetX, 0.0, slideWidth.toDouble(), settings.height.toDouble())
-                        else canvasBounds
-                        subtitleOverlay.draw(drawer, pane, card, frame - subtitleSince - card.at, pace)
-                    }
-                }
-            }
+            // Taken out for now (20 October 2026): the subtitles on the wall are not needed. Commented out rather than deleted, to come back.
+            // if (subtitleMode && fresh) {
+            //     val said = subtitles()[ids.getOrElse(deck.index) { "" }, deck.step]
+            //     val fit = voiceFrames(deck.index, deck.step)?.let { pace.spoken(it) }
+            //     val heard = voice()?.speech(ids.getOrElse(deck.index) { "" }, deck.step)
+            //     pace.at(said, frame - subtitleSince, fit, heard)?.let { card ->
+            //         drawer.isolatedWithTarget(canvas) {
+            //             drawer.ortho(canvas)
+            //             val pane = if (hasPanels) Rectangle(slideOffsetX, 0.0, slideWidth.toDouble(), settings.height.toDouble())
+            //             else canvasBounds
+            //             subtitleOverlay.draw(drawer, pane, card, frame - subtitleSince - card.at, pace)
+            //         }
+            //     }
+            // }
 
             // The canvas is fitted into the window rather than stretched to it, so a
             // projector of another shape letterboxes instead of distorting the slides.
@@ -2035,11 +2043,13 @@ private fun org.openrndr.ApplicationBuilder.present(
                             println("organizer: wait for animation ${if (waitForAnimation) "on" else "off"}")
                         }
                         is Remote.Subtitle -> {
+                            // The wall's subtitles are out for now (20 October 2026); the switch is kept and draws nothing.
                             subtitleMode = command.on ?: !subtitleMode
-                            println("organizer: subtitles ${if (subtitleMode) "on" else "off"}")
+                            println("organizer: subtitles ${if (subtitleMode) "on" else "off"} (not drawn: the wall's subtitles are out for now)")
                         }
                         is Remote.ApplySubtitles -> {
-                            tracks[command.track] = command.subtitles
+                            tracks[command.track] = command.subtitles.forSpeakers(settings.speakers)
+                            silence(command.track)
                             // said again from its start, so an edited line is seen whole
                             if (command.track == subtitleTrack) subtitleState = -1 to -1
                         }

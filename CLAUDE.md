@@ -1080,8 +1080,19 @@ own java, classpath and flags (not a second Gradle run, which would fight the fi
 organizer on a free port and `SLIDES_ORGANIZER_OPEN=false`; the launcher forwards `/api/*` to
 it while it is up, so saves are written and played there as before, and re-reads the files
 when it goes. With no show, the order, modules, intents, feedback, MIDI ticks and sketches
-all work off the files; go, clicks, previews, grid and the export answer 409. A change to a
-slide needs the launcher restarted, since the child runs the launcher's compiled classes.
+all work off the files; go, clicks, previews, grid and the export answer 409.
+
+**Every ▶ start runs the code as it stands** (20 October 2026). The launcher builds the project first
+(`./gradlew classes`, about a second when nothing changed; the button reads `■ stop (building…)`), copies the
+classes into `build/show-cp/` and starts the show on that copy, so a slide changed since the launcher came up
+is on the wall at the next start. A copy rather than Gradle's own output, because a build made while the show
+runs would rewrite the classes under it. A build that fails does not stop the show: it starts on the last copy
+that built, and the page says so with the first compile error, and keeps `⚠ older code` on its live line for as
+long as that show runs. `SLIDES_ORGANIZER_REBUILD=false` starts on the launcher's own classes, as before; under
+`./gradlew run` it never builds. A change to the launcher itself (`Organizer.kt`, `Remote.kt`) still needs the
+launcher restarted, and with no show up the page's slide list is still the launcher's. Checked on a test
+launcher: a start built in 0.8 s and the show ran on `build/show-cp`; with a file that did not compile, the page
+named the error and the show ran on the last good copy.
 
 **`projection` in the top bar puts the next start on the wall**: the child gets
 `SLIDES_UNDECORATED=true`, `SLIDES_WINDOW_SCALE=1.0` and `SLIDES_WINDOW_X/_Y` from the Projection
@@ -1218,7 +1229,10 @@ appended at the end as an unmentioned slide would be — and kept, so it can be 
 later. It is a different thing from `"on": false`, which keeps a slide in its place and skips
 it. The page draws the shelf at the foot of the navigator, `a` puts the selected slide on it
 or takes it off again, and a slide taken off lands where it was declared, to be dragged from
-there.
+there. **The shelf opens folded** (20 October 2026), its head saying how many it keeps: open, its 79
+walls pushed the foot of the order a long way down. A slide dropped on the folded head goes onto the
+shelf, the head lit in the drop line's red while one is held over it. The unplaced frames under it open
+folded too.
 
 `SLIDES_ORDER` names it (`show-order.json`, committed: it is the talk). No file there plays
 the show as declared. **A save is played at once**: writing the file also queues an `Apply`,
@@ -1390,6 +1404,13 @@ answers to is carried along and shown to nobody. The value may be one string or 
 paragraphs, the way a module's brief is.
 
 ### Subtitles
+
+**The subtitles on the wall are out for now** (20 October 2026: "this won't be needed"). Commented out, not deleted:
+the overlay's drawing and its face in `Show.kt`, the `s` key, and the organizer's `subtitles` buttons (the top bar's and
+the Subtitles tab's). `SLIDES_SUBTITLE_MODE` and `/api/subtitle-mode` still switch the mode, which still lets a
+hands-off run hold each state for its line, but nothing is drawn, so a film no longer carries them. The tracks, their
+editors (the Subtitles tab, the slide pane) and the voice stay, since the autocue reads Erik's script from them. What
+follows describes the subtitles as they were drawn.
 
 `show-subtitles.json` is what is said over each state of each slide, in Dutch, and **subtitle mode**
 puts it on the wall. `SLIDES_SUBTITLES` names the file; `SLIDES_SUBTITLE_MODE=true`, `s` in the show
@@ -1855,6 +1876,16 @@ to do instead.
 - **On the autocue a direction is amber** in the labels' face, with a bar beside it, under the state's line
   or in its place. A state with only a direction stands it on the reading line. The header names the track
   ("dia 4 van 56 · Erik autocue"), so it can be seen which script is up.
+- **The directions are short, after the draaiboek** (20 October 2026: "te lang … als geen tekst; klik als iedereen
+  zit"). The Word file puts the same REGIE sentence on every wall, "Laat het beeld spreken. Klik op het afgesproken
+  moment door; hier is geen afzonderlijke spreektekst nodig.", and a BEELDCUE or REGIE line beside some. Each is now one
+  line saying what happens and when to click, written over in `show-autocue-additions.json` so an import keeps it:
+  `Geen tekst · klik als iedereen zit` on the arrival, `Geen tekst · Else licht de gang toe; klik als ze klaar is` on
+  each StudioBuik wall, `Geen tekst · klik als er is uitgehaald` on each course wall, `Geen tekst · bij 0:00 klik naar
+  hoofdstuk n` on each transition, `Else stelt StudioBuik voor · daarna klik: aftellen naar hoofdstuk 1` on the
+  programme's last state, `Einde presentatie · de wand blijft staan` on the exit, and, with Karim not on the autocue,
+  `Geen tekst · klik als Karim begint` and `Karim spreekt nu; daarna klik` on his tag (the addition's `without`). Checked by running the
+  import against the show with every speaker: it writes these directions and `replaced` exactly as the track has them.
 - **One block is headed REGIE but is speech**: the ending's thanks (klik 175, `ending-A`). It is taken as
   speech, and the tool says so. Karim Weiss's closing has since taken that state (below).
 - **What the Word file does not carry is laid over it** from `show-autocue-additions.json`, by state key rather
@@ -1869,6 +1900,25 @@ to do instead.
   A–E and Verduurzamen van beton A–C, made compact after the aligned track and click for click to the wall (the
   Word file's version ran a click behind the LCA slide). The tool lists every line it writes over. Lines edited only
   in the organizer are not in it, and an import writes over them.
+- **Whose lines are on the autocue is chosen, and by default it is Erik's alone** (20 October 2026: "I do not want
+  any text for Karim Weiss in there for now; store it for later … the autocue is only for Erik"). `SLIDES_SPEAKERS`
+  names the speakers besides Erik, empty (or `none`) for none, and the organizer's `speakers` in the top bar ticks
+  them for the next ▶ start (the launcher keeps the choice, as it keeps the mute, and hands it over; it shapes the
+  show as it is built, so a show already up keeps its own and the button says `restart`). **A speaker left out keeps
+  their slides**: Karim's tag stands as before and he speaks his own words over it. What goes:
+  - **their lines on the autocue**: `Subtitles.forSpeakers` reads the track without their states, and where their
+    line was laid over the Word file's, the Word file's comes back — `replaced` in the track, which
+    `tools/autocue_docx.py` writes: the ending's A is Erik's own thanks again, and the director's tag carries the Word
+    file's REGIE "Laat het beeld spreken". Only the show reads it that way; the organizer edits and saves the whole
+    file, so Karim's welcome and closing stay in `show-subtitles-erik.json` and `show-autocue-additions.json`.
+  - **the clicks that only stepped through those lines**: the director's tag is `clicks = if (karimWeiss in
+    speakersInShow()) 8 else 1` and the ending `… 3 else 1` in `Slideshow.kt`, one click each as in the Word file.
+
+  The import tool counts every speaker's clicks when it pairs, so it refuses a show that leaves one out: tick every
+  speaker, ▶ start, and run it while the show is up. Checked with `RunningOrderKt` both ways (Erik alone: the tag and
+  the ending one click each; with Karim: eight and three), the track read both ways (Erik's thanks on the ending
+  without Karim, nothing of his left), a test launcher (the control, and a start handing over
+  `SLIDES_SPEAKERS=Karim Weiss` and `none`), and the organizer's own show started on Erik alone.
 - **Who speaks is marked on every state** (`Subtitles.speaker`): the track's root `speaker` (Erik Koremans, the
   tool's `--speaker`) for every line, and `speakers` (a name a letter) where someone else reads. The autocue draws
   it as a small pill on each state's divider and on the header: Erik in light grey, Karim in cyan, and an amber
@@ -1878,11 +1928,17 @@ to do instead.
   sentence a line with lists in it, and reads that way; every other line has no breaks, so nothing else moved. The
   wall's subtitles still run a line together.
 - **It is the presentation's default** (`SLIDES_SUBTITLE_TRACK=erik` in `.env` and `.env.example`, and the
-  Subtitles tab opens on it): it is what the autocue shows Erik on the night. A film or rehearsal that wants
-  the rendered voice passes `SLIDES_SUBTITLE_TRACK=aligned` for that run, since on `erik` nothing is said.
-- **No voice.** Erik speaks it himself, so nothing is rendered for it, the slide pane does not mark its lines
-  "not rendered", and switching the voice on leaves the track on Erik where on any other track without a voice
-  it would move to one with one.
+  Subtitles tab opens on it): it is what the autocue shows Erik on the night.
+- **It has a voice of its own since 20 October 2026, and it is the only track that does.** Erik speaks it himself
+  on the night; the voice is for rehearsing and for films. `voiceover_render.py --track erik` renders Erik's lines
+  alone, as the show reads them with Erik alone (`own_lines`, the renderer's `Subtitles.forSpeakers`: the ending's A
+  is his own thanks), into `data/sounds/voice/erik`; `--speakers` names guests, whose lines stay unvoiced either way.
+  The show leaves the voice silent on a state another speaker reads (`VoiceTrack.silent`, off
+  `Subtitles.guestStates`), so with Karim ticked the ending's A gives his closing on the autocue and no voice, and the
+  page marks no guest's line as wanting one. The old renders of the aligned and extended tracks were taken out the
+  same day (moved to the Trash, `~/.Trash/wn-voice-2026-10-20/`), so those tracks are silent with the voice on; the
+  Piper model in `data/sounds/voice/piper` stays. `course-transition-to-chapter-3-A`, whose only line is a stray
+  "van", was left out of the render.
 - **The organizer edits it** like the other tracks (the Subtitles tab's `Erik autocue`, the slide pane's
   `Erik`), the directions shown read only, in amber, under each state. Running the tool again writes over
   lines edited there.
@@ -2236,7 +2292,13 @@ count is what is agreed and not built yet, and the top bar counts open, to build
   its own clock and handed the first column's boxes), and over 1.6 s the road, its drawings and the other
   steps fade, A1 to A3 travel from the list into their red boxes, and the column comes up behind them; the
   steps are drawn over the column so they stay readable the whole way. Measured on film, the cut changes
-  the picture by 0.013 levels. Jumped into or stepped back into, the life cycle opens as before. The
+  the picture by 0.013 levels. Jumped into or stepped back into, the life cycle opens as before.
+  **The road's build is a score** (20 October 2026), `midi/de-fasen-a-b-en-c.mid` with its clip, written by
+  `WALL_MIDI_SLIDE=de-fasen-a-b-en-c WALL_MIDI_CLICKS=true`: five lanes read off `paint`'s own arithmetic —
+  the road a note a stretch, the letters a note as each comes up, a stop as the head passes it (its dot,
+  code, drawing and list line share that one ramp), C's dead end, and the states — the frame read back with
+  `linear` from the deck's ease. Pitch is where on the road a thing stands, left lowest. 24 notes over 11.8 s
+  of a 15.3 s clip; every stop's note starts within two frames of its dot coming up on the clip. The
   subtitles follow the road ("Volg de weg van een betonelement", "het langste stuk van de weg", "Daar loopt
   de weg dood"). The
   crowd's titles turn to Governance with the arrow. Every takeaway ends on a question for the table. The
@@ -4596,14 +4658,21 @@ edge as it turns and the name has the foot of the box.
 `LifeCycleAnalysis` **builds its first database on arrival**, words and then threads, as the second
 builds on its click; it stood whole from the first frame, the opening state having no click to
 arrive on. Only while the slide is on its opening state, so stepping back finds it built.
+**It is four clicks since 19 October 2026, not five** (`definedWithConclusion`): the definition ("= De
+hoeveelheid CO₂…") comes up on the conclusion's click, a moment after it, because the fifth click had nothing
+said over it on Erik's autocue. The default, extended and aligned tracks had their E folded into D, and D's voice
+was rendered again; the import skips the Word file's click 115; the sound design's `levenscyclusanalyse-E` is
+past the slide's states and does not play.
 
 `NameTag` takes `pane` and `scale`; the show stands Erik full size in the left projector.
 
 **The director speaks first** (1 October): `director-is-speaking` is a `NameTag` for the director of Willy
 Naessens, first in the Opening moment, before Erik's. The director gives the first welcome, and the click
-after it is Erik's own tag, from where the opening goes on as before. The director is **Karim Weiss**, "CEO Willy
-Naessens Nederland B.V." (19 October; a placeholder until then), the line as given and the role line left empty as
-the guest's is. His welcome, which ends handing over to Erik, is on Erik's autocue (below), **a section a click**: the
+after it is Erik's own tag, from where the opening goes on as before. The director is **Karim Weiss** (19 October; a placeholder until then),
+labelled as Erik is since 20 October: "Willy Naessens NEDERLAND" on the company line, the same as Erik's, and "Chief
+Executive Officer (CEO)" under it. **Since 20 October his lines are off the autocue unless he is ticked under the
+organizer's `speakers`** (`SLIDES_SPEAKERS`, Erik alone by default; see Erik autocue below): the tag stands either
+way and he speaks his own words over it, one click, and the lines are kept for when he is ticked. His welcome, which ends handing over to Erik, is on Erik's autocue (below), **a section a click**: the
 tag stands for eight states (`NameTag(clicks = 8)`), A to H, and nothing on the wall changes on them, since the tag
 builds on its own clock. The ending wall likewise stands for three (`EndingScene(clicks = 3)`), his closing. The
 other tracks carry no line on those states, so a hands-off film on them holds each for `SLIDES_HOLD_BACKDROP`; since
@@ -5113,7 +5182,10 @@ with a mouse cursor in it, visible throughout, and nine states:
   under a note, and the gather's note runs 44.02 to 46.62 s against motion from 44.03 to 46.62. Those numbers
   are from before the slide opened on the catalogue (below): with it an eighth lane, **catalogue**, carries the
   arrival — a note as each piece on the sheet takes its colour, and one for the sheet going into the button, 103
-  in all — and the first state holds the arrival's 3.2 s, so the score is 185 notes over 48.2 s.
+  in all — and the first state holds the arrival's 3.2 s, so the score is 185 notes over 48.2 s. Exported again
+  on 20 October 2026 with the 91 pieces the sheet holds now: 174 notes over 48.2 s (92 of them on `catalogue`)
+  in a 51.7 s clip, and the transition to colour on its own as `midi/gebouw-uit-de-webtool-A.mid` and `.mp4`
+  (`WALL_MIDI_CLICKS=false`: 93 notes in 6.65 s). On both clips every moving frame falls under a note.
 
 #### The catalogue, from ring to grid to box
 
@@ -5221,7 +5293,9 @@ the pane:
   the sheet in cells.
 
 The note counts in this section were measured on the whole catalogue, before the round pieces went: a note a piece,
-so with 91 pieces each lane carrying the pieces is that much shorter, and the files in `midi/` want exporting again.
+so with 91 pieces each lane carrying the pieces is that much shorter. Exported again on 20 October 2026
+(`midi/100-elementen.mid` and `.mp4`): 185 notes, 91 off the ring (0.25–2.55 s), 92 on the `catalogue` lane
+(6.25–8.80 s) and the 2 states, over a 12.7 s clip; every moving frame of the clip falls under a note.
 The grid's score is 233 notes: 115 off the ring, 116 to scale (every piece, and the figure) and its two states.
 With the click out (29 September) it is 116, the 115 off the ring and the one state, over 2.55 s of a 6.05 s
 clip (`WALL_MIDI_SLIDE=100-elementen WALL_MIDI_CLICKS=true`). Checked against the clip: every moving frame from
@@ -7824,6 +7898,29 @@ the practice-cut recipe; three decisions carry it.
   and what the window has room for, the top corners kept below the head. **Autocue** in the head, or A, hides it. With it the subtitle over the film went
   **off by default**, under a new storage key so every browser starts off; the CC button or S puts it back.
   `--track aligned` names the track the cut was voiced from, and the page's lines are that track's alone.
+- **The autocue text is edited on the page** (19 October 2026), above the speaker notes, which went below it.
+  It is Erik's autocue as the show has it — `review/scripts/export-script.mjs` (`pnpm export-script`) writes
+  `show-subtitles-erik.json` to `public/releases/practice/script.json`, with who reads each click and its stage
+  directions — and the page lays its own edits over it (`src/practice/script.ts`). **What changed is never in
+  doubt**: an edit keeps the text it was made from, and a click whose text differs from it carries a violet
+  **Gewijzigd** badge, the original under the field with the words taken out struck through and the words put in
+  marked (`diff.ts`, a word-level longest common run), and **Origineel terugzetten**. **Wijzigingen** in the head
+  counts them and opens every changed click on one list, in the show's order, with when, the change, a way there
+  and back, and a download; the overview marks a changed click in violet. An edit made against a text the show
+  has since moved on from says so. Saved as the notes are — kept in the browser at once and sent through
+  `/api/script` (`api/script.ts`, open to the rehearsal key) — and **kept in the notes' own table**,
+  `speaker_notes`, under `script:` keys, so no table had to be created by hand; `/api/notes` leaves those keys
+  out. `pnpm pull-script` brings the changes into `show-script-edits.json` at the project root, for taking into
+  Erik's track; nothing takes them in by itself. The autocue film under the page is still the release's own, so
+  until a release is filmed on the Erik track it shows that track's text, not the script being edited.
+- **The text is read only until "Bewerk deze tekst"** (19 October 2026), so a stray keystroke while clicking through
+  cannot change it. Editing is a lock: the field turns to paper (cream, dark serif ink) under a cream **Bewerkmodus**
+  bar, the rest of the page stands still under a veil, and the clicker, the keys and the buttons only shake that bar
+  ("De presentatie staat stil zolang je bewerkt"). Nothing is written until **Opslaan** (or ⌘/Ctrl + Enter);
+  **Annuleren** leaves the text as it was, Esc leaves a draft only if it is unchanged, and leaving the page with an
+  unsaved draft is asked about. **Origineel terugzetten** opens the lock with the original filled in, to be saved.
+  Checked in headless Chrome over CDP against a local build: keys and the Next button held while editing, the draft
+  kept on Esc, written on save, untouched on cancel, and the show moving again after.
 - **The review site carries the aligned track** as a third voice-over tab (`voiceoverAligned` in the
   manifest, `voiceover_aligned` comments), on releases built since it existed.
 

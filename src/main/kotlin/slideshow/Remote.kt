@@ -490,6 +490,13 @@ class Remote(
                     p.subtitles = on ?: !p.subtitles
                     if (!p.live) return exchange.json(200, presentationJson(p))
                 }
+                // Who speaks besides Erik: kept here and handed to the next start, since it shapes the show as it
+                // is built. Never forwarded — a show already up keeps the speakers it was started with.
+                if (path == "/api/speakers" && method == "POST") {
+                    runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["speakers"]?.jsonArray }.getOrNull()
+                        ?.let { list -> p.speakers = list.mapNotNull { it.jsonPrimitive.contentOrNull?.trim()?.takeIf { n -> n.isNotEmpty() } }.toSet() }
+                    return exchange.json(200, presentationJson(p))
+                }
                 if (path == "/api/autocue-pace" && method == "POST") {
                     runCatching { Json.parseToJsonElement(body.decodeToString()).jsonObject["cps"]?.jsonPrimitive?.doubleOrNull }.getOrNull()
                         ?.takeIf { it.isFinite() }?.let { p.autocueCps = it.coerceIn(CUE_CPS_MIN, CUE_CPS_MAX) }
@@ -833,6 +840,8 @@ class Remote(
             put("hasModulesFile", modulesFile.isFile)
             put("revs", revs)
             put("running", JsonArray(ids.map { JsonPrimitive(it) }))
+            // Whose lines are on the autocue besides Erik's in this show (SLIDES_SPEAKERS).
+            put("speakers", JsonArray(catalogue.settings.speakers.map { JsonPrimitive(it) }))
             // The sound design's files by slide and state, read off its folders now — see CueSheet.files.
             val cueFiles = catalogue.settings.cueSheet?.files(catalogueIds.zip(catalogue.slides).associate { (id, s) -> id to s.steps }).orEmpty()
             put("catalogue", JsonArray(catalogueIds.mapIndexed { i, id -> slideJson(catalogue, i, id, cueFiles[id].orEmpty()) }))
@@ -989,10 +998,20 @@ class Remote(
 
     private fun presentationJson(p: Presentation) = buildJsonObject {
         put("running", p.running); put("starting", p.starting); put("live", p.live)
+        put("building", p.building); p.buildWarning?.let { put("buildWarning", it) }
         put("projection", p.projection); put("muted", p.muted); put("practice", p.practice); put("subtitles", p.subtitles)
         put("waitForAnimation", p.waitForAnimation)
         put("subtitleTrack", p.subtitleTrack.key); put("voice", p.voice); put("autoplay", p.autoplay)
         put("autocue", p.autocue); put("autocueCps", p.autocueCps)
+        // Whose lines are on the autocue besides its own speaker's: chosen for the next start, and the running show's,
+        // which the page compares to say a start is needed. The choices are everyone Erik's track names.
+        val lead = subtitlesErik.ownSpeaker ?: "Erik Koremans"
+        val choices = (subtitlesErik.speakers.values.flatMap { it.values } + p.speakers)
+            .filter { it != lead }.distinct()
+        put("speakerLead", lead)
+        put("speakerChoices", JsonArray(choices.map { JsonPrimitive(it) }))
+        put("speakers", JsonArray(p.speakers.map { JsonPrimitive(it) }))
+        p.startedSpeakers?.takeIf { p.running }?.let { put("speakersRunning", JsonArray(it.map { s -> JsonPrimitive(s) })) }
         put("mix", buildJsonObject { p.mix.forEach { (l, g) -> put(l.key, g) } })
     }
 
@@ -1117,7 +1136,7 @@ class Remote(
         )
 
         private val PREVIEW_NAME = Regex("^[a-z0-9-]+-[0-2]\\.png$")
-        private val VOICE_NAME = Regex("^(default|extended|aligned)/([a-z0-9-]+-[A-Z]{1,2}\\.wav|manifest\\.json)$")
+        private val VOICE_NAME = Regex("^(default|extended|aligned|erik)/([a-z0-9-]+-[A-Z]{1,2}\\.wav|manifest\\.json)$")
         private val REFERENCE_NAME = Regex("^[0-9]+-[0-9]+-(wall\\.jpg|pane\\.png)$")
 
         /** One of the three frames a preview shows: the click it stands on, the frame, and its caption. */
