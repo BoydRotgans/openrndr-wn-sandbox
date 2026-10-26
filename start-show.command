@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Starts the WN show on this Mac. Double-click it in Finder (it opens in Terminal), or run it here:
+# Opens the WN show's organizer in the browser. Double-click it in Finder (it opens in Terminal), or
+# run it here; everything else — starting the presentation, projectors, the autocue — is done from
+# the organizer's page.
 #
-#   ./start-show.command                 the organizer page opens in the browser: ▶ start presentation there
-#   ./start-show.command --show          the show window straight away, without the page
+#   ./start-show.command                 open the organizer
 #   ./start-show.command <package.zip>   import that data package first (a folder unpacked from one works too)
 #   ./start-show.command --check         import and check, but start nothing
 #
-# Every start: imports the newest data package in the repo's data/ folder (wn-show-data-*.zip, or the
+# When this folder's organizer is already running, its page is opened and nothing else is done.
+# Otherwise: imports the newest data package in the repo's data/ folder (wn-show-data-*.zip, or the
 # folder one unzips to) when it is newer than the one imported before; checks for Java, ffmpeg
-# and rsvg-convert, offering to install what is missing through Homebrew; then starts the show.
-# A machine whose data/ did not come from a package (the one the packages are made on) is never
-# imported over unless a package is named on the command line.
+# and rsvg-convert, offering to install what is missing through Homebrew; then starts the organizer,
+# which opens its page as soon as it is up. A machine whose data/ did not come from a package (the one
+# the packages are made on) is never imported over unless a package is named on the command line.
 set -euo pipefail
 cd "$(dirname "$0")"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -26,12 +28,37 @@ mode=organizer
 package=""
 for arg in "$@"; do
     case "$arg" in
-        --show) mode=show ;;
         --check) mode=check ;;
-        -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
         *) [[ -e "$arg" ]] || fail "no such file: $arg"; package="$arg" ;;
     esac
 done
+
+# ── Already running? Then its page is all that is wanted ────────────────────────────────────
+
+# The organizer of this folder listening on its ports (8765 and the nine after, where it moves when
+# 8765 is taken): the port, or nothing. Another program on one of those ports is passed over.
+running_organizer() {
+    local here pid port base
+    here=$(pwd -P)
+    base=$(sed -n 's/^SLIDES_ORGANIZER_PORT=//p' .env 2>/dev/null | tail -1)
+    [[ "$base" =~ ^[0-9]+$ ]] || base=8765
+    for port in $(seq "$base" $((base + 9))); do
+        pid=$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -1) || true
+        [[ -n "$pid" ]] || continue
+        ps -ww -o command= -p "$pid" 2>/dev/null | grep -q OrganizerKt || continue
+        [[ "$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')" == "$here" ]] || continue
+        echo "$port"
+        return 0
+    done
+    return 1
+}
+
+if [[ "$mode" == organizer && -z "$package" ]] && port=$(running_organizer); then
+    say "The organizer is already running; opening its page: http://localhost:$port/"
+    open "http://localhost:$port/"
+    exit 0
+fi
 
 # ── The data package ────────────────────────────────────────────────────────────────────────
 
@@ -165,11 +192,8 @@ done
 [[ "$mode" == check ]] && { say "✓ Ready. Start without --check to run the show."; exit 0; }
 
 [[ -d .gradle ]] || say "The first start downloads Gradle and the libraries and compiles everything: give it a few minutes."
-if [[ "$mode" == show ]]; then
-    say "Starting the show window. Shift-Esc in the window, or ctrl-C here, quits."
-    exec ./gradlew run -Popenrndr.application=SlideshowKt
-else
-    say "Starting the organizer: its page opens in the browser, and ▶ start presentation there starts the show."
-    say "Keep this window open while the show runs; ctrl-C here stops it."
-    exec ./gradlew run -Popenrndr.application=OrganizerKt
-fi
+say "Starting the organizer: its page opens in the browser as soon as it is up."
+say "Keep this window open while the show runs; ctrl-C here stops it."
+# The page is opened whatever the .env says about it: opening it is what this script is for.
+export SLIDES_ORGANIZER_OPEN=true
+exec ./gradlew run -Popenrndr.application=OrganizerKt

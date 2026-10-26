@@ -17,12 +17,13 @@ in git), and an internet connection the first time.
    - imports the data package,
    - checks for Java, ffmpeg and rsvg-convert, and offers to install what is missing with
      [Homebrew](https://brew.sh),
-   - starts the organizer. Its page opens in the browser, and **▶ start presentation** there starts the show.
+   - opens the organizer in the browser. Everything else is done from there: **▶ start presentation**
+     starts the show.
 
 The first start downloads Gradle and the libraries and compiles everything, which takes a few minutes. After
 that a start takes seconds. Keep the Terminal window open while the show runs; ctrl-C there stops it.
+Double-clicking again while the organizer runs just opens its page again.
 
-- **The show window without the page:** `./start-show.command --show`. Shift-Esc in the window quits.
 - **Projectors and the autocue** are set up in the organizer's Projection tab.
 - **A new version:** `git pull`, and put the new data package in `data`. The next start offers to import it,
   and the old zip can then be deleted.

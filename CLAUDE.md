@@ -39,10 +39,13 @@ rather than the ANGLE default, which this machine renders incorrectly.
 The show runs on a second Mac from a clone of this branch plus a **data package**: what the show reads
 that git does not carry (`data/`, the organizer's reference frames, the draaiboek's CSV, and `.env`).
 `tools/pack_show_data.sh` packs it into `dist/wn-show-data-<date>-<time>.zip`; on the other Mac,
-[`start-show.command`](start-show.command) — double-clicked, or run with `--show` for the window without the
-organizer — imports the newest package it finds in the clone's own `data/` (where git ignores it), checks for a
-JDK 17–24, ffmpeg and rsvg-convert (offering Homebrew installs), and starts the organizer. The README says it
-for the colleague.
+[`start-show.command`](start-show.command), double-clicked, opens the organizer and nothing more, since
+everything else is done from its page (asked for that way). If this folder's organizer is already up it only opens
+its page — found by the listening process on the organizer's ten ports whose command is `OrganizerKt` and whose
+working directory is this folder, so another project's server on 8765 is passed over. Otherwise it imports the newest
+package in the clone's own `data/` (where git ignores it), checks for a JDK 17–24, ffmpeg and rsvg-convert (offering
+Homebrew installs), and runs the organizer with `SLIDES_ORGANIZER_OPEN=true` whatever the `.env` says. The README says
+it for the colleague.
 
 - **What goes in is `tools/show-data.txt`**, read off a recording of every file the JVM opened on a bench of the
   whole running order and on the organizer (Java Flight Recorder, `jdk.FileRead` at 0 ms), plus what goes to ffmpeg
