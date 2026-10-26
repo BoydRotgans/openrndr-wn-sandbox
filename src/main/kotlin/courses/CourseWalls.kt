@@ -102,6 +102,8 @@ class CourseBackdrop(
     override val settle get() = frames(wall.settle)
     override val background get() = ColorRGBa.BLACK
     private val values = variant?.values.orEmpty()
+    /** Through the show's wall build as it arrives, unless the variant says `COURSE_BUILD=false`: a wall the slide before already stands. */
+    override val buildsIn get() = values["COURSE_BUILD"] != "false"
     private var frame: ((Drawer, Double) -> Unit)? = null
 
     override fun load(program: Program) {

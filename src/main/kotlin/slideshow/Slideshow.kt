@@ -2725,6 +2725,9 @@ val show = slideshow {
                 "realisatietijd uit de projectgegevens van WN; per project de klantvraag en ons antwoord " +
                 "in het script, uit de mail van de klant van 15 oktober."
     )
+    // The course walls of the sandbox, made here so the ending can stand the Exit's and the very same wall is
+    // declared at the foot of the show — see the end of this builder and CourseBackdrop.
+    val courseWalls = courseWallBackdrops()
     // The ending: one sentence, one action, and a code to scan. PROPOSAL: the sentence is the
     // fourth chapter's own line, the action and the address are placeholders until WN says
     // what the call to action is. See EndingScene.
@@ -2746,6 +2749,11 @@ val show = slideshow {
             blank = true,
             // "Take away the qr code from the screen" (30 September): the action and the address alone.
             qr = false,
+            // The Exit's W and N standing still on it from its arrival (26 October 2026), held at the first frame of the
+            // wall after it, which opens where the letters begin to come apart and arrives with no build: the click
+            // into the Exit starts the explode and the ending track together. Move another wall into the Exit and this
+            // wants naming again, or the click jumps.
+            still = courseWalls.firstOrNull { it.second == "Sketch: Kit, two screens, WN jump cuts, on the click" }?.first,
             // Karim Weiss's closing, a section a click on the autocue (show-autocue-additions.json, A to C):
             // the thanks, the message, the farewell. The wall stands through all three. Without him the ending
             // is the one click it is in the Word file, with Erik's own thanks (20 October 2026).
@@ -2790,7 +2798,7 @@ val show = slideshow {
     // The course walls of the sandbox (src/main/kotlin/courses): every sketch on the organizer's
     // Sketches tab and every variant of it, as a wall. They are kept on the shelf of the order file,
     // and a moment's "+ sketch" in the organizer puts one in it — see CourseBackdrop.
-    courseWallBackdrops().forEach { (wall, title) ->
+    courseWalls.forEach { (wall, title) ->
         backdrop(wall, title = title, notes = "A course wall from the sandbox: ${wall.sketch} on the Sketches tab.")
     }
 }

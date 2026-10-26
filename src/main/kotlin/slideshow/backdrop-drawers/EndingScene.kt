@@ -13,6 +13,7 @@ import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import slideshow.Backdrop
 import slideshow.Palette
+import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
@@ -35,6 +36,13 @@ import slideshow.frames
  *
  * [blank] draws nothing at all and takes no music (22 October 2026: "just make it a blank screen; do not start the
  * audio yet"): the ground stands through Karim's closing, and the Exit's music starts on the wall after it.
+ *
+ * [still] stands a wall on it, held at that wall's first frame (26 October 2026: "instead of it being black already
+ * reveal the W N of slide 55; and when I click after that, the 3d animation and soundtrack start"): the Exit's kit
+ * wall, so its W and N come up with the ending and stand still through Karim's closing. That wall opens where the
+ * letters begin to come apart and arrives without a build of its own, so the click into it is the same picture moving
+ * on — the cut cannot be seen, and the explode and the Exit's music start together. Drawn under the words when the
+ * ending is not [blank]; a wall not loaded draws nothing, and leaves the ground bare.
  */
 class EndingScene(
     private val sentence: String,
@@ -55,7 +63,9 @@ class EndingScene(
      */
     private val clicks: Int = 1,
     /** Nothing drawn and no moment music under it: the bare ground. */
-    private val blank: Boolean = false
+    private val blank: Boolean = false,
+    /** A wall to stand on the ending, held at its first frame — the Exit's, so the click into it carries straight on. */
+    private val still: Slide? = null
 ) : Backdrop() {
 
     override val name = "Ending"
@@ -79,6 +89,12 @@ class EndingScene(
     }
 
     override fun draw(drawer: Drawer, stage: Stage) {
+        still?.let { wall ->
+            wall.draw(drawer, Stage(
+                bounds = stage.bounds, frame = 0, steps = wall.steps, step = 0, position = 0.0,
+                enter = 1.0, exit = 0.0, loop = 0.0, cycle = 0
+            ))
+        }
         if (blank) return
         val w = stage.width
         val h = stage.height

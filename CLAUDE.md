@@ -3754,7 +3754,16 @@ apart and standing still only on the frontal W and N: the exploded view stood st
     least hidden by what stands nearer the camera over the shot, and a piece not shown yet on either side. A shot
     must fall while the pieces stand apart. The load prints each one. The two sides' close-ups overlap on purpose,
     both sides in close-up at once for a few seconds four times a loop, and then never on the same piece.
-- **"…, jump cuts" is the Exit's now** (`sketch-kit-two-screens-wn-landscape-jump-cuts`), asked for as the turn
+- **"two screens, WN jump cuts, on the click" is the Exit's now** (`sketch-kit-two-screens-wn-jump-cuts-on-the-click`,
+  26 October 2026), the jump-cuts wall below with two more keys, so the ending can stand its first frame (see the
+  ending wall). Named short because a show id is cut at 48 characters, and "…, landscape, jump cuts, opening at
+  once" came out as `…-jump-cuts-op`, which the order file could not name:
+  - **`KIT_START=open`** starts the wall's clock where the letters begin to come apart (the end of the whole hold,
+    6.3 s into the loop), so it opens on the W and N exact and still and is moving from its first frame. Seconds into
+    the loop work too.
+  - **`COURSE_BUILD=false`** is `CourseBackdrop`'s, for any variant: the wall arrives without the show's wall build,
+    since the slide before already stands it.
+- **"…, jump cuts" was the Exit's until then** (`sketch-kit-two-screens-wn-landscape-jump-cuts`, on the shelf), asked for as the turn
   starting on the first frame the letters open, and the whole turn feeling less long without going faster:
   - **It turns from the first frame** (no delay, `KIT_SPIN_RAMP=0.5`: up to speed in half a second rather than over
     the whole move out, where the first seconds were too slow to see).
@@ -5442,6 +5451,18 @@ just make it a blank screen; do not start the audio yet"): `EndingScene(blank = 
 moment music, and it no longer carries the arrival's ambience. The concrete ground stands through Karim's three closing
 clicks, and the Exit's ending track starts on the kit wall after it, the way a course's playlist starts on the wall
 after its StudioBuik wall. What follows describes the wall with its text, which `blank = false` brings back.
+
+**Since 26 October 2026 it stands the Exit's W and N** ("instead of it being black already reveal the W N of slide
+55; and when I click after that, the 3d animation and soundtrack start"). `EndingScene(still = …)` draws the kit wall
+after it held at that wall's first frame, under where its words would go:
+- **The W and N come up with the ending**, through the wall build, as every backdrop does, and stand still through
+  Karim's three clicks. The ending still takes no music.
+- **The click into the Exit is the same picture moving on.** Its wall ("two screens, WN jump cuts, on the click") opens where
+  the letters begin to come apart and arrives without a build, so the explode, the camera's turn and the Exit's ending
+  track all start on that click, and the cut cannot be seen.
+- **The wall is named in `Slideshow.kt`**, by its title among the course walls the builder makes before the ending
+  (`courseWalls`). Move another wall into the Exit from the organizer and the ending wants naming it, or the click
+  jumps from the W and N to the other wall's first frame.
 
 `EndingScene` is the ending wall: one sentence, one action, and the thing that triggers it, a
 QR code from `zxing` drawn as squares with its own quiet zone, growing from its middle once the
