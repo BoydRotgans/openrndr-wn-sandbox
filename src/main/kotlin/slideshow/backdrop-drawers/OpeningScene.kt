@@ -86,6 +86,13 @@ class OpeningScene(
      */
     private val details: File? = null,
     /**
+     * How many pieces the wall draws and counts to, 0 for the whole sheet. Fewer leaves out the smallest by the
+     * register's longest side (then by volume), the fittings, and keeps the rest in the sheet's order, numbered
+     * afresh: the show draws 100 of the iso sheet's 115 since 22 October 2026, so the wall counts "/ 100" as the
+     * talk says The Circle is a hundred elements. Without a register it keeps the first so many.
+     */
+    private val keep: Int = 0,
+    /**
      * A concrete texture the filled pieces are cut out of, tiled to cover the wall. Null
      * fills them flat in [ink].
      */
@@ -285,13 +292,23 @@ class OpeningScene(
                 println("${details?.name}: ${register.size} rows against ${all.size} on " +
                         "${sheet.name} — not the same catalogue, so the details are left off")
         }
-        pieces = all.mapIndexedNotNull { index, element ->
+        // The smallest left out, by the register's longest side and then its volume; the rest in the sheet's order.
+        val kept = if (keep <= 0 || keep >= all.size) all.indices.toList()
+            else if (paired) all.indices.sortedWith(compareByDescending<Int> { i ->
+                    register[i].let { maxOf(it.widthMm, it.heightMm, it.depthMm) } }
+                .thenByDescending { i -> register[i].let { it.widthMm * it.heightMm * it.depthMm } })
+                .take(keep).sorted()
+            else all.indices.take(keep)
+        if (kept.size < all.size) println("\"$name\": ${kept.size} of the ${all.size} pieces, the smallest left out" +
+            if (paired) ": " + (all.indices - kept.toSet()).joinToString(", ") { register[it].name } else "")
+        pieces = kept.withIndex().mapNotNull { (place, index) ->
+            val element = all[index]
             // Every outline of the piece, resampled to one spacing. The budget is shared out
             // by length rather than per contour, so a small hole gets proportionally fewer
             // points than the panel around it and the pen crosses both at the same speed.
             val contours = element.shapes.flatMap { it.contours }.filter { it.length > 1e-6 }
             val total = contours.sumOf { it.length }
-            if (total <= 0.0) return@mapIndexedNotNull null
+            if (total <= 0.0) return@mapNotNull null
 
             val strokes = contours.map { contour ->
                 val n = (POINTS * contour.length / total).roundToInt().coerceIn(2, POINTS)
@@ -299,8 +316,8 @@ class OpeningScene(
             }
             Drawn(element, strokes, PieceMeta(
                 title = title,
-                number = index + 1,
-                of = all.size,
+                number = place + 1,
+                of = kept.size,
                 ratio = element.aspect,
                 detail = if (paired) register.getOrNull(index) else null
             ))

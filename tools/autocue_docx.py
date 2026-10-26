@@ -30,9 +30,17 @@ paragraph), which the autocue keeps as written; `speaker` names who reads it, wh
 `directions`, where given, replace the state's own ([] clears them); and `added` marks a click the Word file
 does not count, a section of a speech it does not carry, which the pairing leaves out; and the file's `skip`
 names clicks of the Word file the show no longer has, a state taken out of a slide (click 115, the life-cycle
-analysis's last, on 19 October 2026), which the pairing leaves out the other way. Karim's welcome is the
+analysis's last, on 19 October 2026), which the pairing leaves out the other way. A slide put on the shelf takes its
+additions with it, under the file's `shelved`, which the tool does not read (Recyclage, 22 October 2026): left under
+`states` they would name states the running order no longer has, and the tool would refuse. Karim's welcome is the
 director's tag's eight states and his closing the ending's three, a section a click, so the slides' click counts
 in Slideshow.kt are kept to the file. The lines written over from the Word file are listed as the tool runs.
+
+**The room is spoken to as "jullie", never "u"** (22 October 2026, asked for as never referring to "u"). The
+Word file and some additions say "u", "uw", "ziet u"; every line the tool writes goes through `jullie()`, a list of
+phrases with the verb turned to the plural where "u" is the subject ("ziet u" to "zien jullie", "U heeft gezien" to
+"Jullie hebben gezien") and "u" and "uw" as object or possessive to "jullie". A line that still says "u" afterwards
+is listed as the tool runs, so a new phrasing gets a line in `JULLIE` rather than slipping through.
 
 **Every state read aloud has a speaker**: `--speaker` (Erik Koremans) for the track as a whole, written as its
 `speaker`, and the additions' `speaker` where someone else reads, written under `speakers`. The autocue shows
@@ -147,6 +155,35 @@ def states_of(show):
     return [(sid, letter(k), where.get(sid)) for sid in show["running"] for k in range(steps[sid])]
 
 
+# "u" to "jullie": the subject forms first, each with its verb in the plural, then whatever "u" and "uw" are left,
+# which are then objects and possessives ("ik wil u laten zien", "voor uw komst"). In order; case matters.
+JULLIE = [
+    (r"\bziet u\b", "zien jullie"),
+    (r"\bU ziet\b", "Jullie zien"),
+    (r"\bu hier( rechts in beeld)? ziet\b", r"jullie hier\1 zien"),
+    (r"\bwat u níét ziet\b", "wat jullie níét zien"),
+    (r"\bAls u deze beelden samen ziet\b", "Als jullie deze beelden samen zien"),
+    (r"\b([Kk])ijkt u\b", r"\1ijken jullie"),
+    (r"\bU herkent\b", "Jullie herkennen"),
+    (r"\bU heeft gezien\b", "Jullie hebben gezien"),
+    (r"\bu nadenkt\b", "jullie nadenken"),
+    (r"\bdat u vanavond met zoveel mensen aanwezig bent\b", "dat jullie vanavond met zoveel mensen aanwezig zijn"),
+    (r"\bwaar ligt ú wakker van\b", "waar liggen jullie zelf wakker van"),
+    (r"\bdat u niet alleen mooie projecten heeft gezien, maar ook beter begrijpt\b",
+     "dat jullie niet alleen mooie projecten hebben gezien, maar ook beter begrijpen"),
+    (r"\b[Uu]w\b", "jullie"),
+    (r"\bu\b", "jullie"),
+]
+STILL_U = re.compile(r"\b[Uu]w?\b|\bú\b")
+
+
+def jullie(text):
+    """A line spoken to the room as "jullie": see JULLIE."""
+    for pattern, by in JULLIE:
+        text = re.sub(pattern, by, text)
+    return text
+
+
 def split(click):
     """A click as (what is said, the directions): the body read by its heading, and the lines under it."""
     body = " ".join(click["body"]).strip()
@@ -252,7 +289,7 @@ def main():
         if c and over and who != args.speaker and ("said" in over or "directions" in over):
             without = over.get("without", {})
             back = without.get("said", said)
-            replaced.setdefault(sid, {})[let] = {"by": who, "said": "\n".join(back) if isinstance(back, list) else back,
+            replaced.setdefault(sid, {})[let] = {"by": who, "said": jullie("\n".join(back) if isinstance(back, list) else back),
                                                  "directions": list(without.get("directions", todo))}
         if over:
             if "said" in over:
@@ -263,6 +300,9 @@ def main():
                 said, note = text.strip(), None
             if "directions" in over:
                 todo = list(over["directions"])
+        said = jullie(said)
+        if STILL_U.search(said):
+            notes.append(f"{key} still says “u” after jullie(): give the phrase a line in JULLIE")
         if said:
             subtitles.setdefault(sid, {})[let] = said
             if who != args.speaker:

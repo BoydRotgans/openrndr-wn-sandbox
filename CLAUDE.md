@@ -804,9 +804,11 @@ open on a slide while working on it.
 
 **The presenter clicker's other two buttons have jobs too** (29 September), and every key the show is handed
 is printed (`key: page-down (267)`, `key up: b`), so a clicker that misbehaves on site can be read back.
-The R400's *screen* button (`b` or `.`) held fills a ring on both projectors — [`HoldRestart`](src/main/kotlin/slideshow/HoldRestart.kt)
+The R400's *screen* button (`b` or `.`) held fills a ring — [`HoldRestart`](src/main/kotlin/slideshow/HoldRestart.kt)
 — and after `SLIDES_HOLD_RESTART` seconds (3) the show goes back to its start as `0` does; let go sooner
-and it carries on. Its *play* button sends F5 and Esc by turns, so **Esc no longer quits: shift-Esc
+and it carries on. **The ring stands on the autocue, not the wall** (22 October 2026): with the autocue up, in its
+own window or on the wall, the ring is drawn into the autocue's picture and the projectors show nothing of the hold;
+only with no autocue up does it go on both projectors, so a hold is still seen. Never in the autocue's film. Its *play* button sends F5 and Esc by turns, so **Esc no longer quits: shift-Esc
 does**; pressed twice within `SLIDES_OVERVIEW_DOUBLE` (0.6 s) it opens every slide as thumbnails on
 the right projector, and a lone press does nothing
 ([`SlideOverview`](src/main/kotlin/slideshow/SlideOverview.kt), the organizer's previews, the middle
@@ -1499,8 +1501,8 @@ rehearsal film at 3840, at the review site's thumbnail moment. The states come f
 `/api/show` when it is up, so a state the film has and the show has since dropped is left out, and a
 slide the film lacks is drawn from its organizer preview. The tree's six-state letters are gone from both
 files since 1 October, so the tool's re-lettering no longer fires. **Since 1 October it reads the film's own
-`.states` log** (the default is the latest clean film, `video/wn-experience_2026-10-02-clean.mp4`, the rehearsal
-cut of Release 2 October; it was the 1 October one, filmed after the meeting of 30 September), and caches its frames per film so a new film never reuses another's pictures.
+`.states` log** (the default is the latest clean film, `video/wn-experience_2026-10-19-clean.mp4`, the rehearsal
+cut of Release 19 October since 20 October; before that the 2 October and 1 October ones), and caches its frames per film so a new film never reuses another's pictures.
 The default sheet is the script word for word with the meeting's additions kept short; the extended sheet is the
 talk as given. **The sheet is a plain script** (1 October, asked for as "recht toe recht aan"): the evening's
 moments and chapters, each slide named in a few plain words (`TITLES` in the tool, or its heading up to the
@@ -1508,7 +1510,12 @@ first " · "), and every state as its picture with its line — no keys, slide n
 marks, and a silent state is its picture drawn smaller. A picture can be swapped in the frame cache
 (`build/speaker-notes/frames/<film>/<key>-900.jpg`) from a short film of the slides that changed, taken at the
 tool's own `frame_at`, which is how the new name tags reached it without filming the evening again.
-**The draaiboek sets its clock** (1 October): `SLIDES_DRAAIBOEK` names the production's .xlsx and
+**The draaiboek sets its clock** (1 October): `SLIDES_DRAAIBOEK` names the production's draaiboek — since 22 October
+2026 its Show tab exported as `… - Show - 28 okt.csv`, which is newer than the .xlsx beside it (the opening 25 minutes
+earlier, at 17:50, and rows for Erik's programme and StudioBuik's introduction). Both readers (`Draaiboek.kt`, this
+tool's `xlsx_rows`) take a .csv as one tab, find the room and what happens by their headers (the export has a "Wie"
+column the workbook had not), and start a row with a length and no time where the row before it ended. The
+Opening's rows are the welcome, the programme and StudioBuik's introduction. For an .xlsx, it names the workbook and
 `SLIDES_DRAAIBOEK_TAB` its tab (empty: the first named "Show…"), read at every build with the standard library,
 since an .xlsx is a zip of XML. Every moment and chapter heading carries its time span. A chapter matches
 "Hoofdstuk n", a course (a moment opening on a StudioBuik wall) the n-th "Gang n" with the "Uithalen" after it,
@@ -1520,6 +1527,11 @@ the rehearsal page:
 `SPEAKER_NOTES_REHEARSAL` is its address and the key is `review/.env`'s `PRACTICE_KEY`, read there rather
 than copied, so a printed sheet opens the page to whoever holds it. `tools/speaker_notes_pdf.py` is the
 older sheet, off the client's pptx.
+
+**Erik's autocue is a sheet too** (`--track erik`, `export/wn-sprekersnotities-autocue.pdf`), and since 20 October it
+reads the track as the show does with `SLIDES_SPEAKERS` (`without_guests`): with Erik alone, Karim Weiss's welcome and
+closing are not on it and the ending carries Erik's own thanks. A picture comes off the film, so one of a slide changed
+since it was filmed shows the slide as filmed (the director's tag with its 19 October label, until a new film).
 
 **The slides on their own are a third sheet** (15 October): `tools/slides_pdf.py` writes
 `export/wn-slides-per-klik.pdf`, a landscape A4 page per click with the picture and no lines, off the same
@@ -1675,7 +1687,12 @@ show picks new files up too**, under the organizer: it re-reads the folder every
 what is new or rewritten (`Speakers.load` is additive; a re-rendered file replaces its buffer, and a source
 still bound to the old one is dropped first), so a show left up during a render speaks each line once it
 exists. A show without the organizer reads the folder once, and a filmed run never again, since it must be
-the same run however long it takes to make.
+the same run however long it takes to make. **That reload must not open the device again** (22 October 2026): `Speakers.load` opened
+a fresh OpenAL device and context on every load, so the first voice line picked up with the show running made a new
+context current and left every source and buffer from before it invalid. The playlists, the ambience and the cues
+all went silent (`AL error 40961` on the next play), which is what a render with the show up did that afternoon. It
+opens the device once now. Checked muted, with a bed playing and a file loaded and rewritten under it: the bed played
+on, where on the old line it stopped at the first reload.
 
 Two traps. **`setuptools<80` is load-bearing in that environment**: Chatterbox's watermarker imports
 `pkg_resources`, which newer setuptools no longer ship, and the model then fails on
@@ -1880,12 +1897,31 @@ to do instead.
   zit"). The Word file puts the same REGIE sentence on every wall, "Laat het beeld spreken. Klik op het afgesproken
   moment door; hier is geen afzonderlijke spreektekst nodig.", and a BEELDCUE or REGIE line beside some. Each is now one
   line saying what happens and when to click, written over in `show-autocue-additions.json` so an import keeps it:
-  `Geen tekst · klik als iedereen zit` on the arrival, `Geen tekst · Else licht de gang toe; klik als ze klaar is` on
-  each StudioBuik wall, `Geen tekst · klik als er is uitgehaald` on each course wall, `Geen tekst · bij 0:00 klik naar
-  hoofdstuk n` on each transition, `Else stelt StudioBuik voor · daarna klik: aftellen naar hoofdstuk 1` on the
-  programme's last state, `Einde presentatie · de wand blijft staan` on the exit, and, with Karim not on the autocue,
-  `Geen tekst · klik als Karim begint` and `Karim spreekt nu; daarna klik` on his tag (the addition's `without`). Checked by running the
-  import against the show with every speaker: it writes these directions and `replaced` exactly as the track has them.
+  `Klik als iedereen zit` on the arrival, `Else licht de gang toe; klik als ze klaar is` on each StudioBuik wall,
+  `Klik als er is uitgehaald` on each course wall, `Bij 0:00 klik naar hoofdstuk n` on each transition, `Else stelt
+  StudioBuik voor · daarna klik: aftellen naar hoofdstuk 1` on the programme's last state, `Einde presentatie · de wand
+  blijft staan` on the exit, and, with Karim not on the autocue, `Klik als Karim begint` and `Karim spreekt nu; daarna
+  klik` on his tag (the addition's `without`). They began `Geen tekst · `, taken off the same day: a direction in amber
+  already says there is nothing to read. Checked by running the import against the show with every speaker: it writes
+  these directions and `replaced` exactly as the track has them.
+- **Recyclage is on the shelf since 22 October 2026** (moved there in the organizer, and kept off when asked). The
+  import skips its Word clicks 123 to 127, and its stored lines moved from the additions' `states` to `shelved`, which
+  the tool does not read; under `states` they would name states the order no longer has and the import would refuse.
+  Its lines stay in the track, unplayed. Back in the order, move them back under `states`, take the five clicks out of
+  `skip`, and render its voice, since Recyclage A was edited in the organizer while the slide was off.
+- **Lines rewritten in the organizer are carried into the additions** with `edited` and the day, so an import keeps
+  them: on 22 October we gieten kennis B, CO₂ impact van beton A, recyclage A and The Circle in elementen A. Thirteen
+  older organizer edits are still only in the track (an import would write the Word file's lines over them):
+  co2-behaald C and D, de-fabrieken A, esg-social-governance D, geen-compensatie A, kernboodschap-3 A,
+  projecthighlight-1 A, -2 A and B, -4 A, the-circle-en-esg B, who-is-speaking A, and the stray "van" on
+  course-transition-to-chapter-3 A.
+- **The room is spoken to as "jullie", never "u"** (22 October 2026, asked for across the whole Erik autocue). The
+  Word file says "u" and "uw" throughout; the import runs every line it writes through `jullie()` in the tool, a list
+  of phrases (`JULLIE`) that turns a subject "u" to "jullie" with its verb in the plural ("ziet u" to "zien jullie",
+  "U heeft gezien" to "Jullie hebben gezien") and an object or possessive "u"/"uw" to "jullie", and it lists any line
+  still saying "u" afterwards, so a new phrasing gets a line there. The track and the additions were converted with the
+  same function, 69 lines, Karim's stored welcome and closing included, and Erik's voice rendered again for them. The
+  default, extended and aligned tracks were not asked for and still say "u".
 - **One block is headed REGIE but is speech**: the ending's thanks (klik 175, `ending-A`). It is taken as
   speech, and the tool says so. Karim Weiss's closing has since taken that state (below).
 - **What the Word file does not carry is laid over it** from `show-autocue-additions.json`, by state key rather
@@ -1900,8 +1936,10 @@ to do instead.
   A–E and Verduurzamen van beton A–C, made compact after the aligned track and click for click to the wall (the
   Word file's version ran a click behind the LCA slide). The tool lists every line it writes over. Lines edited only
   in the organizer are not in it, and an import writes over them.
-- **Whose lines are on the autocue is chosen, and by default it is Erik's alone** (20 October 2026: "I do not want
-  any text for Karim Weiss in there for now; store it for later … the autocue is only for Erik"). `SLIDES_SPEAKERS`
+- **Whose lines are on the autocue is chosen, and since 22 October 2026 it is Erik's and Karim's** ("make sure Karim
+  and Erik's are turned on by default": `SLIDES_SPEAKERS=Karim Weiss` in `.env` and `.env.example`). From 20 October it
+  was Erik's alone ("I do not want any text for Karim Weiss in there for now; store it for later … the autocue is only
+  for Erik"), which is what the rest of this bullet describes as the case with Karim left out. `SLIDES_SPEAKERS`
   names the speakers besides Erik, empty (or `none`) for none, and the organizer's `speakers` in the top bar ticks
   them for the next ▶ start (the launcher keeps the choice, as it keeps the mute, and hands it over; it shapes the
   show as it is built, so a show already up keeps its own and the button says `restart`). **A speaker left out keeps
@@ -2263,7 +2301,8 @@ count is what is agreed and not built yet, and the top bar counts open, to build
   transition into chapter 1 follows the programme. **Every course opens on a silent StudioBuik wall**
   ([`CourseIntro`](src/main/kotlin/slideshow/backdrop-drawers/CourseIntro.kt), `studiobuik-<course>`):
   the course and its idea in the name tag's layout, with `momentMusic` false, so the playlist starts on
-  the click to the course wall, after Else de Bruin has introduced the dish. The course walls moved one moment on
+  the click to the course wall, after Else de Bruin has introduced the dish. Since the release of 20 October four
+  of them arrive with the name tag's own build sound, a cue and not music (the dessert's has none yet). The course walls moved one moment on
   (flow, shadow mosaic, climb, kit), a **Third course** follows chapter 4, and the Dessert holds the Plain
   wall. `music("Third course", mainBed)` is the new course's playlist.
 - **The figures are the client's.** `co2-behaald` reads the data table under the chart on slide 24 of
@@ -2298,7 +2337,8 @@ count is what is agreed and not built yet, and the top bar counts open, to build
   the road a note a stretch, the letters a note as each comes up, a stop as the head passes it (its dot,
   code, drawing and list line share that one ramp), C's dead end, and the states — the frame read back with
   `linear` from the deck's ease. Pitch is where on the road a thing stands, left lowest. 24 notes over 11.8 s
-  of a 15.3 s clip; every stop's note starts within two frames of its dot coming up on the clip. The
+  of a 15.3 s clip; every stop's note starts within two frames of its dot coming up on the clip. The sound
+  design cut to it arrived the same day (`P3-03-de-fasen-a-b-en-c-A` to `-C`, the release of 20 October). The
   subtitles follow the road ("Volg de weg van een betonelement", "het langste stuk van de weg", "Daar loopt
   de weg dood"). The
   crowd's titles turn to Governance with the arrow. Every takeaway ends on a question for the table. The
@@ -2470,6 +2510,12 @@ for the opening landing on the closing one too.
   outline closes the shape floods to solid white; it holds, slides up out of frame, and the next
   piece is drawn — right through `objects-front.svg`, so every one of the 112 variants gets its
   turn.
+
+**It draws a hundred pieces, counted "/ 100"** (22 October 2026), where it drew the iso sheet's 115: the talk says
+The Circle is a hundred elements, and the wall said 115. `OpeningScene(keep = 100)` leaves out the 15 smallest by the
+register's longest side, then volume — the fittings: the anchors, rails, shoes, recess formers, the grid plate and a
+2 mm shim — keeps the rest in the sheet's order and numbers them 1 to 100; the load prints which went. The note asking
+for it was written in the organizer and never reached a file, so it is recorded here.
 
 **The two halves of the opening wall are not a pair; they are two clocks.** Each 1920x1080 half
 runs its own turn — draw, fill, hold, leave — and the right runs half a turn behind the left, so
@@ -4658,11 +4704,18 @@ edge as it turns and the name has the foot of the box.
 `LifeCycleAnalysis` **builds its first database on arrival**, words and then threads, as the second
 builds on its click; it stood whole from the first frame, the opening state having no click to
 arrive on. Only while the slide is on its opening state, so stepping back finds it built.
-**It is four clicks since 19 October 2026, not five** (`definedWithConclusion`): the definition ("= De
-hoeveelheid CO₂…") comes up on the conclusion's click, a moment after it, because the fifth click had nothing
-said over it on Erik's autocue. The default, extended and aligned tracks had their E folded into D, and D's voice
-was rendered again; the import skips the Word file's click 115; the sound design's `levenscyclusanalyse-E` is
-past the slide's states and does not play.
+**It is four clicks since 19 October 2026, not five**: the definition ("= De hoeveelheid CO₂…") came up on
+the conclusion's click, because the fifth click had nothing said over it on Erik's autocue. The default, extended
+and aligned tracks had their E folded into D, and D's voice was rendered again; the import skips the Word file's
+click 115; the sound design's `levenscyclusanalyse-E` is past the slide's states and does not play. **Since 20
+October the definition is gone from the wall** and the conclusion stands straight after "Levenscyclus analyse";
+the rule that ran from the name to it at the right of the pane went with it. The aligned track's D still says the
+definition, which a speaker may. **The same day the layout was lined up** ("make the layout more neat"): the two
+sources stand the same distance (`BAND`) above and below the analysis line, the attribute column is as wide as
+its widest word and stands on the left margin with both captions on that edge, every line meets its mark at the
+mark's own edge (so the leaders no longer run under the mix's grains), the name's capitals are centred on the
+brace's point, and the conclusion is set at the attributes' size and leading with its middle line on the name's
+baseline, wrapped to a right margin equal to the left.
 
 `NameTag` takes `pane` and `scale`; the show stands Erik full size in the left projector.
 
@@ -4691,6 +4744,27 @@ with Erik's. The list ends on Case studies en vragen and Dessert since 15 Octobe
 Case studies en vragen. `het-programma` keeps its id and its cues A to F; G, the guest, has its own
 since the release of 24 September.
 
+**The courses are the printed menu's** (`input/Menu WN 11,5x18cm.pdf`, 22 October 2026): five, numbered, each by its
+dish and never its ingredients — 1e gang · Voedsellandschap op beton & Gieten, 2e gang · Ontkisten, 3e gang ·
+Uitharden, 4e gang · Circulair, 5e gang · Reflectie. The programme lists them that way, each StudioBuik wall stands
+the number large and the dish under the rule, with no "StudioBuik" on it (StudioBuik is named once, on Else's tag in the
+programme), and `momentTitle(...)` in `Slideshow.kt` gives Erik's autocue header
+the same words for the order file's English moments ("Opening course" is 1e gang, "Dessert" 5e gang, "Questions" Case
+studies en vragen); the speaker's sheets and the rehearsal page translate them alike. The StudioBuik walls keep their
+ids (`studiobuik-voorgerecht` … `-dessert`), so the order, the cues and the autocue still find them. Spoken lines that
+named a course were moved on with it: Erik's kernboodschap 1 hands over "voor de eerste gang", and the other tracks'
+"voorgerecht", "eerste", "tweede" and "derde gang" are now the first to fourth.
+
+**Since 22 October 2026 it is two states: the programme whole, then Else** (asked for as "just the overview of
+the program; and then a click to Else"). `Programme(chapterClicks = false)` stands the list built and nothing
+brought forward, one state, so the intro wall is A, the overview, and B, the guest. Everything keyed by letter
+moved with it: Erik's lines are one compressed passage on A (the four chapters and the dinner between them) and the
+hand-over to Else on B, which keeps the direction "Else stelt StudioBuik voor · daarna klik: aftellen naar hoofdstuk
+1"; the other three tracks were cut the same way. The import skips the Word file's clicks 005 to 009, one a chapter,
+so its 004 is A and its 010 is B. The sound design's B to F, a cue a chapter brought forward, are in
+`data/sounds/00/alternates/`, and the guest's cue, delivered as G, is renamed B; a release that carries the
+programme's G again needs the same rename.
+
 #### The project highlights
 
 Every chapter now closes on a real project and then on its takeaway. `highlight(n, …)` beside
@@ -4702,7 +4776,9 @@ named for its chapter.** It is handed the case's folder under `SLIDES_HIGHLIGHTS
 client's `data/case-studies/Studie Cases` as delivered, and the lead photo inside it. Every jpg,
 jpeg or png in the folder is a state, a click each: the others in name order, then the lead last,
 so the show lands on the picture the chapter is about. `everyPhoto = false` shows the lead alone.
-The folder is listed in the constructor because the step count is needed before `load`. It
+The folder is listed in the constructor because the step count is needed before `load`. `first` names photos to
+show ahead of the rest, in that order: Intervest (highlight 4) shows its 128 before its 10 since 22 October 2026,
+which name order had the other way round. It
 has no `package` declaration, because the marks and their loader are in the default package.
 
 **The photos arrive through the catalogue and then stand whole.** Each photo has its own packing
@@ -4839,6 +4915,13 @@ rather than crossfading straight: the readings share a prefix, but a centred tit
 length stands the prefix somewhere else, and filmed straight the two smeared over each other. The
 four blue bands are read off the client's frame to the nearest half and marked `PLACEHOLDER` in
 the show.
+
+**The show runs it on its first reading alone since 22 October 2026** (`co2-impact-van-beton`, one state, A):
+the world's and the Netherlands' readings, B and C, went. What was said over them is said over A, on every
+track: Erik's three paragraphs one after another, the other tracks' lines run on. The import skips the Word
+file's clicks 97 and 98 (the additions' `skip`), Erik's A was rendered again in Piper (63 s, read back at
+0.97) and his B and C voice files went to the Trash, and the sound design's `P3-02-co2-impact-van-beton-B` and
+`-C` are in `P3/alternates/`. The drawer still reads any number of states.
 
 `CarbonCharts` is the numbers behind the ladder: bars grow from the axis one after another, the
 target line draws across them, the second chart's bars grow, and the bullets are counted in under
@@ -5167,7 +5250,10 @@ with a mouse cursor in it, visible throughout, and nine states:
   the gather was silent. The shapes say which is which: the delivered A sets in at 1.04 s, the button's press
   at `PRESS_AT` 1.05; B to G each click at 0.5–0.6 s, hold, and click again at 1.6–1.7 s, a drag's grab at 0.6
   and drop at 1.55; H is a 3 s swell with no click in it, the combine's `COMBINE` 2.6 s on its ease. A
-  release that still carries this slide's A to H needs the same rename. The cues cut for the line drawing,
+  release that still carries this slide's A to H needs the same rename. **Since the release of 20 October the
+  arrival has a sound**, and it is the delivered A: re-cut to `midi/gebouw-uit-de-webtool-A`, the sheet taking
+  its colour and pouring into the button. So now only the delivered B to H move one on (to C to I), the new A
+  stays A, and B is still the button press as it was placed, which that zip no longer carries. The cues cut for the line drawing,
   `P4-05-…-A` to `-G`, are in `P4/alternates/`. Filmed in the show with
   `SLIDES_START=38 SLIDES_UNTIL=38 SLIDES_CUES=auto SLIDES_RECORD=true SLIDES_SUBTITLE_MODE=true
   SLIDES_SUBTITLE_TRACK=extended SLIDES_VOICE_ON=true SLIDES_NAMEPLATE=true`.
@@ -5233,7 +5319,8 @@ landed. The webtool notes the grid's click the same way, so it opens on the shee
   export, its tick and `WALL_MIDI_CLICKS=true` all click once more into the webtool's opening state, where a
   filmed run would, so `midi/100-elementen.mp4` carries the pour into "Start a new circle" as its second state
   (12.7 s: the cut at 6.05 s, a `catalogue` lane of 116 notes from 6.25 s). In the show that move is
-  `gebouw-uit-de-webtool-A`, which is what a sound cut for it should be named. Its first 327 frames are
+  `gebouw-uit-de-webtool-A`, which is what a sound cut for it should be named, and since the release of 20
+  October is. Its first 327 frames are
   byte-identical to the clip of the grid alone.
 - **Into the webtool, every piece is coloured**, one at a time, outward from the figure over 1.1 s, so the colour
   spreads from where the person stands (feedback of 28 September; it lit only the kit's seven walls and shrank
@@ -5302,11 +5389,30 @@ clip (`WALL_MIDI_SLIDE=100-elementen WALL_MIDI_CLICKS=true`). Checked against th
 0.25 s, when the first piece leaves, to the last at 2.53 s moves under a note; before that it is the ring still
 turning, which is not a note.
 
+**The ring's score is the grid's rule too** (22 October 2026), `midi/the-circle-in-elementen.mid` and `.mp4`
+(`WALL_MIDI_SLIDE=the-circle-in-elementen`): two lanes off `ringPose`, and pitch is where the piece comes to rest,
+top highest, so the score traces the mark as it is laid down, up and down the arch and then round the ring.
+- **`landing`**: a note a piece as it drops onto the mark and grows, 0.6 s each.
+- **`settling`**: the same piece going from white into the grey, 1.2 s from halfway through its landing.
+- **`states`**: the arrival.
+
+It was a single lane rising by ordinal before (`pitchStep`), and its clip was still the grey ring of 21 September.
+183 notes over 7.5 s of an 11 s clip, every one at full length. Checked against the clip: the lit area follows the
+landings at r = 0.999 and the white area the pieces still white at 0.90. Neither lane carries the turning, which
+goes on for as long as the ring stands. The sound design's `the-circle-in-elementen-A` is cut to this score since
+the release of 26 October.
+
 `SLIDE=CircleGrid` or `SLIDE=WebtoolKit` in the studio opens on the fallback ring, and `SLIDE_STEP=1` on the grid
 plays the arrival and the move to scale together, since the studio starts the frame count on the click. The show never
 does. The sound design's `100-elementen-A` was cut for the old field of silhouettes arriving, so it may want
 recutting to the move off the ring. `RingOfPieces` and `HundredElements` are on the shelf as
 `the-circle-in-elementen-grijs` and `100-elementen-silhouetten`.
+
+**The ending is a blank wall since 22 October 2026** ("take out the red text on the right … and the left text as well;
+just make it a blank screen; do not start the audio yet"): `EndingScene(blank = true)` draws nothing and takes no
+moment music, and it no longer carries the arrival's ambience. The concrete ground stands through Karim's three closing
+clicks, and the Exit's ending track starts on the kit wall after it, the way a course's playlist starts on the wall
+after its StudioBuik wall. What follows describes the wall with its text, which `blank = false` brings back.
 
 `EndingScene` is the ending wall: one sentence, one action, and the thing that triggers it, a
 QR code from `zxing` drawn as squares with its own quiet zone, growing from its middle once the
@@ -5343,6 +5449,13 @@ for on 1 October, when Main stood under all three main courses and the playlist 
 course): Aperitif under the opening course (the Voorgerecht), Starter under the first, Main under the
 second, Dessert under the dessert. Four folders for five courses, so the third course carries on
 through Main.
+
+**The 1e gang plays Main, shuffled, since 22 October 2026**, and the Aperitif playlist is on hold ("too cryptic").
+`coursePlaylist(..., name = "main-shuffled", shuffle = 28L)` deals Main's eleven tracks in another order, the same at
+every start, into `build/music/main-shuffled.wav`: a buffer and a place of its own, so Main under the 3e and 4e gang still
+starts at its top and goes on from there. It opens on "Unknown Controlpanel", Main's last. Some of Main's tracks are
+heard twice in the evening that way: about eight of the eleven under the 1e gang's 35 minutes, and again from the 3e gang
+on. `aperitifBed` is still declared, for putting it back: one `music("Opening course", …)` line.
 
 **A playlist picks up where it stopped** (`Sound.resume`), which is what keeps the third course from
 repeating the second: starting Main from the top again would play the same tracks to the room twice. A bed that has faded out altogether and is asked for again starts where
@@ -6214,9 +6327,9 @@ not have is dropped the same way: nothing is wrong on the wall and nothing is wr
 folder, and the cue is simply never reached. The report is what to read after a sheet lands:
 
 ```
-cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sounds/P4 — 34 slides, 133 cues
+cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sounds/P4 — 39 slides, 133 cues
   who-is-speaking                    A
-  het-programma                      A B C D E F G
+  het-programma                      A B
   director-is-speaking               A
   hoe-bouw-je-een-wereld             A B
   the-catalogue-city                 A B C
@@ -6226,6 +6339,7 @@ cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sound
   de-cijfers                         A B C D E F G H I
   de-fabrieken                       A B C D E F G H I
   kernboodschap-1                    A
+  studiobuik-voorgerecht             A
   esg-is-geen-checklist              A B
   esg-beoordelingskader              A B C D
   co2-prestatieladder                A B C D E F
@@ -6234,26 +6348,79 @@ cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sound
   domino-effect                      A B C D
   esg-social-governance              A B C D E
   kernboodschap-2                    A
+  studiobuik-eerste-gang             A
   we-gieten-kennis                   A B
-  co2-impact-van-beton               A B C
+  co2-impact-van-beton               A
+  de-fasen-a-b-en-c                  A B C
   levenscyclus-van-betonproducten    A B C D E F G H I
-  levenscyclusanalyse                A B C D E
+  levenscyclusanalyse                A B C D
+                                     E past its 4 state(s); ignored
   verduurzamen-van-beton             A B C
   verborgen-verhaal                  A B C D
   recyclage                          A B C D E
   kernboodschap-3                    A
+  studiobuik-tweede-gang             A
   we-bouwen-vandaag                  A B
   the-circle-in-elementen            A
   100-elementen                      A
                                      B past its 1 state(s); ignored
-  gebouw-uit-de-webtool              B C D E F G H I
+  gebouw-uit-de-webtool              A B C D E F G H I
   reductie-carbon-footprint          A B C D
   the-circle-en-esg                  A B C E
   kernboodschap-4                    A
+  studiobuik-derde-gang              A
 ```
 
-Read against the running order's click counts, every letter falls inside its slide's states. The one
-line over is `100-elementen-B`, kept for the grid's click to scale, which the show has out for now.
+Read against the running order's click counts, every letter falls inside its slide's states. The two
+lines over are `levenscyclusanalyse-E`, whose click was folded into D on 19 October, and `100-elementen-B`,
+kept for the grid's click to scale, which the show has out for now. `co2-impact-van-beton` B and C are in
+`P3/alternates/` since the slide went to one state on 22 October.
+
+**The release of 26 October** (`UI samples-20261026T093116Z-1-001.zip`, in `archive/releases/`) is the 20
+October set with one file re-cut, nothing added and nothing taken out; the course soundtracks are unchanged.
+The set it replaced, as placed, is in `archive/2026-10-20-1441/`; the placed set differs from it in that one
+file, so the cue report above is unchanged. The review threads hold nothing since 5 October.
+
+- **`P4-02-the-circle-in-elementen-A` is cut to the ring's score** (`midi/the-circle-in-elementen`, exported
+  22 October): 11.0 s at 48 kHz, the clip's length exactly, where it was 12.5 s at 44.1 kHz. It sounds from
+  0.11 s to 7.8 s against the score's 0 to 7.5 s (the landings, then the last pieces going grey), and its
+  envelope follows the notes sounding at r = 0.64 where the old cut's was 0.43. About as loud (−42.2 LUFS
+  against −42.7, a peak 2 dB higher). Still over the hold, so it fades with its slide.
+- The standing renames needed nothing new: every other file in the zip is already placed under its standing
+  name (the tree's B–F as A–E, the webtool's B–H as C–I, the domino's `(v3)`, the programme's G as B), checked
+  by hash, name-blind.
+
+**The release of 20 October** (`UI samples-20261020T124102Z-1-001.zip`, in `archive/releases/`) is the 15
+October set with seven files added and three re-cut, nothing taken out; the course soundtracks are unchanged.
+Most of it is cut to the MIDI exported that morning (`midi/de-fasen-a-b-en-c`, `100-elementen` and
+`gebouw-uit-de-webtool-A`, 10:59 to 11:04): the files take the clips' lengths and set in on the scores' first
+notes. The review threads hold nothing after 5 October, so each file was placed off its name and its envelope
+against the slide's own timing. The set it replaced, as placed, is in `archive/2026-10-15-0940/`; the placed set
+differs from it in exactly the ten files. The sheets now place **140 cues on 39 slides**, every letter inside
+its slide's states.
+
+- **The StudioBuik walls have a sound**: `studiobuik-voorgerecht`, `-eerste-gang`, `-tweede-gang` and
+  `-derde-gang`, each A, all four byte-identical to `who-is-speaking-A`. The walls are the name tag's block
+  set for a course, so they arrive as the tags do. 3.05 s, so it rings out; a cue and not music, so the wall
+  still stands without its moment's playlist. `studiobuik-dessert` has none.
+- **The A·B·C road has its sound**, `P3-03-de-fasen-a-b-en-c-A` to `-C`, a file a state, cut to the road's
+  score. A and B are 5.10 s (A's stretch of the clip exactly) and ring out; C is 7.47 s, so it fades with its
+  slide. Each sounds for about its first two seconds, under the stops the road reaches in that click (0.47 to
+  1.13 s into A, 0.57 to 1.37 s into B, 0.42 to 1.05 s into C with the dead end), and is gone by 3.5 s.
+- **The webtool's arrival has a sound**, `P4-04-gebouw-uit-de-webtool-A`, re-cut to its score: 4.0 s, silent
+  for its first 0.2 s, a texture under the sheet taking its colour (0.20 to 1.30 s on the score) and a swell
+  at about 2 s under the pour into the button (1.45 to 2.75 s). The old A was the button press, setting in at
+  1.04 s. So the new A is placed as A, and **the standing rename now covers only the delivered B to H** (to C
+  to I). B keeps the button press as placed, which this zip no longer carries; it is the 15 October zip's
+  `P4-04-…-A`. A later release carrying this set gets the same: A as A, B to H one on, B kept.
+- **`100-elementen-A` is re-cut to its new score**, 91 pieces: 4.0 s where it was 9.75 s, with no silent head
+  where it had 1.44 s, a texture rising from 0.3 s to a cut at about 2.55 s as the last piece leaves the ring.
+  It rings out now, where it faded with its slide. It is not quieter (−34.1 LUFS against −34.5, with a peak 3
+  dB higher), which Valentina asked for on 30 September.
+- **`de-fabrieken-H` is re-cut**, the pull-back to the overview: 6.33 s where it was 4.39 s, with 0.7 s of
+  silence at its head and sound until about 4.2 s. Now over the hold, so it fades with its slide.
+- The standing renames are made again: the tree's delivered B to F placed A to E, the domino's `(v3)` set
+  renamed into place with `(v1)` and `(v2)` in `P2/alternates/`, and the alternates as before.
 
 **The release of 15 October** (`UI samples-20261015T074058Z-1-001.zip`, in `archive/releases/`) is the 1
 October set with two files added, nothing re-cut and nothing taken out; the course soundtracks are unchanged.
@@ -7913,6 +8080,30 @@ the practice-cut recipe; three decisions carry it.
   out. `pnpm pull-script` brings the changes into `show-script-edits.json` at the project root, for taking into
   Erik's track; nothing takes them in by itself. The autocue film under the page is still the release's own, so
   until a release is filmed on the Erik track it shows that track's text, not the script being edited.
+- **A change taken into the show is marked taken in** (21 October 2026). `pnpm adopt-script` (after
+  `pnpm pull-script`) writes each pulled edit into `show-subtitles-erik.json` and, as `said` with `adopted` and the
+  day, into `show-autocue-additions.json`, so a Word import keeps it; `show-script-adopted.json` records what each
+  click said before, when it was taken in and which version of the page's edit it was (its `updated_at` in
+  Supabase). It then runs `export-script`, which hands that record to the page as `adopted`, and the site needs a
+  deploy. On the page such a click is green: **✓ Overgenomen** with the change against what it said before, under
+  **Overgenomen in de show** in the changes list and as a green chip in the overview. An edit made after that is a
+  new violet change measured against the show's text, and the next pull lists only those.
+  - **Not every edit is words to read.** Reviewers type remarks about the wall into the text ("Gezeefd moet
+    eruit" on Recyclage D, the caption under the sieved rubble; "Deze sheet kan eruit" on CO₂-impact C). Before
+    adopting, give such an edit `adopt` (the text to take in instead) and `note` in `show-script-edits.json`: the
+    page shows the note, and **✓ Verwerkt** where the text itself stayed as it was. A pull writes the file again,
+    so set them after the last pull.
+  - **An edit that continues one already taken in is no conflict.** The page someone has open may predate the
+    adoption, so its edit is still measured from the Word file's text; the adopt step accepts it when the track
+    holds the earlier version, and the page then diffs it against the show's text rather than saying the show
+    moved on.
+  - **People edit while it runs**: on 21 October edits kept arriving a minute apart through the adoption. Pull again
+    right before the deploy; anything later stays violet until the next round.
+  - **Release 21 October** went out on it the same day, as one clean film for both pages (no film with subtitles
+    any more; the recipe is in `review/README.md`, "The practice page").
+  - The first round (21 October) took in 33 clicks of chapters 3 and 4 and rendered their voice again
+    (`voiceover_render.py --track erik --engine piper --voice data/sounds/voice/piper/nl_BE-rdh-medium.onnx --only
+    <slides>`), which a filmed release is timed by.
 - **The text is read only until "Bewerk deze tekst"** (19 October 2026), so a stray keystroke while clicking through
   cannot change it. Editing is a lock: the field turns to paper (cream, dark serif ink) under a cream **Bewerkmodus**
   bar, the rest of the page stands still under a veil, and the clicker, the keys and the buttons only shake that bar

@@ -12,13 +12,17 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * The presenter clicker's screen button, held: a ring on the wall that fills, and once it is full the
+ * The presenter clicker's screen button, held: a ring that fills, and once it is full the
  * show goes back to its first slide exactly as `0` does. Let go before then and the ring fades and the
  * show carries on where it was — so a brush of the button costs nothing, and starting over has to be
  * meant. How long the hold takes is [Settings.holdRestart].
  *
- * **It is drawn on the window, after the finished frame**, like the grid and the debug overlay, so it
- * never reaches a still, a preview or a film. It is laid out in canvas pixels and mapped through the
+ * **It is the presenter's, so it stands on the autocue** (22 October 2026): with the autocue up, [drawIn]
+ * lays one ring over the autocue's picture and the wall shows nothing of the hold. Only with no autocue up
+ * does [draw] put it on the wall, so a hold is still seen somewhere.
+ *
+ * **On the wall it is drawn on the window, after the finished frame**, like the grid and the debug overlay,
+ * so it never reaches a still, a preview or a film. It is laid out in canvas pixels and mapped through the
  * fit, so it is the same size on the wall whatever window it is shown in; the wall under it is dimmed
  * so it reads over any slide. There is a ring on each projector, since anything read stays in one of
  * them and the presenter may be facing either.
@@ -38,25 +42,38 @@ class HoldRestart(private val font: FontImageMap?) {
             drawer.stroke = null
             drawer.fill = ColorRGBa.BLACK.opacify(VEIL * alpha)
             drawer.rectangle(0.0, 0.0, canvas.width, canvas.height)
-            for (x in centres) {
-                val c = Vector2(x, canvas.height / 2.0 - LIFT)
-                drawer.fill = null
-                drawer.strokeWeight = STROKE
-                drawer.stroke = ColorRGBa.WHITE.opacify(0.22 * alpha)
-                drawer.circle(c, RADIUS)
-                if (progress > 0.0) {
-                    drawer.stroke = Palette.RED.opacify(alpha)
-                    drawer.lineCap = LineCap.ROUND
-                    drawer.lineStrip(arc(c, progress.coerceAtMost(1.0)))
-                }
-                font?.let { f ->
-                    drawer.fontMap = f
-                    drawer.stroke = null
-                    drawer.fill = ColorRGBa.WHITE.opacify(alpha)
-                    val w = LABEL.sumOf { ch -> f.glyphMetrics[ch]?.advanceWidth ?: 0.0 }
-                    drawer.text(LABEL, c.x - w / 2.0, c.y + RADIUS + STROKE + 70.0)
-                }
-            }
+            for (x in centres) ring(drawer, Vector2(x, canvas.height / 2.0 - LIFT), progress, alpha)
+        }
+    }
+
+    /** One ring in the middle of [area], which is dimmed under it: the autocue's 1920 by 1080, in its own units. */
+    fun drawIn(drawer: Drawer, area: Rectangle, progress: Double, alpha: Double) {
+        if (alpha <= 0.0) return
+        drawer.isolated {
+            drawer.shadeStyle = null
+            drawer.stroke = null
+            drawer.fill = ColorRGBa.BLACK.opacify(VEIL * alpha)
+            drawer.rectangle(area)
+            ring(drawer, area.center - Vector2(0.0, LIFT), progress, alpha)
+        }
+    }
+
+    private fun ring(drawer: Drawer, c: Vector2, progress: Double, alpha: Double) {
+        drawer.fill = null
+        drawer.strokeWeight = STROKE
+        drawer.stroke = ColorRGBa.WHITE.opacify(0.22 * alpha)
+        drawer.circle(c, RADIUS)
+        if (progress > 0.0) {
+            drawer.stroke = Palette.RED.opacify(alpha)
+            drawer.lineCap = LineCap.ROUND
+            drawer.lineStrip(arc(c, progress.coerceAtMost(1.0)))
+        }
+        font?.let { f ->
+            drawer.fontMap = f
+            drawer.stroke = null
+            drawer.fill = ColorRGBa.WHITE.opacify(alpha)
+            val w = LABEL.sumOf { ch -> f.glyphMetrics[ch]?.advanceWidth ?: 0.0 }
+            drawer.text(LABEL, c.x - w / 2.0, c.y + RADIUS + STROKE + 70.0)
         }
     }
 

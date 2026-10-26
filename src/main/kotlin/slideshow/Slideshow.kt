@@ -278,9 +278,12 @@ val ambience = slideshow.Sound(
  */
 val musicFolder = File(Env["SLIDES_MUSIC"] ?: "data/sounds/course-soundtracks")
 val musicGain = Env["SLIDES_MUSIC_GAIN"]?.toDoubleOrNull() ?: 0.45
+// On hold since 22 October 2026 ("too cryptic"): the 1e gang plays Main, shuffled, instead.
 val aperitifBed = coursePlaylist(musicFolder, "Aperitif", gain = musicGain)
 val starterBed = coursePlaylist(musicFolder, "Starter", gain = musicGain)
 val mainBed = coursePlaylist(musicFolder, "Main", gain = musicGain)
+/** Main's tracks in another order, for the 1e gang: a join and a place of its own, so Main under the 3e gang still starts at its top. */
+val mainShuffledBed = coursePlaylist(musicFolder, "Main", name = "main-shuffled", gain = musicGain, shuffle = 28L)
 val dessertBed = coursePlaylist(musicFolder, "Dessert", gain = musicGain)
 
 /**
@@ -868,14 +871,16 @@ fun courseTransition(start: ChapterStart): CourseTransition? {
  */
 fun slideshow.ChapterBuilder.highlight(
     n: Int, case: String, lead: String, project: String, line: String,
-    focus: Vector2 = Vector2(0.5, 0.5), notes: String
+    focus: Vector2 = Vector2(0.5, 0.5), notes: String,
+    /** Photos to show first, by file name, in this order; the rest follow by name and the lead is last. */
+    first: List<String> = emptyList()
 ) = slide(
     ProjectHighlight(
         File(Env["SLIDES_HIGHLIGHTS"] ?: "data/case-studies/Studie Cases", case), lead,
         project, line, boldPath = boldFont, textPath = textFont, focus = focus,
         marks = File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"),
         instant = Env["SLIDES_HIGHLIGHT_DISSOLVE"] != "fade",
-        arrival = highlightArrival, click = highlightClick
+        arrival = highlightArrival, click = highlightClick, first = first
     ),
     title = "Projecthighlight $n",
     notes = notes
@@ -1005,6 +1010,8 @@ val openingWall = OpeningScene(
     fontPath = textFont,
     // No concrete of its own: the show lays one over every frame (SLIDES_CONCRETE).
     details = openingDetails,
+    // A hundred of the iso sheet's 115, the fittings left out, so the wall counts to the talk's hundred elements.
+    keep = 100,
     // the room the wall stands in, fading up under it and out as the talk starts
     sound = ambience
 )
@@ -1111,12 +1118,23 @@ val show = slideshow {
     // folders for five courses, so the third course carries on through Main from where the second
     // stopped, and hears other tracks. No Aperitif moment since 30 September: the amuse is served in
     // the reception room, so the Aperitif playlist opens the dinner.
-    music("Opening course", aperitifBed)
+    // The Aperitif playlist is on hold (22 October 2026: "too cryptic"); the 1e gang plays Main's tracks, shuffled.
+    music("Opening course", mainShuffledBed)
     music("First course", starterBed)
     music("Second course", mainBed)
     music("Third course", mainBed)
     music("Dessert", dessertBed)
     music("Exit", endingTrack)
+
+    // The courses as the menu names them (Menu WN, 22 October 2026): five, numbered, each by its dish. The order
+    // file keeps its English names, which the music above is keyed to; the autocue's header, the speaker's sheets and
+    // the rehearsal page say these. The programme and the StudioBuik walls below carry the same words.
+    momentTitle("Opening course", "1e gang")
+    momentTitle("First course", "2e gang")
+    momentTitle("Second course", "3e gang")
+    momentTitle("Third course", "4e gang")
+    momentTitle("Questions", "Case studies en vragen")
+    momentTitle("Dessert", "5e gang")
 
     // The left pane: the chapter, set as large as it will go, white on black. One
     // card per section, standing for as long as the show is in it — see
@@ -1228,9 +1246,10 @@ val show = slideshow {
     )
 
     // The intro wall: Erik's name standing on the left as the name tag left it, the programme of
-    // the evening in the right projector alone, a click a chapter, and on the last click Erik hands
-    // over to the guest from StudioBuik, named on the right level with him, for the dinner (review
-    // of 22 September). The entries are the order file's moments and the chapters' titles, stated
+    // the evening in the right projector alone, and on the one click Erik hands over to the guest from
+    // StudioBuik, named on the right level with him, for the dinner (review of 22 September). The
+    // programme is its overview alone since 22 October 2026: it was a click a chapter, each brought
+    // forward with the others dimmed, and one for the whole. The entries are the order file's moments and the chapters' titles, stated
     // here so a renamed moment is one change. See IntroWall, Programme and NameTag.
     backdrop(
         IntroWall(
@@ -1245,24 +1264,25 @@ val show = slideshow {
                 entries = listOf(
                     Entry("Opening"),
                     Entry("De wereld van bouwen", chapter = true, message = chapterMessages[0]),
-                    Entry("Voorgerecht"),
+                    Entry("1e gang · Voedsellandschap op beton & Gieten"),
                     Entry("Waardekader en verantwoordelijkheid", chapter = true, message = chapterMessages[1]),
-                    Entry("Eerste gang"),
+                    Entry("2e gang · Ontkisten"),
                     Entry("Beton: ruggengraat en transitie", chapter = true, message = chapterMessages[2]),
-                    Entry("Tweede gang"),
+                    Entry("3e gang · Uitharden"),
                     // "Denken en doen" from the programme on (meeting of 30 September); the chapter's own
                     // title on its card is unchanged, its rename having been dropped.
                     Entry("The Circle: een nieuwe manier van denken en doen", chapter = true, message = chapterMessages[3]),
-                    Entry("Derde gang"),
+                    Entry("4e gang · Circulair"),
                     // The case studies play before the questions, so the programme names both (15 October 2026).
                     Entry("Case studies en vragen"),
-                    // No Uitloop: the programme ends on the dessert (15 October 2026).
-                    Entry("Dessert")
+                    // No Uitloop: the programme ends on the dessert (15 October 2026), the menu's 5e gang.
+                    Entry("5e gang · Reflectie")
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
                 accent = wnRed,
-                side = 1
+                side = 1,
+                chapterClicks = false
             ),
             // Else de Bruin of StudioBuik (meeting of 30 September; her name confirmed 1 October). Her role is left
             // off until it is known (15 October 2026): the empty line keeps its room, so her name stays level with Erik's.
@@ -1277,20 +1297,22 @@ val show = slideshow {
         ),
         title = "Het programma",
         notes = "Erik links, het programma rechts: de avond in vier delen, geserveerd tussen de gangen, " +
-                "een click per hoofdstuk en een voor het geheel. De laatste click: Erik stelt Else de Bruin van " +
-                "StudioBuik voor, als introductie op het diner. DRAFT: haar functie."
+                "in één overzicht. De click erna: Erik stelt Else de Bruin van StudioBuik voor, als introductie " +
+                "op het diner. DRAFT: haar functie."
     )
 
     // The silent moment before each course: StudioBuik introduces the dish over it, with no music, and the
     // course wall with its playlist is the click after it (meeting of 30 September). Each course moment in
-    // the order file opens on one. The ideas are the menu's as read out at the meeting; the third course's
-    // and the dessert's are still to come from StudioBuik. See CourseIntro.
+    // the order file opens on one. The course and its dish as the printed menu has them (Menu WN, 22 October
+    // 2026), without the ingredients. The third name is the slide's title, and so its id, from before the
+    // menu numbered the courses: kept, so the order file, the sound design and the autocue still find them.
+    // See CourseIntro.
     listOf(
-        Triple("Voorgerecht", "Gieten", "voorgerecht"),
-        Triple("Eerste gang", "Ontkisten", "eerste gang"),
-        Triple("Tweede gang", "Drogen en uitharden", "tweede gang"),
-        Triple("Derde gang", "In de vorm van een cirkel", "derde gang"),
-        Triple("Dessert", "", "dessert")
+        Triple("1e gang", "Voedsellandschap op beton & Gieten", "voorgerecht"),
+        Triple("2e gang", "Ontkisten", "eerste gang"),
+        Triple("3e gang", "Uitharden", "tweede gang"),
+        Triple("4e gang", "Circulair", "derde gang"),
+        Triple("5e gang", "Reflectie", "dessert")
     ).forEach { (course, idea, name) ->
         backdrop(
             CourseIntro(course, idea, fontPath = boldFont, accent = wnRed),
@@ -1501,13 +1523,15 @@ val show = slideshow {
                 titleAfter = "CO\u2082-prestatieladder",
                 left = BarChart(
                     heading = "26% minder CO\u2082 behaald\n(ge\u00EFndexeerde omzet)",
-                    years = listOf("2020", "2021", "2022", "2023", "2024"),
+                    years = listOf("2020", "2021", "2022", "2023", "2024", "2025"),
                     // The client's own figures: ton CO₂e per million euro of indexed turnover, Build-Concrete-
                     // Pools, off the data table under the chart on slide 24 of "Willy Naessens Duurzaam
                     // Algemeen 2026-03-04" (input/fact-check-folder). The target falls 2,5% a year from 2020.
-                    values = listOf(26.41, 27.63, 20.05, 19.13, 19.49),
+                    // PLACEHOLDER: 2025 (22 October 2026, asked for as "slightly lower than 2024"); no source
+                    // gives a 2025 figure, so 19,0 stands until WN does. Its target follows the 2,5% rule.
+                    values = listOf(26.41, 27.63, 20.05, 19.13, 19.49, 19.0),
                     max = 30.0, step = 5.0,
-                    target = listOf(26.41, 25.75, 25.09, 24.43, 23.77),
+                    target = listOf(26.41, 25.75, 25.09, 24.43, 23.77, 23.11),
                     targetLabel = listOf("Doelstelling CO\u2082 per ge\u00EFndexeerde", "omzet"),
                     reachedLabel = listOf("Behaalde CO\u2082-reductie per", "ge\u00EFndexeerde omzet"),
                     bullets = listOf(
@@ -1720,10 +1744,7 @@ val show = slideshow {
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
-                ink = wnRed,
-                // Four clicks, not five: the definition comes up with the conclusion (19 October 2026), the
-                // fifth click having nothing said over it on Erik's autocue.
-                definedWithConclusion = true
+                ink = wnRed
             ),
             title = "Levenscyclusanalyse",
             notes = "The two databases arrive, are gathered into the analysis, and then what " +
@@ -1754,10 +1775,10 @@ val show = slideshow {
             title = "We gieten kennis",
             notes = "Opens the third chapter. Frame 3-01 of the client's deck."
         )
-        // One column read three times: what concrete's footprint is made of, then concrete's
-        // share of the world's emissions, then of the Netherlands'. A band is a slot keyed by
-        // name, so the red band is the same band shrinking from 80 to 7 to 1,9 across the clicks
-        // and the blues close over it. See Co2Column.
+        // One column: what concrete's footprint is made of. It was read three times, the share of the
+        // world's emissions and then of the Netherlands' a click each, until 22 October 2026, when the
+        // slide went to its first state alone; Erik says the world and the Netherlands over it. The
+        // drawer still reads any number of states, a band a slot keyed by name. See Co2Column.
         slide(
             Co2Column(
                 states = listOf(
@@ -1779,22 +1800,6 @@ val show = slideshow {
                                 "van de totale CO\u2082-uitstoot van het materiaal. Wereldwijd is de " +
                                 "cementindustrie verantwoordelijk voor zo\u2019n 8% van alle door de " +
                                 "mens veroorzaakte CO\u2082-emissies."
-                    ),
-                    ColumnState(
-                        "CO\u2082 impact van beton: wereld",
-                        bands = listOf(
-                            // Cement and concrete together: "as much as 9 percent of all human CO2 emissions"
-                            // (Scientific American); cement alone about 8% (WRI, WEF). Erik's 9, 30 September.
-                            Band("share", "Wereldwijd: tot 9% aandeel CO\u2082-uitstoot door beton", 9.0, wnRed),
-                            Band("rest", "", 91.0, wnBlue)
-                        )
-                    ),
-                    ColumnState(
-                        "CO\u2082 impact van beton: Nederland",
-                        bands = listOf(
-                            Band("share", "Nederland: 1,9% aandeel CO\u2082-uitstoot door beton", 1.9, wnRed),
-                            Band("rest", "", 98.1, wnBlue)
-                        )
                     )
                 ),
                 boldPath = boldFont,
@@ -2175,6 +2180,8 @@ val show = slideshow {
         highlight(
             4, "Case Studie - Intervest The Circle", "k-Intervest Herstal + technieken  170.jpg",
             "Intervest", "Herstal  ·  ons eerst verkochte Circle-pand",
+            // the 128 first and the 10 second (22 October 2026), the other way round from their names
+            first = listOf("k-Intervest Herstal + technieken  128.jpg", "Intervest Herstal + technieken 10.jpg"),
             notes = "Verhaallijn hoofdstuk 4 (The Circle): Intervest, ons eerst verkochte " +
                     "Circle-pand, de buitenkant. Wording to be confirmed by WN."
         )
@@ -2732,9 +2739,11 @@ val show = slideshow {
             boldPath = boldFont,
             textPath = textFont,
             accent = wnRed,
-            // The exit has sound: the arrival's own room, back under the last thing on the
-            // wall. The export of 15 September went silent at the ending.
-            sound = ambience,
+            // Blank and silent since 22 October 2026 ("just make it a blank screen; do not start the audio yet"):
+            // no sentence, no call to action, no ambience, and the Exit's music waits for the kit wall after it.
+            // The arrival's ambience stood under it from 15 September, when the export went silent at the ending.
+            sound = null,
+            blank = true,
             // "Take away the qr code from the screen" (30 September): the action and the address alone.
             qr = false,
             // Karim Weiss's closing, a section a click on the autocue (show-autocue-additions.json, A to C):

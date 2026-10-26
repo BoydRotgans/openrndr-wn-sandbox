@@ -10,6 +10,7 @@ import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import org.openrndr.shape.ShapeContour
 import org.openrndr.shape.contour
+import slideshow.Frame
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
@@ -37,7 +38,10 @@ class LcaSource(val caption: String, val attributes: List<String>, val mark: Lca
  * Each source states the same five things about what it holds — material, supplier, transport,
  * origin, CO₂ — and those five converge into the thing itself: a precast element for what was
  * bought, a mix of aggregate for what it is made of. The two marks are then gathered by a
- * brace into **Levenscyclus analyse**, and from there into what the analysis is *for*.
+ * brace into **Levenscyclus analyse**, and what the analysis is *for* follows straight on from its
+ * name, its first line on the name's own baseline, so the two read as one sentence: the analysis
+ * makes the calculation possible (feedback of 20 October 2026, which also took out the definition
+ * that stood under it).
  *
  * **Everything is a fan of the same curve.** The five attributes converging on a mark and the
  * two marks converging on the analysis are the same primitive at two scales — a cubic with both
@@ -51,17 +55,21 @@ class LcaSource(val caption: String, val attributes: List<String>, val mark: Lca
  *
  * The five attributes are one list handed in twice, because they are the same five: reword them
  * once and both fans follow.
+ *
+ * **The layout is lined up rather than placed** (feedback of 20 October 2026, "make the layout more
+ * neat"): the two sources stand the same distance above and below the analysis line, each caption
+ * starts on the left edge of the attribute column above it, every line of the diagram meets its mark
+ * at the mark's own edge, the analysis's name is centred on the point the brace closes on, and the
+ * conclusion's middle line stands on the name's baseline, set at the attributes' size and leading.
+ * The right margin is the left one.
  */
 class LifeCycleAnalysis(
     private val title: String = "Levenscyclus van betonproducten",
     /** The databases, top first. Two, on the reference. */
     private val sources: List<LcaSource>,
     private val analysis: String = "Levenscyclus analyse",
-    /** What the analysis makes possible, set large to the right of it. */
+    /** What the analysis makes possible, set straight after its name. */
     private val conclusion: String = "Maakt berekening materiaalgebonden CO₂-uitstoot mogelijk",
-    /** And what that means, under an equals sign. */
-    private val definition: String =
-        "De hoeveelheid CO₂ die een product veroorzaakt bij productie/over volledige levensduur.",
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
     private val ink: ColorRGBa = slideshow.Palette.RED,
@@ -69,28 +77,20 @@ class LifeCycleAnalysis(
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val stepFrames: Int = frames(0.8),
     override val sound: Sound? = null,
-    override val stepCues: List<Sound> = emptyList(),
-    /**
-     * Whether what the conclusion means comes up on the conclusion's own click, a moment after it, rather
-     * than on a click of its own. On in the show since 19 October 2026: that last click had nothing said
-     * over it on Erik's autocue, and an empty click is a click the speaker has to make for nothing.
-     */
-    private val definedWithConclusion: Boolean = false
+    override val stepCues: List<Sound> = emptyList()
 ) : Slide() {
 
     override val name = "LCA"
 
-    /** A click a source, one to gather them, one for the conclusion, and one for what it means unless it comes with it. */
-    override val steps = sources.size + if (definedWithConclusion) 2 else 3
+    /** A click a source, one to gather them, and one for the conclusion. */
+    override val steps = sources.size + 2
 
     private val gathered get() = sources.size
     private val concluded get() = sources.size + 1
-    private val defined get() = sources.size + 2
 
     override fun stepName(step: Int) = when (step) {
         gathered -> "gather"
-        concluded -> if (definedWithConclusion) "what it makes possible, and what that means" else "what it makes possible"
-        defined -> "what that means"
+        concluded -> "what it makes possible"
         else -> sources.getOrNull(step)?.caption
     }
 
@@ -105,11 +105,17 @@ class LifeCycleAnalysis(
     override fun draw(drawer: Drawer, stage: Stage) {
         drawer.stroke = null
         drawer.fill = ColorRGBa.WHITE
-        drawer.setLine(title, bold, Vector2(stage.center.x, stage.height * 0.058), stage.height * TITLE, SIZE, CENTRE)
+        drawer.setLine(title, bold, Vector2(stage.center.x, Frame(stage.bounds).titleBaseline), stage.height * TITLE, SIZE, CENTRE)
 
         val markX = stage.width * MARK_X
         val braceX = stage.width * BRACE_X
         val analysisY = stage.center.y
+        val bands = sources.indices.map { analysisY + stage.height * BAND * (if (it == 0) -1.0 else 1.0) }
+
+        // The attribute column is as wide as its widest word, and stands on the left margin.
+        val attributeScale = stage.height * ATTRIBUTE / SIZE
+        val column = stage.width * MARGIN +
+                sources.flatMap { it.attributes }.maxOf { text.advanceWithSubscripts(it) } * attributeScale
 
         // The first source has no click to arrive on — the slide opens on it — so it builds on
         // the slide's own clock instead, words then threads, the way the second builds on its
@@ -122,9 +128,7 @@ class LifeCycleAnalysis(
             val shown = if (i == 0) first else stage.on(i)
             if (shown <= 0.0) return@forEachIndexed
 
-            // The two bands the sources stand in, split evenly about the middle.
-            val band = stage.height * (if (i == 0) TOP_BAND else BOTTOM_BAND)
-            fan(drawer, stage, source, band, markX, shown)
+            fan(drawer, stage, source, bands[i], column, markX, shown)
         }
 
         // The brace: the two marks gathered into one point, then the name of what they make.
@@ -133,46 +137,38 @@ class LifeCycleAnalysis(
             drawer.stroke = ColorRGBa.WHITE
             drawer.strokeWeight = stage.height * RULE
             drawer.fill = null
-            sources.forEachIndexed { i, _ ->
-                val from = Vector2(markX + stage.width * MARK_W, stage.height * (if (i == 0) TOP_BAND else BOTTOM_BAND))
+            sources.forEachIndexed { i, source ->
+                val from = Vector2(markEdges(stage, source.mark, markX, bands[i]).y + stage.width * GAP, bands[i])
                 drawer.contour(link(from, Vector2(braceX, analysisY)).sub(0.0, gather))
             }
             drawer.stroke = null
             drawer.fill = ColorRGBa.WHITE.opacify(gather)
-            drawer.setLine(analysis, bold, Vector2(braceX + stage.width * 0.018, analysisY), stage.height * ANALYSIS, SIZE, LEFT)
+            drawer.setLine(analysis, bold, Vector2(braceX + stage.width * 0.018, analysisBaseline(stage)), stage.height * ANALYSIS, SIZE, LEFT)
         }
 
-        // What the analysis is for, on its own click, and what it means on the next.
+        // What the analysis is for, on its own click, straight after its name, its middle line on the name's baseline.
         val says = stage.on(concluded)
         if (says > 0.0) {
-            val from = Vector2(braceX + stage.width * 0.018 + bold.advanceWithSubscripts(analysis) * (stage.height * ANALYSIS / SIZE) + stage.width * 0.012, analysisY)
-            val to = Vector2(stage.width * SAYS_X - stage.width * 0.010, analysisY)
-            drawer.stroke = ColorRGBa.WHITE
-            drawer.strokeWeight = stage.height * RULE
-            drawer.fill = null
-            drawer.contour(ShapeContour.fromPoints(listOf(from, from + (to - from) * says), false))
-
-            drawer.stroke = null
+            val left = braceX + stage.width * 0.018 + bold.advanceWithSubscripts(analysis) * (stage.height * ANALYSIS / SIZE) +
+                    stage.width * SAYS_GAP
             drawer.fill = ColorRGBa.WHITE.opacify(says)
-            val box = Rectangle(stage.width * SAYS_X, 0.0, stage.width * (0.985 - SAYS_X), stage.height)
-            block(drawer, conclusion, text, box, stage.height * SAYS, analysisY - stage.height * 0.075, up = true)
-        }
-
-        // With the conclusion's click, the second half of it: the conclusion is read first, then what it means.
-        val means = if (definedWithConclusion) ((says - 0.45) / 0.55).coerceIn(0.0, 1.0) else stage.on(defined)
-        if (means > 0.0) {
-            drawer.fill = ColorRGBa.WHITE.opacify(means)
-            val box = Rectangle(stage.width * SAYS_X, 0.0, stage.width * (0.985 - SAYS_X), stage.height)
-            drawer.setLine("=", text, Vector2(box.corner.x, analysisY + stage.height * 0.100), stage.height * MEANS, SIZE, LEFT)
-            block(drawer, definition, text, box, stage.height * MEANS, analysisY + stage.height * 0.145, up = false)
+            val scale = stage.height * ATTRIBUTE / SIZE
+            val lines = wrap(text, conclusion, (stage.width * (1.0 - MARGIN) - left) / scale)
+            val leading = stage.height * ATTR_LEADING
+            val first = analysisBaseline(stage) - (lines.size - 1) * leading / 2.0
+            lines.forEachIndexed { i, line ->
+                drawer.setLine(line, text, Vector2(left, first + i * leading), stage.height * ATTRIBUTE, SIZE, LEFT)
+            }
         }
     }
 
+    /** The analysis's baseline, set so its capitals are centred on the point the brace closes on. */
+    private fun analysisBaseline(stage: Stage) = stage.center.y + stage.height * ANALYSIS * CAP_MIDDLE
+
     /** One source: its attributes ranged right, the leaders into its mark, and the caption. */
-    private fun fan(drawer: Drawer, stage: Stage, source: LcaSource, middle: Double, markX: Double, shown: Double) {
+    private fun fan(drawer: Drawer, stage: Stage, source: LcaSource, middle: Double, right: Double, markX: Double, shown: Double) {
         val size = stage.height * ATTRIBUTE
         val leading = stage.height * ATTR_LEADING
-        val right = stage.width * ATTR_RIGHT
         val n = source.attributes.size
         val top = middle - (n - 1) * leading / 2.0
 
@@ -180,15 +176,15 @@ class LifeCycleAnalysis(
         // that is already there.
         drawer.fill = ColorRGBa.WHITE.opacify(shown)
         source.attributes.forEachIndexed { i, attribute ->
-            drawer.setLine(attribute, text, Vector2(right, top + i * leading + size * 0.34), size, SIZE, RIGHT)
+            drawer.setLine(attribute, text, Vector2(right, top + i * leading + size * CAP_MIDDLE), size, SIZE, RIGHT)
         }
 
-        val meet = Vector2(markX - stage.width * 0.012, middle)
+        val meet = Vector2(markEdges(stage, source.mark, markX, middle).x - stage.width * GAP, middle)
         drawer.stroke = ColorRGBa.WHITE.opacify(shown)
         drawer.strokeWeight = stage.height * RULE
         drawer.fill = null
         source.attributes.forEachIndexed { i, _ ->
-            val from = Vector2(right + stage.width * 0.010, top + i * leading)
+            val from = Vector2(right + stage.width * GAP, top + i * leading)
             drawer.contour(link(from, meet).sub(0.0, shown))
         }
         drawer.stroke = null
@@ -196,9 +192,10 @@ class LifeCycleAnalysis(
         mark(drawer, stage, source.mark, markX, middle, shown)
 
         drawer.fill = ColorRGBa.WHITE.opacify(shown)
+        // Under the column, on its left edge: one and a half leadings below its last line.
         drawer.setLine(
             source.caption, bold,
-            Vector2(stage.width * CAPTION_X, middle + stage.height * CAPTION_DROP),
+            Vector2(stage.width * MARGIN, top + (n - 1) * leading + size * CAP_MIDDLE + leading * CAPTION_GAP),
             stage.height * CAPTION, SIZE, LEFT
         )
     }
@@ -221,34 +218,53 @@ class LifeCycleAnalysis(
             }
 
             LcaMark.MIX -> {
-                // Aggregate: a cluster in the house pair and grey, from a fixed seed so the
-                // same frame always draws the same mix.
-                val random = Random(MIX_SEED)
-                val radius = stage.height * 0.016
+                // Aggregate: a cluster in the house pair and grey.
                 val centre = Vector2(x + w / 2.0, y)
-
-                // Placed by rejection rather than taken as they fall: aggregate that touches
-                // reads as a blob, and what makes this a *mix* is being able to count it. A
-                // fixed seed, so the same frame always draws the same grains.
-                val grains = mutableListOf<Vector2>()
-                var tries = 0
-                while (grains.size < MIX_GRAINS && tries++ < 4000) {
-                    val angle = random.nextDouble() * 2.0 * Math.PI
-                    val reach = Math.sqrt(random.nextDouble())
-                    val at = centre + Vector2(cos(angle) * reach * w * 0.62, sin(angle) * reach * h * 1.15)
-                    if (grains.none { it.distanceTo(at) < radius * 2.35 }) grains += at
-                }
-
-                grains.forEach { at ->
+                grains(stage, centre).forEach { at ->
                     val across = (at.x - centre.x) / (w * 0.62)
                     drawer.fill = when {
                         across < -0.05 -> accent
                         at.y < y -> ink
                         else -> ColorRGBa.fromHex("D9D9D9")
                     }.opacify(shown)
-                    drawer.circle(at, radius)
+                    drawer.circle(at, grainRadius(stage))
                 }
             }
+        }
+    }
+
+    /**
+     * The mix's grains about [centre]. Placed by rejection rather than taken as they fall: aggregate
+     * that touches reads as a blob, and what makes this a *mix* is being able to count it. A fixed
+     * seed, so the same frame always draws the same grains.
+     */
+    private fun grains(stage: Stage, centre: Vector2): List<Vector2> {
+        val w = stage.width * MARK_W
+        val h = stage.height * MARK_H
+        val radius = grainRadius(stage)
+        val random = Random(MIX_SEED)
+        val grains = mutableListOf<Vector2>()
+        var tries = 0
+        while (grains.size < MIX_GRAINS && tries++ < 4000) {
+            val angle = random.nextDouble() * 2.0 * Math.PI
+            val reach = Math.sqrt(random.nextDouble())
+            val at = centre + Vector2(cos(angle) * reach * w * 0.62, sin(angle) * reach * h * 1.15)
+            if (grains.none { it.distanceTo(at) < radius * 2.35 }) grains += at
+        }
+        return grains
+    }
+
+    private fun grainRadius(stage: Stage) = stage.height * 0.016
+
+    /**
+     * Where a mark starts and ends across the pane, as (left, right): the lines meet it there rather
+     * than at a box it does not fill, so a leader never runs under a grain of the mix.
+     */
+    private fun markEdges(stage: Stage, kind: LcaMark, x: Double, y: Double): Vector2 = when (kind) {
+        LcaMark.ELEMENT -> Vector2(x, x + stage.width * MARK_W)
+        LcaMark.MIX -> {
+            val grains = grains(stage, Vector2(x + stage.width * MARK_W / 2.0, y))
+            Vector2(grains.minOf { it.x } - grainRadius(stage), grains.maxOf { it.x } + grainRadius(stage))
         }
     }
 
@@ -280,46 +296,35 @@ class LifeCycleAnalysis(
         return lines
     }
 
-    /** A passage broken to [box]'s measure, set from [at] downwards or upwards. */
-    private fun block(
-        drawer: Drawer, passage: String, face: FontImageMap,
-        box: Rectangle, size: Double, at: Double, up: Boolean
-    ) {
-        val scale = size / SIZE
-        val lines = wrap(face, passage, box.width / scale)
-        val leading = size * 1.3
-        var y = if (up) at - (lines.size - 1) * leading else at
-        lines.forEach {
-            drawer.setLine(it, face, Vector2(box.corner.x, y), size, SIZE, LEFT)
-            y += leading
-        }
-    }
-
     private companion object {
         const val SIZE = 150.0
         const val LEFT = 0.0
         const val CENTRE = 0.5
         const val RIGHT = 1.0
 
-        // Measured off the pdf, as shares of the pane.
-        const val ATTR_RIGHT = 0.193
+        // Measured off the pdf, as shares of the pane, and then lined up.
+        /** Left and right, as a share of the width: the attribute column and the captions start on it. */
+        const val MARGIN = 0.06
         const val ATTR_LEADING = 0.0365
         const val MARK_X = 0.320
         const val MARK_W = 0.077
         const val MARK_H = 0.075
         const val BRACE_X = 0.470
-        const val SAYS_X = 0.770
-        const val TOP_BAND = 0.307
-        const val BOTTOM_BAND = 0.675
-        const val CAPTION_X = 0.052
-        const val CAPTION_DROP = 0.145
+        /** Between the analysis's name and what it makes possible, as a share of the pane's width. */
+        const val SAYS_GAP = 0.016
+        /** Each source's middle, above and below the analysis line, as a share of the height. */
+        const val BAND = 0.185
+        /** Between a line and the type or the mark it leaves or meets, as a share of the width. */
+        const val GAP = 0.010
+        /** A caption's baseline under its column's last, in leadings. */
+        const val CAPTION_GAP = 1.5
+        /** How far below a line's middle its baseline goes, as a share of the size: half a capital. */
+        const val CAP_MIDDLE = 0.34
 
         const val TITLE = 0.038
         const val ATTRIBUTE = 0.030
         const val CAPTION = 0.028
         const val ANALYSIS = 0.038
-        const val SAYS = 0.032
-        const val MEANS = 0.022
         const val RULE = 0.0022
 
 

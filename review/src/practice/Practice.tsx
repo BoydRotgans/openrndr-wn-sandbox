@@ -23,6 +23,8 @@ interface Draft { key: string; slide: string; from: string; text: string }
 const NAV_KEYS = new Set(['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', ' ', 'Enter', 'r', 'R', 'o', 'O'])
 /** The same text, give or take white space. */
 const same = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim()
+/** A moment as the page names it: day, month and time. */
+const stamp = (t: (typeof copy)['nl'], iso: string) => new Date(iso).toLocaleString(t.locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 function remembered<T>(key: string, fallback: T): T {
   try {
@@ -270,6 +272,7 @@ export default function Practice() {
   const save: SaveState = notes.state
   const cueShown = cueOn && !!cut.autocueUrl
   const changes = script.changes()
+  const adoptions = script.adoptions()
 
   return (
     <div className={`practice phase-${phase}`}>
@@ -283,6 +286,7 @@ export default function Practice() {
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12.5 11 4.5l1.5 1.5-8 8H3z" /><path d="M9.5 6 11 7.5" /></svg>
           {t.changes}
           {changes.length > 0 && <span className="p-count">{changes.length}</span>}
+          {adoptions.length > 0 && <span className="p-count adopted" title={t.adoptedCount(adoptions.length)}>✓ {adoptions.length}</span>}
         </button>
         <Sheets t={t} cut={cut} />
         {cut.autocueUrl && (
@@ -456,7 +460,7 @@ export default function Practice() {
 
       {edit && <div className="p-edit-veil" onPointerDown={(e) => { e.preventDefault(); nudge() }} title={t.saveFirst} />}
       {overview && (
-        <Overview t={t} cut={cut} deck={deck} current={current} hasNote={(k) => notes.has(k)} isChanged={(k) => script.changed(k)} onPick={go} onClose={() => setOverview(false)} />
+        <Overview t={t} cut={cut} deck={deck} current={current} hasNote={(k) => notes.has(k)} isChanged={(k) => script.changed(k)} isAdopted={(k) => !!script.adoption(k)} onPick={go} onClose={() => setOverview(false)} />
       )}
       {changesOpen && (
         <Changes t={t} cut={cut} deck={deck} script={script} onGo={go} onClose={() => setChangesOpen(false)} />
@@ -482,7 +486,8 @@ function Diff({ before, after }: { before: string; after: string }) {
 /**
  * The autocue's text for this click — above the speaker notes, since it is what is said. Who reads it and any stage
  * direction stand over it; once the text differs from what it was, the panel says so, shows the change against the
- * original, and offers to set it back. Every edit is kept with the text it was made from (script.ts).
+ * original, and offers to set it back. Every edit is kept with the text it was made from (script.ts). Once the show
+ * has taken the edit in, the panel says that instead, in green, with what the click said before and when.
  *
  * **It is read only until "Bewerk deze tekst" is clicked**, so the text is never changed by a stray keystroke while
  * the show is being clicked through. Editing is a mode: the field turns to paper, the rest of the page stands still
@@ -496,6 +501,9 @@ function ScriptPanel({ t, script, stateKey, title, click, onChanges, count, draf
   const text = editing ? draft : script.text(stateKey)
   const original = script.original(stateKey)
   const changed = editing ? !same(draft, original) : script.changed(stateKey)
+  const adoption = editing ? undefined : script.adoption(stateKey)
+  // taken in other than as typed, and the text left as it was: handled rather than taken over
+  const handled = !!adoption && same(adoption.from, text)
   const who = script.speaker(stateKey)
   const directions = script.directions(stateKey)
   const save = script.state
@@ -520,7 +528,7 @@ function ScriptPanel({ t, script, stateKey, title, click, onChanges, count, draf
   }, [nudged])
 
   return (
-    <section ref={box} className={`p-script${changed ? ' changed' : ''}${editing ? ' editing' : ''}`} title={editing ? undefined : t.scriptAbout}>
+    <section ref={box} className={`p-script${changed ? ' changed' : ''}${adoption ? ' adopted' : ''}${editing ? ' editing' : ''}`} title={editing ? undefined : t.scriptAbout}>
       {editing && (
         <div className="p-edit-bar" ref={bar}>
           <span className="p-edit-tag">
@@ -535,6 +543,7 @@ function ScriptPanel({ t, script, stateKey, title, click, onChanges, count, draf
           <h2>
             {t.script}
             {changed && <span className="p-badge">{t.changed}</span>}
+            {adoption && <span className="p-badge adopted">✓ {handled ? t.handled : t.adopted}</span>}
           </h2>
           <p>
             {t.scriptFor(title, click)}
@@ -580,6 +589,15 @@ function ScriptPanel({ t, script, stateKey, title, click, onChanges, count, draf
           {!editing && script.moved(stateKey) && <p className="p-moved">{t.moved}</p>}
         </div>
       )}
+      {adoption && (
+        <div className="p-was adopted">
+          <div className="p-was-head">
+            <span>{(handled ? t.handledIn : t.adoptedIn)(stamp(t, adoption.at))}</span>
+          </div>
+          {!handled && <Diff before={adoption.from} after={text} />}
+          {adoption.note && <p className="p-adopted-note">{adoption.note}</p>}
+        </div>
+      )}
       <footer>
         {editing ? (
           <>
@@ -610,9 +628,12 @@ function Changes({ t, cut, deck, script, onGo, onClose }: {
 }) {
   const index = new Map(cut.states.map((s, i) => [s.key, i]))
   const changes = script.changes()
+  const inOrder = <T extends { key: string }>(list: T[]) =>
+    [...list.filter((c) => index.has(c.key)).sort((a, b) => index.get(a.key)! - index.get(b.key)!), ...list.filter((c) => !index.has(c.key))]
   const placed = changes.filter((c) => index.has(c.key)).sort((a, b) => index.get(a.key)! - index.get(b.key)!)
   const elsewhere = changes.filter((c) => !index.has(c.key))
-  const when = (iso: string) => new Date(iso).toLocaleString(t.locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  const adoptions = inOrder(script.adoptions())
+  const when = (iso: string) => stamp(t, iso)
   const where = (key: string) => {
     const i = index.get(key)
     if (i == null) return { section: t.elsewhere, slide: key, click: '' }
@@ -629,6 +650,11 @@ function Changes({ t, cut, deck, script, onGo, onClose }: {
     for (const c of [...placed, ...elsewhere]) {
       const w = where(c.key)
       lines.push(`${w.section}`, `  ${w.slide}${w.click ? `, ${w.click}` : ''}  (${c.key})`, `  ${t.was}:   ${c.original.replace(/\s+/g, ' ').trim() || '—'}`, `  ${t.becomes}: ${c.text.replace(/\s+/g, ' ').trim() || '—'}`, '')
+    }
+    if (adoptions.length) lines.push(`${t.adoptedTitle}`, '')
+    for (const a of adoptions) {
+      const w = where(a.key)
+      lines.push(`${w.section}`, `  ${w.slide}${w.click ? `, ${w.click}` : ''}  (${a.key}, ${t.adoptedAt(when(a.at))})`, `  ${t.was}:   ${a.from.replace(/\s+/g, ' ').trim() || '—'}`, `  ${t.becomes}: ${a.text.replace(/\s+/g, ' ').trim() || '—'}`, ...(a.note ? [`  ${a.note}`] : []), '')
     }
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }))
@@ -656,6 +682,25 @@ function Changes({ t, cut, deck, script, onGo, onClose }: {
       </li>
     )
   }
+  const taken = (a: (typeof adoptions)[number]) => {
+    const w = where(a.key)
+    const i = index.get(a.key)
+    const handled = same(a.from, a.text)
+    return (
+      <li key={a.key} className="ch-item adopted">
+        <div className="ch-where">
+          <span className="ch-section">{w.section}</span>
+          <b>{w.slide}</b>
+          {w.click && <span>{w.click}</span>}
+          <span className="p-badge adopted">✓ {handled ? t.handled : t.adopted}</span>
+          <span className="ch-when">{t.adoptedAt(when(a.at))}</span>
+        </div>
+        {!handled && <Diff before={a.from} after={a.text} />}
+        {a.note && <p className="p-adopted-note">{a.note}</p>}
+        {i != null && <div className="ch-actions"><button className="ghost small" onClick={() => onGo(i)}>{t.goTo}</button></div>}
+      </li>
+    )
+  }
   return (
     <div className="changes" role="dialog" aria-modal="true" aria-label={t.changesTitle}>
       <div className="changes-head">
@@ -664,14 +709,21 @@ function Changes({ t, cut, deck, script, onGo, onClose }: {
           <p>{t.changesHint}</p>
         </div>
         <div className="changes-tools">
-          {changes.length > 0 && <button className="ghost" onClick={download}>{t.downloadChanges}</button>}
+          {changes.length + adoptions.length > 0 && <button className="ghost" onClick={download}>{t.downloadChanges}</button>}
           <button className="ghost big" onClick={onClose}>{t.close} <kbd>Esc</kbd></button>
         </div>
       </div>
       <div className="changes-list">
-        {!changes.length && <p className="ch-none">{t.noChanges}</p>}
+        {!changes.length && <p className="ch-none">{adoptions.length ? t.noOpenChanges : t.noChanges}</p>}
         <ol>{placed.map(item)}</ol>
         {elsewhere.length > 0 && <ol className="ch-elsewhere">{elsewhere.map(item)}</ol>}
+        {adoptions.length > 0 && (
+          <section className="ch-adopted">
+            <h3>{t.adoptedTitle}<span className="p-count adopted">✓ {adoptions.length}</span></h3>
+            <p>{t.adoptedHint}</p>
+            <ol>{adoptions.map(taken)}</ol>
+          </section>
+        )}
       </div>
     </div>
   )

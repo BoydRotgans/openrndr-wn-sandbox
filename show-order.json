@@ -69,7 +69,6 @@
         "levenscyclusanalyse",
         "verduurzamen-van-beton",
         "verborgen-verhaal",
-        "recyclage",
         "projecthighlight-3",
         "kernboodschap-3"
       ]
@@ -201,6 +200,7 @@
     "plain",
     "sketch-climb",
     "sketch-climb-lowered-in-cutting-between-angles",
-    "sketch-climb-layers-from-above"
+    "sketch-climb-layers-from-above",
+    "recyclage"
   ]
 }

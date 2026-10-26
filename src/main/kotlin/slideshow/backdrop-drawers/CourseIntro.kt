@@ -15,10 +15,12 @@ import slideshow.frames
  * moment for StudioBuik to explain the next course". Every course moment opens on one, so it is one
  * mechanism rather than a quiet first state built into each course wall.
  *
- * **It is the name tag's block, set for a course.** The course in the name's place, StudioBuik under
- * the rule, and the idea the dish stands for set small, in the left projector where the speaker's
- * own tag stood — so the room reads it as the same kind of moment as being introduced to someone,
- * and the right projector is left black. It builds on its own clock and then holds.
+ * **It is the name tag's block, set for a course.** The course in the name's place and the dish under
+ * the rule, in the left projector where the speaker's own tag stood — so the room reads it as the same
+ * kind of moment as being introduced to someone, and the right projector is left black. It builds on
+ * its own clock and then holds. StudioBuik is named once, on Else's tag in the programme, and not on
+ * every course (22 October 2026); given a [host], the host stands under the rule and the dish small
+ * below, as it did.
  *
  * **It takes no music** ([momentMusic] false), which is the whole point: a moment's playlist plays
  * under every wall of the moment that takes it, so the bed starts on the course wall rather than
@@ -26,17 +28,18 @@ import slideshow.frames
  * sheet names it.
  */
 class CourseIntro(
-    /** What the course is called: "Voorgerecht". */
+    /** What the course is called: "1e gang". */
     course: String,
-    /** The idea the dish stands for, set small under the house: "Gieten". Empty sets nothing. */
+    /** The dish, set small under the house: "Ontkisten". Empty sets nothing. */
     idea: String,
     fontPath: String = "data/fonts/default.otf",
     accent: ColorRGBa = ColorRGBa.WHITE,
-    /** Who introduces it. */
-    host: String = "StudioBuik",
+    /** Who introduces it, under the rule with the dish set small below; empty (the show's) puts the dish there. */
+    host: String = "",
     override val background: ColorRGBa = ColorRGBa.BLACK
 ) : Backdrop() {
-    private val tag = NameTag(presenter = course, organisation = host, role = idea, fontPath = fontPath, accent = accent)
+    private val tag = NameTag(presenter = course, organisation = host.ifBlank { idea }, role = if (host.isBlank()) "" else idea,
+        fontPath = fontPath, accent = accent)
 
     override val name = "Course intro"
     override val buildsIn get() = false

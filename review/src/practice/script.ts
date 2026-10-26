@@ -9,6 +9,10 @@
  *
  * Saved the way the notes are (notes.ts): every keystroke in this browser at once, then a moment after typing stops
  * to `/api/script` (api/script.ts), which keeps them in Supabase; a save that fails is kept here and sent again.
+ *
+ * **An edit the show has taken in is no longer a change.** scripts/adopt-script.mjs writes it into Erik's track and
+ * script.json then names it under `adopted`, with the version of the edit it took (its `updatedAt`): the click reads
+ * as taken in, its text is the show's, and an edit made after that is a new change measured against the show's text.
  */
 import type { SaveState } from './notes'
 
@@ -23,6 +27,18 @@ export interface Edit {
   dirty?: boolean
 }
 
+/** An edit made here and taken into the show (scripts/adopt-script.mjs). */
+export interface Adoption {
+  /** When it was taken in. */
+  at: string
+  /** The `updatedAt` of the edit taken in: an edit here no newer than this is the one the show has. */
+  edited: string
+  /** What the click said before it was edited here. */
+  from: string
+  /** Why it was taken in other than as typed, where it was. */
+  note?: string
+}
+
 export interface ScriptBase {
   exported: string
   label: string
@@ -31,6 +47,7 @@ export interface ScriptBase {
   lines: Record<string, string>
   speakers: Record<string, string>
   directions: Record<string, string[]>
+  adopted: Record<string, Adoption>
 }
 
 interface Row { key: string; slide: string; text: string; original: string; updated_at: string }
@@ -40,7 +57,7 @@ const DEBOUNCE = 700
 const RETRY = 15000
 const base = import.meta.env.BASE_URL.replace(/\/$/, '')
 const API = `${base}/api/script`
-const EMPTY: ScriptBase = { exported: '', label: '', speaker: '', lines: {}, speakers: {}, directions: {} }
+const EMPTY: ScriptBase = { exported: '', label: '', speaker: '', lines: {}, speakers: {}, directions: {}, adopted: {} }
 
 /** The same text, give or take white space at its ends and in between. */
 const same = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim()
@@ -80,26 +97,40 @@ export class Script {
     }
   }
 
-  /** The text of a click: as edited here, else the show's. */
+  /** The text of a click: as edited here, else the show's — and the show's once it has taken the edit in. */
   text(key: string) {
+    if (this.adoption(key)) return this.base.lines[key] ?? ''
     return this.edits[key]?.text ?? this.base.lines[key] ?? ''
   }
 
-  /** What the click said before it was edited here: the show's text then. */
+  /**
+   * What an edit here is measured against: the text the click had when it was first edited, unless the show has
+   * since taken that edit in — then the show's text, so a later edit shows only what it changes after that.
+   */
   original(key: string) {
-    return this.edits[key]?.original ?? this.base.lines[key] ?? ''
+    const e = this.edits[key]
+    const a = this.base.adopted[key]
+    if (!e || this.adoption(key) || (a && same(e.original, a.from))) return this.base.lines[key] ?? ''
+    return e.original
   }
 
-  /** Whether the click's text differs from what it said before it was edited. */
+  /** Whether the click's text differs from what it said before it was edited, and the show has not taken it in. */
   changed(key: string) {
     const e = this.edits[key]
-    return !!e && !same(e.text, e.original)
+    return !!e && !this.adoption(key) && !same(e.text, this.original(key))
   }
 
   /** Whether the show's own text has moved on since this click was edited from it. */
   moved(key: string) {
+    return this.changed(key) && !same(this.original(key), this.base.lines[key] ?? '')
+  }
+
+  /** The show's record of taking this click's edit in, while the edit here is that one: undefined once edited again. */
+  adoption(key: string): Adoption | undefined {
+    const a = this.base.adopted[key]
+    if (!a) return undefined
     const e = this.edits[key]
-    return !!e && this.changed(key) && !same(e.original, this.base.lines[key] ?? '')
+    return !e || Date.parse(e.updatedAt) <= Date.parse(a.edited) ? a : undefined
   }
 
   edit(key: string): Edit | undefined {
@@ -136,9 +167,22 @@ export class Script {
     this.set(key, slide, this.original(key))
   }
 
-  /** Every click whose text differs from what it was, newest first. */
+  /** Every click whose text differs from what it was and is not yet in the show, newest first. */
   changes(): Edit[] {
-    return Object.values(this.edits).filter((e) => !same(e.text, e.original)).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    return Object.values(this.edits)
+      .filter((e) => this.changed(e.key))
+      .map((e) => ({ ...e, original: this.original(e.key) }))
+      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+  }
+
+  /** Every click whose edit here the show has taken in: what it said before, what it says now, and when. */
+  adoptions(): (Adoption & { key: string; text: string })[] {
+    return Object.keys(this.base.adopted)
+      .flatMap((key) => {
+        const a = this.adoption(key)
+        return a ? [{ ...a, key, text: this.base.lines[key] ?? '' }] : []
+      })
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
   }
 
   /** Sends every edit not yet confirmed; `keepalive` lets it finish as the page closes. */

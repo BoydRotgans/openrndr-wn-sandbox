@@ -543,6 +543,10 @@ private fun org.openrndr.ApplicationBuilder.present(
         // else — a press and its release landing between two draws still reach it, as a hold of no length.
         fun face(size: Double) = runCatching { loadFont(slideshow.drawers.Type.file, size, contentScale = 1.0) }.getOrNull()
         val holdRing = HoldRestart(face(HoldRestart.LABEL_SIZE))
+        // the same ring on the autocue, its label at the autocue's own resolution
+        val cueRing = HoldRestart(runCatching {
+            loadFont(slideshow.drawers.Type.file, HoldRestart.LABEL_SIZE, contentScale = AUTOCUE_SCALE)
+        }.getOrNull())
         val overview = SlideOverview(File("build/previews"), face(SlideOverview.HEADER_SIZE), face(SlideOverview.SMALL_SIZE))
         overview.refresh(ids)
         val screenEdges = ArrayDeque<Boolean>()
@@ -1012,7 +1016,7 @@ private fun org.openrndr.ApplicationBuilder.present(
 
         // Where the draws went, slide by slide, on a filmed run — see DrawTimes.
         val drawTimes = DrawTimes()
-        val perfLog = if (settings.perfLog > 0.0 && !settings.record && !settings.bench && !settings.stills) PerfLog(settings.perfLog) else null
+        val perfLog = if (settings.perfLog > 0.0 && !settings.record && !settings.bench && !settings.stills) PerfLog(settings.perfLog) { speakers.sounding() } else null
 
         if (settings.record) {
             // so the clip comes out at the canvas size, not the window's
@@ -1780,6 +1784,9 @@ private fun org.openrndr.ApplicationBuilder.present(
             // The autocue, for the state the subtitles' clock is on, at the pace they keep — see Autocue.
             val cueSetup = autocueSetup()
             val cueShown = autocue != null && (autocueOn && (!cueSetup.ownWindow || autocueVisible) || cueFilm != null)
+            // The hold ring is the presenter's, so with an autocue up it stands there and not on the wall; never in
+            // the autocue's film, as it never reaches the wall's.
+            val ringOnCue = autocue != null && cueFilm == null && autocueOn && (!cueSetup.ownWindow || autocueVisible)
             if (autocue != null && cueShown) {
                 autocue.layout(listOf(ids, subtitles(), slides.size)) {
                     slides.indices.flatMap { i ->
@@ -1847,7 +1854,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                         index = deck.index, step = step, steps = deck.slide.steps,
                         section = place?.let { p ->
                             when {
-                                p.moment.isNotBlank() -> p.moment
+                                p.moment.isNotBlank() -> settings.momentTitles[p.moment] ?: p.moment
                                 // closed up where the card breaks it: "verantwoor-delijkheid"
                                 p.chapterTitle.isNotBlank() -> "Hoofdstuk ${p.chapter}  ·  " +
                                         p.chapterTitle.replace(Regex("(?<=\\p{Ll})-(?=\\p{Ll})"), "")
@@ -1894,6 +1901,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                         // No preview of the wall in the foot (15 October 2026): the speaker sees the wall itself, and the
                         // foot's room goes to what the next click brings. `Autocue.draw` still takes one, for later.
                         autocue.draw(drawer, now, null)
+                        if (ringOnCue) cueRing.drawIn(drawer, Rectangle(0.0, 0.0, Autocue.WIDTH, Autocue.HEIGHT), ringProgress, ringShown)
                     }
                     t.colorBuffer(0).generateMipmaps()
                 }
@@ -1919,7 +1927,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 }
             }
 
-            // The clicker's overview and hold ring, on the window like the grid: never in a film or a still.
+            // The clicker's overview and hold ring, on the window like the grid: never in a film or a still. The ring
+            // only while no autocue is up; with one, it is in the autocue's picture above.
             if (overviewShown > 0.0) {
                 // The face has no subscript two, and a missing glyph drops out — "CO -prestatieladder".
                 val titles = ids.indices.map { i -> (show.outline[i]?.title ?: show.slides.getOrNull(i)?.name.orEmpty()).replace('₂', '2') }
@@ -1938,7 +1947,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                     groups + List(shelf.size) { SlideOverview.SHELF }, walls + List(shelf.size) { false },
                     pick, current, overviewShown, hiddenFrom = ids.size)
             }
-            holdRing.draw(drawer, shown, canvasBounds, settings.panelWidth, ringProgress, ringShown)
+            if (!ringOnCue) holdRing.draw(drawer, shown, canvasBounds, settings.panelWidth, ringProgress, ringShown)
             // The countdown line, over every animation longer than [Countdown.SHORTEST] while the wait is on:
             // the share still to play, coming down, gone once the state is still. A shorter one is over before
             // a line could be read, so it shows none. Laid on the window through the fit, so it is the same size

@@ -13,7 +13,8 @@ import slideshow.smoothstep
 /**
  * The intro wall: the speaker's name standing in the left projector, the evening's programme
  * in the right, and at the end the guest the speaker hands over to, named in the right projector
- * level with him.
+ * level with him. The show hands it the programme as its overview alone (22 October 2026), so it is
+ * two states: the programme, and the guest.
  *
  * **Three drawers, one wall.** The host's tag is [NameTag] drawn settled, so the cut in from the
  * name tag on its own is invisible — the same block in the same place. The programme is

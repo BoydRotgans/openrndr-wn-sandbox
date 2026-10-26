@@ -32,6 +32,9 @@ import slideshow.frames
  *
  * [qr] false leaves the code off the wall (meeting of 30 September: "take away the qr code from the
  * screen"), and the right pane is then the action and the address alone, centred as one stack.
+ *
+ * [blank] draws nothing at all and takes no music (22 October 2026: "just make it a blank screen; do not start the
+ * audio yet"): the ground stands through Karim's closing, and the Exit's music starts on the wall after it.
  */
 class EndingScene(
     private val sentence: String,
@@ -50,11 +53,14 @@ class EndingScene(
      * the clicks are the speaker's: the closing words read off the autocue a section a click, as Karim Weiss's
      * are (19 October 2026), while the call to action stands.
      */
-    private val clicks: Int = 1
+    private val clicks: Int = 1,
+    /** Nothing drawn and no moment music under it: the bare ground. */
+    private val blank: Boolean = false
 ) : Backdrop() {
 
     override val name = "Ending"
     override val steps get() = clicks.coerceAtLeast(1)
+    override val momentMusic get() = !blank
     override val settle get() = frames(1.5)
 
     private lateinit var bold: FontImageMap
@@ -73,6 +79,7 @@ class EndingScene(
     }
 
     override fun draw(drawer: Drawer, stage: Stage) {
+        if (blank) return
         val w = stage.width
         val h = stage.height
         drawer.stroke = null

@@ -163,7 +163,10 @@ deploy, whenever the show's text has changed). Every edit keeps the text it was 
 says **Gewijzigd**, shows the original with what was taken out struck through and what was added marked,
 and can be set back; **Wijzigingen** in the head lists every changed click, in the show's order, and
 downloads them. Edits are saved through `/api/script` into `speaker_notes` under `script:` keys (no new
-table). `pnpm pull-script` writes them to `../show-script-edits.json`, to take into the show.
+table). `pnpm pull-script` writes them to `../show-script-edits.json`, and `pnpm adopt-script` takes them
+into the show (Erik's track and the additions the Word import keeps) and exports the script again; deploy, and
+the page marks each of those clicks **✓ Overgenomen** in green rather than **Gewijzigd** in violet. A remark about
+the wall typed into the text is taken in without it: give the edit `adopt` and `note` in the pulled file first.
 
 **The text is locked until "Bewerk deze tekst" is clicked.** Editing then is a mode: the field turns to
 paper, the rest of the page is dimmed and stands still (clicker and keys included), and the change is
@@ -258,6 +261,14 @@ subtitle-free film *with* the voice.
 
 then add `{ "slug": "<date>", "created": "<date>", "folder": "practice/<date>", "audio": "film" }` to
 `practice.json` and deploy; being the newest, it is the one played.
+
+**Since 21 October there is one film, not two.** The subtitles on the wall are off and no review film with
+subtitles is wanted, so the clean run above (on `SLIDES_SUBTITLE_TRACK=erik`, `--track erik` to both cuts)
+is the review release as well: cut `-clean-mixed.mp4` (the voice in) with `--audio 'novoice=without
+voice=video/wn-experience_<date>-clean-novoice.wav'` into `public/releases/<date>`, and `-clean-novoice.mp4`
+with `--autocue` into the practice folder as above. Release 21 October: a 2922 s film, filmed in 27 minutes,
+the review cut 99 MB at crf 32 (one step up if a longer film passes 100 MB), the rehearsal cut 82 MB at 2560 and
+crf 36, the autocue 80 MB.
 
 **The speaker's sheets go with the cut.** Make them off the clean film (`.venv/bin/python
 tools/subtitle_notes_pdf.py --film video/wn-experience_<date>-clean.mp4`), copy

@@ -211,15 +211,25 @@ class CircleCatalogue(
     fun ringAngle(i: Int, frame: Int): Double =
         2.0 * PI * frame / frames(spin) + 2.0 * PI * ((i * GOLDEN) % 1.0)
 
+    /** The frame piece [i] starts to land on the ring. */
+    fun ringStart(i: Int): Int = i * frames(cadence)
+
+    /** Frames into its landing that a piece starts to settle from white into the grey, and frames it takes. */
+    val settleFrom: Int get() = frames(landing * 0.5)
+    val settleFrames: Int get() = frames(GLOW)
+
+    /** Piece [i]'s place on the mark, where it comes to rest, in pane pixels. */
+    fun ringPlace(i: Int): Vector2 = ringAt[i]
+
     /**
      * Piece [i] on the ring at [frame]: landing a little from above along the mark, a size up and white, settling
      * into the grey over [GLOW]; null before it has started to land. `RingOfPieces`' rule, in the kit's drawing.
      */
     fun ringPose(i: Int, frame: Int): Pose? {
-        val start = i * frames(cadence)
+        val start = ringStart(i)
         val landed = smoothstep(ramp(frame - start, frames(landing)))
         if (landed <= 0.0) return null
-        val glow = 1.0 - smoothstep(ramp(frame - start - frames(landing * 0.5), frames(GLOW)))
+        val glow = 1.0 - smoothstep(ramp(frame - start - settleFrom, settleFrames))
         val p = ringAt[i]
         val size = pane.y * UNIT * landed * (1.0 + POP * glow)
         return Pose(Vector2(p.x, p.y - pane.y * DROP * (1.0 - landed)), ringFit[i] * size, ringAngle(i, frame), grey.mix(arriving, glow))

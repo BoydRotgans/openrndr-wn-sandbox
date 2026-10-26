@@ -1,6 +1,7 @@
 package slideshow
 
 import java.io.File
+import kotlin.random.Random
 
 /**
  * A course's tracks as one bed: the files of [folder], in the order [tracks] names them, joined
@@ -22,18 +23,22 @@ import java.io.File
  * only when a track is newer than the join, which a re-delivered folder of older files would pass.
  * No ffmpeg, or no tracks, is an ordinary state: the [Sound] then names a file that is not there
  * and the deck runs silent for that wall, as it does for any missing cue.
+ *
+ * [shuffle], a seed, deals the tracks in another order, the same every start: the 1e gang plays Main that way
+ * (22 October 2026), under its own name, so it is its own buffer with its own place and leaves Main's alone.
  */
 fun playlist(
     name: String, folder: File, tracks: List<String> = emptyList(),
-    gain: Double = 0.45, fadeIn: Double = 6.0, fadeOut: Double = 2.5
+    gain: Double = 0.45, fadeIn: Double = 6.0, fadeOut: Double = 2.5, shuffle: Long? = null
 ): Sound {
     val out = File("build/music/$name.wav")
     val sound = Sound(out, gain, loop = true, fadeIn = frames(fadeIn), fadeOut = frames(fadeOut), layer = Layer.MUSIC, resume = true)
     val files = (folder.listFiles { f: File -> f.extension.lowercase() in setOf("mp3", "wav", "m4a", "aiff", "flac") } ?: emptyArray())
         .sortedBy { it.name.lowercase() }
     // The stated order first, matched on a substring of the file name; anything unnamed after, as sorted.
-    val ordered = tracks.mapNotNull { t -> files.firstOrNull { it.name.contains(t, ignoreCase = true) } }.distinct() +
-            files.filter { f -> tracks.none { f.name.contains(it, ignoreCase = true) } }
+    val ordered = (tracks.mapNotNull { t -> files.firstOrNull { it.name.contains(t, ignoreCase = true) } }.distinct() +
+            files.filter { f -> tracks.none { f.name.contains(it, ignoreCase = true) } })
+        .let { if (shuffle != null) it.shuffled(Random(shuffle)) else it }
     tracks.filter { t -> files.none { it.name.contains(t, ignoreCase = true) } }
         .forEach { println("music: \"$it\" is on the tracklist for \"$name\" and not in ${folder.path}") }
     if (ordered.isEmpty()) {
@@ -93,11 +98,11 @@ fun courseFolder(root: File, course: String): File? =
  * One course's playlist out of the folder of playlists [root]: its folder (see [courseFolder]), in the
  * order its `*tracklist*.txt` gives, joined under `build/music/<name>.wav`.
  */
-fun coursePlaylist(root: File, course: String, name: String = course.lowercase(), gain: Double = 0.45): Sound {
+fun coursePlaylist(root: File, course: String, name: String = course.lowercase(), gain: Double = 0.45, shuffle: Long? = null): Sound {
     val list = root.listFiles { f: File -> f.isFile && f.name.contains("tracklist", ignoreCase = true) && f.extension == "txt" }
         ?.firstOrNull()?.let(::tracklist).orEmpty()
     val tracks = list.entries.firstOrNull { it.key.equals(course, ignoreCase = true) }?.value.orEmpty()
-    return playlist(name, courseFolder(root, course) ?: File(root, course), tracks, gain)
+    return playlist(name, courseFolder(root, course) ?: File(root, course), tracks, gain, shuffle = shuffle)
 }
 
 /**

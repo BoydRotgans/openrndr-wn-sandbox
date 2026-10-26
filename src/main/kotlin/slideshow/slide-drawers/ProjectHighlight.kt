@@ -109,7 +109,12 @@ class ProjectHighlight(
     /** What the opening sounds like: the elements building and the first photo dissolving out of them. */
     private val arrival: Sound? = null,
     /** What every click sounds like: the photo breaking up, the handover and the next one dissolving. */
-    private val click: Sound? = null
+    private val click: Sound? = null,
+    /**
+     * Photos to show first, by file name, in this order, ahead of the rest in name order; the [lead] stays last.
+     * Intervest's 128 before its 10 (22 October 2026), where name order put them the other way round.
+     */
+    private val first: List<String> = emptyList()
 ) : Slide() {
     override val name = "Highlight"
     override val background: ColorRGBa = Palette.onBlack.paper
@@ -120,7 +125,7 @@ class ProjectHighlight(
     /** The photographs, the lead last. */
     private val photos: List<File> = (folder.listFiles() ?: emptyArray())
         .filter { it.isFile && it.extension.lowercase() in IMAGES }
-        .sortedWith(compareBy({ it.name == lead }, { it.name.lowercase() }))
+        .sortedWith(compareBy({ it.name == lead }, { first.indexOf(it.name).let { i -> if (i < 0) first.size else i } }, { it.name.lowercase() }))
         .let { all -> if (everyPhoto || lead == null) all else all.filter { it.name == lead }.ifEmpty { all.take(1) } }
         .also { if (it.isEmpty()) println("project highlight: no photos in ${folder.path}") }
 

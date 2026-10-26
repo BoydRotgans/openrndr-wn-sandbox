@@ -67,8 +67,9 @@ TRACKS = {
 # The order file names its moments in English; the evening is run in Dutch.
 MOMENTS = {
     "Arrival": "Aankomst", "Opening": "Opening", "Aperitif": "Aperitief",
-    "Opening course": "Voorgerecht", "First course": "Eerste gang",
-    "Second course": "Tweede gang", "Third course": "Derde gang", "Questions": "Vragen", "Dessert": "Dessert",
+    # the courses as the printed menu numbers them (22 October 2026), as the show's autocue does
+    "Opening course": "1e gang", "First course": "2e gang",
+    "Second course": "3e gang", "Third course": "4e gang", "Questions": "Case studies en vragen", "Dessert": "5e gang",
     "Exit": "Uitloop",
 }
 
@@ -208,7 +209,7 @@ def sections(path):
 
 MOMENT_ROWS = {
     "Arrival": [r"^Ontvangst", r"^Loop door"],
-    "Opening": [r"^Opening"],
+    "Opening": [r"^Opening", r"^Programma", r"^Studio ?Buik voorstellen"],
     "Questions": [r"Cases"],
     "Exit": [r"^Afsluitwoord", r"^Uitloop"],
 }
@@ -220,7 +221,12 @@ COUNTDOWN = "0:33"   # the course transition's sample, course-transistion-T2: 33
 def xlsx_rows(path, tab):
     """One sheet of an .xlsx as a list of {column letter: text}, read off the file's own XML —
     a workbook is a zip of it, and one tab is not worth a dependency. A number in column A is a
-    time of day (Excel keeps those as a share of the day) and is given as HH:MM."""
+    time of day (Excel keeps those as a share of the day) and is given as HH:MM. A .csv is one tab
+    already (the Show tab exported, 22 October 2026) and is read as the same rows."""
+    if path.lower().endswith(".csv"):
+        import csv
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            return [{chr(65 + k): v.strip() for k, v in enumerate(row) if v.strip()} for row in csv.reader(f)]
     z = zipfile.ZipFile(path)
     rel = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
     targets = {r.get("Id"): r.get("Target") for r in ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))}
@@ -270,7 +276,7 @@ def draaiboek(path, tab):
     if rows and rows[0].get("A"):
         m = re.search(r"[–-]\s*([^|]+?)\s*(\||$)", rows[0]["A"])
         day = m.group(1) if m else ""
-    parts = []
+    parts, before = [], None
     for r in rows[2:]:
         title = r.get("C", "")
         if not title:
@@ -278,9 +284,11 @@ def draaiboek(path, tab):
         times = [int(h) * 60 + int(mm) for h, mm in TIME_RE.findall(r.get("A", ""))]
         dur = re.search(r"(\d+)\s*min", r.get("B", ""))
         dur = int(dur.group(1)) if dur else None
-        start = times[0] if times else None
+        # a row with a length and no time of its own starts where the one before it ended (Draaiboek.kt does the same)
+        start = times[0] if times else (before if dur is not None else None)
         end = times[1] if len(times) > 1 else (start + dur if start is not None and dur else None)
         parts.append({"title": re.sub(r"\s+", " ", title), "start": start, "end": end, "minutes": dur})
+        before = end
     return day, parts
 
 
@@ -363,12 +371,38 @@ def cues_for(order, where, heads, times, courses):
 # ---------------------------------------------------------------- the lines
 
 
+def guests_in_show():
+    """Who speaks besides the track's own speaker, as `SLIDES_SPEAKERS` says (20 October 2026: Erik alone by default)."""
+    value = env_value("SLIDES_SPEAKERS", os.path.join(ROOT, ".env"))
+    return {g.strip() for g in value.split(",") if g.strip() and g.strip().lower() != "none"}
+
+
+def without_guests(data, lines, guests):
+    """The lines as the show reads them (Subtitles.forSpeakers): a state another speaker reads, and that speaker not
+    among [guests], is left without a line — Karim Weiss speaks his own words — or, where that line was laid over the
+    Word file's own (`replaced`), the Word file's line comes back: the ending's thanks, Erik's again."""
+    own, replaced = data.get("speaker"), data.get("replaced", {})
+    for sid, by in data.get("speakers", {}).items():
+        by = by if isinstance(by, dict) else {"A": by}
+        for let, who in by.items():
+            if who == own or who in guests:
+                continue
+            back = replaced.get(sid, {}).get(let)
+            said = back.get("said", "") if back and back.get("by") == who else ""
+            if said.strip():
+                lines.setdefault(sid, {})[let] = said.strip()
+            else:
+                lines.get(sid, {}).pop(let, None)
+    return lines
+
+
 def track_lines(track, show_steps, warn):
     """{slide: {letter: line}} for one track, as it now falls on the show's states."""
     with open(os.path.join(ROOT, TRACKS[track]["file"])) as f:
         data = json.load(f)
     lines = {k: dict(v) for k, v in data["subtitles"].items()}
     lines = relettered(lines, track, warn)
+    lines = without_guests(data, lines, guests_in_show())
     for slide, by_letter in lines.items():
         n = show_steps.get(slide)
         if n is None:
@@ -662,7 +696,7 @@ def to_pdf(markup, out, workdir):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--film", default=os.path.join(ROOT, "video/wn-experience_2026-10-02-clean.mp4"))
+    ap.add_argument("--film", default=os.path.join(ROOT, "video/wn-experience_2026-10-22-clean.mp4"))
     ap.add_argument("--cut", default=None, help="defaults to the .states log beside the film")
     ap.add_argument("--show", default="http://localhost:8765/api/show")
     ap.add_argument("--order", default=os.path.join(ROOT, "show-order.json"))

@@ -4,8 +4,10 @@
 //     pnpm pull-script --out <file>
 //
 // Only the clicks whose text differs from what it was are written, each with the text it was edited from, the
-// text it became and when — what the page's changes list shows. Reads VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
-// from the environment or review/.env, the key the site's own server reads them with (api/script.ts).
+// text it became and when — what the page's changes list shows — and of those only the ones not yet taken into the
+// show: an edit `pnpm adopt-script` took in (../show-script-adopted.json) is left out until it is edited again.
+// Reads VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from the environment or review/.env, the key the site's own
+// server reads them with (api/script.ts).
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -34,10 +36,15 @@ if (!r.ok) {
   process.exit(1)
 }
 const flat = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
+const record = path.join(here, '..', '..', 'show-script-adopted.json')
+const adopted = fs.existsSync(record) ? JSON.parse(fs.readFileSync(record, 'utf8')).adopted ?? {} : {}
+let already = 0
 const edits = (await r.json()).flatMap((row) => {
   try {
     const b = JSON.parse(row.body)
     if (typeof b.text !== 'string' || flat(b.text) === flat(b.original)) return []
+    const a = adopted[row.state_key.slice('script:'.length)]
+    if (a && Date.parse(row.updated_at) <= Date.parse(a.edited)) { already++; return [] }
     return [{ key: row.state_key.slice('script:'.length), slide: row.slide_id, original: b.original ?? '', text: b.text, updated_at: row.updated_at }]
   } catch {
     return []
@@ -45,9 +52,9 @@ const edits = (await r.json()).flatMap((row) => {
 }).sort((a, b) => a.key.localeCompare(b.key))
 
 fs.writeFileSync(out, JSON.stringify({
-  about: 'The rehearsal page\'s edits to Erik\'s autocue text, pulled by review/scripts/pull-script.mjs: each click whose text was changed there, with the text it was edited from (original) and the text it became (text). Not read by the show: take them into show-subtitles-erik.json and show-autocue-additions.json.',
+  about: 'The rehearsal page\'s edits to Erik\'s autocue text, pulled by review/scripts/pull-script.mjs: each click whose text was changed there, with the text it was edited from (original) and the text it became (text). Not read by the show: pnpm adopt-script takes them into show-subtitles-erik.json and show-autocue-additions.json; an edit may first be given adopt (the text to take in instead) and note (why, shown on the page).',
   pulled: new Date().toISOString(),
   edits,
 }, null, 2) + '\n')
-console.log(`wrote ${path.relative(process.cwd(), out)}: ${edits.length} changed click${edits.length === 1 ? '' : 's'}`)
+console.log(`wrote ${path.relative(process.cwd(), out)}: ${edits.length} changed click${edits.length === 1 ? '' : 's'}${already ? `, ${already} more already taken in` : ''}`)
 for (const e of edits) console.log(`\n${e.key}  (${e.updated_at.slice(0, 16).replace('T', ' ')})\n  was: ${flat(e.original) || '—'}\n  now: ${flat(e.text) || '—'}`)

@@ -43,6 +43,9 @@ class Entry(val label: String, val chapter: Boolean = false, val message: String
  *
  * The list builds top to bottom on the wall's own clock when the slide comes up. The layout is a
  * function of the list — a chapter row takes two shares of the height and a moment one.
+ *
+ * [chapterClicks] off, it is the overview alone, one state: the list built and nothing brought forward. The
+ * intro wall runs it that way since 22 October 2026, asked for as "just the overview of the program".
  */
 class Programme(
     private val title: String = "Het programma",
@@ -60,14 +63,16 @@ class Programme(
      * chapter's message right. The intro wall stands the list alone in the right projector beside
      * the speaker's name, a click a chapter bringing it forward among the others dimmed.
      */
-    val side: Int? = null
+    val side: Int? = null,
+    /** A click a chapter, the others dimmed, and one for the whole; off, the list stands whole in one state. */
+    private val chapterClicks: Boolean = true
 ) : Backdrop() {
 
     override val name = "Programme"
     /** A list read a click at a time, with a build of its own. */
     override val buildsIn get() = false
     private val chapters = entries.indices.filter { entries[it].chapter }
-    override val steps get() = chapters.size + 2
+    override val steps get() = if (chapterClicks) chapters.size + 2 else 1
 
     /**
      * A note an entry as the evening writes itself out, and one a chapter as it is brought
@@ -78,7 +83,7 @@ class Programme(
      * in a second and the run is dense — and the count follows the show rather than being
      * stated, so an entry added to `Slideshow.kt` is a note without anything else changing.
      */
-    override val lanes: List<String> get() = listOf("the evening", "the chapters")
+    override val lanes: List<String> get() = if (chapterClicks) listOf("the evening", "the chapters") else listOf("the evening")
 
     override fun arrivals(clicks: List<Int>): List<Arrival> {
         val n = entries.size
@@ -86,11 +91,13 @@ class Programme(
         val written = entries.indices.map { i ->
             Arrival(lane = 0, index = pitchStep(i, n), start = i * frames(BUILD) / n, length = frames(ARRIVE))
         }
+        if (!chapterClicks) return written
         val forward = clicks.mapIndexed { k, at -> Arrival(lane = 1, index = k, start = at, length = stepLength(k + 1)) }
         return written + forward
     }
     override val settle get() = frames(BUILD) + frames(ARRIVE)
     override fun stepName(step: Int): String? = when {
+        !chapterClicks -> null
         step in 1..chapters.size -> entries[chapters[step - 1]].label
         step == chapters.size + 1 -> "the whole programme"
         else -> null
@@ -119,8 +126,8 @@ class Programme(
         val back = ((t - (1.0 - FADE)) / FADE).coerceIn(0.0, 1.0)
         val opening = stage.step == 0 && p < 1e-6
 
-        // Which chapter is forward at state s: none at 0 and at the last.
-        fun forward(s: Int) = if (s in 1..chapters.size) chapters[s - 1] else -1
+        // Which chapter is forward at state s: none at 0 and at the last, and none at all without the clicks.
+        fun forward(s: Int) = if (chapterClicks && s in 1..chapters.size) chapters[s - 1] else -1
         val fa = forward(a); val fb = forward(b)
 
         // --- the menu, in the left pane or in [side] -------------------------------------- //

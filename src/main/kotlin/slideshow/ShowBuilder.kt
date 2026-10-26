@@ -162,6 +162,11 @@ class ShowBuilder internal constructor() {
         settings = settings.copy(momentMusic = if (bed == null) settings.momentMusic - moment else settings.momentMusic + (moment to bed))
     }
 
+    /** What the moment the order file calls [moment] is called on the speaker's screen — see [Settings.momentTitles]. */
+    fun momentTitle(moment: String, title: String) {
+        settings = settings.copy(momentTitles = settings.momentTitles + (moment to title))
+    }
+
     /**
      * A cue sheet read off a folder, placing its sounds by the state each file names.
      *

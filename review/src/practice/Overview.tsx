@@ -10,6 +10,8 @@ interface Props {
   hasNote(stateKey: string): boolean
   /** Whether the click's autocue text was changed on this page. */
   isChanged?(stateKey: string): boolean
+  /** Whether a change made on this page has been taken into the show. */
+  isAdopted?(stateKey: string): boolean
   onPick(stateIndex: number): void
   onClose(): void
 }
@@ -18,7 +20,7 @@ interface Props {
  * Every slide of the evening, grouped under its chapter or the moment it stands in, to jump to. A card
  * goes to the slide's first click, and the numbered chips under it to any one click.
  */
-export default function Overview({ t, cut, deck, current, hasNote, isChanged, onPick, onClose }: Props) {
+export default function Overview({ t, cut, deck, current, hasNote, isChanged, isAdopted, onPick, onClose }: Props) {
   const here = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const slide = deck.slideOf[current]
@@ -73,12 +75,13 @@ export default function Overview({ t, cut, deck, current, hasNote, isChanged, on
                           const key = cut.states[i].key
                           const noted = hasNote(key)
                           const changed = !!isChanged?.(key)
+                          const adopted = !changed && !!isAdopted?.(key)
                           return (
                             <button
                               key={i}
-                              className={`ov-click${i === current ? ' on' : ''}${noted ? ' noted' : ''}${changed ? ' changed' : ''}`}
+                              className={`ov-click${i === current ? ' on' : ''}${noted ? ' noted' : ''}${changed ? ' changed' : ''}${adopted ? ' adopted' : ''}`}
                               onClick={() => onPick(i)}
-                              title={`${t.clickOf(n + 1, sl.states.length)}${noted ? ` · ${t.hasNote}` : ''}${changed ? ` · ${t.hasChange}` : ''}`}
+                              title={`${t.clickOf(n + 1, sl.states.length)}${noted ? ` · ${t.hasNote}` : ''}${changed ? ` · ${t.hasChange}` : ''}${adopted ? ` · ${t.hasAdopted}` : ''}`}
                             >
                               {n + 1}
                             </button>

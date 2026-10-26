@@ -29,14 +29,21 @@ for (const [id, states] of Object.entries(track.directions || {}))
     if (list.length) directions[`${id}-${k}`] = list
   }
 
+// The page's edits already taken into the track (adopt-script.mjs): the page marks them as taken in, not changed.
+const record = path.join(path.dirname(from), 'show-script-adopted.json')
+const adopted = {}
+if (fs.existsSync(record))
+  for (const [key, a] of Object.entries(JSON.parse(fs.readFileSync(record, 'utf8')).adopted || {}))
+    adopted[key] = { at: a.at, edited: a.edited, from: a.from, ...(a.note ? { note: a.note } : {}) }
+
 const script = {
-  about: 'Erik\'s autocue as the show has it, for the rehearsal page to read and edit: written by review/scripts/export-script.mjs from show-subtitles-erik.json. Edits made on the page are kept apart, in Supabase, and laid over this.',
+  about: 'Erik\'s autocue as the show has it, for the rehearsal page to read and edit: written by review/scripts/export-script.mjs from show-subtitles-erik.json. Edits made on the page are kept apart, in Supabase, and laid over this; adopted names those already taken into the show (show-script-adopted.json).',
   exported: new Date().toISOString(),
   track: 'erik',
   label: 'Erik autocue',
   speaker: track.speaker || 'Erik Koremans',
-  lines, speakers, directions,
+  lines, speakers, directions, adopted,
 }
 fs.mkdirSync(path.dirname(out), { recursive: true })
 fs.writeFileSync(out, JSON.stringify(script, null, 1) + '\n')
-console.log(`wrote ${path.relative(process.cwd(), out)}: ${Object.keys(lines).length} lines, ${Object.keys(speakers).length} read by someone else, ${Object.keys(directions).length} with a direction`)
+console.log(`wrote ${path.relative(process.cwd(), out)}: ${Object.keys(lines).length} lines, ${Object.keys(speakers).length} read by someone else, ${Object.keys(directions).length} with a direction, ${Object.keys(adopted).length} taken in from the page`)

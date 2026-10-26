@@ -1,0 +1,238 @@
+{
+  "about": "The rehearsal page's edits to Erik's autocue that were taken into the show, written by review/scripts/adopt-script.mjs: for each click, when (at), which version of the page's edit (edited, its updated_at in Supabase), what it said before (from), what it says now (text) and, where it was taken in other than as typed, why (note). export-script.mjs hands it to the page, which marks those clicks as taken in.",
+  "adopted": {
+    "100-elementen-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T09:12:41.093+00:00",
+      "slide": "100-elementen",
+      "from": "Dit zijn de gestandaardiseerde elementen waaruit we kunnen ontwerpen. Door met een vaste familie van bouwstenen te werken, maken we gebouwen voorspelbaar én bereiden we hergebruik voor.",
+      "text": "Wat u hier ziet, is de basis van The Circle: een bibliotheek van honderd gestandaardiseerde prefab betonelementen.\nDenk aan kolommen, balken en vloerelementen die qua afmetingen en aansluitingen op elkaar zijn afgestemd.\nDaarmee hoeven we niet voor ieder gebouw opnieuw het wiel uit te vinden. We kunnen verschillende gebouwen samenstellen uit dezelfde reeks elementen.\nDat maakt het ontwerp en de productie efficiënter. En doordat we steeds met dezelfde maatvoering werken, worden de elementen ook in toekomstige gebouwen opnieuw toepasbaar.\nZo combineren we de voordelen van standaardisatie met de flexibiliteit die de vastgoedmarkt vraagt."
+    },
+    "co2-impact-van-beton-A": {
+      "at": "2026-10-21T09:35:58.291Z",
+      "edited": "2026-10-21T09:35:26.797+00:00",
+      "slide": "co2-impact-van-beton",
+      "from": "Co2 impact van beton; De productie van beton heeft wereldwijd een grote impact op het milieu. Ongeveer 8% van de totale wereldwijde CO₂-uitstoot wordt veroorzaakt door de productie van beton. De rode balk laat zien dat cement verreweg het meest milieubelastende bestanddeel van beton is.",
+      "text": "Co2 impact van beton; De productie van beton heeft wereldwijd een grote impact op het milieu. Ongeveer 8% van de totale wereldwijde CO₂-uitstoot wordt veroorzaakt door de productie van beton. De rode balk laat zien dat cement hierbij verreweg het meest milieubelastende bestanddeel van beton is."
+    },
+    "co2-impact-van-beton-B": {
+      "at": "2026-10-21T09:40:37.458Z",
+      "edited": "2026-10-21T09:36:35.406+00:00",
+      "slide": "co2-impact-van-beton",
+      "from": "Bij Willy Naessens werken betontechnologen voortdurend aan het verbeteren van de samenstelling van beton. Dit leidt tot aanzienlijke CO₂-reducties. De bouwbehoefte is wereldwijd zo groot dat we niet zonder beton kunnen. Juist daarom vinden we het belangrijk om onze verantwoordelijkheid te nemen. Als we beton nodig hebben, willen we ervoor zorgen dat we het zo duurzaam mogelijk produceren en toepassen. Zo werken we stap voor stap aan het verminderen van onze impact op het milieu.",
+      "text": "Bij Willy Naessens werken betontechnologen voortdurend aan het verbeteren van de samenstelling van beton. Dit leidt tot aanzienlijke CO₂-reducties. De bouwbehoefte is wereldwijd zo groot dat we niet zonder beton kunnen. Juist daarom vinden we het belangrijk om onze verantwoordelijkheid te nemen. Als we dan toch beton nodig hebben om te kunnen voorzien in de bouwbehoefte, dan willen we ervoor zorgen dat we het ook zo duurzaam mogelijk produceren en toepassen. Zo werken we stap voor stap aan het verminderen van onze impact op het milieu."
+    },
+    "co2-impact-van-beton-C": {
+      "at": "2026-10-21T09:40:37.458Z",
+      "edited": "2026-10-21T09:37:14.532+00:00",
+      "slide": "co2-impact-van-beton",
+      "from": "Ook in Nederland speelt dat. We kunnen beton niet zomaar wegdenken uit onze gebouwen. De vraag is dus niet óf we beton gebruiken, maar hoe we de impact ervan aantoonbaar verlagen.",
+      "text": "Ook in Nederland speelt dat. We kunnen beton niet zomaar wegdenken uit onze gebouwen. De vraag is dus niet óf we beton gebruiken, maar hoe we de impact ervan aantoonbaar verlagen. En daarvoor moeten we eerst begrijpen waar die impact precies ontstaat.",
+      "note": "“Deze sheet kan eruit” gaat over het beeld, niet over de tekst: doorgegeven aan het team. De zin ervoor is overgenomen."
+    },
+    "de-fasen-a-b-en-c-A": {
+      "at": "2026-10-21T09:40:37.458Z",
+      "edited": "2026-10-21T09:38:23.939+00:00",
+      "slide": "de-fasen-a-b-en-c",
+      "from": "Om dat goed uit te leggen, analyseren we een betonelement door zijn hele levenscyclus. We delen deze levenscyclus analyse op in drie delen: A, B en C. A begint bij de grondstoffen en loopt door tot en met de bouw. Het gaat hier dus over grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats en montage.",
+      "text": "Om dat goed uit te leggen, analyseren we een betonelement door zijn hele levenscyclus. Een levenscyclusanalyse is eigenlijk ontstaan in de jaren zestig vanuit de vraag, hoe bepalen we of iets echt beter is voor het milieu? Coca-Cola bijvoorbeeld liet destijds voor het eerst onderzoeken welke verpakking het milieu het minst belastte. Dat bleek ingewikkelder dan gedacht, omdat je naar de hele levensduur moest kijken. Daaruit groeide de methode die we nu kennen als de levenscyclusanalyse. Inmiddels is die internationaal gestandaardiseerd, onder andere via de ISO-normen 14040 en 14044.\nWe delen deze levenscyclus analyse op in drie delen: A, B en C.\nA begint bij de grondstoffen en loopt door tot en met de bouw. Het gaat hier dus over grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats en montage. Bij Willy Naessens gebruiken we diezelfde gedachte om de milieu-impact van onze betonproducten te berekenen. We kijken naar de grondstoffen, de samenstelling, de productie en de overige relevante levensfasen. Zo kunnen we verschillende oplossingen vergelijken en aantoonbaar betere keuzes maken."
+    },
+    "de-fasen-a-b-en-c-B": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T07:35:54.186+00:00",
+      "slide": "de-fasen-a-b-en-c",
+      "from": "B staat voor de gebruiksfase van het gebouw, en tijdens de gebruiksfase vindt er onderhoud plaats, reparatie en eventueel vervanging en verbouwing. Deze fase kan tientallen jaren duren, ons beton gaat minstens 100 jaar mee.",
+      "text": "Na de bouw begint fase B: de gebruiksfase. Het gebouw wordt in gebruik genomen en moet natuurlijk goed blijven functioneren.\nIn de loop der jaren van het gebruik van het gebouw is onderhoud nodig. Soms worden onderdelen gerepareerd, vervangen of wordt het gebouw aangepast aan nieuwe wensen.\nOok dat heeft invloed op het milieu en nemen we dus mee in de levenscyclusanalyse.\nHet bijzondere aan onze prefab betonelementen is hun lange levensduur. Ze zijn ontworpen om minstens 100 jaar mee te gaan. En juist die lange levensduur maakt beton zo waardevol."
+    },
+    "de-fasen-a-b-en-c-C": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T07:39:57.285+00:00",
+      "slide": "de-fasen-a-b-en-c",
+      "from": "En C gaat over het einde van de levensduur van het gebouw; de vraag is dan demonteren of slopen. Juist daar over de verwerking van dit afval willen we anders over gaan nadenken. Want de vraag is; is dit wel afval? Samenvattend ziet u nog even de hele levensloop overzichtelijk bij elkaar.",
+      "text": "En dan komen we bij fase C: het einde van de levensduur van het gebouw.\nOp dat moment zijn er twee mogelijkheden.\nDe eerste is slopen. Daarbij kunnen we het vrijgekomen beton recyclen. We breken het beton en gebruiken het materiaal opnieuw, bijvoorbeeld als grondstof voor nieuw beton.\nDe tweede mogelijkheid is demonteren. Daarbij halen we de betonelementen zorgvuldig uit het gebouw, zodat we ze als geheel opnieuw kunnen gebruiken in een volgend gebouw.\nEn dat is een wezenlijk verschil. Bij recycling geven we het materiaal een nieuw leven. Bij hergebruik geven we het complete betonelement een nieuw leven.\nZo ziet u hier de volledige levenscyclus: van grondstof en productie tot gebruik en uiteindelijk recycling of hergebruik."
+    },
+    "levenscyclus-van-betonproducten-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T07:43:40.521+00:00",
+      "slide": "levenscyclus-van-betonproducten",
+      "from": "We beginnen bij A, bij de grondstoffen. Iedere stap vraagt energie en materialen en heeft dus een eigen milieu-impact.",
+      "text": "We hebben nu gezien welke fasen een gebouw doorloopt. Maar hoe bepalen we wat de milieubelasting daarvan is?\nDaarvoor kijken we naar iedere stap afzonderlijk. We beginnen bij de grondstoffen, zoals zand, grind en cement.\nHet winnen en produceren van deze grondstoffen kost energie en veroorzaakt uitstoot. Die milieubelasting brengen we in kaart en nemen we mee in onze LCA-berekening."
+    },
+    "levenscyclus-van-betonproducten-B": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:23:44.186+00:00",
+      "slide": "levenscyclus-van-betonproducten",
+      "from": "Vervolgens maken we het element in de fabriek en brengen we het naar de bouwplaats. Ook productie, transport en montage tellen mee in de milieubelasting.",
+      "text": "Na de productie in onze fabrieken komen we bij fase A4: het transport naar de bouwplaats.\nOnze prefab betonelementen worden met vrachtwagens naar de bouwplaats vervoerd. Daarbij kijken we naar de afstanden, het brandstofverbruik en de uitstoot.\nVervolgens komt fase A5: de montage. Met onze eigen montageploegen en kranen bouwen we de elementen samen tot een gebouw. Ook dat kost energie.\nAl deze activiteiten hebben invloed op het milieu en tellen daarom mee in de totale milieubelasting van het gebouw."
+    },
+    "levenscyclus-van-betonproducten-C": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:25:49.339+00:00",
+      "slide": "levenscyclus-van-betonproducten",
+      "from": "Daarna wordt het gebouw gebruikt. In deze lange fase kijken we naar onderhoud, reparaties en veranderingen die nodig zijn om het gebouw bruikbaar te houden.",
+      "text": "Wat deze fase voor ons zo interessant maakt, is de lange levensduur van beton.\nOnze prefab betonelementen zijn ontworpen om minstens 100 jaar mee te gaan. Dat betekent dat de materialen die we vandaag gebruiken, heel lang hun waarde kunnen behouden.\nEn als een gebouw na bijvoorbeeld 30 jaar niet meer voldoet aan de wensen van de gebruiker, betekent dat nog niet dat onze betonelementen aan het einde van hun levensduur zijn.\nEn juist daar liggen kansen voor circulariteit."
+    },
+    "levenscyclus-van-betonproducten-D": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:30:43.313+00:00",
+      "slide": "levenscyclus-van-betonproducten",
+      "from": "En aan het einde van de traditionele route volgt sloop en afvalverwerking. Dat noemen we een lineaire keten: maken, gebruiken en afdanken. Take, Make, Waste.",
+      "text": "En dan de laatste fase, einde levensduur gebouw. Hier zit voor ons een belangrijke uitdaging.\nIn de traditionele bouw eindigt de levensduur van een gebouw vaak met de sloop. Daarmee gaat ook een groot deel van de waarde van de oorspronkelijke bouwelementen verloren.\nBij Willy Naessens willen we die keten doorbreken. We willen niet alleen nadenken over hoe we een gebouw bouwen, maar ook over wat we er later nog mee kunnen.\nWant een gebouw kan aan het einde van zijn levensduur zijn, terwijl onze betonelementen nog jarenlang mee kunnen."
+    },
+    "levenscyclus-van-betonproducten-E": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:32:52.965+00:00",
+      "slide": "levenscyclus-van-betonproducten",
+      "from": "Maar waarom zouden we een goed betonelement na één gebouw afschrijven? Hier begint ons andere denken: niet afdanken wat nog functioneel is dus nog waarde heeft.",
+      "text": "En precies vanuit die gedachte hebben we bij Willy Naessens The Circle ontwikkeld.\nEen circulair bouwconcept waarbij we al bij het ontwerp rekening houden met de toekomst.\nWe ontwerpen onze prefab betonelementen zo dat ze niet alleen lang meegaan, maar ook losmaakbaar zijn en opnieuw kunnen worden toegepast.\nDaarmee bouwen we niet alleen voor vandaag, maar ook met de gebouwen van morgen in gedachten. Willy zei zelf \"Wij bouwen voor onze achterkleinkinderen\""
+    },
+    "levenscyclusanalyse-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:38:58.334+00:00",
+      "slide": "levenscyclusanalyse",
+      "from": "Dus hoe weten we of een duurzame keuze echt echt duurzamer is? Dat rekenen we uit met de levenscyclusanalyse berekening. Het begint bij alles wat we inkopen: van elk materiaal kennen we de herkomst, het transport en de CO₂-impact.",
+      "text": "We hebben nu gezien hoe we bij Willy Naessens anders omgaan met de levensduur van onze betonelementen. Maar hoe maken we inzichtelijk wat onze keuzes daadwerkelijk opleveren voor het milieu?\nDat begint bij de materialen die we inkopen.\nVan onze leveranciers verzamelen we gegevens over de grondstoffen, zoals de herkomst, het transport en de bijbehorende CO₂-uitstoot.\nDie informatie leggen we vast in een database, die u hier rechts in beeld ziet.\nMaar daarmee weten we nog niet wat de milieu-impact van een compleet betonelement is. Daarvoor moeten we ook weten welke grondstoffen en hoeveelheden we in onze betonmengsels gebruiken."
+    },
+    "levenscyclusanalyse-B": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:40:24.046+00:00",
+      "slide": "levenscyclusanalyse",
+      "from": "Daarnaast kennen we onze eigen betonmengsels: welk cement en welke bindmiddelen erin zitten.",
+      "text": "En dat is precies wat u hier ziet: onze eigen betonrecepturen.\nBij Willy Naessens weten we exact hoe ieder betonmengsel is samengesteld. Hoeveel cement, welke bindmiddelen en hoeveel zand en grind we gebruiken.\nDie samenstelling verschilt per toepassing en bepaalt mede de sterkte, de eigenschappen en de milieubelasting van het beton.\nOok deze gegevens leggen we vast in een database.\nZo hebben we nu twee belangrijke gegevensverzamelingen: wat we inkopen én wat we daadwerkelijk in onze betonproducten verwerken."
+    },
+    "levenscyclusanalyse-C": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:41:49.181+00:00",
+      "slide": "levenscyclusanalyse",
+      "from": "Die twee voegen we samen in één berekening: de levenscyclusanalyse berekening.",
+      "text": "En hier brengen we beide databases samen.\nWe combineren de milieu-impact van onze grondstoffen met de exacte samenstelling van onze betonmengsels.\nZo kunnen we voor ieder betonelement berekenen wat de milieubelasting is.\nEn belangrijker nog: we kunnen zien wat er verandert als we bijvoorbeeld minder cement of andere bindmiddelen gebruiken.\nDaarmee kunnen we onze betonproducten gericht verduurzamen en het resultaat ook daadwerkelijk aantonen."
+    },
+    "levenscyclusanalyse-D": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:45:16.861+00:00",
+      "slide": "levenscyclusanalyse",
+      "from": "Zo berekenen we per product hoeveel CO₂ er in de materialen zit, en wat een andere keuze oplevert.",
+      "text": "En daar zit voor Willy Naessens de echte meerwaarde.\nWe gebruiken deze inzichten om onze standaard prefab betonelementen stap voor stap te verduurzamen.\nDoor onze betonrecepturen en productieprocessen voortdurend te verbeteren, proberen we de milieu-impact van onze producten steeds verder te verlagen.\nZonder concessies te doen aan de kwaliteit, sterkte en betrouwbaarheid waar Willy Naessens voor staat."
+    },
+    "projecthighlight-3-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T09:06:02.768+00:00",
+      "slide": "projecthighlight-3",
+      "from": "Hoe ziet onze manier van bouwen er in de praktijk uit? Hier ziet u een pand van onze opdrachtgever WDP; waar Kivits huurder is: een logistiek gebouw waarin onze prefab aanpak volledig tot zijn recht komt. Ook binnen planning en binnen budget.",
+      "text": "Hoe ziet onze manier van bouwen er in de praktijk uit? Hier ziet u een pand van onze opdrachtgever WDP; waar Kivits huurder is: een logistiek gebouw waarin onze prefab aanpak en de verticale integratie volledig tot zijn recht komt. Binnen planning gebouwd en binnen budget gebouwd."
+    },
+    "recyclage-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:58:40.09+00:00",
+      "slide": "recyclage",
+      "from": "Naast slimmer produceren kijken we ook naar wat er met beton gebeurt wanneer een gebouw verandert of verdwijnt. De gebruikelijke route is recyclen.",
+      "text": "We hebben nu gezien hoe we de milieu-impact van onze betonelementen tijdens de productie kunnen verlagen.\nMaar wat gebeurt er met die elementen als een gebouw uiteindelijk wordt gesloopt?\nIn de traditionele bouw wordt het beton gebroken en verwerkt tot betongranulaat. Dat kan vervolgens opnieuw als grondstof worden gebruikt.\nHet materiaal krijgt daarmee een nieuwe bestemming, maar het oorspronkelijke betonelement gaat verloren.\nEn precies daar ligt voor ons een volgende uitdaging."
+    },
+    "recyclage-C": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:59:49.512+00:00",
+      "slide": "recyclage",
+      "from": "Dat is nuttig, maar er zit een verschil tussen materiaal hergebruiken en een compleet element opnieuw gebruiken.",
+      "text": "Hier ziet u wat er bij recycling daadwerkelijk gebeurt.\nHet betonelement wordt gebroken en verwerkt tot betongranulaat. Dat granulaat kan vervolgens opnieuw worden gebruikt, bijvoorbeeld als toeslagmateriaal in nieuw beton.\nZo vervangen we een deel van de nieuwe grondstoffen door gerecycled materiaal.\nMaar er is ook een belangrijk nadeel: we vernietigen een compleet betonelement dat technisch mogelijk nog jarenlang mee had gekund.\nEn dat roept bij ons een andere vraag op: kunnen we niet méér behouden dan alleen de grondstoffen?"
+    },
+    "recyclage-D": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T09:01:16.096+00:00",
+      "slide": "recyclage",
+      "from": "Als we een element heel kunnen houden, hoeven we een belangrijk deel van het maakproces niet opnieuw te doorlopen. Dat is de gedachte achter losmaakbaar bouwen.",
+      "text": "Als we een element heel kunnen houden, hoeven we een belangrijk deel van het maakproces niet opnieuw te doorlopen. Dat is de gedachte achter losmaakbaar bouwen.",
+      "note": "“Gezeefd moet eruit” gaat over het beeld, niet over de tekst: op deze klik staat “Gezeefd” op de wand. Doorgegeven aan het team; de autocue-tekst blijft zoals hij was."
+    },
+    "recyclage-E": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T09:03:57.566+00:00",
+      "slide": "recyclage",
+      "from": "Dus: eerst kijken of we een element kunnen behouden en opnieuw inzetten. En pas als dat niet kan, kijken we naar recycling van de grondstoffen.",
+      "text": "En hier ziet u wat we uiteindelijk willen bereiken: een betonelement dat opnieuw wordt toegepast, zonder dat we het eerst hoeven te breken.\nDaarmee slaan we een aantal stappen over die bij recycling wel nodig zijn, zoals het breken, zeven en opnieuw produceren.\nDat bespaart nieuwe grondstoffen en zal dus de milieubelasting aanzienlijk verminderen."
+    },
+    "the-circle-en-esg-C": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T09:17:54.295+00:00",
+      "slide": "the-circle-en-esg",
+      "from": "En de G gaat over de manier waarop je bestuurlijk besluiten neemt. Als opdrachtgever wil je weten welke prestaties, risico’s en afspraken bij een gebouw horen. Ook bij terugname en hergebruik moet dat goed geregeld zijn.",
+      "text": "En tot slot de G van Governance: goed en verantwoord bestuur.\nVoor Willy Naessens betekent dit dat we transparant werken, onze verantwoordelijkheden nemen en zorgvuldig omgaan met risico's en afspraken.\nVoor onze opdrachtgevers is dat minstens zo belangrijk. Zij willen kunnen vertrouwen op een bouwpartner die zijn afspraken nakomt, inzicht geeft in prestaties en verantwoord omgaat met mensen, middelen en regelgeving.\nWant goed bestuur gaat uiteindelijk over betrouwbaarheid, integriteit en het nemen van verantwoordelijkheid, ook op de lange termijn."
+    },
+    "the-circle-in-elementen-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T09:11:26.069+00:00",
+      "slide": "the-circle-in-elementen",
+      "from": "Hier ziet u het uitgangspunt van The Circle: niet één gebouw als eindproduct, maar een verzameling bouwstenen die we ook bij een volgend gebouw kunnen inzetten. Daarvoor moeten maatvoering en verbindingen vanaf het ontwerp kloppen.",
+      "text": "Met The Circle willen we de stap maken van eenmalig bouwen naar meerdere gebruikscycli.\nEn dat onze elementen hier samen het logo van Willy Naessens vormen, is natuurlijk niet helemaal toevallig.\nMaar het gaat om de gedachte erachter: wat vandaag bij elkaar hoort, kan morgen ergens anders opnieuw waarde krijgen."
+    },
+    "verborgen-verhaal-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:52:06.548+00:00",
+      "slide": "verborgen-verhaal",
+      "from": "Achter ieder betonelement zit dus meer informatie dan u aan de buitenkant ziet. Niet alleen de vorm en de sterkte, maar ook de samenstelling en de milieu-impact.",
+      "text": "En hier ziet u waar de drie toegelichte onderdelen samenkomen: in onze prefab betonelementen.\nDe samenstelling die onze betontechnologen ontwikkelen, de manier waarop we produceren en de resultaten die we meten, komen allemaal samen in het uiteindelijke product.\nAan de buitenkant ziet u misschien gewoon een betonelement. Maar daarachter zit een heel proces van onderzoek, berekeningen en voortdurende verbetering. Een verborgen verhaal."
+    },
+    "verborgen-verhaal-B": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:53:45.583+00:00",
+      "slide": "verborgen-verhaal",
+      "from": "Door die informatie vast te leggen, kunnen we beter uitleggen waarom we voor een bepaald mengsel kiezen. Dat helpt onszelf én onze opdrachtgevers.",
+      "text": "En hier ziet u een concreet resultaat van die verbeteringen.\nBij onze prefab betonnen gevelelementen hebben we de CO₂-uitstoot met 30% kunnen verminderen door de samenstelling van het beton aan te passen.\nDaarbij is het belangrijk dat het beton dezelfde technische prestaties blijft leveren. De sterkte, kwaliteit en levensduur moeten immers behouden blijven.\nZo laten we met een concreet product zien wat het werk van onze betontechnologen oplevert."
+    },
+    "verborgen-verhaal-C": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:54:57.073+00:00",
+      "slide": "verborgen-verhaal",
+      "from": "Zo wordt een element niet alleen een bouwproduct, maar ook een product waarvan we de milieuprestatie steeds beter kennen.",
+      "text": "Ook bij onze prefab betonnen gewelven hebben we de samenstelling van het beton aangepast.\nDaarmee hebben we een CO₂-reductie van 15% gerealiseerd ten opzichte van de oorspronkelijke samenstelling.\nDat percentage verschilt van de gevelelementen, omdat ieder type betonelement andere technische eisen stelt aan het beton.\nHet laat zien dat we de verduurzaming per productgroep moeten onderzoeken en ontwikkelen."
+    },
+    "verborgen-verhaal-D": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:56:06.312+00:00",
+      "slide": "verborgen-verhaal",
+      "from": "En precies die kennis hebben we nodig als we straks een element opnieuw willen inzetten. Dan weten we beter wat we hebben en welke waarde we behouden.",
+      "text": "Bij gewapend beton ligt de uitdaging weer anders.\nHier moeten we niet alleen rekening houden met de samenstelling van het beton, maar ook met de wapening die nodig is om de krachten in het element op te vangen.\nDe hoeveelheid staal en de gekozen betonkwaliteit bepalen samen de technische prestaties én de milieu-impact.\nDaarom kijken we bij de verduurzaming van gewapend beton naar het complete element, en niet alleen naar het betonmengsel."
+    },
+    "verduurzamen-van-beton-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:47:00.156+00:00",
+      "slide": "verduurzamen-van-beton",
+      "from": "Wat doen we met die kennis? We verduurzamen beton op drie manieren. Eén: de samenstelling aan te passen. Andere bindmiddelen en toeslag materialen.",
+      "text": "En hier komen onze betontechnologen in beeld.\nZij onderzoeken voortdurend hoe we de samenstelling van ons beton kunnen verbeteren.\nBijvoorbeeld door een deel van het traditionele cement te vervangen door alternatieve bindmiddelen en door andere, waaronder gerecyclede, toeslagmaterialen toe te passen.\nDaarbij zoeken ze steeds naar de juiste balans: minder CO₂-uitstoot, met behoud van de sterkte, kwaliteit en levensduur van onze prefab betonelementen.\nZo begint de verduurzaming van ons beton al bij het recept."
+    },
+    "verduurzamen-van-beton-B": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:47:55.814+00:00",
+      "slide": "verduurzamen-van-beton",
+      "from": "Twee: de productie. Zuinig met water, energie en grondstoffen, en we hergebruiken wat vrijkomt.",
+      "text": "Maar een duurzamer betonmengsel alleen is niet voldoende. Ook de manier waarop we onze betonelementen produceren, maakt verschil.\nIn onze eigen fabrieken werken we aan het verminderen van energie- en waterverbruik en gaan we zo efficiënt mogelijk om met grondstoffen.\nRestmaterialen proberen we zoveel mogelijk terug te brengen in het productieproces.\nZo verduurzamen we niet alleen het beton zelf, maar ook de manier waarop we het maken."
+    },
+    "verduurzamen-van-beton-C": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T08:49:14.458+00:00",
+      "slide": "verduurzamen-van-beton",
+      "from": "En drie: bemeten. Met de levenscyclusanalyse kennen we de CO₂-voetafdruk van elk product, en zien we wat elke verbetering oplevert.",
+      "text": "En tot slot willen we natuurlijk weten of al die inspanningen ook daadwerkelijk resultaat opleveren.\nDat ziet u hier terug in de dalende balken.\nDoor de milieu-impact van onze betonproducten te blijven meten, kunnen we volgen of onze aanpassingen ook echt tot minder uitstoot leiden.\nZo maken we onze vooruitgang zichtbaar en weten onze betontechnologen waar verdere verbetering mogelijk is.\nWant verduurzamen is voor ons geen eenmalige actie, maar een continu proces."
+    },
+    "we-bouwen-vandaag-A": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-21T09:07:29.242+00:00",
+      "slide": "we-bouwen-vandaag",
+      "from": "We hebben gezien hoe we beton verbeteren en de impact ervan berekenen. Maar er is nog een grotere vraag: waarom zouden we een goed betonelement na einde levensduur niet meer gebruiken? Daarmee komen we bij hoofdstuk vier: The Circle.",
+      "text": "We hebben gezien hoe we beton verbeteren en de impact ervan berekenen. Maar er is nog een grotere vraag: waarom zouden we een goed betonelement na einde levensduur niet meer gebruiken? Daarmee komen we bij het laatste hoofdstuk en die gaat over ons nieuwe duurzame en circulaire concept: The Circle."
+    },
+    "we-gieten-kennis-A": {
+      "at": "2026-10-21T09:35:58.291Z",
+      "edited": "2026-10-21T09:34:35.088+00:00",
+      "slide": "we-gieten-kennis",
+      "from": "We hebben gezien hoe we bouwen en hoe we onze verantwoordelijkheid nemen. Nu gaan we naar het materiaal waar ons bedrijf groot mee is geworden: beton. En vooral naar de vraag hoe we dat steeds beter kunnen maken.",
+      "text": "In de vorige hoofdstukken hebben we gezien hoe Willy Naessens bouwt en welke verantwoordelijkheid we daarbij nemen. Nu gaan we naar het materiaal waar ons bedrijf groot mee is geworden: prefab beton. Ik wil u laten zien hoe we dat materiaal steeds verder verduurzamen."
+    },
+    "we-gieten-kennis-B": {
+      "at": "2026-10-21T09:34:52.852Z",
+      "edited": "2026-10-20T12:30:29.415+00:00",
+      "slide": "we-gieten-kennis",
+      "from": "Beton is de constructief gezien de ruggengraat van veel gebouwen. Maar dat betekent niet dat we het moeten blijven maken zoals we dat altijd deden. Juist bij dit materiaal ligt voor ons een kans een belangrijke opdracht.",
+      "text": "Beton vormt letterlijk de ruggengraat van veel gebouwen. Het draagt de constructie en zorgt voor stevigheid en een lange levensduur. Maar de productie ervan heeft ook een keerzijde: er komt veel CO₂ bij vrij. Daarom moeten we kritisch kijken naar hoe we beton maken"
+    }
+  }
+}

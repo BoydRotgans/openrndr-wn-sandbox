@@ -391,6 +391,11 @@ data class Settings(
      * A wall's own bed gives way to it. See [ShowBuilder.music].
      */
     val momentMusic: Map<String, Sound> = emptyMap(),
+    /**
+     * What a moment is called on the speaker's screen, by the order file's name for it: the order names its moments
+     * in English, the evening is run in Dutch ("Opening course" is the menu's "1e gang"). Unnamed, the order's own.
+     */
+    val momentTitles: Map<String, String> = emptyMap(),
 
     /**
      * A sound design delivered as a folder named against the show — one wav per state of one

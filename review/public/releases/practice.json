@@ -1,86 +1,138 @@
 {
- "cuts": [
-  {
-   "slug": "2026-09-29",
-   "name": "Rehearsal 29 September",
-   "created": "2026-09-29",
-   "folder": "practice/2026-09-29",
-   "audio": "film",
-   "about": "The show of 29 September filmed without subtitles (video/wn-experience_2026-09-29-clean.mp4), the voice mixed out; its states are frame for frame those of Release 29 September."
-  },
-  {
-   "slug": "2026-09-30",
-   "name": "Rehearsal 30 September",
-   "created": "2026-09-30",
-   "folder": "practice/2026-09-30",
-   "audio": "film",
-   "about": "The show of 30 September filmed without subtitles (video/wn-experience_2026-09-30-clean.mp4), the voice mixed out; its states are frame for frame those of Release 30 September."
-  },
-  {
-   "slug": "2026-10-02",
-   "name": "Rehearsal 2 October",
-   "created": "2026-10-02",
-   "folder": "practice/2026-10-02",
-   "audio": "film",
-   "about": "The show of 2 October filmed without subtitles (video/wn-experience_2026-10-02-clean.mp4), the voice mixed out; its states are frame for frame those of Release 2 October.",
-   "sheets": [
+  "cuts": [
     {
-     "key": "uitgebreid",
-     "file": "sprekersnotities-uitgebreid.pdf"
+      "slug": "2026-09-29",
+      "name": "Rehearsal 29 September",
+      "created": "2026-09-29",
+      "folder": "practice/2026-09-29",
+      "audio": "film",
+      "about": "The show of 29 September filmed without subtitles (video/wn-experience_2026-09-29-clean.mp4), the voice mixed out; its states are frame for frame those of Release 29 September."
     },
     {
-     "key": "standaard",
-     "file": "sprekersnotities-standaard.pdf"
+      "slug": "2026-09-30",
+      "name": "Rehearsal 30 September",
+      "created": "2026-09-30",
+      "folder": "practice/2026-09-30",
+      "audio": "film",
+      "about": "The show of 30 September filmed without subtitles (video/wn-experience_2026-09-30-clean.mp4), the voice mixed out; its states are frame for frame those of Release 30 September."
+    },
+    {
+      "slug": "2026-10-02",
+      "name": "Rehearsal 2 October",
+      "created": "2026-10-02",
+      "folder": "practice/2026-10-02",
+      "audio": "film",
+      "about": "The show of 2 October filmed without subtitles (video/wn-experience_2026-10-02-clean.mp4), the voice mixed out; its states are frame for frame those of Release 2 October.",
+      "sheets": [
+        {
+          "key": "uitgebreid",
+          "file": "sprekersnotities-uitgebreid.pdf"
+        },
+        {
+          "key": "standaard",
+          "file": "sprekersnotities-standaard.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "2026-10-15",
+      "name": "Rehearsal 15 October",
+      "created": "2026-10-15",
+      "folder": "practice/2026-10-15",
+      "audio": "film",
+      "about": "The show of 15 October on the aligned voice-over, filmed without subtitles (video/wn-experience_2026-10-15-clean.mp4), the voice mixed out, with the speaker's autocue filmed on the same run (video/wn-experience_2026-10-15-autocue.mp4); its states are frame for frame those of Release 15 October.",
+      "sheets": [
+        {
+          "key": "uitgelijnd",
+          "file": "sprekersnotities-uitgelijnd.pdf"
+        },
+        {
+          "key": "uitgebreid",
+          "file": "sprekersnotities-uitgebreid.pdf"
+        },
+        {
+          "key": "standaard",
+          "file": "sprekersnotities-standaard.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "2026-10-19",
+      "name": "Rehearsal 19 October",
+      "created": "2026-10-19",
+      "folder": "practice/2026-10-19",
+      "audio": "film",
+      "about": "The show of 19 October on Erik's autocue, filmed without subtitles (video/wn-experience_2026-10-19-clean.mp4), with the speaker's autocue filmed on the same run (video/wn-experience_2026-10-19-autocue.mp4); no voice-over, none being rendered for Erik's script, so the film's own sound plays; its states are frame for frame those of Release 19 October.",
+      "sheets": [
+        {
+          "key": "autocue",
+          "file": "sprekersnotities-autocue.pdf"
+        },
+        {
+          "key": "uitgelijnd",
+          "file": "sprekersnotities-uitgelijnd.pdf"
+        },
+        {
+          "key": "uitgebreid",
+          "file": "sprekersnotities-uitgebreid.pdf"
+        },
+        {
+          "key": "standaard",
+          "file": "sprekersnotities-standaard.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "2026-10-21",
+      "name": "Rehearsal 21 October",
+      "created": "2026-10-21",
+      "folder": "practice/2026-10-21",
+      "audio": "film",
+      "about": "The show of 21 October on Erik's autocue, with his script as rewritten on the rehearsal page that morning, filmed without subtitles (video/wn-experience_2026-10-21-clean.mp4), timed by Erik's rendered voice and the voice mixed out (-clean-novoice.mp4), with the speaker's autocue filmed on the same run (-autocue.mp4); since this release the review film is the same clean run, so its states are frame for frame those of Release 21 October.",
+      "sheets": [
+        {
+          "key": "autocue",
+          "file": "sprekersnotities-autocue.pdf"
+        },
+        {
+          "key": "uitgelijnd",
+          "file": "sprekersnotities-uitgelijnd.pdf"
+        },
+        {
+          "key": "uitgebreid",
+          "file": "sprekersnotities-uitgebreid.pdf"
+        },
+        {
+          "key": "standaard",
+          "file": "sprekersnotities-standaard.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "2026-10-22",
+      "name": "Rehearsal 22 October",
+      "created": "2026-10-22",
+      "folder": "practice/2026-10-22",
+      "audio": "film",
+      "about": "The show of 22 October on Erik's autocue with Karim Weiss's welcome and closing, filmed without subtitles (video/wn-experience_2026-10-22-clean.mp4), timed by Erik's rendered voice and the voice mixed out (-clean-novoice.mp4), with the speaker's autocue filmed on the same run (-autocue.mp4); the review's Release 22 October is the same run. Since 21 October: 'jullie' for 'u' throughout Erik's script; the programme in one state then Else; the courses named as the printed menu; CO2 impact one click; a 2025 bar on CO2 behaald; Recyclage off; the opening wall at 100 pieces; the ending a blank wall.",
+      "sheets": [
+        {
+          "key": "autocue",
+          "file": "sprekersnotities-autocue.pdf"
+        },
+        {
+          "key": "uitgelijnd",
+          "file": "sprekersnotities-uitgelijnd.pdf"
+        },
+        {
+          "key": "uitgebreid",
+          "file": "sprekersnotities-uitgebreid.pdf"
+        },
+        {
+          "key": "standaard",
+          "file": "sprekersnotities-standaard.pdf"
+        }
+      ]
     }
-   ]
-  },
-  {
-   "slug": "2026-10-15",
-   "name": "Rehearsal 15 October",
-   "created": "2026-10-15",
-   "folder": "practice/2026-10-15",
-   "audio": "film",
-   "about": "The show of 15 October on the aligned voice-over, filmed without subtitles (video/wn-experience_2026-10-15-clean.mp4), the voice mixed out, with the speaker's autocue filmed on the same run (video/wn-experience_2026-10-15-autocue.mp4); its states are frame for frame those of Release 15 October.",
-   "sheets": [
-    {
-     "key": "uitgelijnd",
-     "file": "sprekersnotities-uitgelijnd.pdf"
-    },
-    {
-     "key": "uitgebreid",
-     "file": "sprekersnotities-uitgebreid.pdf"
-    },
-    {
-     "key": "standaard",
-     "file": "sprekersnotities-standaard.pdf"
-    }
-   ]
-  },
-  {
-   "slug": "2026-10-19",
-   "name": "Rehearsal 19 October",
-   "created": "2026-10-19",
-   "folder": "practice/2026-10-19",
-   "audio": "film",
-   "about": "The show of 19 October on Erik's autocue, filmed without subtitles (video/wn-experience_2026-10-19-clean.mp4), with the speaker's autocue filmed on the same run (video/wn-experience_2026-10-19-autocue.mp4); no voice-over, none being rendered for Erik's script, so the film's own sound plays; its states are frame for frame those of Release 19 October.",
-   "sheets": [
-    {
-     "key": "autocue",
-     "file": "sprekersnotities-autocue.pdf"
-    },
-    {
-     "key": "uitgelijnd",
-     "file": "sprekersnotities-uitgelijnd.pdf"
-    },
-    {
-     "key": "uitgebreid",
-     "file": "sprekersnotities-uitgebreid.pdf"
-    },
-    {
-     "key": "standaard",
-     "file": "sprekersnotities-standaard.pdf"
-    }
-   ]
-  }
- ]
+  ]
 }

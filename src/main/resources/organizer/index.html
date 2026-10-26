@@ -3363,7 +3363,7 @@
   // opens on StudioBuik's wall — by its place among the courses ("Gang 3", with the "Uithalen" after
   // it), and the other moments by the rows named below. tools/subtitle_notes_pdf.py does the same for
   // the printed sheets (section_times); the two are kept to one rule.
-  const BOOK_ROWS = { Arrival: [/^Ontvangst/, /^Loop door/], Opening: [/^Opening/], Questions: [/Cases/], Exit: [/^Afsluitwoord/, /^Uitloop/] };
+  const BOOK_ROWS = { Arrival: [/^Ontvangst/, /^Loop door/], Opening: [/^Opening/, /^Programma/, /^Studio ?Buik voorstellen/], Questions: [/Cases/], Exit: [/^Afsluitwoord/, /^Uitloop/] };
   let book = null, bookTimes = new Map(), bookSig = '';
   const hhmm = m => m == null ? '' : `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   function draaiboekTimes() {

@@ -25,6 +25,11 @@ import javax.xml.parsers.DocumentBuilderFactory
  * **An .xlsx is a zip of XML**, so one tab is read with the JDK alone: the workbook names its
  * sheets, its relations say which file each is, the shared strings hold the text, and a time of
  * day stored as a number is a share of the day.
+ *
+ * **A .csv is one tab already** (22 October 2026: the Show tab exported as "… - Show - 28 okt.csv", newer than the
+ * workbook beside it), read as the same rows; its name stands for the tab. The room and what happens are found by
+ * their headers, since the export has a "Wie" column the workbook did not. A row with a length and no time of its
+ * own starts when the row before it ends ("Programma", after the welcome), so the evening has no hole there.
  */
 object Draaiboek {
     private const val MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -43,31 +48,66 @@ object Draaiboek {
             put("found", true)
             put("tab", name)
             put("day", rows.firstOrNull()?.get("A")?.let { Regex("[–-]\\s*([^|]+?)\\s*(\\||$)").find(it)?.groupValues?.get(1) } ?: "")
-            put("parts", JsonArray(rows.drop(2).mapNotNull { part(it) }))
+            val head = rows.getOrNull(1).orEmpty()
+            fun column(starts: String) = head.entries.firstOrNull { it.value.trim().lowercase().startsWith(starts) }?.key
+            val room = column("ruimte") ?: "D"
+            val what = column("wat gebeurt") ?: "E"
+            var before: Int? = null
+            put("parts", JsonArray(rows.drop(2).mapNotNull { row -> part(row, room, what, before)?.also { (_, end) -> before = end }?.first }))
         }.onFailure {
             put("found", false); put("error", it.message ?: it.javaClass.simpleName)
         }
     }
 
-    private fun part(row: Map<String, String>): JsonObject? {
+    /** A row as a part of the evening, and where it ends, which a row with no time of its own starts from ([before]). */
+    private fun part(row: Map<String, String>, room: String, what: String, before: Int?): Pair<JsonObject, Int?>? {
         val title = row["C"]?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
         if (title.isEmpty()) return null
         val times = TIME.findAll(row["A"].orEmpty()).map { it.groupValues[1].toInt() * 60 + it.groupValues[2].toInt() }.toList()
         val minutes = MINUTES.find(row["B"].orEmpty())?.groupValues?.get(1)?.toInt()
-        val start = times.firstOrNull()
+        val start = times.firstOrNull() ?: before?.takeIf { minutes != null }
         val end = times.getOrNull(1) ?: if (start != null && minutes != null) start + minutes else null
         return buildJsonObject {
             put("title", title)
             put("start", start?.let { JsonPrimitive(it) } ?: JsonNull)
             put("end", end?.let { JsonPrimitive(it) } ?: JsonNull)
             put("minutes", minutes?.let { JsonPrimitive(it) } ?: JsonNull)
-            put("room", row["D"].orEmpty())
-            put("what", row["E"].orEmpty())
-        }
+            put("room", row[room].orEmpty())
+            put("what", row[what].orEmpty())
+        } to end
     }
 
+    /** A .csv as rows of {column letter: text}, quotes and line breaks inside quotes kept. */
+    private fun readCsv(file: File): List<Map<String, String>> {
+        val rows = mutableListOf<List<String>>()
+        var row = mutableListOf<String>()
+        val cell = StringBuilder()
+        var quoted = false
+        val text = file.readText().removePrefix("\uFEFF")
+        var i = 0
+        while (i < text.length) {
+            val c = text[i]
+            when {
+                quoted && c == '"' && text.getOrNull(i + 1) == '"' -> { cell.append('"'); i++ }
+                c == '"' -> quoted = !quoted
+                !quoted && c == ',' -> { row.add(cell.toString()); cell.clear() }
+                !quoted && (c == '\n' || c == '\r') -> {
+                    if (c == '\r' && text.getOrNull(i + 1) == '\n') i++
+                    row.add(cell.toString()); cell.clear(); rows.add(row); row = mutableListOf()
+                }
+                else -> cell.append(c)
+            }
+            i++
+        }
+        if (cell.isNotEmpty() || row.isNotEmpty()) { row.add(cell.toString()); rows.add(row) }
+        return rows.map { cells -> cells.mapIndexedNotNull { k, v -> v.trim().takeIf { it.isNotEmpty() }?.let { letter(k) to it } }.toMap() }
+    }
+
+    private fun letter(k: Int): String = if (k < 26) ('A' + k).toString() else letter(k / 26 - 1) + ('A' + k % 26)
+
     /** The tab's name and its rows, each {column letter: text}. */
-    private fun read(file: File, tab: String?): Pair<String, List<Map<String, String>>> = ZipFile(file).use { zip ->
+    private fun read(file: File, tab: String?): Pair<String, List<Map<String, String>>> =
+        if (file.extension.equals("csv", ignoreCase = true)) file.nameWithoutExtension to readCsv(file) else ZipFile(file).use { zip ->
         fun doc(name: String): Element {
             val f = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
             return zip.getInputStream(zip.getEntry(name) ?: error("no $name in the workbook")).use { f.newDocumentBuilder().parse(it).documentElement }

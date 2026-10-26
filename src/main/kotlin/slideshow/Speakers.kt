@@ -184,6 +184,18 @@ class Speakers(
         ready && held[sound.file.path]?.let { alGetSourcei(it, AL_SOURCE_STATE) == AL_PLAYING } == true
 
     /**
+     * What is sounding now, for the perf log a stress test reads (20 October 2026): every held source that OpenAL
+     * reports playing, as its layer and file, and how many held sources there are at all — which only grows if a
+     * sustained cue keeps its source after it has faded out.
+     */
+    fun sounding(): String {
+        if (!ready) return "sound off"
+        val playing = held.filter { (_, source) -> alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING }
+            .map { (key, _) -> "${(heldLayer[key] ?: Layer.DESIGN).key}:${java.io.File(key).name}" }.sorted()
+        return "held ${held.size}, playing ${playing.size}" + if (playing.isEmpty()) "" else " [${playing.joinToString(", ")}]"
+    }
+
+    /**
      * Holds a sustained cue where it is, mid-word, for the show's pause (space): only if it is sounding, so a
      * line already said is left alone. Not in the log — a filmed run has no pause.
      */
@@ -253,7 +265,10 @@ class Speakers(
         wanted.filterNot { it.present }.forEach { println("sound: no such file ${it.file.path} — silent") }
         if (present.isEmpty()) return
 
-        if (!openDevice()) return
+        // Once: a load after the first is the voice folder read again, and a second device and context made
+        // current there leave every source and buffer made before it invalid — the beds, the cues, all of it
+        // silent (22 October 2026, a render with the show up: AL error 40961 on the next play).
+        if (!ready && !openDevice()) return
 
         var length = 0.0
         var bytes = 0L

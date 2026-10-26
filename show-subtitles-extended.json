@@ -8,7 +8,7 @@
       },
       "het-programma": {
         "heading": "Het programma · Erik links, de avond rechts",
-        "note": "A de lijst; B tot E een hoofdstuk per click; F het geheel; G de gast, Else de Bruin van StudioBuik; haar functie PLACEHOLDER."
+        "note": "A de lijst, het hele programma; B de gast, Else de Bruin van StudioBuik; haar functie PLACEHOLDER. Een click per hoofdstuk tot 22 oktober 2026."
       },
       "hoe-bouw-je-een-wereld": {
         "heading": "H1 · De wereld van bouwen · het citaat"
@@ -40,7 +40,7 @@
         "note": "Twee foto's: A de eerste, B de foto van het hoofdstuk, de hal met kolommen."
       },
       "kernboodschap-1": {
-        "heading": "Kernboodschap 1 · vóór het voorgerecht"
+        "heading": "Kernboodschap 1 · vóór de eerste gang"
       },
       "esg-is-geen-checklist": {
         "heading": "H2 · Waardekader en verantwoordelijkheid · het citaat"
@@ -73,7 +73,7 @@
         "note": "Drie foto's: A en B de andere twee, C de foto van het hoofdstuk, het dak met zonnepanelen."
       },
       "kernboodschap-2": {
-        "heading": "Kernboodschap 2 · vóór de eerste gang"
+        "heading": "Kernboodschap 2 · vóór de tweede gang"
       },
       "we-gieten-kennis": {
         "heading": "H3 · Beton: ruggengraat en transitie · het citaat"
@@ -105,7 +105,7 @@
         "note": "Twee foto's: A de eerste, B de foto van het hoofdstuk, de koelopslag."
       },
       "kernboodschap-3": {
-        "heading": "Kernboodschap 3 · vóór de tweede gang"
+        "heading": "Kernboodschap 3 · vóór de derde gang"
       },
       "we-bouwen-vandaag": {
         "heading": "H4 · The Circle · het citaat"
@@ -155,13 +155,8 @@
       "A": "Dank u wel. Mijn naam is Erik Koremans, Chief Commercial and Sustainability Officer bij Willy Naessens Nederland. Fijn dat u er vanavond bij bent. Vanavond nemen we u mee in de manier waarop wij naar bouwen kijken: wat we maken, waarom we het zo maken, en waar we naartoe willen."
     },
     "het-programma": {
-      "A": "Het programma van vanavond ziet u hier rechts. We vertellen ons verhaal in vier delen, geserveerd tussen de gangen door: een hoofdstuk, een gang, een hoofdstuk, een gang.",
-      "B": "Het eerste deel gaat over de wereld van bouwen. De vraag die daar centraal staat: hoe bouw je een wereld die vandaag stevig overeind blijft, maar licht genoeg is om de toekomst nauwelijks nog te belasten?",
-      "C": "Het tweede deel is ons waardekader. ESG is voor ons geen checklist, maar de systematische manier waarop we elke dag opnieuw beslissen hoe we bouwen, leveren, investeren en verbeteren.",
-      "D": "Het derde deel gaat over beton: de ruggengraat van ons werk, en een materiaal in transitie. We gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter.",
-      "E": "En het vierde deel is The Circle: een nieuwe manier van denken en doen. Bouwen vandaag, met het oog op wie na ons komt.",
-      "F": "Na het vierde deel volgt nog een gang, daarna een aantal projecten, en tot slot het dessert. Zo ziet de avond eruit.",
-      "G": "Maar eerst het eten. Ik geef graag het woord aan Else de Bruin van StudioBuik, die u vertelt wat er vanavond op tafel komt. Daarna beginnen we met het eerste hoofdstuk: de wereld van bouwen."
+      "A": "Het programma van vanavond ziet u hier rechts. We vertellen ons verhaal in vier delen, geserveerd tussen de gangen door: de wereld van bouwen, ons waardekader, beton, en The Circle. Daarna een aantal projecten, en tot slot het dessert.",
+      "B": "Ik geef graag het woord aan Else de Bruin van StudioBuik, die u vertelt wat er vanavond op tafel komt. Daarna beginnen we met het eerste hoofdstuk: de wereld van bouwen."
     },
     "hoe-bouw-je-een-wereld": {
       "A": "Hoofdstuk één: de wereld van bouwen. Ik begin met de vraag die boven alles hangt wat we vanavond bespreken.",
@@ -221,7 +216,7 @@
       "B": "Ons antwoord: een afhaalmagazijn met kantoor van ruim dertienduizend vierkante meter, in vierendertig weken gebouwd, op onze eigen kolommen. Alles wat we tot nu toe hebben besproken komt hier samen in één gebouw."
     },
     "kernboodschap-1": {
-      "A": "Om mee te nemen uit dit eerste deel: we hebben gekeken naar de organisatie achter het bouwen. Een vraag voor aan tafel: waar ligt u wakker van? Bij ons begint elk element met gieten, en dat ziet u zo terug op uw bord. Ik geef het woord aan Else de Bruin van StudioBuik, voor het voorgerecht."
+      "A": "Om mee te nemen uit dit eerste deel: we hebben gekeken naar de organisatie achter het bouwen. Een vraag voor aan tafel: waar ligt u wakker van? Bij ons begint elk element met gieten, en dat ziet u zo terug op uw bord. Ik geef het woord aan Else de Bruin van StudioBuik, voor de eerste gang."
     },
     "esg-is-geen-checklist": {
       "A": "Welkom terug. Hoofdstuk twee: waardekader en verantwoordelijkheid. Voor de gang stelde ik de vraag hoe we onze keuzes beoordelen. Het antwoord begint hier.",
@@ -273,16 +268,14 @@
       "C": "En het dak: vol zonnepanelen. Een gebouw dat zijn eigen groene stroom opwekt. Environment, in de praktijk."
     },
     "kernboodschap-2": {
-      "A": "Om mee te nemen: we hebben besproken hoe we keuzes beoordelen. Een vraag voor aan tafel: welke keuze van vandaag telt over twintig jaar nog? Ik geef het woord aan Else de Bruin, voor de eerste gang."
+      "A": "Om mee te nemen: we hebben besproken hoe we keuzes beoordelen. Een vraag voor aan tafel: welke keuze van vandaag telt over twintig jaar nog? Ik geef het woord aan Else de Bruin, voor de tweede gang."
     },
     "we-gieten-kennis": {
       "A": "Hoofdstuk drie: beton, ruggengraat en transitie. Transitie betekent voor ons: ons product voortdurend beter maken.",
-      "B": "Bij het voorgerecht zag u het al: we gieten. Maar we gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
+      "B": "Bij de eerste gang zag u het al: we gieten. Maar we gieten niet alleen beton. We gieten kennis, onderzoek en verantwoordelijkheid in elke kubieke meter."
     },
     "co2-impact-van-beton": {
-      "A": "We weten dat de productie van beton vervuilend is. Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal. In beton is cement veruit het grootste deel: ongeveer tachtig procent van de CO₂-uitstoot van het materiaal. De rode band in deze kolom.",
-      "B": "Wereldwijd is beton verantwoordelijk voor tot negen procent van de CO₂-uitstoot.",
-      "C": "In Nederland is dat één komma negen procent. Tegelijk is de bouwbehoefte zo groot dat we niet zonder beton kunnen. Dus zetten wij ons in om wat we in beton bouwen zo duurzaam mogelijk te produceren."
+      "A": "We weten dat de productie van beton vervuilend is. Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal. In beton is cement veruit het grootste deel: ongeveer tachtig procent van de CO₂-uitstoot van het materiaal. De rode band in deze kolom. Wereldwijd is beton verantwoordelijk voor tot negen procent van de CO₂-uitstoot. In Nederland is dat één komma negen procent. Tegelijk is de bouwbehoefte zo groot dat we niet zonder beton kunnen. Dus zetten wij ons in om wat we in beton bouwen zo duurzaam mogelijk te produceren."
     },
     "levenscyclus-van-betonproducten": {
       "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt. Hier is de hele levenscyclus van een betonproduct. Eerst de productfase: grondstofwinning, transport naar de fabriek, productie.",
@@ -324,7 +317,7 @@
       "B": "Koelen vraagt massa, en daar is beton bij uitstek geschikt voor: het accumulerend vermogen houdt de temperatuur stabiel. Dat geldt voor voedsel, maar ook voor pharma en defensie. Twee jaar lang hebben we een stalen en een betonnen gebouw gemonitord: in beton waren de energiekosten lager en stabieler. En beton is klimaatadaptief, bestand tegen hittestress."
     },
     "kernboodschap-3": {
-      "A": "Om mee te nemen: we hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer. Een vraag voor aan tafel: wat gebeurt er met uw gebouw na zijn eerste leven? Ik geef het woord aan Else de Bruin, voor de tweede gang."
+      "A": "Om mee te nemen: we hebben ons product duurzamer gemaakt. Nu maken we het circulair: nog duurzamer. Een vraag voor aan tafel: wat gebeurt er met uw gebouw na zijn eerste leven? Ik geef het woord aan Else de Bruin, voor de derde gang."
     },
     "we-bouwen-vandaag": {
       "A": "Hoofdstuk vier: The Circle, een nieuwe manier van denken.",
@@ -371,7 +364,7 @@
       "C": "En buiten: een gebouw dat er staat om ooit weer uit elkaar te gaan. Dat is geen zwakte, maar zijn waarde."
     },
     "kernboodschap-4": {
-      "A": "Om mee te nemen uit deze avond: één keten, verantwoorde keuzes, kennis van beton en circulair bouwen. Dat is de toegevoegde waarde van Willy Naessens. Een vraag voor aan tafel: met wie bouwt u verder? Ik geef het woord aan Else de Bruin, voor de derde gang."
+      "A": "Om mee te nemen uit deze avond: één keten, verantwoorde keuzes, kennis van beton en circulair bouwen. Dat is de toegevoegde waarde van Willy Naessens. Een vraag voor aan tafel: met wie bouwt u verder? Ik geef het woord aan Else de Bruin, voor de vierde gang."
     },
     "case-studies": {
       "A": "Tot slot een aantal projecten, en telkens de vraag waar de klant wakker van lag. Panattoni bouwde in Almelo op risico, nog zonder huurder. Dan telt elke week.",

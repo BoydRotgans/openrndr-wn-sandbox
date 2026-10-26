@@ -21,7 +21,7 @@
         "y": null
     },
     "autocue": {
-        "place": "wall",
+        "place": "window",
         "x": 944.0,
         "y": 524.0,
         "scale": 0.5,
@@ -30,7 +30,7 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "undecorated": true
+            "undecorated": false
         },
         "display": "SAMSUNG"
     }

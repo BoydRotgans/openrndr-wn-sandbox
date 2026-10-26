@@ -10,7 +10,8 @@
     "publish-release": "node scripts/publish-release.mjs",
     "pull-gains": "node scripts/pull-gains.ts",
     "export-script": "node scripts/export-script.mjs",
-    "pull-script": "node scripts/pull-script.mjs"
+    "pull-script": "node scripts/pull-script.mjs",
+    "adopt-script": "node scripts/adopt-script.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

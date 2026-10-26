@@ -94,7 +94,7 @@ internal fun benchReport(
  *
  * A stress test reads a running show off these lines; a bench steps its own clock and cannot.
  */
-class PerfLog(private val every: Double) {
+class PerfLog(private val every: Double, private val extra: () -> String = { "" }) {
     private var gaps = DoubleArray(2048)
     private var n = 0
     private var painted = 0
@@ -139,7 +139,7 @@ class PerfLog(private val every: Double) {
         println("perf: %4.1fs  %4d draws %3.0f/s  %4d painted  gap %.1f p99 %.1f max %.1f ms on %s  >25ms %d  >50ms %d  cpu %.1f max %.1f ms  heap %d MB  %s".format(
             seconds, n, n / seconds, painted, s.average(), s[((n - 1) * 0.99).toInt()], worst, worstOn.ifBlank { "-" },
             s.count { it > 25.0 }, s.count { it > 50.0 }, cpuSum / cpuN.coerceAtLeast(1), cpuMax,
-            (rt.totalMemory() - rt.freeMemory()) / (1 shl 20), key))
+            (rt.totalMemory() - rt.freeMemory()) / (1 shl 20), key) + extra().let { if (it.isEmpty()) "" else "  sound: $it" })
         n = 0; painted = 0; cpuSum = 0.0; cpuMax = 0.0; cpuN = 0; worst = 0.0; worstOn = ""
         windowStart = now
     }
