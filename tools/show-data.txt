@@ -1,0 +1,87 @@
+# What the show reads that git does not carry: the list tools/pack_show_data.sh packs into the
+# data package handed to another laptop, and start-show.command imports. One path a line, relative
+# to the repo root. A folder is taken whole, less any `alternates/` in it and .DS_Store; on import
+# each line here replaces what that machine had at that path, so a sound moved to alternates/ or
+# renamed in a new release does not linger there.
+#
+# Read off a recorded run of the whole running order (26 October 2026: every file the JVM opened,
+# through Java Flight Recorder, on a bench of every state and on the organizer), plus what the show
+# hands to ffmpeg and rsvg-convert, which a recording of the JVM cannot see. Slides on the shelf are
+# not covered: one loaded from the overview or dragged into the order on that laptop may miss its data.
+# After a slide starts reading a new file, add it here.
+
+# The sound design, a sheet a folder, placed by file name (CueSheet). Whole, so the next release is in.
+data/sounds/00
+data/sounds/P1
+data/sounds/P2
+data/sounds/P3
+data/sounds/P4
+# The course transition, the Exit's music, and the project highlights' stems (mixed by ffmpeg into build/sounds).
+data/sounds/General/course-transistion-T2.wav
+data/sounds/General/ending_track(v3).wav
+data/sounds/General/project-highlight-chapterInReveal.wav
+data/sounds/General/project-highlight-chapterInBuild.wav
+data/sounds/General/project-highlight-chapterTransitionReveal.wav
+data/sounds/General/project-highlight-chapterTransitionBuild.wav
+# The chapter sting and the arrival's bed.
+data/sounds/WN-0909/1-01.wav
+data/sounds/ambiencebackingtrackV2.wav
+# The dinner playlists, joined by ffmpeg into build/music. The Aperitif is on hold and left out.
+data/sounds/course-soundtracks/WN-dining-tracklist.txt
+data/sounds/course-soundtracks/Starter
+data/sounds/course-soundtracks/Main
+data/sounds/course-soundtracks/Dessert
+# Erik's voice, for rehearsing with the voice on.
+data/sounds/voice/erik
+
+# The catalogue: meshes, register, sheets and marks.
+data/objects
+data/csv/objects-115-details.csv
+data/svg/objects-iso.svg
+data/svg/subset.svg
+data/svg/subset_svg
+data/svg/3-shapes
+data/ref/silhouette_people_lowpoly_obj.obj
+data/WN
+data/logo/wn-mark.svg
+data/concrete/concrete-052v2_crop.jpg
+data/concrete/WM-014_CONCRETE3.jpg
+data/concrete/1000_F_310285583_ILKFCwTerYFhqcIGiNL9zuY68sy7xd16.jpg
+# The reduction slide's and the A·B·C road's drawings, rasterised by rsvg-convert into build/illustrations.
+data/illustrations
+
+# The catalogue city and the factory map. All four layers: the cache is only used when every layer
+# its manifest names is there, and is fetched again from PDOK otherwise.
+data/collected/s-hertogenbosch-r1000/manifest.json
+data/collected/s-hertogenbosch-r1000/buildings.geojson
+data/collected/s-hertogenbosch-r1000/roads.geojson
+data/collected/s-hertogenbosch-r1000/water.geojson
+data/collected/s-hertogenbosch-r1000/nature.geojson
+data/collected/natural-earth/manifest.json
+data/collected/natural-earth/countries-10m.geojson
+data/collected/geocode/addresses.json
+
+# The project highlights and the case studies: every photo in a case folder is a state.
+data/case-studies/Studie Cases/Case Studie - Intervest The Circle/Intervest Herstal + technieken 10.jpg
+data/case-studies/Studie Cases/Case Studie - Intervest The Circle/k-Intervest Herstal + technieken  128.jpg
+data/case-studies/Studie Cases/Case Studie - Intervest The Circle/k-Intervest Herstal + technieken  170.jpg
+data/case-studies/Studie Cases/Case Studie - Kivits Ridderkerk/WDP - Kivits Ridderkerk - Koelopslag - Beton als ruggengraat 2.jpg
+data/case-studies/Studie Cases/Case Studie - Kivits Ridderkerk/WDP - Kivits Ridderkerk - Koelopslag - Beton als ruggengraat.jpg
+data/case-studies/Studie Cases/Case Studie - Panattoni Almelo/Panattoni - Almelo 2.jpg
+data/case-studies/Studie Cases/Case Studie - Panattoni Almelo/Panattoni - Almelo.jpg
+data/case-studies/Studie Cases/Case Studie - VGP Park Nijmegen - B & C/VGP Park Nijmegen - B & C.jpg
+data/case-studies/Studie Cases/Case Studie - VGP Park Nijmegen - B & C/Visualisatie van indeling bedrijfspand.jpeg
+data/case-studies/Studie Cases/Case Studie - VGP Park Nijmegen - B & C/backbone_115979_023_HD.jpg
+data/case-studies/Studie Cases/Case Studie - van Cranenbroek Budel/Van Cranenbroek - De wereld van Bouwen 2.jpg
+data/case-studies/Studie Cases/Case Studie - van Cranenbroek Budel/Van Cranenbroek - De wereld van Bouwen.jpg
+data/case-blueprints/kvitis-ridderkerk-a.png
+data/case-blueprints/kvitis-ridderkerk-b.png
+data/case-blueprints/panattoni-almelo-a.png
+data/case-blueprints/van-cranenbroek-a.png
+data/case-blueprints/van-cranenbroek-b.png
+data/case-blueprints/vgp-nijmegen-a.png
+data/case-blueprints/vgp-nijmegen-b.png
+
+# The organizer: the client's frames beside each slide, and the draaiboek's clock (SLIDES_DRAAIBOEK).
+export/references
+input/Draaiboek & Callsheet __ Concrete force Experience - Show - 28 okt.csv

@@ -42,3 +42,7 @@ libMoltenVK.dylib
 export/pptx-images/
 __pycache__/
 *.pyc
+
+# the data package for another laptop (tools/pack_show_data.sh), and the .env an import replaced
+dist/
+.env.before-*

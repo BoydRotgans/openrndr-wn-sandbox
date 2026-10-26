@@ -1,3 +1,34 @@
+# Willy Naessens — Concrete Force Experience
+
+## Running the show on your Mac
+
+You need this repository, the data package (`wn-show-data-<date>.zip`, handed over separately: it is not
+in git), and an internet connection the first time.
+
+1. Clone the show's branch:
+
+   ```
+   git clone -b refine-the-show https://github.com/BoydRotgans/openrndr-wn-sandbox.git
+   ```
+
+2. Put the `wn-show-data-….zip` in your Downloads folder. Leave it zipped, or let macOS unzip it;
+   either works.
+3. Double-click `start-show.command` in the cloned folder. It opens in Terminal and:
+   - imports the data package,
+   - checks for Java, ffmpeg and rsvg-convert, and offers to install what is missing with
+     [Homebrew](https://brew.sh),
+   - starts the organizer. Its page opens in the browser, and **▶ start presentation** there starts the show.
+
+The first start downloads Gradle and the libraries and compiles everything, which takes a few minutes. After
+that a start takes seconds. Keep the Terminal window open while the show runs; ctrl-C there stops it.
+
+- **The show window without the page:** `./start-show.command --show`. Shift-Esc in the window quits.
+- **Projectors and the autocue** are set up in the organizer's Projection tab.
+- **A new version:** `git pull`, and put the new data package in Downloads. The next start offers to import it.
+- **Only checking the setup:** `./start-show.command --check` imports and checks, and starts nothing.
+
+---
+
 # OPENRNDR template project
 
 A feature rich template for creating OPENRNDR programs based on [Gradle/Kts](https://en.wikipedia.org/wiki/Gradle).

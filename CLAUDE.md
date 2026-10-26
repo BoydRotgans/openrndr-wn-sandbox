@@ -34,6 +34,32 @@ When adding anything that needs configuration, add the key to **both** `.env` an
 `build.gradle.kts` sets `-Dorg.openrndr.gl3.gl_type=gl` so runs use native OpenGL
 rather than the ANGLE default, which this machine renders incorrectly.
 
+### On another laptop
+
+The show runs on a second Mac from a clone of this branch plus a **data package**: what the show reads
+that git does not carry (`data/`, the organizer's reference frames, the draaiboek's CSV, and `.env`).
+`tools/pack_show_data.sh` packs it into `dist/wn-show-data-<date>-<time>.zip`; on the other Mac,
+[`start-show.command`](start-show.command) — double-clicked, or run with `--show` for the window without the
+organizer — imports the newest package it finds (beside it, in Downloads or on the Desktop), checks for a
+JDK 17–24, ffmpeg and rsvg-convert (offering Homebrew installs), and starts the organizer. The README says it
+for the colleague.
+
+- **What goes in is `tools/show-data.txt`**, read off a recording of every file the JVM opened on a bench of the
+  whole running order and on the organizer (Java Flight Recorder, `jdk.FileRead` at 0 ms), plus what goes to ffmpeg
+  and rsvg-convert, which that cannot see. 666 files and 740 MB on 26 October 2026. Shelved slides are not in it.
+  **A slide that starts reading a new file needs its line there**, or the package goes out without it.
+- **An import replaces each listed path whole**, so a sound moved to `alternates/` or renamed by a release does not
+  linger on that machine. Sound folders are listed whole for that reason, less their `alternates/`.
+- **The `.env` travels as `show.env`**, with tokens and keys, and any path into the packer's home folder, left empty;
+  the replaced `.env` is kept as `.env.before-<date>`. `.env.example` would not do: it carries the sketches'
+  defaults, so the catalogue city (`CITY_*`), the base loop and the toggles would all come out differently.
+- **The script never imports over a `data/` that did not come from a package** (no `data/.show-data-version`) unless a
+  package is named on the command line, so running it here leaves this machine's data alone.
+- **The map cache needs all four layers** although the city draws only buildings: `collectMapData` refetches from
+  PDOK unless every layer its manifest names is on disk.
+- Checked on a fresh clone: the import was byte-identical to the originals, a clean build compiled on JDK 21, and a
+  bench of every state ran and read nothing the package lacked.
+
 ## figma-rest
 
 `figma-rest/` is part of this codebase, not a dependency. It is wired in as a Gradle
