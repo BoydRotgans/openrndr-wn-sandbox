@@ -1,6 +1,8 @@
 package slideshow
 
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import javax.sound.sampled.AudioSystem
 import kotlin.random.Random
 
 /**
@@ -63,6 +65,76 @@ fun playlist(
         }
     }
     return sound
+}
+
+/** One track of a bed: what it is called, and where it stands in the joined file, in seconds. */
+data class PlaylistTrack(val file: File, val title: String, val artist: String, val start: Double, val length: Double)
+
+/**
+ * The tracks a bed was joined from, in the order they play, each placed in the joined file — what the organizer lists
+ * under a moment's walls, and how it tells from where the bed stands which track is sounding and which is next.
+ *
+ * Read off the list of what went into the join (`<name>.txt`, see [playlist]); a bed that is one file of its own, the
+ * exit's ending track, is one track. A track's length is ffprobe's, kept in `<name>.lengths` beside the join so it is
+ * asked once, and the lengths are then scaled to the joined file's own: ffprobe reads an mp3's length off its header,
+ * which may count the encoder's padding the join leaves out, and over a dozen tracks that would put the last a second
+ * or two out. Scaled, the boundaries are where the join really put them, to a few hundredths. Empty where the joined
+ * file is not there yet; cached until it or its list changes.
+ */
+fun playlistTracks(bed: Sound): List<PlaylistTrack> {
+    val joined = bed.file
+    if (!joined.isFile) return emptyList()
+    val recipe = File(joined.parentFile, "${joined.nameWithoutExtension}.txt")
+    val stamp = "${joined.lastModified()}-${joined.length()}-${if (recipe.isFile) recipe.lastModified() else 0}"
+    trackCache[joined.path]?.let { (at, tracks) -> if (at == stamp) return tracks }
+    val total = runCatching { AudioSystem.getAudioFileFormat(joined).let { it.frameLength / it.format.frameRate.toDouble() } }
+        .getOrNull()?.takeIf { it > 0 } ?: return emptyList()
+    val sources = if (recipe.isFile) recipe.readLines().filter { it.isNotBlank() }.map { File(it.substringBefore('\t')) } else emptyList()
+    val tracks = if (sources.isEmpty()) listOf(trackOf(joined, 0.0, total)) else {
+        val lengths = trackLengths(File(joined.parentFile, "${joined.nameWithoutExtension}.lengths"), sources)
+        // A track ffprobe could not read shares out what the others leave of the join.
+        val known = lengths.filterNotNull().sum()
+        val unknown = lengths.count { it == null }
+        val scale = if (unknown == 0 && known > 0) total / known else 1.0
+        val fill = if (unknown > 0) ((total - known) / unknown).coerceAtLeast(0.0) else 0.0
+        var at = 0.0
+        sources.zip(lengths).map { (f, l) -> val s = (l ?: fill) * scale; trackOf(f, at, s).also { at += s } }
+    }
+    trackCache[joined.path] = stamp to tracks
+    return tracks
+}
+
+private val trackCache = ConcurrentHashMap<String, Pair<String, List<PlaylistTrack>>>()
+
+/** `ES_The Sinner - Sum Wave.mp3` is The Sinner, by Sum Wave: Epidemic Sound's names, title then artist. */
+private fun trackOf(file: File, start: Double, length: Double): PlaylistTrack {
+    val name = file.nameWithoutExtension.removePrefix("ES_")
+    val cut = name.lastIndexOf(" - ")
+    return if (cut > 0) PlaylistTrack(file, name.take(cut), name.drop(cut + 3), start, length)
+    else PlaylistTrack(file, name, "", start, length)
+}
+
+/** Each of [files]' length in seconds, ffprobe's, kept in [cache] by path, size and date; null where it cannot say. */
+private fun trackLengths(cache: File, files: List<File>): List<Double?> {
+    val keyOf = { f: File -> "${f.path}\t${f.length()}\t${f.lastModified()}" }
+    val known = if (cache.isFile) cache.readLines().mapNotNull { line ->
+        line.substringBeforeLast('\t').takeIf { it.isNotEmpty() }?.let { it to line.substringAfterLast('\t').toDoubleOrNull() }
+    }.toMap() else emptyMap()
+    val lengths = files.map { f -> known[keyOf(f)] ?: probeSeconds(f) }
+    if (files.indices.any { known[keyOf(files[it])] == null && lengths[it] != null }) runCatching {
+        cache.writeText(files.indices.filter { lengths[it] != null }.joinToString("\n") { "${keyOf(files[it])}\t${lengths[it]}" })
+    }
+    return lengths
+}
+
+private fun probeSeconds(file: File): Double? {
+    if (!file.isFile) return null
+    val command = listOf("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", file.path)
+    return runCatching {
+        val process = ProcessBuilder(command).redirectErrorStream(true).start()
+        val out = process.inputStream.bufferedReader().readText()
+        if (process.waitFor() == 0) out.trim().lineSequence().firstOrNull()?.toDoubleOrNull() else null
+    }.getOrNull()
 }
 
 /**

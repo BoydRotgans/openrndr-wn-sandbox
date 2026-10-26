@@ -204,6 +204,33 @@
   /* subtitles: a row a state, the letter the nameplate gives it, and the cards the wall will show */
   #subs { margin-top: 18px; max-width: 720px; }
   #subs .count { font-size: 12px; color: var(--dim); }
+  /* playlist: the moment's tracks under a dinner wall, the one sounding and the one after it */
+  #playlist { margin: 14px 0 10px; max-width: 720px; }
+  #playlist .bar { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  #playlist .bar h3 { margin: 0; }
+  #playlist .bar .spacer { flex: 1; }
+  #playlist .count, #playlist .hint { font-size: 12px; color: var(--dim); }
+  #plState { font-size: 12px; color: var(--dim); }
+  #plState.on { color: var(--live); font-weight: 600; }
+  #plNote { font-size: 12px; color: var(--dim); margin: 0 0 6px; }
+  #plNote:empty { display: none; }
+  .trk { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto 170px; gap: 10px; align-items: baseline; padding: 5px 6px; border-top: 1px solid var(--line); font-size: 13px; }
+  .trk:first-child { border-top: none; }
+  .trk .n { color: var(--dimmer); font-variant-numeric: tabular-nums; text-align: right; }
+  .trk .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trk .t .a { color: var(--dim); margin-left: 8px; font-size: 12px; }
+  .trk .len { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .trk .st { font-size: 11.5px; color: var(--dim); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .trk .pg { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--live); border-radius: 1px; }
+  .trk.now { background: color-mix(in srgb, var(--live) 12%, transparent); border-radius: 4px; border-top-color: transparent; }
+  .trk.now + .trk { border-top-color: transparent; }
+  .trk.now .t { font-weight: 600; }
+  .trk.now .st { color: var(--live); font-weight: 600; }
+  .trk.now.held { background: color-mix(in srgb, var(--warn) 10%, transparent); }
+  .trk.now.held .st { color: var(--warn); }
+  .trk.now.held .pg { background: var(--warn); }
+  .trk.next .st { color: var(--ink); font-weight: 600; }
+  .trk.next .n { color: var(--ink); }
   /* sound: the name each state's sound design file is to have, and the file there now */
   #sounds { margin: 14px 0 6px; max-width: 720px; }
   #sounds .bar { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
@@ -802,6 +829,18 @@
       <span class="sep"></span>
       <button class="ghost" id="oneBtn" title="Render this slide's previews again">previews</button>
       <button class="ghost" id="midiBtn"></button>
+    </div>
+
+    <div id="playlist" hidden>
+      <div class="bar">
+        <h3>Playlist</h3>
+        <span class="count" id="plCount"></span>
+        <span class="spacer"></span>
+        <span id="plState"></span>
+        <span class="hint" id="plHint"></span>
+      </div>
+      <div id="plNote"></div>
+      <div id="plList"></div>
     </div>
 
     <div id="sounds">
@@ -1544,6 +1583,7 @@
     $('#intentHint').textContent = (show.intentsFile || 'show-intents.json') + (intents[c.id] ? '' : ' — nothing written yet');
     if (!keepFields) { renderMeeting(c.id); renderFeedback(c.id); renderSubs(c); }
     renderSounds(c);
+    renderPlaylist(c);
     renderMidi(c);
     $('#onBtn').textContent = ref.on ? 'skip slide' : 'play slide';
     $('#onBtn').disabled = archived;
@@ -1974,6 +2014,76 @@
     }
     $('#sndCount').textContent = `${have} of ${steps} states have a file`;
     $('#sndHint').textContent = 'copy gives the file name to use, without .wav';
+  }
+
+  // ---------- the playlist under a dinner wall ----------
+  //
+  // A wall in a moment with music lists the moment's playlist (show.playlists, read off what went into the joined
+  // file) and marks, off where the show says that file stands (the state's `music`, polled), the track sounding and
+  // the one after it. A playlist loops, so after the last track comes the first again.
+
+  let lastMusic = {}, musicLive = false, musicStarting = false, musicMuted = false, plShown = null;
+
+  /** Seconds as m:ss, or h:mm:ss past the hour. */
+  function clockOf(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = String(sec % 60).padStart(2, '0');
+    return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+  }
+
+  function renderPlaylist(c) {
+    const moment = momentOf(c.id);
+    const pl = moment && (show.playlists || {})[moment];
+    plShown = pl && pl.tracks && pl.tracks.length ? pl : null;
+    $('#playlist').hidden = !plShown;
+    if (!plShown) return;
+    const total = pl.tracks.reduce((a, t) => a + t.length, 0);
+    $('#plCount').textContent = `${moment} · ${pl.tracks.length} track${pl.tracks.length === 1 ? '' : 's'} · ${clockOf(total)}`;
+    $('#plHint').textContent = pl.name; $('#plHint').title = pl.file;
+    const others = Object.entries(show.playlists || {}).filter(([m, p]) => m !== moment && p.file === pl.file).map(([m]) => m);
+    const notes = [];
+    const group = order.find(e => e.group && e.moment && e.title === moment);
+    const heard = group && flatten(group.entries).some(x => x.on !== false && (info(x.id) || {}).momentMusic !== false);
+    if (!heard) notes.push('No wall in this moment plays music, so this playlist is not heard: put a wall in it to play it under.');
+    else if (c.momentMusic === false) notes.push('No music under this wall: the playlist starts on the next wall of the moment.');
+    if (others.length) notes.push(`The same playlist plays under ${others.join(' and ')}${pl.resumes ? ', and goes on from where it stopped' : ''}.`);
+    $('#plNote').textContent = notes.join(' ');
+    const list = $('#plList'); list.innerHTML = '';
+    pl.tracks.forEach((t, i) => {
+      const row = document.createElement('div'); row.className = 'trk'; row.dataset.i = i;
+      row.innerHTML = `<span class="n">${i + 1}</span><span class="t"></span><span class="len">${clockOf(t.length)}</span><span class="st"></span><i class="pg"></i>`;
+      const title = row.querySelector('.t'); title.textContent = t.title; title.title = t.file;
+      if (t.artist) { const a = document.createElement('span'); a.className = 'a'; a.textContent = t.artist; title.appendChild(a); }
+      list.appendChild(row);
+    });
+    updatePlaylist();
+  }
+
+  /** Marks the track sounding and the next one, off the last poll; cheap, so it runs on every poll. */
+  function updatePlaylist() {
+    const pl = plShown;
+    if (!pl || $('#playlist').hidden) return;
+    const tracks = pl.tracks, w = musicLive ? lastMusic[pl.file] : null;
+    // The track a place falls in is the last that starts at or before it; none before the playlist has played.
+    let cur = -1;
+    if (w) { cur = 0; tracks.forEach((t, i) => { if (t.start <= w.at + 1e-6) cur = i; }); }
+    const nxt = cur < 0 ? 0 : (cur + 1) % tracks.length;
+    const playing = !!(w && w.playing);
+    const st = $('#plState');
+    st.textContent = !musicLive ? (musicStarting ? 'show starting…' : 'show not running — a start plays it from track 1')
+      : !w ? 'not played yet — starts at track 1'
+      : playing ? `${w.leaving ? '▶ fading out' : '▶ playing'} · track ${cur + 1} of ${tracks.length}${musicMuted ? ' · muted' : ''}`
+      : `stopped — picks up in track ${cur + 1} at ${clockOf(w.at - tracks[cur].start)}`;
+    st.classList.toggle('on', playing);
+    $('#plList').querySelectorAll('.trk').forEach(row => {
+      const i = +row.dataset.i, t = tracks[i];
+      const isNow = i === cur, isNext = !isNow && i === nxt;
+      const into = isNow ? w.at - t.start : 0;
+      row.classList.toggle('now', isNow); row.classList.toggle('held', isNow && !playing); row.classList.toggle('next', isNext);
+      row.querySelector('.st').textContent = isNow ? (playing ? `now playing · ${clockOf(into)} / ${clockOf(t.length)}` : `picks up here · ${clockOf(into)}`)
+        : isNext ? (cur < 0 ? 'first up' : nxt === 0 ? 'next · from the top' : 'next') : '';
+      row.querySelector('.pg').style.width = isNow ? `${Math.min(100, 100 * into / Math.max(1, t.length))}%` : '0';
+    });
   }
 
   function renderFeedback(id) {
@@ -2481,6 +2591,10 @@
       if (e === epoch && !writing) checkFiles(s.revs);
       renderColours(s.colours);
       renderAutoplay(s);
+      // Before the early return below, so a stopped show clears the playing mark too.
+      lastMusic = s.music || {}; musicMuted = !!s.muted;
+      musicLive = !s.presentation || !!s.presentation.live; musicStarting = !!(s.presentation && s.presentation.running && !s.presentation.live);
+      updatePlaylist();
       if (!renderPresentation(s)) { renderScriptLive(); return; }
       // A show started on older code, the code as it stands not building, says so for as long as it runs.
       const older = s.presentation && s.presentation.buildWarning;

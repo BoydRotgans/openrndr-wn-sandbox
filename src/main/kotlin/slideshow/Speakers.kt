@@ -122,6 +122,29 @@ class Speakers(
     /** Where each of those last stopped, in samples into its buffer, for the next play to start from. */
     private val resumeAt = mutableMapOf<String, Int>()
 
+    /** Each buffered file's sample rate, so a place in it can be said in seconds. */
+    private val rates = mutableMapOf<String, Int>()
+
+    /** Where a held file stands: seconds into it, whether it is sounding, and whether it is fading out to stop. */
+    class Where(val seconds: Double, val playing: Boolean, val leaving: Boolean)
+
+    /**
+     * Where [sound]'s file stands, for the organizer's playlists: its source's place while it plays (or is paused), and
+     * for one played and let go the place it will pick up from ([Sound.resume]). Null for a file never played, or one
+     * that starts from its top again. Asked by the draw loop, which is where the context is current.
+     */
+    fun whereIs(sound: Sound): Where? {
+        if (!ready) return null
+        val key = sound.file.path
+        val rate = rates[key]?.toDouble() ?: return null
+        held[key]?.let { source ->
+            val state = alGetSourcei(source, AL_SOURCE_STATE)
+            if (state == AL_PLAYING || state == AL_PAUSED)
+                return Where(alGetSourcei(source, AL_SAMPLE_OFFSET) / rate, state == AL_PLAYING, fading[key]?.stopAtEnd == true)
+        }
+        return resumeAt[key]?.let { Where(it / rate, playing = false, leaving = false) }
+    }
+
     /** Notes where a resuming source has got to, as it is stopped. */
     private fun noteWhere(key: String, source: Int) {
         if (key in resuming) resumeAt[key] = alGetSourcei(source, AL_SAMPLE_OFFSET)
@@ -295,6 +318,7 @@ class Speakers(
                 alDeleteBuffers(old)
             }
             stamps[sound.file.path] = sound.file.lastModified()
+            rates[sound.file.path] = pcm.rate
             // per file, because the sheet is 44.1k and the ambience bed is 48k
             length += pcm.frames.toDouble() / pcm.rate
             bytes += size

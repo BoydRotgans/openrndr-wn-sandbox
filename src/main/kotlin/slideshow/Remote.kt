@@ -204,7 +204,9 @@ class Remote(
         /** Whether the autocue's own window is open and showing. */
         val autocueWindow: Boolean = false,
         /** The autocue's reading pace, in characters a second. */
-        val autocueCps: Double = 13.0
+        val autocueCps: Double = 13.0,
+        /** Where each moment's playlist stands, by its file's path — see [Speakers.whereIs]. A playlist never played is absent. */
+        val music: Map<String, Speakers.Where> = emptyMap()
     )
 
     val commands = ConcurrentLinkedQueue<Command>()
@@ -874,6 +876,28 @@ class Remote(
             put("midi", midi.toJson())
             put("frames", JsonArray(references.frames.map { frameJson(it) }))
             put("previewStamp", previewStamp)
+            put("playlists", playlistsJson())
+        }
+    }
+
+    /**
+     * Every moment's playlist, track by track and placed in its joined file ([playlistTracks]), by the moment's name:
+     * the page lists it under the moment's walls and marks, off where [Snapshot.music] says the file stands, the track
+     * sounding and the one after it. Two moments on one file — Main under the 3e and 4e gang — name the same `file`.
+     */
+    private fun playlistsJson(): JsonObject = buildJsonObject {
+        catalogue.settings.momentMusic.forEach { (moment, bed) ->
+            put(moment, buildJsonObject {
+                put("file", bed.file.path)
+                put("name", bed.file.nameWithoutExtension)
+                put("resumes", bed.resume)
+                put("tracks", JsonArray(playlistTracks(bed).map { t ->
+                    buildJsonObject {
+                        put("title", t.title); put("artist", t.artist); put("file", t.file.name)
+                        put("start", t.start); put("length", t.length)
+                    }
+                }))
+            })
         }
     }
 
@@ -908,6 +932,8 @@ class Remote(
             put("chapter", place?.chapterTitle ?: "")
             put("subchapter", place?.subchapterTitle ?: "")
             put("moment", place?.moment ?: "")
+            // Whether its moment's playlist plays under it: not under a StudioBuik wall, a course transition or the blank ending.
+            put("momentMusic", slide.momentMusic)
             put("frames", JsonArray((module?.frames ?: modules.covered[id].orEmpty()).map { JsonPrimitive(it) }))
             put("shots", JsonArray(previewShots(slide).map { JsonPrimitive(it.label) }))
             // The sound design's file for each state that has one, by the state's letter: the page sets
@@ -953,6 +979,11 @@ class Remote(
             put("subtitleTrack", s.subtitleTrack.key); put("voice", s.voice); put("autoplay", s.autoplay)
             put("autocue", s.autocue); put("autocueWindow", s.autocueWindow); put("autocueCps", s.autocueCps)
             put("mix", buildJsonObject { s.mix.forEach { (l, g) -> put(l.key, g) } })
+            put("music", buildJsonObject {
+                s.music.forEach { (file, w) ->
+                    put(file, buildJsonObject { put("at", w.seconds); put("playing", w.playing); put("leaving", w.leaving) })
+                }
+            })
             put("exporting", exporting); put("exportDone", exportDone); put("exportTotal", exportTotal)
             put("exportFrame", exportFrame); put("exportFrames", exportFrames)
             put("revs", revs())

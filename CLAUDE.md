@@ -5519,6 +5519,23 @@ committed order's **Dessert is empty**, so its playlist has nothing to play unde
 The names are the order file's, so renaming a moment in the organizer needs the `music(...)` line
 renamed with it.
 
+**The organizer lists a moment's playlist under its walls** (26 October 2026, asked for as "show the songs in that
+playlist … which one is playing and which one is next"). Every wall in a moment with music has a **Playlist** section
+in its detail pane: the tracks in the order they play, title and artist off the file name (`ES_<title> - <artist>`),
+each with its length; the one sounding green with its time into it and a bar along its foot, the one after it marked
+next (after the last, the first: a playlist loops).
+- **The tracks are the join's own list.** `playlistTracks` in `Music.kt` reads `build/music/<name>.txt`, asks ffprobe
+  each track's length once (kept in `<name>.lengths`), and scales the lengths to the joined wav's, since ffprobe can
+  count an mp3's padding the join leaves out. `/api/show` carries them as `playlists`, by moment.
+- **Where it stands is OpenAL's.** The draw loop asks `Speakers.whereIs` for each moment's bed every frame: the
+  source's `AL_SAMPLE_OFFSET` while it plays, flagged as fading out during its release, and once stopped the place it
+  will pick up from. `/api/state` carries that as `music`, by file, so Main under the 3e and 4e gang is one place.
+- **What the section says otherwise**: a StudioBuik wall or transition plays no music, so its section says the
+  playlist starts on the moment's next wall; a moment where no wall takes music (the committed Dessert holds only its
+  StudioBuik wall) says the playlist is not heard; with no show up, every track is unplayed and the first is first up.
+- Checked on a muted test show on the First course wall: Starter playing and moving on, fading out over the
+  transition's 10 s, stopped at 23.05 s, and picked up there on going back.
+
 #### Back to the talk: the course transition
 
 [`CourseTransition`](src/main/kotlin/slideshow/backdrop-drawers/CourseTransition.kt) is the wall that

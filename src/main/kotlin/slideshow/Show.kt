@@ -2186,7 +2186,9 @@ private fun org.openrndr.ApplicationBuilder.present(
                     subtitles = subtitleMode, subtitleTrack = subtitleTrack, voice = voiceOn,
                     mix = Layer.entries.associateWith { speakers.mixOf(it) }, autoplay = autoplay,
                     autocue = autocueOn, autocueWindow = autocueWindow != null && autocueVisible,
-                    autocueCps = autocueCps
+                    autocueCps = autocueCps,
+                    music = settings.momentMusic.values.distinctBy { it.file.path }
+                        .mapNotNull { bed -> speakers.whereIs(bed)?.let { bed.file.path to it } }.toMap()
                 )
             }
 
