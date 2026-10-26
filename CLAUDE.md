@@ -40,7 +40,7 @@ The show runs on a second Mac from a clone of this branch plus a **data package*
 that git does not carry (`data/`, the organizer's reference frames, the draaiboek's CSV, and `.env`).
 `tools/pack_show_data.sh` packs it into `dist/wn-show-data-<date>-<time>.zip`; on the other Mac,
 [`start-show.command`](start-show.command) — double-clicked, or run with `--show` for the window without the
-organizer — imports the newest package it finds (beside it, in Downloads or on the Desktop), checks for a
+organizer — imports the newest package it finds in the clone's own `data/` (where git ignores it), checks for a
 JDK 17–24, ffmpeg and rsvg-convert (offering Homebrew installs), and starts the organizer. The README says it
 for the colleague.
 

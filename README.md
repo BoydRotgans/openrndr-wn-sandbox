@@ -11,8 +11,8 @@ in git), and an internet connection the first time.
    git clone -b refine-the-show https://github.com/BoydRotgans/openrndr-wn-sandbox.git
    ```
 
-2. Put the `wn-show-data-….zip` in your Downloads folder. Leave it zipped, or let macOS unzip it;
-   either works.
+2. Put the `wn-show-data-….zip` in the cloned folder's `data` folder, as it is: there is no need to
+   unzip it. git ignores it there.
 3. Double-click `start-show.command` in the cloned folder. It opens in Terminal and:
    - imports the data package,
    - checks for Java, ffmpeg and rsvg-convert, and offers to install what is missing with
@@ -24,7 +24,8 @@ that a start takes seconds. Keep the Terminal window open while the show runs; c
 
 - **The show window without the page:** `./start-show.command --show`. Shift-Esc in the window quits.
 - **Projectors and the autocue** are set up in the organizer's Projection tab.
-- **A new version:** `git pull`, and put the new data package in Downloads. The next start offers to import it.
+- **A new version:** `git pull`, and put the new data package in `data`. The next start offers to import it,
+  and the old zip can then be deleted.
 - **Only checking the setup:** `./start-show.command --check` imports and checks, and starts nothing.
 
 ---

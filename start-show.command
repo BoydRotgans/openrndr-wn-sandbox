@@ -6,8 +6,8 @@
 #   ./start-show.command <package.zip>   import that data package first (a folder unpacked from one works too)
 #   ./start-show.command --check         import and check, but start nothing
 #
-# Every start: imports the newest data package it finds (wn-show-data-*.zip beside this file, in
-# Downloads or on the Desktop) when it is newer than the one imported before; checks for Java, ffmpeg
+# Every start: imports the newest data package in the repo's data/ folder (wn-show-data-*.zip, or the
+# folder one unzips to) when it is newer than the one imported before; checks for Java, ffmpeg
 # and rsvg-convert, offering to install what is missing through Homebrew; then starts the show.
 # A machine whose data/ did not come from a package (the one the packages are made on) is never
 # imported over unless a package is named on the command line.
@@ -44,10 +44,8 @@ package_name() { basename "${1%.zip}" | sed -E 's/ ?\([0-9]+\)$//'; }
 
 newest_package() {
     local found=() candidate
-    for dir in "$PWD" "$HOME/Downloads" "$HOME/Desktop"; do
-        for candidate in "$dir"/wn-show-data-*; do
-            is_package "$candidate" && found+=("$candidate")
-        done
+    for candidate in data/wn-show-data-*; do
+        is_package "$candidate" && found+=("$candidate")
     done
     ((${#found[@]})) || return 1
     local best="" best_name="" n
@@ -108,7 +106,7 @@ elif [[ -n "$installed" || ! -d data/sounds ]]; then
         fi
     fi
 fi
-[[ -d data/sounds && -d data/objects ]] || fail "The show's data is not here. Put the wn-show-data-….zip you were given in Downloads and start this again, or run: ./start-show.command /path/to/wn-show-data-….zip"
+[[ -d data/sounds && -d data/objects ]] || fail "The show's data is not here. Put the wn-show-data-….zip you were given in the data folder here and start this again, or run: ./start-show.command /path/to/wn-show-data-….zip"
 [[ -f .env ]] || fail "There is no .env. It comes with the data package; import one first."
 [[ -n "$installed" ]] && echo "Data: $installed"
 

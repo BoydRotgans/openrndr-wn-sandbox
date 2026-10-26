@@ -49,8 +49,8 @@ awk -v home="$HOME" '
 cat > "$meta/show-data/README.txt" <<EOF
 The WN show's data: everything the show reads that is not in git.
 
-Put this zip in Downloads (or next to start-show.command) and double-click start-show.command
-in the repo: it imports the newest package it finds and starts the show. Or run
+Put this zip in the repo's data/ folder and double-click start-show.command in the repo:
+it imports the newest package in data/ and starts the show. Or run
     ./start-show.command /path/to/$name.zip
 
 roots.txt lists what it replaces on import; show.env becomes the repo's .env (the old one is kept
