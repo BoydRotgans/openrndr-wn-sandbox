@@ -1561,6 +1561,11 @@ older sheet, off the client's pptx.
 reads the track as the show does with `SLIDES_SPEAKERS` (`without_guests`): with Erik alone, Karim Weiss's welcome and
 closing are not on it and the ending carries Erik's own thanks. A picture comes off the film, so one of a slide changed
 since it was filmed shows the slide as filmed (the director's tag with its 19 October label, until a new film).
+**Every line says who reads it** (27 October 2026, asked for because Karim Weiss's closing read as Erik's): the track's
+own speaker in a quiet grey name above the line, a guest in a filled teal tag with a rule beside the text, so a black and
+white print still tells them apart, and a legend under the title. `reader_of` reads it off the track's `speakers`. The
+cues on the director's tag and the ending name whoever the autocue says gives the welcome and the closing ("Karim Weiss
+sluit de avond af"), where they said "De directeur" and "Erik sluit af".
 
 **The slides on their own are a third sheet** (15 October): `tools/slides_pdf.py` writes
 `export/wn-slides-per-klik.pdf`, a landscape A4 page per click with the picture and no lines, off the same

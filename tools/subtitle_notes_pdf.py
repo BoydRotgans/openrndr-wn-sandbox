@@ -329,16 +329,17 @@ def course_name(title):
     return title.split(":")[0].strip()
 
 
-def cues_for(order, where, heads, times, courses):
+def cues_for(order, where, heads, times, courses, welcome=None, closing=None):
     """The few stage directions the speaker needs between the lines, a line each: {slide:
-    {"before": [...], "after": [...]}}. The draaiboek gives their times."""
+    {"before": [...], "after": [...]}}. The draaiboek gives their times. [welcome] and [closing] name who gives the
+    welcome on the director's tag and the closing on the ending, where the autocue says (Karim Weiss since 19 October)."""
     cues = {}
     add = lambda slide, when, text: cues.setdefault(slide, {"before": [], "after": []})[when].append(text)
     chapters = [n for k, n in heads if k == "chapter"]
     ids = [s for s, _ in order]
     for i, slide in enumerate(ids):
         if slide == "director-is-speaking":
-            add(slide, "before", "Zaallicht dimt. De directeur heet welkom, live.")
+            add(slide, "before", f"Zaallicht dimt. {welcome or 'De directeur'} heet welkom, live.")
         elif slide == "het-programma":
             add(slide, "after", "Else de Bruin stelt StudioBuik voor, live.")
         elif slide.startswith("studiobuik-"):
@@ -364,11 +365,21 @@ def cues_for(order, where, heads, times, courses):
         elif slide == "case-studies":
             add(slide, "before", "Interactief: vragen uit de zaal.")
         elif slide == "ending":
-            add(slide, "before", "Erik sluit af en nodigt uit terug te gaan naar waar we begonnen.")
+            add(slide, "before", f"{closing} sluit de avond af, live." if closing
+                else "Erik sluit af en nodigt uit terug te gaan naar waar we begonnen.")
     return cues
 
 
 # ---------------------------------------------------------------- the lines
+
+
+def reader_of(data, slide, letter):
+    """Who reads [slide]'s state [letter] on a track: its `speakers` entry, else the track's own `speaker`, else nobody
+    named (the voice-over tracks name no one)."""
+    by = data.get("speakers", {}).get(slide)
+    if isinstance(by, dict):
+        by = by.get(letter)
+    return by or data.get("speaker")
 
 
 def guests_in_show():
@@ -566,6 +577,11 @@ def build_html(track, order, where, heads, pics, lines, data, data_d, data_e, fi
     over, the draaiboek's time at each section, and a few cues between the lines, kept small."""
     times, cues = times or {}, cues or {}
     spec = TRACKS[track]
+    # Who reads each line, where the track names its speakers (Erik's autocue): his own lines under a quiet name, a
+    # guest's under a filled tag with a rule beside the text, so a printed page says at a glance who speaks.
+    own = data.get("speaker")
+    readers = [own] + sorted({reader_of(data, sl, LETTERS[i]) for sl, n in order for i in range(n)
+                              if lines.get(sl, {}).get(LETTERS[i])} - {own, None}) if own else []
     months = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus",
               "september", "oktober", "november", "december"]
     today = date.today()
@@ -576,7 +592,10 @@ def build_html(track, order, where, heads, pics, lines, data, data_d, data_e, fi
         f"<h1>{html.escape(spec['title'])}</h1>"
         f"<p class='date'>{'Show ' + html.escape(day) + ' · tijden uit het draaiboek · ' if day else ''}"
         f"versie {today.day} {months[today.month - 1]} {today.year}</p>"
-        "</header>"
+        + (f"<p class='readers'>Wie spreekt staat boven elke tekst: "
+           + " · ".join(f"<span class='who{'' if r == own else ' guest'}'>{html.escape(r)}</span>" for r in readers)
+           + "</p>" if len(readers) > 1 else "")
+        + "</header>"
     )
 
     # A section's head goes into the first picture under it, so a page can never end on a
@@ -608,6 +627,11 @@ def build_html(track, order, where, heads, pics, lines, data, data_d, data_e, fi
             pic = pics.get(f"{slide}-{LETTERS[i]}")
             img = f"<img src='file://{pic}' alt=''>" if pic else "<div class='nopic'></div>"
             cls = "state" if line else "state quiet"
+            reader = reader_of(data, slide, LETTERS[i]) if line and own else None
+            if reader and reader != own:
+                cls += " guest"
+            who = (f"<span class='who{'' if reader == own else ' guest'}'>{html.escape(reader)}</span>"
+                   if reader else "")
             if opens_chapter:
                 cls += " opens-chapter"
                 opens_chapter = False
@@ -616,7 +640,7 @@ def build_html(track, order, where, heads, pics, lines, data, data_d, data_e, fi
             parts.append(f"<article class='{cls}'>{''.join(pending)}"
                          f"{slide_head + cue('before') if i == 0 else ''}"
                          f"<div class='row'><div class='pic'>{img}</div>"
-                         f"<div class='line'>{html.escape(line)}</div></div>"
+                         f"<div class='line'>{who}{html.escape(line)}</div></div>"
                          f"{cue('after') if i == n - 1 else ''}</article>")
             pending = []
 
@@ -660,6 +684,14 @@ h3 { font-family: Rockwell, Georgia, serif; font-size: 10.5pt; font-weight: norm
 .nopic { width: 100%; aspect-ratio: 3840/1080; background: #eee; color: #aaa; display: flex;
   align-items: center; justify-content: center; font-size: 8pt; }
 .line { flex: 1 1 auto; min-width: 0; font-size: 10pt; line-height: 1.45; white-space: pre-line; }
+/* Who reads the line: the track's own speaker quietly, a guest in a filled tag with a rule beside the text,
+   which still tells the two apart printed in black and white. */
+.who { display: block; width: max-content; margin: 0 0 .8mm; font-size: 6.8pt; line-height: 1.3; letter-spacing: .14em;
+  text-transform: uppercase; color: #8a8a8a; white-space: nowrap; }
+.who.guest { color: #fff; background: #0b6e78; padding: .35mm 1.6mm; border-radius: .8mm; font-weight: 700; }
+article.state.guest .line { border-left: 1.8pt solid #0b6e78; padding-left: 2.6mm; }
+header.sheet .readers { margin: 1.2mm 0 0; font-size: 8pt; color: #777; }
+header.sheet .readers .who { display: inline-block; margin: 0 .6mm; vertical-align: .2mm; }
 
 /* A state nothing is said over is only there to keep your place, so its picture is drawn
    smaller, in the same column so the lines still start at one edge. */
@@ -735,9 +767,12 @@ def main():
             print(f"draaiboek: could not read {os.path.relpath(book, ROOT)} ({e}); no times")
     else:
         print("draaiboek: no SLIDES_DRAAIBOEK file; no times")
-    cues = cues_for(order, where, heads, times, courses)
     warnings = []
     warn = lambda m: (warnings.append(m), print("note:", m))
+    data_k, lines_k = track_lines("erik", steps, lambda m: None)
+    guest = lambda sid: (reader_of(data_k, sid, "A") if lines_k.get(sid, {}).get("A")
+                         and reader_of(data_k, sid, "A") != data_k.get("speaker") else None)
+    cues = cues_for(order, where, heads, times, courses, welcome=guest("director-is-speaking"), closing=guest("ending"))
     data_d, _ = track_lines("default", steps, lambda m: None)
     data_e, _ = track_lines("extended", steps, lambda m: None)
     for track in (["erik", "default", "extended", "aligned"] if args.track == "both" else [args.track]):

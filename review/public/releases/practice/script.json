@@ -1,6 +1,6 @@
 {
  "about": "Erik's autocue as the show has it, for the rehearsal page to read and edit: written by review/scripts/export-script.mjs from show-subtitles-erik.json. Edits made on the page are kept apart, in Supabase, and laid over this; adopted names those already taken into the show (show-script-adopted.json).",
- "exported": "2026-10-22T15:22:59.303Z",
+ "exported": "2026-10-27T08:48:53.877Z",
  "track": "erik",
  "label": "Erik autocue",
  "speaker": "Erik Koremans",

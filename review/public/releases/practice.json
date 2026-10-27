@@ -133,6 +133,32 @@
           "file": "sprekersnotities-standaard.pdf"
         }
       ]
+    },
+    {
+      "slug": "2026-10-27",
+      "name": "Rehearsal 27 October",
+      "created": "2026-10-27",
+      "folder": "practice/2026-10-27",
+      "audio": "film",
+      "about": "The show of 27 October on Erik's autocue with Karim Weiss's welcome and closing, filmed without subtitles (video/wn-experience_2026-10-27-clean.mp4), timed by Erik's rendered voice and the voice mixed out (-clean-novoice.mp4), with the speaker's autocue filmed on the same run (-autocue.mp4); the review's Release 27 October is the same run. Since 22 October: the ending stands the W and N of the exit wall, held still through Karim's closing, and the click into the exit starts their explode and the ending track together; the circle ring's sound re-cut. The speaker's sheets name who reads every line, Karim Weiss's in a filled tag.",
+      "sheets": [
+        {
+          "key": "autocue",
+          "file": "sprekersnotities-autocue.pdf"
+        },
+        {
+          "key": "uitgelijnd",
+          "file": "sprekersnotities-uitgelijnd.pdf"
+        },
+        {
+          "key": "uitgebreid",
+          "file": "sprekersnotities-uitgebreid.pdf"
+        },
+        {
+          "key": "standaard",
+          "file": "sprekersnotities-standaard.pdf"
+        }
+      ]
     }
   ]
 }
