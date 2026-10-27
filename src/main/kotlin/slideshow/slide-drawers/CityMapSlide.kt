@@ -99,8 +99,8 @@ class CityMapSlide(
      * handed — the same fit `present` uses to put the canvas in the window, and for the
      * same reason: a pane of another shape should letterbox rather than distort.
      */
-    private val paneWidth: Int = 1920,
-    private val paneHeight: Int = 1080,
+    private val paneWidth: Int = slideshow.Wall.paneWidth,
+    private val paneHeight: Int = slideshow.Wall.height,
     /** The cue under the flight. Stated in `Slideshow.kt` — see `mapCue` there. */
     override val sound: Sound? = null
 ) : Slide() {

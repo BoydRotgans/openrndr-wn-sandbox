@@ -28,8 +28,8 @@ import slideshow.frames
  * sheet names it.
  */
 class CourseIntro(
-    /** What the course is called: "1e gang". */
-    course: String,
+    /** What the course is called: "1ᵉ gang". */
+    private val course: String,
     /** The dish, set small under the house: "Ontkisten". Empty sets nothing. */
     idea: String,
     fontPath: String = "data/fonts/default.otf",
@@ -42,6 +42,8 @@ class CourseIntro(
         fontPath = fontPath, accent = accent)
 
     override val name = "Course intro"
+    // Its title is an id from before the menu numbered the courses; the autocue reads the course as the menu has it.
+    override val cueTitle = "StudioBuik · $course"
     override val buildsIn get() = false
     override val momentMusic get() = false
     override val settle get() = frames(NameTag.BUILT)

@@ -263,8 +263,8 @@ class ObjectChapterPanel(
      * see [Sound], and `chapterCue` there for the value every chapter is given.
      */
     override val sound: Sound? = null,
-    private val paneWidth: Int = 1920,
-    private val paneHeight: Int = 1080
+    private val paneWidth: Int = slideshow.Wall.paneWidth,
+    private val paneHeight: Int = slideshow.Wall.height
 ) : Slide(), MosaicCard {
     override val name get() = section.chapter.ifBlank { "Panel" }
     override val transition = Cut

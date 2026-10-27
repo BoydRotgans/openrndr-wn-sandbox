@@ -82,8 +82,8 @@ class ShadowMosaic(
     /** Each mark's triangles about its centre at height 1, y up, and its proportion. Read in [load]. */
     private val marks: () -> List<Pair<List<Vector2>, Double>>,
     /** The wall it composes for, in pixels; [draw] fits it into whatever it is given. */
-    private val wallWidth: Double = 3840.0,
-    private val wallHeight: Double = 1080.0,
+    private val wallWidth: Double = slideshow.Wall.width.toDouble(),
+    private val wallHeight: Double = slideshow.Wall.height.toDouble(),
     /** Coarse cells across for the dim field, and for the finer packing the light stands. */
     private val columns: Int = 12,
     private val innerColumns: Int = 24,
@@ -94,7 +94,7 @@ class ShadowMosaic(
      */
     private val boxColumns: Int? = null,
     /** The width of one projector: the boxes are dealt per projector and never cross the seam. */
-    private val pane: Double = 1920.0,
+    private val pane: Double = slideshow.Wall.paneWidth.toDouble(),
     /** How readily a box splits again at each depth, on the grid of coarse cells. */
     private val boxSplit: List<Double> = listOf(1.0, 0.85, 0.6, 0.35),
     /** Seconds a circle takes to fill its box, and a box stands full, light and then dark. */

@@ -87,6 +87,9 @@ import slideshow.drawers.nodes
  * a colour has been read.
  */
 private val colours = slideshow.Brand.use(Env["SLIDES_COLOURS"])
+// The wall's size, before any drawer that lays itself out in `load` asks for it: two 1920 by 730 halves since
+// 27 October 2026, each standing at the foot of its 1920 by 1080 projector. See [slideshow.Wall].
+private val wallSize = slideshow.Wall.use(Env["SLIDES_WIDTH"]?.toIntOrNull(), Env["SLIDES_HEIGHT"]?.toIntOrNull())
 // The two projectors and where the wall's halves stand on them, set in the organizer's Projection tab.
 private val projectorsFile = slideshow.Projectors.use(Env["SLIDES_PROJECTORS"])
 
@@ -278,12 +281,18 @@ val ambience = slideshow.Sound(
  */
 val musicFolder = File(Env["SLIDES_MUSIC"] ?: "data/sounds/course-soundtracks")
 val musicGain = Env["SLIDES_MUSIC_GAIN"]?.toDoubleOrNull() ?: 0.45
-// On hold since 22 October 2026 ("too cryptic"): the 1e gang plays Main, shuffled, instead.
+// On hold since 22 October 2026 ("too cryptic"): the 1ᵉ gang plays Main, shuffled, instead.
 val aperitifBed = coursePlaylist(musicFolder, "Aperitif", gain = musicGain)
 val starterBed = coursePlaylist(musicFolder, "Starter", gain = musicGain)
 val mainBed = coursePlaylist(musicFolder, "Main", gain = musicGain)
-/** Main's tracks in another order, for the 1e gang: a join and a place of its own, so Main under the 3e gang still starts at its top. */
+/** Main's tracks in another order, for the 1ᵉ gang: a join and a place of its own, so Main under the 3ᵉ gang still starts at its top. */
 val mainShuffledBed = coursePlaylist(musicFolder, "Main", name = "main-shuffled", gain = musicGain, shuffle = 28L)
+/**
+ * Main's tracks in a third order, for the 4ᵉ gang (27 October 2026: the kit wall was not to sound like the climb wall
+ * before it). It went on from where the 3ᵉ gang's Main stopped, which is the same order whenever both start fresh.
+ * Seed 229 opens on The Sinner, Promise, On Call and Float: none of the first three of Main or of the 1ᵉ gang's.
+ */
+val mainThirdBed = coursePlaylist(musicFolder, "Main", name = "main-third", gain = musicGain, shuffle = 229L)
 val dessertBed = coursePlaylist(musicFolder, "Dessert", gain = musicGain)
 
 /**
@@ -813,8 +822,8 @@ fun slideshow.ChapterBuilder.opening(start: ChapterStart, title: String, notes: 
  * to say. The sentences are DRAFTS from the script plan's bridges, for WN to approve; the
  * slide's id is `kernboodschap-<n>`.
  */
-fun slideshow.ChapterBuilder.takeaway(n: Int, sentence: String) = slide(
-    QuoteSlide(sentence, boldFont, lines = 4),
+fun slideshow.ChapterBuilder.takeaway(n: Int, sentence: String, lines: Int = 4) = slide(
+    QuoteSlide(sentence, boldFont, lines = lines),
     title = "Kernboodschap $n",
     notes = "De kernboodschap van hoofdstuk $n, vóór de gang: één zin, en een vraag voor aan tafel " +
             "om tijdens het eten over te praten (meeting van 30 september). DRAFT wording, voor Erik."
@@ -1042,7 +1051,7 @@ fun cityMosaic(
             loadMarkTemplates(File(Env["SLIDES_HIGHLIGHT_MARKS"] ?: "data/svg/subset_svg"))
                 .map { it.triangles to it.aspect }
         },
-        wallWidth = if (wall) 3840.0 else 1920.0,
+        wallWidth = if (wall) slideshow.Wall.width.toDouble() else slideshow.Wall.paneWidth.toDouble(),
         boxColumns = if (wall) 4 else 2,        // boxes cut on two coarse cells to a projector,
         columns = if (wall) 8 else 4,           // packed finer: at 4 a dark box was one slab
         innerColumns = if (wall) 16 else 12,  // a pane: a building of three needs a strip the roads leave
@@ -1100,8 +1109,10 @@ val show = slideshow {
 
     // --- how it is shown --------------------------------------------------- //
 
-    canvas(3840, 1080)      // the frame everything is composed at: two 1920x1080
-                            // sides, flush against each other
+    canvas(slideshow.Wall.width, slideshow.Wall.height)
+                            // the frame everything is composed at: two 1920x730
+                            // sides, flush against each other, each at the foot
+                            // of its 1920x1080 projector
     window(1.0)             // how much of the screen the window takes
     title("openrndr")
     slideBed(slideLoop)     // the base loop under the slides; walls and scenes play their own
@@ -1118,23 +1129,25 @@ val show = slideshow {
     // folders for five courses, so the third course carries on through Main from where the second
     // stopped, and hears other tracks. No Aperitif moment since 30 September: the amuse is served in
     // the reception room, so the Aperitif playlist opens the dinner.
-    // The Aperitif playlist is on hold (22 October 2026: "too cryptic"); the 1e gang plays Main's tracks, shuffled.
+    // The Aperitif playlist is on hold (22 October 2026: "too cryptic"); the 1ᵉ gang plays Main's tracks, shuffled.
+    // And the 4ᵉ gang no longer carries on through the 3ᵉ gang's Main: it plays Main in an order of its own
+    // (27 October 2026), so the kit wall never sounds like the climb wall before it.
     music("Opening course", mainShuffledBed)
     music("First course", starterBed)
     music("Second course", mainBed)
-    music("Third course", mainBed)
+    music("Third course", mainThirdBed)
     music("Dessert", dessertBed)
     music("Exit", endingTrack)
 
     // The courses as the menu names them (Menu WN, 22 October 2026): five, numbered, each by its dish. The order
     // file keeps its English names, which the music above is keyed to; the autocue's header, the speaker's sheets and
     // the rehearsal page say these. The programme and the StudioBuik walls below carry the same words.
-    momentTitle("Opening course", "1e gang")
-    momentTitle("First course", "2e gang")
-    momentTitle("Second course", "3e gang")
-    momentTitle("Third course", "4e gang")
+    momentTitle("Opening course", "1ᵉ gang")
+    momentTitle("First course", "2ᵉ gang")
+    momentTitle("Second course", "3ᵉ gang")
+    momentTitle("Third course", "4ᵉ gang")
     momentTitle("Questions", "Case studies en vragen")
-    momentTitle("Dessert", "5e gang")
+    momentTitle("Dessert", "5ᵉ gang")
 
     // The left pane: the chapter, set as large as it will go, white on black. One
     // card per section, standing for as long as the show is in it — see
@@ -1264,19 +1277,19 @@ val show = slideshow {
                 entries = listOf(
                     Entry("Opening"),
                     Entry("De wereld van bouwen", chapter = true, message = chapterMessages[0]),
-                    Entry("1e gang · Voedsellandschap op beton & Gieten"),
+                    Entry("1ᵉ gang · Voedsellandschap op beton & Gieten"),
                     Entry("Waardekader en verantwoordelijkheid", chapter = true, message = chapterMessages[1]),
-                    Entry("2e gang · Ontkisten"),
+                    Entry("2ᵉ gang · Ontkisten"),
                     Entry("Beton: ruggengraat en transitie", chapter = true, message = chapterMessages[2]),
-                    Entry("3e gang · Uitharden"),
+                    Entry("3ᵉ gang · Uitharden"),
                     // "Denken en doen" from the programme on (meeting of 30 September); the chapter's own
                     // title on its card is unchanged, its rename having been dropped.
                     Entry("The Circle: een nieuwe manier van denken en doen", chapter = true, message = chapterMessages[3]),
-                    Entry("4e gang · Circulair"),
+                    Entry("4ᵉ gang · Circulair"),
                     // The case studies play before the questions, so the programme names both (15 October 2026).
                     Entry("Case studies en vragen"),
-                    // No Uitloop: the programme ends on the dessert (15 October 2026), the menu's 5e gang.
-                    Entry("5e gang · Reflectie")
+                    // No Uitloop: the programme ends on the dessert (15 October 2026), the menu's 5ᵉ gang.
+                    Entry("5ᵉ gang · Reflectie")
                 ),
                 boldPath = boldFont,
                 textPath = textFont,
@@ -1308,11 +1321,11 @@ val show = slideshow {
     // menu numbered the courses: kept, so the order file, the sound design and the autocue still find them.
     // See CourseIntro.
     listOf(
-        Triple("1e gang", "Voedsellandschap op beton & Gieten", "voorgerecht"),
-        Triple("2e gang", "Ontkisten", "eerste gang"),
-        Triple("3e gang", "Uitharden", "tweede gang"),
-        Triple("4e gang", "Circulair", "derde gang"),
-        Triple("5e gang", "Reflectie", "dessert")
+        Triple("1ᵉ gang", "Voedsellandschap op beton & Gieten", "voorgerecht"),
+        Triple("2ᵉ gang", "Ontkisten", "eerste gang"),
+        Triple("3ᵉ gang", "Uitharden", "tweede gang"),
+        Triple("4ᵉ gang", "Circulair", "derde gang"),
+        Triple("5ᵉ gang", "Reflectie", "dessert")
     ).forEach { (course, idea, name) ->
         backdrop(
             CourseIntro(course, idea, fontPath = boldFont, accent = wnRed),
@@ -2185,8 +2198,11 @@ val show = slideshow {
             notes = "Verhaallijn hoofdstuk 4 (The Circle): Intervest, ons eerst verkochte " +
                     "Circle-pand, de buitenkant. Wording to be confirmed by WN."
         )
-        takeaway(4, "Eén keten, verantwoorde keuzes, kennis van beton en circulair bouwen: dat is de " +
-                "toegevoegde waarde van Willy Naessens. Een vraag voor aan tafel: met wie bouwt u verder?")
+        // In line with what Erik says over it (27 October 2026, the voice-over leading): his four themes in a line,
+        // then his closing question word for word, where the wall had said "met wie bouwt u verder?" and the
+        // toegevoegde waarde, which he no longer says. Six lines, so the question stands on lines of its own.
+        takeaway(4, "De bouwketen, onze keuzes, beter beton en The Circle. Uiteindelijk gaat het om één vraag: " +
+                "hoe bouwen we vandaag goed, zonder de mogelijkheden van morgen uit het oog te verliezen?", lines = 6)
     }
 
     // The yard: the catalogue's pieces in the round, side by side at one height on a
@@ -2880,6 +2896,7 @@ fun Show.withEnv(prefix: String = "SLIDES"): Show = copy(
         recorder = Env["${prefix}_RECORDER"]?.takeIf { it.isNotBlank() } ?: settings.recorder,
         recordCrf = Env["${prefix}_RECORD_CRF"]?.toIntOrNull() ?: settings.recordCrf,
         stills = Env.boolean("${prefix}_STILLS"),
+        stillHold = Env["${prefix}_STILL_HOLD"]?.toDoubleOrNull()?.takeIf { it > 0.0 } ?: settings.stillHold,
         bench = Env.boolean("${prefix}_BENCH"),
         benchSamples = Env["${prefix}_BENCH_SAMPLES"]?.toIntOrNull() ?: settings.benchSamples,
         waitForFinish = Env["${prefix}_WAIT_FOR_FINISH"]?.let { Env.boolean("${prefix}_WAIT_FOR_FINISH") } ?: settings.waitForFinish,

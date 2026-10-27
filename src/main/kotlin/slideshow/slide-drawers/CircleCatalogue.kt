@@ -79,7 +79,7 @@ class CircleCatalogue(
     /** The WN mark's centreline as an svg; null or missing stands a plain ring open at the top in its place. */
     private val path: File?,
     private val boldPath: String,
-    val pane: Vector2 = Vector2(1920.0, 1080.0),
+    val pane: Vector2 = slideshow.Wall.pane,
     /** The corner the camera holds, in degrees round: the webtool's. */
     val yaw: Double = 45.0,
     /** The catalogue's colour, and the tone a piece lands in on the ring before it settles into it. */

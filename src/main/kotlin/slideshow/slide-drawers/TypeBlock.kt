@@ -118,9 +118,11 @@ fun FontImageMap.setToFit(
     box: Rectangle,
     size: Double,
     leading: Double,
-    lines: Int? = null
+    lines: Int? = null,
+    /** Break it as a passage is read rather than as it fills a measure — see [compactLines]. For the quotes. */
+    compact: Boolean = false
 ): TypeBlock {
-    val broken = breakLines(text, box, size, leading, lines) { advanceOf(it) }
+    val broken = breakLines(text, box, size, leading, lines, compact) { advanceOf(it) }
     val widest = broken.maxOf { advanceOf(it) }.coerceAtLeast(1.0)
     val scale = minOf(box.width / widest, box.height / (broken.size * leading * size))
     return TypeBlock(broken, scale, size, leading, this)
@@ -132,12 +134,84 @@ fun FontImageMap.setToFit(
  * from the face's outlines this way and so breaks it exactly where [QuoteSlide] would.
  */
 fun breakLines(
-    text: String, box: Rectangle, size: Double, leading: Double, lines: Int?, advance: (String) -> Double
+    text: String, box: Rectangle, size: Double, leading: Double, lines: Int?, compact: Boolean = false,
+    advance: (String) -> Double
 ): List<String> = when {
     '\n' in text -> text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+    compact -> compactLines(text, box, size, leading, lines, advance)
     lines != null -> over(text, lines, advance)
     else -> biggest(text, box, size, leading, advance)
 }
+
+/**
+ * [text] broken as a passage is read, compact (27 October 2026, after a red mark-up of the third takeaway): every
+ * sentence on a line of its own, the lines as even as they can be, and no word left alone on one. Filling each
+ * line as far as it goes — [over] and [biggest] — runs one sentence on into the next mid-line and leaves "van?"
+ * on a line by itself.
+ *
+ * The lines are chosen together, the least cost over every way of breaking: each line costs the square of how
+ * far it is off the average, so the block comes out even; a sentence that ends inside a line with the next
+ * starting after it costs [SENTENCE_RUN_ON]; a word alone on a line [WORD_ALONE]. Two nudges much smaller than
+ * those: a line ending at a comma or a colon, where the sentence pauses anyway, costs a little less, and one
+ * hanging on a short word ("de", "met") a little more. With [lines] it is that many lines; without, the count
+ * that sets the type within [CLOSE_ENOUGH] of the largest and breaks it best.
+ */
+fun compactLines(
+    text: String, box: Rectangle, size: Double, leading: Double, lines: Int?, advance: (String) -> Double
+): List<String> {
+    val ps = pieces(text)
+    if (ps.size <= 1) return listOf(text.trim())
+    class Option(val lines: List<String>, val cost: Double, val scale: Double)
+    val options = (if (lines != null) listOf(lines) else (1..minOf(MOST_LINES, ps.size)).toList()).mapNotNull { n ->
+        balanced(ps, n, advance)?.let { (broken, cost) ->
+            val widest = broken.maxOf(advance).coerceAtLeast(1.0)
+            Option(broken, cost, minOf(box.width / widest, box.height / (broken.size * leading * size)))
+        }
+    }
+    if (options.isEmpty()) return wrap(text, box.width, advance)
+    val top = options.maxOf { it.scale }
+    return options.filter { it.scale >= CLOSE_ENOUGH * top }.minBy { it.cost }.lines
+}
+
+/** [ps] over exactly [n] lines at the least cost [compactLines] describes, and that cost; null where they will not go. */
+private fun balanced(ps: List<Piece>, n: Int, advance: (String) -> Double): Pair<List<String>, Double>? {
+    val count = ps.size
+    if (n < 1 || n > count) return null
+    fun line(a: Int, b: Int) = buildString { for (k in a until b) { if (k > a) append(ps[k].glue); append(ps[k].text) } }
+    val width = Array(count) { a -> DoubleArray(count + 1) { b -> if (b > a) advance(line(a, b)) else 0.0 } }
+    val average = advance(line(0, count)) / n
+    val ends = BooleanArray(count) { SENTENCE_END.containsMatchIn(ps[it].text) }
+    val best = Array(n + 1) { DoubleArray(count + 1) { Double.POSITIVE_INFINITY } }
+    val from = Array(n + 1) { IntArray(count + 1) { -1 } }
+    best[0][0] = 0.0
+    for (k in 1..n) for (j in k..count) for (i in (k - 1) until j) {
+        if (best[k - 1][i].isInfinite()) continue
+        var c = (width[i][j] / average - 1.0).let { it * it }
+        for (t in i until j - 1) if (ends[t]) c += SENTENCE_RUN_ON
+        if (j - i == 1 && n > 1) c += WORD_ALONE
+        if (j < count) {
+            val last = ps[j - 1].text
+            if (last.last() in ",:;") c -= AT_A_PAUSE
+            else if (last.trim('“', '”', '"', '\'').length <= 3) c += ON_A_SHORT_WORD
+        }
+        if (best[k - 1][i] + c < best[k][j]) { best[k][j] = best[k - 1][i] + c; from[k][j] = i }
+    }
+    if (best[n][count].isInfinite()) return null
+    val cuts = mutableListOf<Pair<Int, Int>>()
+    var j = count
+    for (k in n downTo 1) { val i = from[k][j]; cuts += i to j; j = i }
+    return cuts.reversed().map { (a, b) -> line(a, b) } to best[n][count]
+}
+
+/** A piece that ends a sentence: a full stop, a question or an exclamation mark, a closing quote after it or not. */
+private val SENTENCE_END = Regex("[.?!][”\"’']?$")
+private const val SENTENCE_RUN_ON = 0.6
+private const val WORD_ALONE = 1.0
+private const val AT_A_PAUSE = 0.05
+private const val ON_A_SHORT_WORD = 0.03
+/** How much smaller than the largest a count may set the type and still be chosen for breaking better. */
+private const val CLOSE_ENOUGH = 0.9
+private const val MOST_LINES = 8
 
 /**
  * The breaking that lets the type be biggest: the largest scale that fits both ways.
@@ -271,12 +345,41 @@ fun subscriptRuns(piece: String): List<Pair<String, Boolean>> {
     return out
 }
 
-/** How wide [piece] sets in this face, in font units, its subscripts counted at their own size. */
+/**
+ * The modifier letters set raised, as [SUPERSCRIPT_LETTERS] maps them: the course names say "1ᵉ gang" (27 October
+ * 2026), and Rockwell has no `ᵉ` either — checked in its cmap — so it is set the way a subscript is, the ordinary
+ * letter at [SUP] of the size raised [SUP_RISE] of an em, its top about level with the capitals.
+ */
+const val SUPERSCRIPTS = "ᵃᵇᵈᵉᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻ"
+const val SUPERSCRIPT_LETTERS = "abdeghijklmnoprstuvwxyz"
+const val SUP = 0.62
+const val SUP_RISE = 0.34
+
+/** [piece] in runs, each with its shift: -1 a subscript run, 1 a superscript run, 0 ordinary, all as plain characters. */
+fun scriptRuns(piece: String): List<Pair<String, Int>> {
+    val out = mutableListOf<Pair<String, Int>>()
+    val run = StringBuilder()
+    var shift = 0
+    for (c in piece) {
+        val digit = SUBSCRIPTS.indexOf(c)
+        val letter = SUPERSCRIPTS.indexOf(c)
+        val now = if (digit >= 0) -1 else if (letter >= 0) 1 else 0
+        if (now != shift && run.isNotEmpty()) {
+            out += run.toString() to shift; run.clear()
+        }
+        shift = now
+        run.append(if (digit >= 0) '0' + digit else if (letter >= 0) SUPERSCRIPT_LETTERS[letter] else c)
+    }
+    if (run.isNotEmpty()) out += run.toString() to shift
+    return out
+}
+
+/** How wide [piece] sets in this face, in font units, its subscripts and superscripts counted at their own size. */
 fun FontImageMap.advanceWithSubscripts(piece: String): Double =
-    subscriptRuns(piece).sumOf { (run, lowered) -> advanceOf(run) * if (lowered) SUB else 1.0 }
+    scriptRuns(piece).sumOf { (run, shift) -> advanceOf(run) * when (shift) { -1 -> SUB; 1 -> SUP; else -> 1.0 } }
 
 /**
- * One line of [piece] in [face] at [size] pane pixels, its subscripts set, ranged by [align]
+ * One line of [piece] in [face] at [size] pane pixels, its subscripts and superscripts set, ranged by [align]
  * about [at] — 0 for left, 0.5 for centred, 1 for right. [em] is the size the face was loaded
  * at, which is what the scale is taken against.
  */
@@ -288,14 +391,15 @@ fun Drawer.setLine(piece: String, face: FontImageMap, at: Vector2, size: Double,
         translate(at)
         scale(scale)
         var x = -face.advanceWithSubscripts(piece) * align
-        for ((run, lowered) in subscriptRuns(piece)) {
-            if (lowered) {
+        for ((run, shift) in scriptRuns(piece)) {
+            if (shift != 0) {
+                val k = if (shift < 0) SUB else SUP
                 isolated {
-                    translate(x, em * SUB_DROP)
-                    scale(SUB)
+                    translate(x, if (shift < 0) em * SUB_DROP else -em * SUP_RISE)
+                    scale(k)
                     text(run, 0.0, 0.0)
                 }
-                x += face.advanceOf(run) * SUB
+                x += face.advanceOf(run) * k
             } else {
                 text(run, x, 0.0)
                 x += face.advanceOf(run)

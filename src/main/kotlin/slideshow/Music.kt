@@ -26,7 +26,7 @@ import kotlin.random.Random
  * No ffmpeg, or no tracks, is an ordinary state: the [Sound] then names a file that is not there
  * and the deck runs silent for that wall, as it does for any missing cue.
  *
- * [shuffle], a seed, deals the tracks in another order, the same every start: the 1e gang plays Main that way
+ * [shuffle], a seed, deals the tracks in another order, the same every start: the 1ᵉ gang plays Main that way
  * (22 October 2026), under its own name, so it is its own buffer with its own place and leaves Main's alone.
  */
 fun playlist(

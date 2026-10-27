@@ -306,8 +306,8 @@ class LifeCycleKey(
 
     // --- the build as a score ------------------------------------------------------------- //
 
-    private var paneW = 1920.0
-    private var paneH = 1080.0
+    private var paneW = slideshow.Wall.paneWidth.toDouble()
+    private var paneH = slideshow.Wall.height.toDouble()
 
     override fun layOut(width: Int, height: Int) {
         paneW = width.toDouble()

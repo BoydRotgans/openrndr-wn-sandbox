@@ -148,8 +148,8 @@ class ScaleScene(
      * the packing is worked out in [load], which is not told the wall — and packing on the first
      * frame instead put a hitch on the cut into it. `draw` fits this into whatever it is given.
      */
-    private val wallWidth: Double = 3840.0,
-    private val wallHeight: Double = 1080.0,
+    private val wallWidth: Double = slideshow.Wall.width.toDouble(),
+    private val wallHeight: Double = slideshow.Wall.height.toDouble(),
     /**
      * The people obj the Crowd slide reads, for scale figures standing among the pieces. Null, or a
      * file that is not there, leaves the pieces on their own.

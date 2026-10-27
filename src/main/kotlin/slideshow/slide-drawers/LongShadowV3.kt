@@ -1141,7 +1141,7 @@ class LongShadowV3(
         // The atlas's own glyph scale at [EM]: `loadFont` sizes a face by its ascender-to-descender
         // height, not its em, so this is what "a face loaded at 160" means in the face's units.
         val atlas = EM * fontHeightScaler(face)
-        val lines = breakLines(q.broken, box, EM, leading, q.lines) { faceAdvance(it, atlas) }
+        val lines = breakLines(q.broken, box, EM, leading, q.lines, compact = true) { faceAdvance(it, atlas) }
         if (lines.isEmpty()) return@getOrPut null
         val scale = min(box.width / lines.maxOf { faceAdvance(it, atlas) }.coerceAtLeast(1.0), box.height / (lines.size * leading * EM))
         val k = atlas * scale                     // the glyphs' scale as drawn
@@ -2149,8 +2149,9 @@ class LongShadowV3(
 
     private companion object {
         /** The pane the card composes for; [draw] fits it into whatever bounds it is given. */
-        const val WIDE = 1920.0
-        const val HIGH = 1080.0
+        // One projector's half, as the show composes it: 1920 by 730 since 27 October 2026 (see [slideshow.Wall]).
+        val WIDE: Double get() = slideshow.Wall.paneWidth.toDouble()
+        val HIGH: Double get() = slideshow.Wall.height.toDouble()
         /** A piece filling this much of its box counts as a rectangle and may be stretched freely. */
         const val SQUARE_CUT = 0.93
         /** A leaving tower this share of its height or less is hidden rather than drawn nearly flat. */

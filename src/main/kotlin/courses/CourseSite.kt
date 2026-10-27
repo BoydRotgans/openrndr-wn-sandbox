@@ -75,12 +75,12 @@ fun loadMarkShapes(dir: File): List<MarkShape> =
  */
 class Site(
     val marks: List<MarkShape>,
-    val width: Double = 3840.0,
-    val height: Double = 1080.0,
+    val width: Double = CourseCanvas.width.toDouble(),
+    val height: Double = CourseCanvas.height.toDouble(),
     private val seed: Int = 21,
     val columns: Int = 12,
     private val innerColumns: Int = 24,
-    private val pane: Double = 1920.0,
+    private val pane: Double = CourseCanvas.width / 2.0,
     private val boxSplit: List<Double> = listOf(1.0, 0.85, 0.6, 0.35),
     private val gap: Double = 1.0,
     /** The box cycle, as the Opening course runs it: 30 s to fill, 18 s to stand, twice. */
@@ -196,8 +196,8 @@ class Site(
  */
 fun runCourse(
     name: String, preview: Double = 30.0,
-    /** The canvas, 3840 x 1080 for a wall; a course that composes for one projector says 1920. */
-    canvasWidth: Int = 3840, canvasHeight: Int = 1080,
+    /** The canvas, the show's wall (3840 x 730 since 27 October 2026); a course that composes for one projector says 1920. */
+    canvasWidth: Int = slideshow.Wall.width, canvasHeight: Int = slideshow.Wall.height,
     course: Program.() -> (Drawer, Double) -> Unit
 ) = application {
     // The window shows the canvas at COURSE_WINDOW of its size; left empty, as large as fits 1920 wide — a
@@ -329,10 +329,13 @@ fun runCourse(
     }
 }
 
-/** The canvas the course is composed at, for a course that has to know the frame before it draws. */
+/**
+ * The canvas the course is composed at, for a course that has to know the frame before it draws: the show's wall
+ * (3840 x 730 since 27 October 2026) unless [runCourse] or the show's [CourseBackdrop] says otherwise.
+ */
 object CourseCanvas {
-    @Volatile var width: Int = 3840
-    @Volatile var height: Int = 1080
+    @Volatile var width: Int = slideshow.Wall.width
+    @Volatile var height: Int = slideshow.Wall.height
 }
 
 /**

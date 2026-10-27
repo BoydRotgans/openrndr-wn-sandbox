@@ -47,8 +47,9 @@ class Swivel01Slide(
         // other way round: `across` decides how much is seen and the height follows the
         // pane's own shape, which is what lets a 4:1 sketch sit in a 16:9 slide without
         // being stretched into it.
-        val halfWidth = across / 2.0
-        val halfHeight = halfWidth * stage.height / stage.width
+        // [across] is the world a 16:9 pane shows; a wider pane keeps that pane's height and shows more at the sides.
+        val halfHeight = maxOf(across * stage.height / stage.width, across * 9.0 / 16.0) / 2.0
+        val halfWidth = halfHeight * stage.width / stage.height
         drawer.ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1000.0, 1000.0)
         drawer.lookAt(Vector3(0.0, 300.0, -300.0), Vector3.ZERO)
 

@@ -176,6 +176,8 @@ data class Settings(
     val recordCrf: Int? = null,
     /** Write one png per click of every slide to screenshots/ and quit. */
     val stills: Boolean = false,
+    /** Seconds each still waits after its cut before it is taken; null for the engine's own 95 frames. */
+    val stillHold: Double? = null,
     /**
      * Time every state of the running order instead of showing it, and quit: each state is drawn
      * [benchSamples] times across its hold, the GPU finished after every draw, and the cost is
@@ -393,7 +395,7 @@ data class Settings(
     val momentMusic: Map<String, Sound> = emptyMap(),
     /**
      * What a moment is called on the speaker's screen, by the order file's name for it: the order names its moments
-     * in English, the evening is run in Dutch ("Opening course" is the menu's "1e gang"). Unnamed, the order's own.
+     * in English, the evening is run in Dutch ("Opening course" is the menu's "1ᵉ gang"). Unnamed, the order's own.
      */
     val momentTitles: Map<String, String> = emptyMap(),
 

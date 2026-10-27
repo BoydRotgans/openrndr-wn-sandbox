@@ -28,6 +28,13 @@ abstract class Slide : MidiTimed {
     /** Shown in the debug overlay and matched by `SLIDES_START`. */
     open val name: String get() = this::class.simpleName ?: "slide"
 
+    /**
+     * What the speaker reads this slide as on the autocue, where its title — which is its id, and so fixed — says
+     * something else; null reads the title. The StudioBuik walls keep the titles they had before the menu numbered
+     * the courses ("StudioBuik: eerste gang" is the 2ᵉ gang), so they say which course they are here.
+     */
+    open val cueTitle: String? get() = null
+
     /** How many clicks this slide holds. 1 is a slide you click straight past. */
     open val steps: Int get() = 1
 

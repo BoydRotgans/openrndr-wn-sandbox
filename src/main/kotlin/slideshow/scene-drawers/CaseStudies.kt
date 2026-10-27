@@ -104,7 +104,7 @@ class CaseStudies(
      */
     private val cycle: Double? = null,
     /** The wall everything is laid out for; `draw` fits it into whatever it gets. */
-    private val wall: Vector2 = Vector2(3840.0, 1080.0),
+    private val wall: Vector2 = slideshow.Wall.size,
     /** What the opening sounds like: the project highlights' own, since the effect is theirs. */
     private val arrival: Sound? = null,
     /** What every handover sounds like, on the wall's own clock or on a click: the highlights' click. */

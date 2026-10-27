@@ -108,6 +108,8 @@ class CourseBackdrop(
 
     override fun load(program: Program) {
         val started = System.currentTimeMillis()
+        // Composed at the wall's size, which a wall laid out in its build reads off the course canvas.
+        CourseCanvas.width = slideshow.Wall.width; CourseCanvas.height = slideshow.Wall.height
         frame = Env.with(values) { wall.make(program) }
         println("course wall: $sketch built in ${System.currentTimeMillis() - started} ms")
     }

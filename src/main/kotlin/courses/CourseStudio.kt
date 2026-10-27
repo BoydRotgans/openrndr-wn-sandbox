@@ -50,7 +50,7 @@ import java.io.File
 fun main() = application {
     configure {
         width = 1920
-        height = 540
+        height = 1920 * slideshow.Wall.height / slideshow.Wall.width
         title = "course studio"
         windowResizable = true
     }
@@ -75,8 +75,11 @@ fun main() = application {
         // The plate and the saved views are hidden until `h` asks for them, so the window is the wall.
         var plate = Env.boolean("COURSE_PLATE")
 
-        val canvas = renderTarget(3840, 1080, multisample = BufferMultisample.SampleCount(8)) { colorBuffer(); depthBuffer() }
-        val resolved = colorBuffer(3840, 1080)
+        // The show's wall, 3840 by 730 since 27 October 2026, so a wall is judged at the size it is shown at.
+        val wallW = slideshow.Wall.width
+        val wallH = slideshow.Wall.height
+        val canvas = renderTarget(wallW, wallH, multisample = BufferMultisample.SampleCount(8)) { colorBuffer(); depthBuffer() }
+        val resolved = colorBuffer(wallW, wallH)
         val font = runCatching { loadFont("data/fonts/default.otf", 18.0) }.getOrNull()
 
         // The show's own concrete wall, off the show's own keys, laid over the picture where it meets
@@ -87,7 +90,7 @@ fun main() = application {
             Env["SLIDES_CONCRETE_SCALE"]?.toDoubleOrNull() ?: 1.0,
             Env["SLIDES_CONCRETE_FLOOR"]?.toDoubleOrNull() ?: 0.0
         )
-        val wallStyle = wall?.style(org.openrndr.math.Vector2(3840.0, 1080.0))
+        val wallStyle = wall?.style(org.openrndr.math.Vector2(wallW.toDouble(), wallH.toDouble()))
         var wallOn = wall != null && (Env["COURSE_WALL"]?.let { it == "true" } ?: true)
 
         // `r` films the wall as it plays, until `q`: every frame the window shows, at the studio's own 60 a second,
@@ -95,8 +98,8 @@ fun main() = application {
         // is the picture alone under the concrete wall when that is on, never the plate or the list,
         // at COURSE_RECORD_SCALE of the canvas.
         val recordScale = (Env["COURSE_RECORD_SCALE"]?.toDoubleOrNull() ?: 0.5).coerceIn(0.1, 1.0)
-        val rw = (3840 * recordScale).toInt() / 2 * 2
-        val rh = (1080 * recordScale).toInt() / 2 * 2
+        val rw = (wallW * recordScale).toInt() / 2 * 2
+        val rh = (wallH * recordScale).toInt() / 2 * 2
         val recordTarget = renderTarget(rw, rh) { colorBuffer() }
         val recordPixels = java.nio.ByteBuffer.allocateDirect(rw * rh * 4)
         var clip: slideshow.Clip? = null
@@ -221,9 +224,9 @@ fun main() = application {
             }
 
             // Fitted into the window, never stretched.
-            val scale = minOf(width / 3840.0, height / 1080.0)
-            val w = 3840.0 * scale
-            val h = 1080.0 * scale
+            val scale = minOf(width / wallW.toDouble(), height / wallH.toDouble())
+            val w = wallW * scale
+            val h = wallH * scale
             drawer.clear(ColorRGBa.BLACK)
             drawer.isolated {
                 if (wallOn) drawer.shadeStyle = wallStyle

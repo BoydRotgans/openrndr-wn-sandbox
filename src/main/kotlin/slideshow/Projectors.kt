@@ -32,7 +32,8 @@ import kotlin.math.min
  * [width] and [height] are the display's size as macOS gives it, in points — its resolution, for a
  * projector that is not in a scaled mode. [x] and [y] are where the half's top left corner stands on
  * the projector, in the projector's own pixels, and [scale] how large the half is drawn there: 1 is
- * its 1920 by 1080 pixel for pixel, so a 1920 by 1200 projector shows it whole with 120 to spare.
+ * the half pixel for pixel, so a 1920 by 1080 projector shows a 1920 by 730 half whole with 350 to spare,
+ * which goes above it: the half stands at the projector's foot ([Projectors.plain]).
  * [model] names the projector where it was chosen by model in the tab — the Epson EB-G7905U, say —
  * and is only a label: the size is what the window is opened at.
  */
@@ -82,7 +83,9 @@ data class ProjectorSetup(
  * Where the wall's two halves go on two projectors of whatever resolution — set on site, in the
  * organizer's Projection tab, and kept in `show-projection.json` (`SLIDES_PROJECTORS`).
  *
- * **The wall is two 1920 by 1080 halves, and a projector need not be 1920 by 1080.** A 1920 by 1200
+ * **The wall is two halves of the canvas — 1920 by 730 since 27 October 2026 — and a projector need not be
+ * their size.** The projectors put out 1920 by 1080, but only the bottom 730 rows land on the screen, so each
+ * half stands at the foot of its projector with 350 rows of black above it. A 1920 by 1200
  * projector, or one that is 4K, shows its half somewhere inside itself; which way up, how far down
  * and how large is a matter of the room, found by looking at the wall. So each half has a place and
  * a scale on its projector, and the show's window spans the two projectors' own sizes rather than
@@ -117,8 +120,20 @@ object Projectors {
         null
     } ?: plain
 
-    /** The plain wall for a canvas [width] by [height]: a projector a half, each exactly its size. */
-    fun plain(width: Int, height: Int) = ProjectorSetup(Projector(width / 2, height), Projector(width / 2, height))
+    /**
+     * The wall with no setup written for it, for a canvas [width] by [height]: a projector a half, each putting out
+     * at least [OUTPUT_HEIGHT] rows, and the half standing at its foot. A 1080 canvas fills its projectors exactly,
+     * the wall as it always was; the 730 one the show composes at since 27 October 2026 stands at the bottom of each
+     * with 350 rows of black above it, since only the bottom of the picture lands on the screen.
+     */
+    fun plain(width: Int, height: Int): ProjectorSetup {
+        val output = maxOf(height, OUTPUT_HEIGHT)
+        val p = Projector(width / 2, output, y = (output - height).toDouble())
+        return ProjectorSetup(p, p)
+    }
+
+    /** The rows a projector puts out with no setup saying otherwise: 1920 by 1080, whatever the canvas. */
+    const val OUTPUT_HEIGHT = 1080
 
     /** The setup the running show's window was opened for; null in a process with no show. */
     @Volatile
@@ -128,7 +143,8 @@ object Projectors {
     @Synchronized
     fun save(setup: ProjectorSetup) {
         val o = buildJsonObject {
-            put("about", "The two projectors of the wall and where its 1920x1080 halves stand on them, set in the organizer's Projection tab. " +
+            put("about", "The two projectors of the wall and where its halves (the canvas's, 1920x730 since 27 October 2026) stand on them, set in the organizer's Projection tab. " +
+                    "A half stands at the foot of its projector, y = projector height - half height (350 on a 1920x1080 projector), with black above it. " +
                     "width and height are each projector's size in points, read at the start; x, y and scale place the half on it and move the running show at once. " +
                     "desktop is the left projector's top left corner on the desktop, null for the first two of three screens besides the laptop, else the rightmost two. " +
                     "autocue is where the speaker's screen goes: place wall draws it over the canvas at x, y and scale; place window gives it a window of its own " +

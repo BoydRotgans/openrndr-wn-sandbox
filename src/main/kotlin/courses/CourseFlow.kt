@@ -77,8 +77,8 @@ fun Program.flowCourse(): (Drawer, Double) -> Unit {
     val windows = indices("WINDOWS", "9,10")
     val slabs = indices("SLABS", "3,4,6")
 
-    val width = 3840.0
-    val height = 1080.0
+    val width = CourseCanvas.width.toDouble()
+    val height = CourseCanvas.height.toDouble()
     val rows = key("ROWS")?.toIntOrNull() ?: 10
     val rowHeight = height / rows
     val panelWidth = rowHeight * number("PANEL_SHAPE", 1.8)

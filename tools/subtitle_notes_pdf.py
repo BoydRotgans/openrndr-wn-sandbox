@@ -68,8 +68,8 @@ TRACKS = {
 MOMENTS = {
     "Arrival": "Aankomst", "Opening": "Opening", "Aperitif": "Aperitief",
     # the courses as the printed menu numbers them (22 October 2026), as the show's autocue does
-    "Opening course": "1e gang", "First course": "2e gang",
-    "Second course": "3e gang", "Third course": "4e gang", "Questions": "Case studies en vragen", "Dessert": "5e gang",
+    "Opening course": "1ᵉ gang", "First course": "2ᵉ gang",
+    "Second course": "3ᵉ gang", "Third course": "4ᵉ gang", "Questions": "Case studies en vragen", "Dessert": "5ᵉ gang",
     "Exit": "Uitloop",
 }
 
@@ -77,11 +77,13 @@ MOMENTS = {
 WALLS = {
     "opening-scene": "Openingswand · de catalogus tekent zichzelf",
     "director-is-speaking": "Welkom door de directeur",
-    "studiobuik-voorgerecht": "StudioBuik · het voorgerecht",
-    "studiobuik-eerste-gang": "StudioBuik · de eerste gang",
-    "studiobuik-tweede-gang": "StudioBuik · de tweede gang",
-    "studiobuik-derde-gang": "StudioBuik · de derde gang",
-    "studiobuik-dessert": "StudioBuik · het dessert",
+    # the courses as the printed menu numbers them, as the walls and the autocue do (27 October 2026); the ids are
+    # from before the menu, so studiobuik-eerste-gang is the 2ᵉ gang
+    "studiobuik-voorgerecht": "StudioBuik · 1ᵉ gang",
+    "studiobuik-eerste-gang": "StudioBuik · 2ᵉ gang",
+    "studiobuik-tweede-gang": "StudioBuik · 3ᵉ gang",
+    "studiobuik-derde-gang": "StudioBuik · 4ᵉ gang",
+    "studiobuik-dessert": "StudioBuik · 5ᵉ gang",
     "plain": "Wand · staven van elementen",
     "sketch-flow-v2-out-of-a-concrete-block": "Wand · uit een blok beton",
     "shadow-mosaic": "Wand · schaduwmozaïek",
@@ -648,7 +650,9 @@ def build_html(track, order, where, heads, pics, lines, data, data_d, data_e, fi
         parts.append(f"<article class='state'>{''.join(pending)}</article>")
     parts.append(rehearsal)
     parts.append("</body></html>")
-    return "".join(parts)
+    # The courses say "1ᵉ gang" (27 October 2026); Rockwell has no ᵉ, so it is set as a raised e in the heading's own
+    # face rather than borrowed from another font, as the wall sets it.
+    return "".join(parts).replace("ᵉ", "<sup>e</sup>")
 
 
 HEAD = """<!doctype html><html lang="nl"><meta charset="utf-8"><title>{title}</title><style>
@@ -658,6 +662,7 @@ HEAD = """<!doctype html><html lang="nl"><meta charset="utf-8"><title>{title}</t
 body { margin: 0; font: 9.5pt/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #111; }
 .kicker { font-size: 7pt; letter-spacing: .16em; text-transform: uppercase; color: #999; margin-bottom: .8mm; }
 h1 { font-family: Rockwell, Georgia, serif; font-size: 18pt; line-height: 1.1; margin: 0 0 2mm; }
+sup { font-size: .62em; line-height: 0; vertical-align: .34em; }
 header.sheet { padding-bottom: 3mm; border-bottom: 1.2pt solid #111; margin-bottom: 2mm; }
 header.sheet .date { margin: 0; font-size: 8pt; color: #999; }
 

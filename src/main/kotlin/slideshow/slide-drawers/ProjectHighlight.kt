@@ -95,7 +95,7 @@ class ProjectHighlight(
     /** The elements the photos are seen through: a folder of svgs, one to a mark, or a sheet. */
     private val marks: File = File("data/svg/subset_svg"),
     /** The pane everything is laid out for; `draw` fits it into whatever pane it gets. */
-    private val pane: Vector2 = Vector2(1920.0, 1080.0),
+    private val pane: Vector2 = slideshow.Wall.pane,
     /**
      * How an element gives way to its whole cell in the dissolve: true fills the cell in one frame
      * on its turn — a count, one at a time, the house's instant removal — and false crossfades

@@ -261,7 +261,7 @@ class SlideOverview(
         const val BOX_PAD = 16.0
         const val SECTION_GAP = 26.0
         /** A preview is the whole wall, 3840 by 1080. */
-        const val THUMB_ASPECT = 1080.0 / 3840.0
+        val THUMB_ASPECT: Double get() = Wall.height.toDouble() / Wall.width
         /** The heading of the sketches at the foot, which stand outside the running order. */
         const val SHELF = "Schetsen en wanden · niet in de presentatie"
         const val HEADER_SIZE = 52.0

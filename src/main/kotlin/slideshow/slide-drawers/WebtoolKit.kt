@@ -89,7 +89,7 @@ class WebtoolKit(
     private val labels: List<String>,
     private val boldPath: String = "data/fonts/default.otf",
     private val palette: Palette = Palette.onBlack,
-    private val pane: Vector2 = Vector2(1920.0, 1080.0),
+    private val pane: Vector2 = slideshow.Wall.pane,
     /** The corner the camera holds, in degrees round. */
     private val yaw: Double = 45.0,
     /** The button the interface opens on, and its colour. */

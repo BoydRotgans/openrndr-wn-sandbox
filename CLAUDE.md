@@ -1002,8 +1002,8 @@ to the show and are dead while it is down.
 same arrangement as demo02 and Decision: one render target at `SLIDES_WIDTH` x
 `SLIDES_HEIGHT`, mipmapped, drawn into the window at `SLIDES_WINDOW_SCALE`. So the preview,
 a still and a recorded frame are the same pixels at different sizes, and the composition
-does not change with the window. The committed `.env` runs the 3840x1080 frame at half in
-the window. The canvas is *fitted* into the window rather than stretched to it, so
+does not change with the window. The committed `.env` runs the 3840x730 frame (see [the 1920 by 730
+wall](#the-1920-by-730-wall)) at half in the window. The canvas is *fitted* into the window rather than stretched to it, so
 `SLIDES_FULLSCREEN` on a projector of another shape letterboxes instead of distorting.
 
 That only pays off if slides lay out against `stage.bounds` rather than in fixed pixels.
@@ -1190,6 +1190,37 @@ is all of it.
 Checked on the running show by capturing its window before and after a live move: the halves stood where
 the file put them (60 down on a 1920x1200 projector; 100 across at 0.9 on the other), and the move reached
 the wall with the outlines on.
+
+#### The 1920 by 730 wall
+
+**Since 27 October 2026 each half is 1920 by 730, standing at the foot of its 1920 by 1080 projector.** The
+projectors still put out 1920 by 1080, but only the bottom 730 rows land on the screen, so the show composes at
+3840 by 730 (`SLIDES_WIDTH`/`SLIDES_HEIGHT`) and each half stands at y = 350 on its projector with black above it
+(`show-projection.json`). Nothing else changed in how the wall is driven:
+
+- **[`Wall`](src/main/kotlin/slideshow/Wall.kt) is the one number.** `Slideshow.kt` sets it from `SLIDES_WIDTH` and
+  `SLIDES_HEIGHT` first thing, as it sets the colours, and `canvas(...)` reads it. A drawer that lays itself out in
+  `load`, before it is handed a stage, reads it too rather than stating 1080: the city map, the domino, the webtool,
+  the highlights, the circle catalogue, the case studies, the long shadow cards and openings (`LongShadowV3.WIDE`
+  and `HIGH`), the shadow mosaic and the block city. Everything else lays out against `stage.bounds`, sizes off the
+  height, and needed nothing: type is two thirds of its old pixel size, still about twice the reading threshold
+  from the room.
+- **The projection lays each half at its projector's foot.** `ProjectorSplit` always placed a half at an x, y and
+  scale; the file now says y = 350, and with no file `Projectors.plain` gives a 1920 by 1080 projector a half with
+  the half at its foot (`OUTPUT_HEIGHT`). The Projection tab has `1:1 at the foot`, and choosing a projector by
+  model stands the half at the foot rather than in the middle. A 1080 canvas still fills its projectors exactly.
+- **The course walls read the course canvas**, which defaults to the wall's size, and `CourseBackdrop` sets it
+  before a wall is built: the flow walls and `CityPlan` stated 3840 by 1080 and laid their rows down that height,
+  and the kit read a canvas nobody set in the show. `runCourse` and the course studio run at the wall's size too.
+- **A 3D scene framed by width keeps its 16:9 height.** `Swivel02Slide` (and `Swivel01Slide`) took the world
+  across the pane and the height from its shape, so on a 2.63:1 pane the slabs ran off the top and foot; they now
+  keep the height a 16:9 pane showed and show more train either side.
+- **The loading screen stands in each half**, where the screen is, rather than in the middle of the projector.
+
+Checked with `SLIDES_STILLS=true SLIDES_STILL_HOLD=4.5`, every state of the running order at 3840 by 730, against
+the organizer's 1080 previews in `build/previews`. `SLIDES_STILL_HOLD` (seconds, empty for 95 frames) was added for
+it, since a still taken at 1.6 s catches the chapter openings and the ring half built, and a stills run now keeps to
+`SLIDES_START`..`SLIDES_UNTIL` where they are given, so one slide can be checked again without the other 171 states.
 
 **`sound` in the top bar mutes the show at once.** It is OpenAL's listener gain
 (`Speakers.muted`), not a stop: the cues go on firing, fading and looping unheard, so the cue log
@@ -2074,6 +2105,16 @@ and its lead line, off the measure's own left edge. Asked for on 16 September, a
 better setting for the reason a centred passage of four ragged lines has no edge at all: ranged,
 the eye has one edge to come back to and the lead line stands on it. Every quote in the show goes
 through this drawer, the four chapter openings and the four takeaways alike.
+
+**The quotes break compact** (27 October 2026, after a red mark-up of the third takeaway): every sentence starts a
+line of its own, the lines are as even as they can be, and no word stands alone on one. `compactLines` in
+`TypeBlock.kt` chooses all the breaks at once at the least cost — each line the square of how far it is off the
+average width, a sentence running on into the next mid-line 0.6, a word alone 1.0, and two small nudges, a little
+less for a line ending at a comma or colon and a little more for one hanging on a short word like "de". Filling each
+line as far as it went had left "van?" on a line by itself and the next sentence starting mid-line. It is what
+`QuoteSlide` (the four takeaways) and the chapter wall's quote use (`compact = true`); a quote's stated `lines` still
+sets the count, and its stated `breaks` still win. Titles and everything else that sets type to a box break as
+before.
 
 **Every chapter re-enters and resolves.** `QuoteSlide` gained `lead`, a quiet line above the
 passage; each chapter's opening quote carries its recap there, and `takeaway(n, sentence)` in
@@ -4788,15 +4829,24 @@ Case studies en vragen. `het-programma` keeps its id and its cues A to F; G, the
 since the release of 24 September.
 
 **The courses are the printed menu's** (`input/Menu WN 11,5x18cm.pdf`, 22 October 2026): five, numbered, each by its
-dish and never its ingredients — 1e gang · Voedsellandschap op beton & Gieten, 2e gang · Ontkisten, 3e gang ·
-Uitharden, 4e gang · Circulair, 5e gang · Reflectie. The programme lists them that way, each StudioBuik wall stands
+dish and never its ingredients — 1ᵉ gang · Voedsellandschap op beton & Gieten, 2ᵉ gang · Ontkisten, 3ᵉ gang ·
+Uitharden, 4ᵉ gang · Circulair, 5ᵉ gang · Reflectie. The programme lists them that way, each StudioBuik wall stands
 the number large and the dish under the rule, with no "StudioBuik" on it (StudioBuik is named once, on Else's tag in the
 programme), and `momentTitle(...)` in `Slideshow.kt` gives Erik's autocue header
-the same words for the order file's English moments ("Opening course" is 1e gang, "Dessert" 5e gang, "Questions" Case
+the same words for the order file's English moments ("Opening course" is 1ᵉ gang, "Dessert" 5ᵉ gang, "Questions" Case
 studies en vragen); the speaker's sheets and the rehearsal page translate them alike. The StudioBuik walls keep their
 ids (`studiobuik-voorgerecht` … `-dessert`), so the order, the cues and the autocue still find them. Spoken lines that
 named a course were moved on with it: Erik's kernboodschap 1 hands over "voor de eerste gang", and the other tracks'
 "voorgerecht", "eerste", "tweede" and "derde gang" are now the first to fourth.
+
+**A course is written "1ᵉ gang", with a superscript e** (27 October 2026, asked for everywhere it appears: the
+programme, the StudioBuik walls, the autocue, the speaker's sheets, the rehearsal page). Rockwell has no `ᵉ` (read off
+its cmap, as the missing `₂` was), so `setLine` sets the modifier letters (`SUPERSCRIPTS` in `TypeBlock.kt`) the way it
+sets a subscript: the ordinary letter at `SUP` (0.62) of the size, raised `SUP_RISE` (0.34) of an em, its top level
+with the figure. `NameTag` draws its lines through `setLine` for it, and the speaker's sheets write it as `<sup>e</sup>`
+in the heading's own face. The StudioBuik walls' titles are their ids and still say "voorgerecht" and "eerste gang", so
+`Slide.cueTitle` lets a slide name itself on the autocue: those walls read "StudioBuik · 2ᵉ gang" there, and the
+speaker's sheets name them the same way. The organizer still lists them by title.
 
 **Since 22 October 2026 it is two states: the programme whole, then Else** (asked for as "just the overview of
 the program; and then a click to Else"). `Programme(chapterClicks = false)` stands the list built and nothing
@@ -5505,12 +5555,20 @@ course): Aperitif under the opening course (the Voorgerecht), Starter under the 
 second, Dessert under the dessert. Four folders for five courses, so the third course carries on
 through Main.
 
-**The 1e gang plays Main, shuffled, since 22 October 2026**, and the Aperitif playlist is on hold ("too cryptic").
+**The 1ᵉ gang plays Main, shuffled, since 22 October 2026**, and the Aperitif playlist is on hold ("too cryptic").
 `coursePlaylist(..., name = "main-shuffled", shuffle = 28L)` deals Main's eleven tracks in another order, the same at
-every start, into `build/music/main-shuffled.wav`: a buffer and a place of its own, so Main under the 3e and 4e gang still
+every start, into `build/music/main-shuffled.wav`: a buffer and a place of its own, so Main under the 3ᵉ and 4ᵉ gang still
 starts at its top and goes on from there. It opens on "Unknown Controlpanel", Main's last. Some of Main's tracks are
-heard twice in the evening that way: about eight of the eleven under the 1e gang's 35 minutes, and again from the 3e gang
+heard twice in the evening that way: about eight of the eleven under the 1ᵉ gang's 35 minutes, and again from the 3ᵉ gang
 on. `aperitifBed` is still declared, for putting it back: one `music("Opening course", …)` line.
+
+**The 4ᵉ gang plays Main in an order of its own since 27 October 2026** (`mainThirdBed`, seed 229, into
+`build/music/main-third.wav`), asked for so the kit wall (Third course) never sounds like the climb wall (Second course)
+before it. It used to carry on through the 3ᵉ gang's Main from where it stopped, which is the same order whenever both
+start fresh: a start opened at the 4ᵉ gang, or Main coming round again. It opens on The Sinner, Promise, On Call and
+Float, none of the first three of Main (8K, Bistro Barfing, Bungalow) or of the 1ᵉ gang's shuffle (Unknown
+Controlpanel, Engineered for Peace, The Strolling Cat). Seeds were dealt with `kotlin.random.Random` through `jshell` on
+the stdlib jar, the same call `playlist` makes. It costs another 46 minutes of decoded audio held in OpenAL.
 
 **A playlist picks up where it stopped** (`Sound.resume`), which is what keeps the third course from
 repeating the second: starting Main from the top again would play the same tracks to the room twice. A bed that has faded out altogether and is asked for again starts where
@@ -5555,7 +5613,7 @@ next (after the last, the first: a playlist loops).
   count an mp3's padding the join leaves out. `/api/show` carries them as `playlists`, by moment.
 - **Where it stands is OpenAL's.** The draw loop asks `Speakers.whereIs` for each moment's bed every frame: the
   source's `AL_SAMPLE_OFFSET` while it plays, flagged as fading out during its release, and once stopped the place it
-  will pick up from. `/api/state` carries that as `music`, by file, so Main under the 3e and 4e gang is one place.
+  will pick up from. `/api/state` carries that as `music`, by file, so Main under the 3ᵉ and 4ᵉ gang is one place.
 - **What the section says otherwise**: a StudioBuik wall or transition plays no music, so its section says the
   playlist starts on the moment's next wall; a moment where no wall takes music (the committed Dessert holds only its
   StudioBuik wall) says the playlist is not heard; with no show up, every track is unplayed and the first is first up.
@@ -7850,6 +7908,10 @@ writes, so a variant can be filmed beside the default rather than over it —
 `video/long-shadow-type-v3-1-standing.mp4` is this one.
 
 ### One ground: every slide paints black, the wall makes it concrete
+
+**The concrete is off by default since 27 October 2026** (`SLIDES_CONCRETE_ON=false`): the wall is the slides on
+black, and black stays black, since the floor below is part of the overlay. The organizer's `concrete` button puts it
+on for a run; the launcher does not keep it, so every start begins without it.
 
 The show's concrete overlay only multiplied, and black times stone is black, so every black slide
 stood as a hole beside the grey chapter card and quote. It is fixed once, globally, rather than per

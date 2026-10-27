@@ -172,11 +172,11 @@ private fun org.openrndr.ApplicationBuilder.present(
         val loadingScreen = if (settings.record || settings.stills || settings.bench) null else {
             val s = settings.windowScale
             val left = (spanned?.left?.width ?: (settings.width / 2)) * s
-            val right = (spanned?.right?.width ?: (settings.width / 2)) * s
-            LoadingScreen(this, listOf(
-                Rectangle(0.0, 0.0, left, (spanned?.left?.height ?: settings.height) * s),
-                Rectangle(left, 0.0, right, (spanned?.right?.height ?: settings.height) * s)
-            ), slideshow.drawers.Type.file)
+            // In each half as it stands on its projector — at the foot since 27 October 2026, where the
+            // screen is — rather than in the middle of the projector, whose top does not land on the screen.
+            fun half(p: Projector?, x: Double) = if (p == null) Rectangle(x, 0.0, settings.width / 2.0 * s, settings.height * s)
+                else Rectangle(x + p.x * s, p.y * s, settings.width / 2.0 * p.scale * s, settings.height * p.scale * s)
+            LoadingScreen(this, listOf(half(spanned?.left, 0.0), half(spanned?.right, left)), slideshow.drawers.Type.file)
         }
         val loadingSteps = slides.size + show.panels.size + 1
         var loadingDone = 0
@@ -830,7 +830,7 @@ private fun org.openrndr.ApplicationBuilder.present(
         var autocueTarget: RenderTarget? = null
         fun autocueSetup(): AutocueSetup = (Projectors.shown ?: Projectors.started)?.autocue ?: AutocueSetup()
         /** A slide as the autocue names it: its title in the running order, a course wall without its "Sketch: ". */
-        fun cueTitle(index: Int) = (show.outline[index]?.title ?: slides.getOrNull(index)?.name.orEmpty()).removePrefix("Sketch: ")
+        fun cueTitle(index: Int) = (slides.getOrNull(index)?.cueTitle ?: show.outline[index]?.title ?: slides.getOrNull(index)?.name.orEmpty()).removePrefix("Sketch: ")
         // Where the scroll stood when the state changed, so a click is eased into rather than jumped; and the frame
         // the click was first offered on, from which the next divider glides up onto the reading line.
         var autocueState = -1 to -1
@@ -1043,8 +1043,12 @@ private fun org.openrndr.ApplicationBuilder.present(
 
         // One png per click of every slide, then quit: the whole deck as a contact sheet,
         // which is how to check a change without clicking through it.
-        val plan = if (settings.stills)
-            slides.indices.flatMap { s -> (0 until slides[s].steps).map { s to it } } else emptyList()
+        // SLIDES_START and SLIDES_UNTIL, where given, narrow it to that stretch of the running order.
+        val plan = if (settings.stills) {
+            val first = if (settings.start.isNullOrBlank() && settings.startId == null) 0 else startSlide
+            val last = if (settings.until.isNullOrBlank()) slides.lastIndex else untilIndex(slides, settings.until, first)
+            (first..last).flatMap { s -> (0 until slides[s].steps).map { s to it } }
+        } else emptyList()
         var planned = 0
         var heldSince = 0
 
@@ -2192,7 +2196,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 )
             }
 
-            if (settings.stills && frame - heldSince >= STILL_HOLD) {
+            if (settings.stills && frame - heldSince >= (settings.stillHold?.let { frames(it) } ?: STILL_HOLD)) {
                 val (slide, step) = plan[planned]
                 val file = File("screenshots/slide-%02d-%d-%s.png".format(slide + 1, step, slides[slide].name))
                 file.parentFile.mkdirs()

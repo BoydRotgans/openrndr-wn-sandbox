@@ -137,8 +137,10 @@ class Swivel02Slide(
     }
 
     override fun draw(drawer: Drawer, stage: Stage) {
-        val halfWidth = across / 2.0
-        val halfHeight = halfWidth * stage.height / stage.width
+        // [across] is the world a 16:9 pane shows; a wider pane (1920 by 730 since 27 October 2026) keeps that
+        // pane's height and shows more of the train either side, or the slabs run off its top and foot.
+        val halfHeight = maxOf(across * stage.height / stage.width, across * 9.0 / 16.0) / 2.0
+        val halfWidth = halfHeight * stage.width / stage.height
         drawer.ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1000.0, 1000.0)
         drawer.lookAt(EYE, Vector3.ZERO)
 

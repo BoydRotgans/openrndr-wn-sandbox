@@ -91,8 +91,8 @@ fun Program.flowMosaicCourse(): (Drawer, Double) -> Unit {
         vb.put { listOf(-0.5 to -0.5, 0.5 to -0.5, 0.5 to 0.5, -0.5 to -0.5, 0.5 to 0.5, -0.5 to 0.5).forEach { (x, y) -> write(Vector3(x, y, 0.0)) } }
     }
 
-    val width = 3840.0
-    val height = 1080.0
+    val width = CourseCanvas.width.toDouble()
+    val height = CourseCanvas.height.toDouble()
     val rows = own("ROWS")?.toIntOrNull() ?: 4
     val cellHeight = height / rows
     val cellWidth = cellHeight * MosaicCells.SHAPE

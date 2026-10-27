@@ -25,7 +25,7 @@ import kotlin.random.Random
  * edge to edge in every direction with no seam, which is what lets the camera stand anywhere without
  * ever seeing the edge of the world.
  */
-class CityPlan(private val width: Double = 3840.0, private val height: Double = 1080.0, seed: Int = 7, trees: Boolean = true) {
+class CityPlan(private val width: Double = CourseCanvas.width.toDouble(), private val height: Double = CourseCanvas.height.toDouble(), seed: Int = 7, trees: Boolean = true) {
 
     class Road(val path: ShapeContour, val width: Double)
 

@@ -27,7 +27,7 @@ What the finished slides have in common, written down so the unfinished ones com
 
 ## The rules on one screen
 
-1. Two walls of 12 m, 1920×1080 each, the room 8 to 10 m away: anything that has to be read stays in one pane;
+1. Two walls of 12 m, 1920×730 each (1920×1080 projectors with the picture at their foot since 27 October 2026), the room 8 to 10 m away: anything that has to be read stays in one pane;
    only a picture backdrop runs across both. Size is hierarchy, never legibility (`Scale.arcminutes`).
 2. Black pane, white type, red and blue as flat fills — nothing else unless the content brings it.
 3. Rockwell: bold for titles, labels and figures, regular for text; sizes are shares of the pane height.

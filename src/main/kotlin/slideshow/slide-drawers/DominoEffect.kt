@@ -195,8 +195,8 @@ class DominoEffect(
      * The pane the word is packed at. Stated because [load] is not told the pane — see the note
      * above — and [draw] fits the packing into whatever it is actually given.
      */
-    private val paneWidth: Int = 1920,
-    private val paneHeight: Int = 1080,
+    private val paneWidth: Int = slideshow.Wall.paneWidth,
+    private val paneHeight: Int = slideshow.Wall.height,
     private val boldPath: String = "data/fonts/default.otf",
     private val textPath: String = boldPath,
     private val ink: ColorRGBa = ColorRGBa.WHITE,

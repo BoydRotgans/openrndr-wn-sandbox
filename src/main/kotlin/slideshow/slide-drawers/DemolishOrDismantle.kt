@@ -370,9 +370,9 @@ class DemolishOrDismantle(
 
     private companion object {
         /** Laid out at the pane's own size and fitted into whatever pane it is given. */
-        const val W = 1920.0
-        const val H = 1080.0
-        const val MARGIN = W * 0.02
+        val W: Double get() = slideshow.Wall.paneWidth.toDouble()
+        val H: Double get() = slideshow.Wall.height.toDouble()
+        val MARGIN: Double get() = W * 0.02
         /** Rockwell's cap height against its size, near enough. */
         const val CAP = 0.7
 

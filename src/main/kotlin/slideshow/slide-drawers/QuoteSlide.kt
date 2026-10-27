@@ -55,6 +55,8 @@ class QuoteSlide(
 
     private val broken = brokenAt(quote, breaks)
     private lateinit var face: FontImageMap
+    /** The quote as set for the box it was last drawn in: the compact breaking weighs every way of breaking, once. */
+    private var block: Pair<Rectangle, TypeBlock>? = null
 
     override fun load(program: Program) {
         face = program.loadFont(fontPath, SIZE, TYPE_CHARACTERS, contentScale = 1.0)
@@ -73,8 +75,10 @@ class QuoteSlide(
         // to. Centred, a quote of four ragged lines has no edge at all.
         drawer.stroke = null
         drawer.fill = ink.opacify(opening)
-        face.setToFit(broken, box, SIZE, LEADING, lines)
-            .draw(drawer, Vector2(box.x, box.center.y), align = 0.0)
+        // Broken compact — a sentence a line, the lines even — as the chapter wall breaks its quote (27 October 2026).
+        val set = block?.takeIf { it.first == box }?.second
+            ?: face.setToFit(broken, box, SIZE, LEADING, lines, compact = true).also { block = box to it }
+        set.draw(drawer, Vector2(box.x, box.center.y), align = 0.0)
     }
 
     /**

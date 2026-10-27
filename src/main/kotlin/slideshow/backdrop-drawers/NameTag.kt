@@ -12,6 +12,8 @@ import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
+import slideshow.drawers.advanceWithSubscripts
+import slideshow.drawers.setLine
 import slideshow.easeInOutCubic
 import slideshow.FPS
 import kotlin.math.min
@@ -121,7 +123,7 @@ class NameTag(
         val drawn = easeInOutCubic(since(0.35, 0.7))
         drawer.stroke = null
         drawer.fill = accent
-        drawer.rectangle(inset, y, big * face.advanceOf(presenter) * RULE * drawn, stage.height * WEIGHT * scale.coerceAtLeast(0.6))
+        drawer.rectangle(inset, y, big * face.advanceWithSubscripts(presenter) * RULE * drawn, stage.height * WEIGHT * scale.coerceAtLeast(0.6))
 
         y += gapAfterRule
         drawer.fill = ink.opacify(easeInOutCubic(since(0.7, 0.6)))
@@ -139,17 +141,11 @@ class NameTag(
      * the width this fits against is the width `text()` will actually lay down.
      */
     private fun fit(text: String, height: Double, measure: Double): Double =
-        min(height / SIZE, measure / face.advanceOf(text).coerceAtLeast(1.0))
+        min(height / SIZE, measure / face.advanceWithSubscripts(text).coerceAtLeast(1.0))
 
-    /** One line, ranged left from [x], sitting on the baseline [y]. */
-    private fun line(drawer: Drawer, text: String, x: Double, y: Double, scale: Double) {
-        drawer.fontMap = face
-        drawer.isolated {
-            drawer.translate(Vector2(x, y))
-            drawer.scale(scale)
-            drawer.text(text, 0.0, 0.0)
-        }
-    }
+    /** One line, ranged left from [x], sitting on the baseline [y]; through [setLine], so a course's "1ᵉ" is set. */
+    private fun line(drawer: Drawer, text: String, x: Double, y: Double, scale: Double) =
+        drawer.setLine(text, face, Vector2(x, y), scale * SIZE, SIZE)
 
     companion object {
         /** Seconds the tag's build takes, name to title. */

@@ -883,7 +883,7 @@ class Remote(
     /**
      * Every moment's playlist, track by track and placed in its joined file ([playlistTracks]), by the moment's name:
      * the page lists it under the moment's walls and marks, off where [Snapshot.music] says the file stands, the track
-     * sounding and the one after it. Two moments on one file — Main under the 3e and 4e gang — name the same `file`.
+     * sounding and the one after it. Two moments on one file — Main under the 3ᵉ and 4ᵉ gang — name the same `file`.
      */
     private fun playlistsJson(): JsonObject = buildJsonObject {
         catalogue.settings.momentMusic.forEach { (moment, bed) ->

@@ -224,7 +224,7 @@ class BlockCity(
     private val horizon: Double = 0.5,
     private val seed: Int = 7,
     /** The wall this composes for; `draw` fits it to whatever it is given and re-allocates if that differs. */
-    private val wall: Pair<Int, Int> = 3840 to 1080,
+    private val wall: Pair<Int, Int> = slideshow.Wall.width to slideshow.Wall.height,
     /**
      * Catalogue pieces to stand in the city this frame, a function of the stage so a slide can
      * move them on a click. Empty for the plain city. They go through the same passes as the

@@ -1,8 +1,11 @@
 # Visual
 
 ## Frame
-- **The installation is two walls, each 12 m wide and 1920×1080, left and right, with the room 8 to
-  10 m away.** In the show they are the two panes of one 3840 canvas meeting at x = 1920: a talk
+- **The installation is two walls, each 12 m wide and 1920×730, left and right, with the room 8 to
+  10 m away.** Since 27 October 2026 a projector still puts out 1920×1080, but only its bottom 730 rows land
+  on the screen: each half stands at the projector's foot with 350 rows of black above it, so a slide composes
+  for 1920×730 and nothing may rely on more height. In the show they are the two panes of one 3840×730 canvas
+  meeting at x = 1920: a talk
   slide is the **right pane** beside the chapter card in the left, and the card stays up for the whole
   chapter. Lay out against `stage.bounds`: sizes as a share of the pane **height**, positions as a
   share of the width. Whether the two surfaces are continuous is not yet known; the four backdrops

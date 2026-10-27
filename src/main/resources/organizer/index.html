@@ -660,7 +660,7 @@
     <span id="tabs">
       <button class="tab on" data-view="show" title="The running order of the show">Show</button>
       <button class="tab" data-view="sketches" title="Every sketch in the project, with a picture and how to run it">Sketches</button>
-      <button class="tab" data-view="projection" title="The two projectors on site: their resolutions, and where the wall's 1920×1080 halves stand on them">Projection</button>
+      <button class="tab" data-view="projection" title="The two projectors on site: their resolutions, and where the wall's 1920×730 halves stand on them">Projection</button>
       <button class="tab" data-view="subtitles" title="Every subtitle of the talk as one script, following the show as it is clicked through; a line edited here is saved at once and on the wall at once">Subtitles</button>
     </span>
     <span class="grp show-only" id="grpShow"><span class="cap">show</span>
@@ -4077,7 +4077,8 @@
 
 // ---------- the Projection tab ----------
 //
-// The two projectors on site and where the wall's two 1920×1080 halves stand on them. A half's place
+// The two projectors on site and where the wall's two halves (1920×730 since 27 October 2026, standing at the
+// foot of each 1920×1080 projector with 350 of black above) stand on them. A half's place
 // and scale move the running show at once — sent as they change, saved when let go — while a
 // projector's resolution and the desktop place are the window's, so they are set before the start
 // and greyed out while a presentation runs. See Projectors.kt.
@@ -4086,12 +4087,13 @@
   const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
   const PRESETS = [[1920, 1080], [1920, 1200], [2560, 1440], [2560, 1600], [3840, 2160], [1280, 720], [1280, 800], [1400, 1050], [1024, 768]];
   // Projectors by name: choosing one sets its native resolution and stands the half on it pixel for
-  // pixel, centred — the setup that wastes nothing — and keeps the name in the setup.
+  // pixel, centred across and at the foot — only the bottom of the picture lands on the screen since
+  // 27 October 2026 — and keeps the name in the setup.
   const MODELS = [
     { name: 'Epson EB-G7905U', width: 1920, height: 1200,
-      note: 'Epson EB-G7905U: native WUXGA, 1920 × 1200 (16:10). Set this display to 1920 × 1200 in System Settings › Displays, and the projector to show the signal unscaled with overscan off, so a pixel is a pixel. The 1920 × 1080 half then stands whole with 60 px of black above and below — nudge y to move it up or down on the screen.' },
+      note: 'Epson EB-G7905U: native WUXGA, 1920 × 1200 (16:10). Set this display to 1920 × 1200 in System Settings › Displays, and the projector to show the signal unscaled with overscan off, so a pixel is a pixel. The half then stands pixel for pixel at the projector\'s foot, with the black above it — nudge y to move it up or down on the screen.' },
     { name: 'Vivitek 1080p', width: 1920, height: 1080,
-      note: 'Vivitek at 1920 × 1080: the basic setup. The half fills the projector exactly, pixel for pixel, with nothing to spare — the wall as it always was. Set this display to 1920 × 1080 in System Settings › Displays, and the projector to show the signal unscaled with overscan off, or its edges are cut.' }
+      note: 'Vivitek at 1920 × 1080: the basic setup. The 1920 × 730 half stands pixel for pixel at the projector\'s foot, with 350 px of black above it, since only the bottom of the picture lands on the screen. Set this display to 1920 × 1080 in System Settings › Displays, and the projector to show the signal unscaled with overscan off, or its edges are cut.' }
   ];
   const modelOf = (p) => MODELS.find((m) => m.name === p.model && m.width === p.width && m.height === p.height);
   /** [p] as projector [m], the half pixel for pixel in its middle. */
@@ -4099,12 +4101,12 @@
     const h = half();
     p.model = m.name; p.width = m.width; p.height = m.height;
     p.scale = Math.min(1, m.width / h.w, m.height / h.h);
-    p.x = round((m.width - h.w * p.scale) / 2); p.y = round((m.height - h.h * p.scale) / 2);
+    p.x = round((m.width - h.w * p.scale) / 2); p.y = round(m.height - h.h * p.scale);
   }
   const SIDES = ['left', 'right'];
   let setup = null;      // { left: {width,height,x,y,scale}, right: {...}, desktop: {x,y} }
   let live = false;
-  let canvas = { width: 3840, height: 1080 };
+  let canvas = { width: 3840, height: 730 };
   let displays = null;
   let liveId = null;
   let sel = 'left';
@@ -4321,6 +4323,7 @@
       card.appendChild(row('scale', numberField(round(p.scale, 4), 0.001, (v) => { p.scale = Math.min(8, Math.max(0.1, v)); changed(); }),
         `${round(f.w)} × ${round(f.h)} px`));
       card.appendChild(row('',
+        button('1:1 at the foot', 'The half pixel for pixel, centred across and standing on the projector\'s bottom edge, the black above it: the wall since 27 October 2026', () => { p.scale = 1; p.x = round((p.width - h.w) / 2); p.y = round(p.height - h.h); }),
         button('1:1 at the corner', 'The half pixel for pixel, at the projector\'s top left', () => { p.x = 0; p.y = 0; p.scale = 1; }),
         button('centre', 'The half in the middle of the projector, at its scale', () => { p.x = round((p.width - h.w * p.scale) / 2); p.y = round((p.height - h.h * p.scale) / 2); }),
         button('fit', 'The half as large as the projector allows, whole and centred', () => { p.scale = round(Math.min(p.width / h.w, p.height / h.h), 4); p.x = round((p.width - h.w * p.scale) / 2); p.y = round((p.height - h.h * p.scale) / 2); })));
@@ -4375,7 +4378,7 @@
         button('the right projector', 'Over the whole right half, where the slide stands', () => { a.x = h.w; a.y = 0; a.scale = 1; }),
         button('half size, in a corner', 'At half size in the left half\'s top left corner, the chapter card still showing round it', () => { a.x = 0; a.y = 0; a.scale = 0.5; })));
       card.appendChild(Object.assign(document.createElement('div'), { className: 'note',
-        textContent: 'Its corner in canvas pixels, 3840 × 1080 across the wall. Drawn on the window, never into the canvas: it reaches the projectors while it is on, but never a film, a still or a preview. Drag it on the stage above.' }));
+        textContent: `Its corner in canvas pixels, ${canvas.width} × ${canvas.height} across the wall. Drawn on the window, never into the canvas: it reaches the projectors while it is on, but never a film, a still or a preview. Drag it on the stage above.` }));
     } else {
       card.appendChild(row('screen', screensMap(a)));
       const auto = autoCueScreen();
