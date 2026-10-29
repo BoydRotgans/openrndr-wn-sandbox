@@ -83,7 +83,7 @@
       },
       "levenscyclus-van-betonproducten": {
         "heading": "Levenscyclus · vier fasen, dan The Circle",
-        "note": "A tot D de vier fasen; E de laatste kolom wordt The Circle, vier vakken met een draaiend element; F tot I de vier stappen benoemd."
+        "note": "Drie staten sinds 28 oktober 2026: A de vier fasen in één keer; B de laatste kolom wordt The Circle, vier vakken met een draaiend element; C de vier stappen benoemd, een voor een in één klik."
       },
       "levenscyclusanalyse": {
         "heading": "Levenscyclusanalyse · twee databases, één berekening",
@@ -278,15 +278,9 @@
       "A": "We weten dat de productie van beton vervuilend is. Zonder beton geen logistieke hubs, geen productiehallen, geen voedselverwerking op schaal. In beton is cement veruit het grootste deel: ongeveer tachtig procent van de CO₂-uitstoot van het materiaal. De rode band in deze kolom. Wereldwijd is beton verantwoordelijk voor tot negen procent van de CO₂-uitstoot. In Nederland is dat één komma negen procent. Tegelijk is de bouwbehoefte zo groot dat we niet zonder beton kunnen. Dus zetten wij ons in om wat we in beton bouwen zo duurzaam mogelijk te produceren."
     },
     "levenscyclus-van-betonproducten": {
-      "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt. Hier is de hele levenscyclus van een betonproduct. Eerst de productfase: grondstofwinning, transport naar de fabriek, productie.",
-      "B": "Dan de bouwfase: transport naar de bouwplaats, en montage.",
-      "C": "De gebruiksfase: gebruik, onderhoud, reparatie, vervanging, verbouwing.",
-      "D": "En dan het einde van de levensduur: sloop, transport, afvalverwerking, verwijdering. Zo gaat het nu. Lineair.",
-      "E": "Wij vervangen die laatste kolom. In plaats van sloop komt The Circle: vier stappen, met in elk vak een echt element uit onze catalogus.",
-      "F": "Elementen demonteren, in plaats van slopen.",
-      "G": "Transport.",
-      "H": "Opslag.",
-      "I": "En opnieuw gebruiken. Beton als materiaal in transitie, niet als statisch gegeven."
+      "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt. Hier is de levenscyclus van een betonproduct: de productfase, de bouwfase, de gebruiksfase en het einde van de levensduur. Zo gaat het nu. Lineair.",
+      "B": "Wij vervangen die laatste kolom. In plaats van sloop komt The Circle, met in elk vak een echt element uit onze catalogus.",
+      "C": "Elementen demonteren, transport, opslag en opnieuw gebruiken. Beton als materiaal in transitie, niet als statisch gegeven."
     },
     "levenscyclusanalyse": {
       "A": "Hoe weten we wat een element werkelijk kost aan CO₂? Met een levenscyclusanalyse. Aan de ene kant een database van alle aangekochte materialen.",

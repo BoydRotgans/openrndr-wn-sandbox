@@ -1789,7 +1789,8 @@ over each sound's own every time a gain reaches OpenAL, so all three play at onc
 re-levels what is already sounding on that layer without touching a fade's shape. It was needed because the
 design seemed to vanish under the voice, and measuring said why: the voice renders near −18 LUFS and the
 design's cues at −31 to −51, 15 to 30 dB apart. At one gain the design was playing, and buried. So the voice
-starts at 0.3 (`SLIDES_MIX_VOICE`, `_DESIGN`, `_MUSIC`); the organizer's `mix` panel moves each live, a
+starts at 0.3 and, since 28 October 2026, the music at −18.5 dB, 0.1189 (`SLIDES_MIX_VOICE`, `_DESIGN`,
+`_MUSIC`, and `Settings.levels` where `.env` names none); the organizer's `mix` panel moves each live, a
 checkbox mutes one and keeps its fader where it stood, and the launcher hands the mix to the next start. A
 cue is written to the log at the gain the mix played it at, so a filmed run's soundtrack is the mix heard;
 the log carries the layer as a ninth column.
@@ -1965,7 +1966,8 @@ to do instead.
   `Klik als iedereen zit` on the arrival, `Else licht de gang toe; klik als ze klaar is` on each StudioBuik wall,
   `Klik als er is uitgehaald` on each course wall, `Bij 0:00 klik naar hoofdstuk n` on each transition, `Else stelt
   StudioBuik voor · daarna klik: aftellen naar hoofdstuk 1` on the programme's last state, `Einde presentatie · de wand
-  blijft staan` on the exit, and, with Karim not on the autocue, `Klik als Karim begint` and `Karim spreekt nu; daarna
+  blijft staan` on the exit (keyed by the Exit wall's id: it still named the wall the Exit played until 26 October, so
+  the exit showed no direction and the import refused, until it was moved on 28 October), and, with Karim not on the autocue, `Klik als Karim begint` and `Karim spreekt nu; daarna
   klik` on his tag (the addition's `without`). They began `Geen tekst · `, taken off the same day: a direction in amber
   already says there is nothing to read. Checked by running the import against the show with every speaker: it writes
   these directions and `replaced` exactly as the track has them.
@@ -1974,12 +1976,22 @@ to do instead.
   the tool does not read; under `states` they would name states the order no longer has and the import would refuse.
   Its lines stay in the track, unplayed. Back in the order, move them back under `states`, take the five clicks out of
   `skip`, and render its voice, since Recyclage A was edited in the organizer while the slide was off.
+- **Levenscyclus van betonproducten is three clicks since 28 October 2026** (see the life cycle): the import skips
+  the Word file's clicks 103–105 and 108–110, pairs 102, 106 and 107 with A, B and C, and lays the compact lines
+  over them from the additions.
 - **Lines rewritten in the organizer are carried into the additions** with `edited` and the day, so an import keeps
-  them: on 22 October we gieten kennis B, CO₂ impact van beton A, recyclage A and The Circle in elementen A. Thirteen
+  them: on 22 October we gieten kennis B, CO₂ impact van beton A, recyclage A and The Circle in elementen A. Twelve
   older organizer edits are still only in the track (an import would write the Word file's lines over them):
-  co2-behaald C and D, de-fabrieken A, esg-social-governance D, geen-compensatie A, kernboodschap-3 A,
+  co2-behaald C and D, de-fabrieken A, esg-social-governance D, geen-compensatie A,
   projecthighlight-1 A, -2 A and B, -4 A, the-circle-en-esg B, who-is-speaking A, and the stray "van" on
   course-transition-to-chapter-3 A.
+- **Erik's hand-overs into the courses name the course, not Else** (28 October 2026: "just 'nu gaan we over naar de
+  xx gang' … without saying 'nu geef ik het woord aan'"). The four takeaways end "Nu gaan we over naar de eerste …
+  vierde gang" (the third "Maar nu gaan we eerst over naar de derde gang", after "Straks laat ik jullie zien…"), and
+  the last case study "Nu gaan we over naar de vijfde gang: het dessert"; the fourth and the dessert had no hand-over
+  before. The programme's B still gives Else the word, as asked. All five are in the additions with `edited`, and
+  Erik's voice was rendered again for them (read back at 0.94 to 0.99). The StudioBuik walls keep their direction
+  "Else licht de gang toe; klik als ze klaar is".
 - **The room is spoken to as "jullie", never "u"** (22 October 2026, asked for across the whole Erik autocue). The
   Word file says "u" and "uw" throughout; the import runs every line it writes through `jullie()` in the tool, a list
   of phrases (`JULLIE`) that turns a subject "u" to "jullie" with its verb in the plural ("ziet u" to "zien jullie",
@@ -1990,13 +2002,17 @@ to do instead.
 - **One block is headed REGIE but is speech**: the ending's thanks (klik 175, `ending-A`). It is taken as
   speech, and the tool says so. Karim Weiss's closing has since taken that state (below).
 - **What the Word file does not carry is laid over it** from `show-autocue-additions.json`, by state key rather
-  than place, so a new import keeps it. As of 19 October that is Karim Weiss, CEO, **in the autocue's click
-  system**, a section a click like Erik's script: his welcome in eight, A to H after the paragraphs he wrote it in,
-  on the director's tag (the slide before Erik's first, whose REGIE note it clears; H, the hand-over, ends on the
-  direction "Brug naar Erik"), and his closing in three on the call to action, `ending` (the thanks, the message, the
-  farewell; A writes over the Word file's thanks from Erik). A state the Word file does not count is marked `added`,
-  and the pairing leaves it out, so the document's 176 clicks still meet 176 of the order's now 185 states. The
-  slides' click counts in `Slideshow.kt` are kept to the file: change one without the other and the import refuses.
+  than place, so a new import keeps it. As of 19 October that is Karim Weiss, CEO: his welcome on the director's tag
+  (the slide before Erik's first, whose REGIE note it clears), ending on the direction "Brug naar Erik", and his
+  closing on the call to action, `ending` (the thanks, the message, the farewell; it writes over the Word file's thanks
+  from Erik). **Each is one click since 28 October 2026**, the whole text at once with a blank line between what were
+  its sections ("let it be just one click; so the full text goes in one go"); from 19 October they were a section a
+  click, A to H and A to C, the extra states marked `added` so the pairing left them out. Now each sits on the Word
+  file's own one click. **The welcome is followed by one more click before Erik's tag** (asked the same day: "it still
+  pauses one more click before Erik starts"): the tag's B, `added`, with no line and the one direction "Brug naar Erik;
+  klik als Erik klaar staat", which moved there from the welcome's end. So the import pairs the document's 176 clicks
+  with 176 of the order's 158 states, B left out. A state the Word file does not count is marked `added`. The slides' click counts in
+  `Slideshow.kt` are kept to the file: change one without the other and the import refuses.
   It also carries Erik's own lines where they were rewritten for good, so an import keeps them: Levenscyclusanalyse
   A–E and Verduurzamen van beton A–C, made compact after the aligned track and click for click to the wall (the
   Word file's version ran a click behind the LCA slide). The tool lists every line it writes over. Lines edited only
@@ -2014,12 +2030,14 @@ to do instead.
     `tools/autocue_docx.py` writes: the ending's A is Erik's own thanks again, and the director's tag carries the Word
     file's REGIE "Laat het beeld spreken". Only the show reads it that way; the organizer edits and saves the whole
     file, so Karim's welcome and closing stay in `show-subtitles-erik.json` and `show-autocue-additions.json`.
-  - **the clicks that only stepped through those lines**: the director's tag is `clicks = if (karimWeiss in
-    speakersInShow()) 8 else 1` and the ending `… 3 else 1` in `Slideshow.kt`, one click each as in the Word file.
+  - **the clicks that only stepped through those lines**: since 28 October 2026 the pause after Karim's welcome, the
+    tag being `clicks = if (karimWeiss in speakersInShow()) 2 else 1` in `Slideshow.kt`. Until then the tag was
+    `… 8 else 1` and the ending `… 3 else 1`, his welcome and closing a section a click.
 
   The import tool counts every speaker's clicks when it pairs, so it refuses a show that leaves one out: tick every
-  speaker, ▶ start, and run it while the show is up. Checked with `RunningOrderKt` both ways (Erik alone: the tag and
-  the ending one click each; with Karim: eight and three), the track read both ways (Erik's thanks on the ending
+  speaker, ▶ start, and run it while the show is up (or against a saved `/api/show`). Checked with `RunningOrderKt`
+  both ways (since 28 October, with Karim the tag two clicks and the ending one; without him one each), the track read
+  both ways (Erik's thanks on the ending
   without Karim, nothing of his left), a test launcher (the control, and a start handing over
   `SLIDES_SPEAKERS=Karim Weiss` and `none`), and the organizer's own show started on Erik alone.
 - **Who speaks is marked on every state** (`Subtitles.speaker`): the track's root `speaker` (Erik Koremans, the
@@ -2106,15 +2124,24 @@ better setting for the reason a centred passage of four ragged lines has no edge
 the eye has one edge to come back to and the lead line stands on it. Every quote in the show goes
 through this drawer, the four chapter openings and the four takeaways alike.
 
-**The quotes break compact** (27 October 2026, after a red mark-up of the third takeaway): every sentence starts a
-line of its own, the lines are as even as they can be, and no word stands alone on one. `compactLines` in
-`TypeBlock.kt` chooses all the breaks at once at the least cost — each line the square of how far it is off the
-average width, a sentence running on into the next mid-line 0.6, a word alone 1.0, and two small nudges, a little
-less for a line ending at a comma or colon and a little more for one hanging on a short word like "de". Filling each
-line as far as it went had left "van?" on a line by itself and the next sentence starting mid-line. It is what
-`QuoteSlide` (the four takeaways) and the chapter wall's quote use (`compact = true`); a quote's stated `lines` still
-sets the count, and its stated `breaks` still win. Titles and everything else that sets type to a box break as
-before.
+**The quotes break optically** (27 October 2026, asked for twice that day: first a sentence a line, then "visually
+balanced lines that make effective use of the available width … a wide, compact text block with a subtle ragged-right
+edge", with a dash where it helps). `compactLines` in `TypeBlock.kt` weighs every way of breaking a quote at once, for
+every line count and over a range of measures, and keeps the best by `judged`: the type as large as the box allows,
+less fourteen times how far the lines fall short of the longest (the last line at half weight, from 0.85), fewer lines on a
+tie, and small nudges for phrasing — a line ending at a sentence or a pause a little better, one hanging on "de" or
+"van" a little worse. The weight of fourteen is what turns a tall ragged block into a wide even one: chapter 1's quote goes
+from four lines at 0.78–1.00 of the longest to three at 0.87–1.00, about 14% smaller type. A long word is hyphenated
+only at points written out by hand in `HYPHENATION`, nine letters or more, and a word with no entry is never split.
+**Only where the word is put together** (28 October 2026, "appropriate Dutch word breaks"): between a compound's parts,
+after a prefix before a whole word, before -heid or -heden ("onder-zoek", "verantwoordelijk-heid", "uit-eindelijk"),
+so each half reads as a word. The first table took every syllable break, and the wall set "organisa-tie", "beoor-delen",
+"moge-lijkheden", "syste-matische" and "verantwoor-delijkheid": correct by the Woordenlijst and read as broken words.
+Since then no quote in the show splits a word at all, the eight checked on stills; `KEEP_TOGETHER` holds "The Circle", "Willy Naessens", "aan tafel" and
+"één vraag" on one line. The quotes no longer state `lines` or `breaks` (chapter 3's hand breaks come out the same);
+a stated count still wins. It is what `QuoteSlide` (the four takeaways) and the chapter wall's quote use
+(`compact = true`); titles and everything else that sets type to a box break as before. A quote reworded with a new
+long word wants that word's breaks added to `HYPHENATION`, or it is simply never split.
 
 **Every chapter re-enters and resolves.** `QuoteSlide` gained `lead`, a quiet line above the
 passage; each chapter's opening quote carries its recap there, and `takeaway(n, sentence)` in
@@ -2586,11 +2613,15 @@ for the opening landing on the closing one too.
   piece is drawn — right through `objects-front.svg`, so every one of the 112 variants gets its
   turn.
 
-**It draws a hundred pieces, counted "/ 100"** (22 October 2026), where it drew the iso sheet's 115: the talk says
-The Circle is a hundred elements, and the wall said 115. `OpeningScene(keep = 100)` leaves out the 15 smallest by the
-register's longest side, then volume — the fittings: the anchors, rails, shoes, recess formers, the grid plate and a
-2 mm shim — keeps the rest in the sheet's order and numbers them 1 to 100; the load prints which went. The note asking
-for it was written in the organizer and never reached a file, so it is recorded here.
+**It draws the 91 pieces that are not round, and counts them "/ 100"** (28 October 2026: "take out any of the round
+objects", then "just fake it and make it 100 for now"). `counted = 100` numbers the 91 evenly from 1 to 100, so a pass
+ends on "100 / 100" and nine numbers are skipped along the way; `counted = 0` gives back the real count.
+`OpeningScene(exclude = roundPieces)` leaves out the 24 round pieces by name, the same list the circle catalogue leaves
+out (`roundPieces` in `Slideshow.kt`), matched through the register: a mesh's name is the register's with `/`, spaces
+and `=` as `_` and a repeat numbered `_2`, `_3`, and the load prints all 24. From 22 October it drew a hundred, counted
+"/ 100" since the talk says The Circle is a hundred elements, by leaving out the 15 smallest (`keep`, still there); 17
+of that hundred were round, and a hundred cannot be reached without round ones, so the small straight fittings — the
+rails, the grid plate, the shim — are back.
 
 **The two halves of the opening wall are not a pair; they are two clocks.** Each 1920x1080 half
 runs its own turn — draw, fill, hold, leave — and the right runs half a turn behind the left, so
@@ -4779,11 +4810,25 @@ of the bar, a step on both sides. The play that leaves round each tab is under t
 
 `LifeCycle`'s **The Circle column is never empty**, since 22 September. It comes up as its four boxes,
 each with a catalogue piece in the round turning slowly in grey — `WAND_27`, `TANDBALK`, `PREDAL`,
-`FUND` — and then a click a step names one, its piece turning the house red as it is named: nine
-states where there were six, the four steps revealed one by one rather than on one click. The pieces
+`FUND` — and then its steps are named, each piece turning the house red as it is named. The pieces
 go through `IsoPieces` as the hidden story's do, which is why `LifeCycle.kt` lost its package
 declaration. Each is fitted into the top of its box on its any-angle reach, so it never touches the
 edge as it turns and the name has the foot of the box.
+
+**It is three states since 28 October 2026, where it was nine** ("more compressed; instead of 9 clicks it should
+only be 3"). A is the linear cycle in one go: the first column arrives (from the road, as before), and from 1.6 s
+the other three come in one after another on the slide's own clock, 0.4 s apart and 0.8 s each, narrowing the ones
+already up (`columnIn`; a click before they are all up brings the rest with it). B is The Circle in the last
+column's place. C names its four steps one after another across one click, 0.35 s apart (`named`, on the click's
+linear time; the click is 1.65 s). **Every sound of the nine still plays** (below, under *A sheet named against the
+show*): A's at arrival and B's, C's and D's as columns two to four set off, E on The Circle's click, and F to I as
+each step is named. Checked on a filmed run's cue log: B, C and D at 1.6, 2.0 and 2.4 s into A, F to I at 0, 0.37,
+0.7 and 1.03 s into C. **The voice-over was made compact** on every track, three lines where there were nine: Erik's
+says the four phases and the hundred years on A, The Circle and Willy's "achterkleinkinderen" on B, and the four steps
+on C, about 875 characters where there were 2 400, rendered again in Piper (50 s, read back at 0.91 to 0.96; the old
+D to I in `~/.Trash/wn-voice-2026-10-28/`). The default track keeps the script verbatim, its second sentence moved
+from F to C. Erik's import skips the Word file's clicks 103–105 and 108–110 and carries the compact lines in the
+additions, and the rehearsal page's records of the old lines taken in (`show-script-adopted.json`) went with them.
 
 `LifeCycleAnalysis` **builds its first database on arrival**, words and then threads, as the second
 builds on its click; it stood whole from the first frame, the opening state having no click to
@@ -4801,7 +4846,15 @@ mark's own edge (so the leaders no longer run under the mix's grains), the name'
 brace's point, and the conclusion is set at the attributes' size and leading with its middle line on the name's
 baseline, wrapped to a right margin equal to the left.
 
-`NameTag` takes `pane` and `scale`; the show stands Erik full size in the left projector.
+`NameTag` takes `pane`, `scale` and `align`; the show stands Erik full size in the left projector. **The left
+projector's tags stand against its right margin, toward the seam** (28 October 2026): Karim's, Erik's and Erik's on the
+intro wall take `align = 1.0`, which moves the block until its widest line meets the right margin, and Else's in the
+right projector stands against its left margin, so on the intro wall the two names face each other across the seam.
+**The lines inside a tag are always ranged left**, the rule with them (asked for the same day, after a first version
+ranged them right too). Erik's two tags must keep the same `align`, or the cut from his tag into the intro wall shows
+(checked: the left halves are identical to the pixel). The five StudioBuik course cards are a `NameTag` too and stand
+the same way (`CourseIntro(align = 1.0)`, the same day): the course and the dish against the left projector's right
+margin, ranged left.
 
 **The director speaks first** (1 October): `director-is-speaking` is a `NameTag` for the director of Willy
 Naessens, first in the Opening moment, before Erik's. The director gives the first welcome, and the click
@@ -4809,9 +4862,12 @@ after it is Erik's own tag, from where the opening goes on as before. The direct
 labelled as Erik is since 20 October: "Willy Naessens NEDERLAND" on the company line, the same as Erik's, and "Chief
 Executive Officer (CEO)" under it. **Since 20 October his lines are off the autocue unless he is ticked under the
 organizer's `speakers`** (`SLIDES_SPEAKERS`, Erik alone by default; see Erik autocue below): the tag stands either
-way and he speaks his own words over it, one click, and the lines are kept for when he is ticked. His welcome, which ends handing over to Erik, is on Erik's autocue (below), **a section a click**: the
-tag stands for eight states (`NameTag(clicks = 8)`), A to H, and nothing on the wall changes on them, since the tag
-builds on its own clock. The ending wall likewise stands for three (`EndingScene(clicks = 3)`), his closing. The
+way and he speaks his own words over it, one click, and the lines are kept for when he is ticked. His welcome, which ends handing over to Erik, is on Erik's autocue (below), **the whole of it on one click**
+since 28 October 2026, and one more click then holds the tag before Erik's comes up: B, a pause whose only line on
+the autocue is the direction "Brug naar Erik; klik als Erik klaar staat". The ending wall is one state with his
+closing. Without Karim on the autocue the tag is one click. From 19 October they were a
+section a click, the tag eight states (`NameTag(clicks = 8)`) and the ending three; `clicks` is still there for a
+speech that wants it, the tag building on its own clock so nothing on the wall changes on a click. The
 other tracks carry no line on those states, so a hands-off film on them holds each for `SLIDES_HOLD_BACKDROP`; since
 the release of 15 October the tag arrives with the name tag's sound, as Erik's does.
 
@@ -5138,7 +5194,10 @@ truck, are pictures wrapped in an svg, which OPENRNDR's svg loader cannot draw, 
 rasterised once by `rsvg-convert` into `build/illustrations` and drawn as images, each fitted to
 one box and stood on its foot. A missing svg or converter falls back to the drawn pictogram. The columns' x is a
 function of `on(2)` and the middle column grows on the same number. The mark at the sheet's foot
-is set as type until the WN mark arrives as an svg — `PLACEHOLDER` in the show.
+is set as type until the WN mark arrives as an svg — `PLACEHOLDER` in the show. **The sheet is A4, upright**
+(28 October 2026, "too squared; make it like a box in A4 format, so it looks like a document"): its width is read
+off its height, 210 to 297. It was a share of the pane's width and of its height, which on the 1080 pane happened to
+come out near A4 and on the 730 wall came out nearly square.
 
 **Two measures a click, then the rest together**, since 22 September: `single = 2` gives the cranes
 and the trucks a click each, and the other four share one click of `together` (2.4 s) — `stepLength`
@@ -6433,6 +6492,17 @@ mark a cut built to be invisible, and *de cijfers* opens silent — and both are
 rather than falling back to `1-05` and `1-10`. The five hand-declared chapter-1 cues are kept as
 the fallback for a checkout with no `data/`, not deleted; chapters 2 to 4 still play them.
 
+**A slide folded into fewer states keeps every sound it was delivered with** (28 October 2026). Its `cueFold`
+([`Slide.cueFold`](src/main/kotlin/slideshow/Slide.kt), a [`CueFold`](src/main/kotlin/slideshow/CueSheet.kt) a
+delivered letter) says on which state each letter now plays and how many seconds into it; `CueSheet.boundTo` lays
+them out, the first at no delay as the state's own cue and the rest as `later` cues, which the driver queues on the
+frame the state is reached and fires as each falls due. Dropped on a step back or as the slide is left, with the
+picture they were timed to. The slide states its fold from its own timing, so the sounds cannot drift from the
+build: `LifeCycle` is the one folded slide, and the report prints it as `A+B+C+D E F+G+H+I  (folded)`. The files
+keep their delivered letters, so a release that re-cuts them needs no rename; the organizer's Sound section names a
+folded state's files as `…-A + B + C + D`. The review site's audio timeline expects at most one design cue a state
+and has not been taught the fold.
+
 **The card holds its tongue where the sheet opens the chapter.** `P1-01-hoe-bouw-je-een-wereld-A`
 lands on the first slide of chapter 1, which is the instant the chapter card fires its own
 `1-01` sting — two openings at once. Where the sheet gives the arriving slide a cue, that cue
@@ -6482,7 +6552,7 @@ cues: data/sounds/00, data/sounds/P1, data/sounds/P2, data/sounds/P3, data/sound
   we-gieten-kennis                   A B
   co2-impact-van-beton               A
   de-fasen-a-b-en-c                  A B C
-  levenscyclus-van-betonproducten    A B C D E F G H I
+  levenscyclus-van-betonproducten    A+B+C+D E F+G+H+I  (folded)
   levenscyclusanalyse                A B C D
                                      E past its 4 state(s); ignored
   verduurzamen-van-beton             A B C

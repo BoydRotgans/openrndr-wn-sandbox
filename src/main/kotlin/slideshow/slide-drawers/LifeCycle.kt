@@ -12,12 +12,16 @@ import org.openrndr.draw.isolated
 import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
+import slideshow.CueFold
 import slideshow.Slide
 import slideshow.Sound
 import slideshow.Stage
 import slideshow.drawers.TYPE_CHARACTERS
 import slideshow.drawers.advanceOf
+import slideshow.easeInOutCubic
 import slideshow.frames
+import slideshow.linear
+import slideshow.seconds
 import slideshow.smoothstep
 import java.io.File
 import kotlin.math.min
@@ -29,28 +33,35 @@ class LifeStep(val code: String, val name: String)
 class LifePhase(val code: String, val name: String, val steps: List<LifeStep>)
 
 /**
- * The life cycle of a concrete product, built a phase at a time — and then broken.
+ * The life cycle of a concrete product, built in one go — and then broken. Three states
+ * (28 October 2026, "more compressed; instead of 9 clicks only 3"):
  *
- * Production, construction, use, end of life: four columns arriving one a click, each one
- * narrowing the ones already up so the whole cycle stays on the frame. Then the turn the
- * slide exists for — **the end-of-life column is taken away and The Circle put in its place**,
- * white where the rest is red, and the four steps that replace disposal arrive in it. The
- * linear cycle is drawn in full before it is contradicted, which is the only order in which
- * the contradiction reads.
+ *     0   production, construction, use and end of life, the four columns arriving one after
+ *         another on the slide's own clock, each narrowing the ones already up
+ *     1   **the end-of-life column is taken away and The Circle put in its place**, white where
+ *         the rest is red, its four boxes each holding a piece in the round, grey
+ *     2   its four steps named, one after another across the click, each piece turning red
+ *
+ * The linear cycle is drawn in full before it is contradicted, which is the only order in which
+ * the contradiction reads. It was nine states until then, a click a column and a click a step.
+ *
+ * **The sound design was delivered for the nine, and every sound still plays** ([cueFold]): a
+ * column's on the moment it starts to arrive, The Circle's on its click, and a step's on the moment
+ * it is named, so the build sounds each of its pieces stacked on one click.
  *
  * **The layout is a pure function of one number**: how many columns are showing. That number
- * is continuous — `1 + stage.position`, clamped — so a column arriving is not a new layout but
- * the same one at 2.4 columns instead of 2, and the ones already up slide and narrow to make
- * room by themselves. `packBoxes` in demo01 and `stackRows` in the stack again, and the same
- * payoff: change the proportions and it keeps animating for free.
+ * is continuous — the first column and how far each of the others has arrived — so a column
+ * arriving is not a new layout but the same one at 2.4 columns instead of 2, and the ones already
+ * up slide and narrow to make room by themselves. `packBoxes` in demo01 and `stackRows` in the
+ * stack again, and the same payoff: change the proportions and it keeps animating for free.
  *
  * **A box's height is read off its phase**, not stated: a column's boxes share what the header
  * leaves, so the five of the use phase are shorter than the three of production without either
  * being told so. Reword a phase or add a step and the drawing re-proportions.
  *
  * **The Circle's column is not empty while it waits to be named.** It comes up as its four boxes,
- * each holding a catalogue piece in the round, turning slowly and grey; then a click a step names
- * one, and its piece turns the house red as it is named. It was one white plate that divided into
+ * each holding a catalogue piece in the round, turning slowly and grey; then one click names the
+ * steps one after another, each piece turning the house red as it is named. It was one white plate that divided into
  * four on a single click until 22 September, and stood empty and white a whole state before that.
  * The pieces are the real ones out of `data/objects`, drawn through `IsoPieces` as the hidden
  * story draws them, each fitted into the top of its box so the name has the foot of it.
@@ -100,21 +111,48 @@ class LifeCycle(
         fromRoad = from != null && previous === from && opensOn == 0
     }
 
-    /** A hands-off run holds the first state until the hand-over has played. */
-    override val settle: Int get() = if (from != null) maxOf(stepFrames, frames(MORPH)) else stepFrames
+    /** A hands-off run holds the first state until every column is up. */
+    override val settle: Int get() = frames(BUILD_AT + (phases.size - 2).coerceAtLeast(0) * COLUMN_GAP + COLUMN_MOVE)
 
     override val name = "Life cycle"
 
-    /** A click a column, then one that puts The Circle up, then one a step that names it. */
-    override val steps = phases.size + 1 + closing.steps.size
+    /** The linear cycle, The Circle put up in its last column's place, and its steps named. */
+    override val steps = 3
 
-    private val emptied get() = phases.size          // the click that puts The Circle up
-    private val filled get() = phases.size + 1       // the click that names its first step
+    override fun stepName(step: Int) = when (step) {
+        CIRCLE -> "break the cycle"
+        NAMED -> "name The Circle's steps"
+        else -> "the linear cycle"
+    }
 
-    override fun stepName(step: Int) = when {
-        step == emptied -> "break the cycle"
-        step >= filled -> closing.steps.getOrNull(step - filled)?.name
-        else -> phases.getOrNull(step)?.code
+    /** The naming click is as long as its steps take, one after another. */
+    override fun stepLength(step: Int): Int =
+        if (step == NAMED) frames((closing.steps.size - 1).coerceAtLeast(0) * LABEL_GAP + LABEL_MOVE) else stepFrames
+
+    /**
+     * The nine sounds delivered for the nine states this was, laid on the three: a column's at the
+     * moment it starts to arrive, The Circle's on its click, a step's at the moment it is named.
+     */
+    override val cueFold: List<CueFold> get() =
+        phases.indices.map { i -> CueFold(0, if (i == 0) 0.0 else BUILD_AT + (i - 1) * COLUMN_GAP) } +
+                CueFold(CIRCLE) +
+                closing.steps.indices.map { k -> CueFold(NAMED, k * LABEL_GAP) }
+
+    /**
+     * How far column [i] has arrived: the first is there with the slide, the others one after another
+     * on the slide's own clock from [BUILD_AT], and every one of them by the end of the click that
+     * breaks the cycle, should it come early. Stepped back into, the clock has run and they stand.
+     */
+    private fun columnIn(stage: Stage, i: Int): Double {
+        if (i == 0) return 1.0
+        val t = seconds(stage.frame) - BUILD_AT - (i - 1) * COLUMN_GAP
+        return maxOf(easeInOutCubic((t / COLUMN_MOVE).coerceIn(0.0, 1.0)), stage.on(CIRCLE))
+    }
+
+    /** How far The Circle's step [k] is named: one after another across the naming click, on its linear time. */
+    private fun named(stage: Stage, k: Int): Double {
+        val t = linear(stage.on(NAMED)) * seconds(stepLength(NAMED)) - k * LABEL_GAP
+        return smoothstep(t / LABEL_MOVE)
     }
 
     private val iso = IsoPieces(shade = 1.0)
@@ -147,9 +185,9 @@ class LifeCycle(
         drawer.fill = ColorRGBa.WHITE.opacify(appear)
         run(drawer, listOf(title to bold), Vector2(stage.center.x, stage.height * TITLE_Y), stage.height * TITLE / SIZE)
 
-        // How many columns are up, continuously: 1 at rest on click 0, 2.4 part way through
-        // the second click, and never more than there are phases.
-        val showing = (1.0 + stage.position).coerceIn(1.0, phases.size.toDouble())
+        // How many columns are up, continuously: 1 as the slide comes up, 2.4 part way into the
+        // second column's arrival, and every phase once the build is done.
+        val showing = phases.indices.sumOf { columnIn(stage, it) }.coerceIn(1.0, phases.size.toDouble())
 
         val span = stage.width * (1.0 - 2.0 * MARGIN)
         val width = (span - (showing - 1.0) * stage.width * GAP) / showing
@@ -157,12 +195,12 @@ class LifeCycle(
         val height = stage.height * (BOTTOM - TOP)
 
         // The last column is taken away and The Circle crossfades in its place, nothing moving.
-        val gone = stage.on(emptied)
+        val gone = stage.on(CIRCLE)
         var circleBox: Rectangle? = null
 
         phases.forEachIndexed { i, phase ->
             // A column is only drawn once it has started arriving, and fades up as it does.
-            val arriving = (showing - i).coerceIn(0.0, 1.0)
+            val arriving = columnIn(stage, i)
             if (arriving <= 0.0) return@forEachIndexed
 
             val box = Rectangle(
@@ -174,7 +212,7 @@ class LifeCycle(
             // The Circle stands in the last column's place: the same frame, filled the other
             // way round — white boxes and red type, so the break reads as a change of kind.
             if (last && gone > 0.0) {
-                column(drawer, stage, box, closing, gone, paper, ink, named = { k -> stage.on(filled + k) })
+                column(drawer, stage, box, closing, gone, paper, ink, named = { k -> named(stage, k) })
                 circleBox = box
             }
         }
@@ -202,8 +240,7 @@ class LifeCycle(
             // The ground set so the piece's any-angle box is centred in its area.
             val floor = h / 2.0 - area.center.y - f.mesh.halfHeight * scale * iso.up.y
             val stood = iso.standing(f, area.center.x - w / 2.0, floor, unit, turn + k * GOLDEN)
-            val named = stage.on(filled + k)
-            IsoPlaced(stood.mesh, stood.centre, stood.scale, stood.angle, waiting.mix(ink, named), casts = false)
+            IsoPlaced(stood.mesh, stood.centre, stood.scale, stood.angle, waiting.mix(ink, named(stage, k)), casts = false)
         }
         iso.draw(drawer, w, h, placed, ink, background, background)
     }
@@ -354,5 +391,22 @@ class LifeCycle(
         const val MORPH = 1.6
         const val APPEAR_FROM = 0.4
         const val LABELS_FROM = 0.8
+
+        /** The states after the linear cycle: The Circle put up, and its steps named. */
+        const val CIRCLE = 1
+        const val NAMED = 2
+
+        /**
+         * Seconds into the opening state the second column starts to arrive — once the road's hand-over
+         * has landed its steps in the first column, whose boxes it aims at full width — how far apart
+         * the columns after it start, and how long each takes.
+         */
+        const val BUILD_AT = MORPH
+        const val COLUMN_GAP = 0.4
+        const val COLUMN_MOVE = 0.8
+
+        /** How far apart The Circle's steps are named across their click, and how long each takes. */
+        const val LABEL_GAP = 0.35
+        const val LABEL_MOVE = 0.6
     }
 }

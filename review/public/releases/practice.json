@@ -159,6 +159,32 @@
           "file": "sprekersnotities-standaard.pdf"
         }
       ]
+    },
+    {
+      "slug": "2026-10-28",
+      "name": "Rehearsal 28 October",
+      "created": "2026-10-28",
+      "folder": "practice/2026-10-28",
+      "audio": "film",
+      "about": "The show of 28 October on Erik's autocue with Karim Weiss's welcome and closing, filmed without subtitles (video/wn-experience_2026-10-28-clean.mp4) at the wall's new 3840 by 730, timed by Erik's rendered voice and the voice mixed out (-clean-novoice.mp4), with the speaker's autocue filmed on the same run (-autocue.mp4); the review's Release 28 October is the same run. Since 27 October: the 730 wall on black, the courses as 1e to 5e gang, the quotes broken as even blocks, the opening wall at 91 straight pieces counted to 100, the name tags toward the seam, the life cycle in three clicks with Erik's lines shortened, the certificate an A4 sheet, the music at -18.5 dB.",
+      "sheets": [
+        {
+          "key": "autocue",
+          "file": "sprekersnotities-autocue.pdf"
+        },
+        {
+          "key": "uitgelijnd",
+          "file": "sprekersnotities-uitgelijnd.pdf"
+        },
+        {
+          "key": "uitgebreid",
+          "file": "sprekersnotities-uitgebreid.pdf"
+        },
+        {
+          "key": "standaard",
+          "file": "sprekersnotities-standaard.pdf"
+        }
+      ]
     }
   ]
 }

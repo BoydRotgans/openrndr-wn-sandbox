@@ -1,6 +1,6 @@
 {
  "about": "Erik's autocue as the show has it, for the rehearsal page to read and edit: written by review/scripts/export-script.mjs from show-subtitles-erik.json. Edits made on the page are kept apart, in Supabase, and laid over this; adopted names those already taken into the show (show-script-adopted.json).",
- "exported": "2026-10-27T08:48:53.877Z",
+ "exported": "2026-10-28T12:56:22.214Z",
  "track": "erik",
  "label": "Erik autocue",
  "speaker": "Erik Koremans",
@@ -88,7 +88,7 @@
   "esg-social-governance-C": "En die verantwoordelijkheid stopt niet bij onze eigen medewerkers. We kijken ook naar de omgeving waarin we bouwen en naar de mensen die de gebouwen straks gebruiken.",
   "esg-social-governance-D": "Tot slot de G: Governance. Dat betekent dat we onze verantwoordelijkheid bestuurlijk ook goed organiseren. Met duidelijke afspraken, controles, certificeringen, transparante rapportage en langdurige relaties met onze partners.",
   "esg-social-governance-E": "Als jullie deze beelden samen zien, is dit eigenlijk de kern van ESG: milieu, mensen en goed bestuur. Geen drie losse onderwerpen, maar drie kanten van dezelfde verantwoordelijkheid.",
-  "projecthighlight-2-A": "Kijk Gijs; Een mooi voorbeeld is VGP Park Nijmegen, gebouw B en C. Hier komen schaal, uitvoering en aandacht voor duurzaamheid samen in een logistiek project van ruim 130.000 vierkante meter.",
+  "projecthighlight-2-A": "Kijk Gijs en Ramon; Een mooi voorbeeld is VGP Park Nijmegen, gebouw B en C. Hier komen schaal, uitvoering en aandacht voor duurzaamheid samen in een logistiek project van ruim 130.000 vierkante meter.",
   "projecthighlight-2-B": "Het project is in 104 weken gebouwd voor VGP Group. Dat laat zien hoe we onze kennis en organisatie inzetten bij grote opgaven en ook binnen planning en budget kunnen bouwen.",
   "projecthighlight-2-C": "En kijken jullie naar het dak: zonnepanelen maken opwekking van groene stroom mogelijk. Zo wordt de E van ESG zichtbaar in een echt gebouw.",
   "kernboodschap-2-A": "Wat ik jullie uit dit hoofdstuk wil meegeven: duurzaamheid is voor ons geen apart onderwerp naast het bouwen. Het bepaalt mede hoe we bouwen. En de vraag voor straks aan tafel is: welke keuze die we vandaag maken, is over twintig jaar nog steeds de juiste? Ik geef graag het woord aan Else voor de volgende gang.",
@@ -98,15 +98,9 @@
   "de-fasen-a-b-en-c-A": "Om dat goed uit te leggen, analyseren we een betonelement door zijn hele levenscyclus. Een levenscyclusanalyse is eigenlijk ontstaan in de jaren zestig vanuit de vraag, hoe bepalen we of iets echt beter is voor het milieu? Coca-Cola bijvoorbeeld liet destijds voor het eerst onderzoeken welke verpakking het milieu het minst belastte. Dat bleek ingewikkelder dan gedacht, omdat je naar de hele levensduur moest kijken. Daaruit groeide de methode die we nu kennen als de levenscyclusanalyse. Inmiddels is die internationaal gestandaardiseerd, onder andere via de ISO-normen 14040 en 14044.\nWe delen deze levenscyclus analyse op in drie delen: A, B en C.\nA begint bij de grondstoffen en loopt door tot en met de bouw. Het gaat hier dus over grondstofwinning, transport naar de fabriek, productie, transport naar de bouwplaats en montage. Bij Willy Naessens gebruiken we diezelfde gedachte om de milieu-impact van onze betonproducten te berekenen. We kijken naar de grondstoffen, de samenstelling, de productie en de overige relevante levensfasen. Zo kunnen we verschillende oplossingen vergelijken en aantoonbaar betere keuzes maken.",
   "de-fasen-a-b-en-c-B": "Na de bouw begint fase B: de gebruiksfase. Het gebouw wordt in gebruik genomen en moet natuurlijk goed blijven functioneren.\nIn de loop der jaren van het gebruik van het gebouw is onderhoud nodig. Soms worden onderdelen gerepareerd, vervangen of wordt het gebouw aangepast aan nieuwe wensen.\nOok dat heeft invloed op het milieu en nemen we dus mee in de levenscyclusanalyse.\nHet bijzondere aan onze prefab betonelementen is hun lange levensduur. Ze zijn ontworpen om minstens 100 jaar mee te gaan. En juist die lange levensduur maakt beton zo waardevol.",
   "de-fasen-a-b-en-c-C": "En dan komen we bij fase C: het einde van de levensduur van het gebouw.\nOp dat moment zijn er twee mogelijkheden.\nDe eerste is slopen. Daarbij kunnen we het vrijgekomen beton recyclen. We breken het beton en gebruiken het materiaal opnieuw, bijvoorbeeld als grondstof voor nieuw beton.\nDe tweede mogelijkheid is demonteren. Daarbij halen we de betonelementen zorgvuldig uit het gebouw, zodat we ze als geheel opnieuw kunnen gebruiken in een volgend gebouw.\nEn dat is een wezenlijk verschil. Bij recycling geven we het materiaal een nieuw leven. Bij hergebruik geven we het complete betonelement een nieuw leven.\nZo zien jullie hier de volledige levenscyclus: van grondstof en productie tot gebruik en uiteindelijk recycling of hergebruik.",
-  "levenscyclus-van-betonproducten-A": "We hebben nu gezien welke fasen een gebouw doorloopt. Maar hoe bepalen we wat de milieubelasting daarvan is?\nDaarvoor kijken we naar iedere stap afzonderlijk. We beginnen bij de grondstoffen, zoals zand, grind en cement.\nHet winnen en produceren van deze grondstoffen kost energie en veroorzaakt uitstoot. Die milieubelasting brengen we in kaart en nemen we mee in onze LCA-berekening.",
-  "levenscyclus-van-betonproducten-B": "Na de productie in onze fabrieken komen we bij fase A4: het transport naar de bouwplaats.\nOnze prefab betonelementen worden met vrachtwagens naar de bouwplaats vervoerd. Daarbij kijken we naar de afstanden, het brandstofverbruik en de uitstoot.\nVervolgens komt fase A5: de montage. Met onze eigen montageploegen en kranen bouwen we de elementen samen tot een gebouw. Ook dat kost energie.\nAl deze activiteiten hebben invloed op het milieu en tellen daarom mee in de totale milieubelasting van het gebouw.",
-  "levenscyclus-van-betonproducten-C": "Wat deze fase voor ons zo interessant maakt, is de lange levensduur van beton.\nOnze prefab betonelementen zijn ontworpen om minstens 100 jaar mee te gaan. Dat betekent dat de materialen die we vandaag gebruiken, heel lang hun waarde kunnen behouden.\nEn als een gebouw na bijvoorbeeld 30 jaar niet meer voldoet aan de wensen van de gebruiker, betekent dat nog niet dat onze betonelementen aan het einde van hun levensduur zijn.\nEn juist daar liggen kansen voor circulariteit.",
-  "levenscyclus-van-betonproducten-D": "En dan de laatste fase, einde levensduur gebouw. Hier zit voor ons een belangrijke uitdaging.\nIn de traditionele bouw eindigt de levensduur van een gebouw vaak met de sloop. Daarmee gaat ook een groot deel van de waarde van de oorspronkelijke bouwelementen verloren.\nBij Willy Naessens willen we die keten doorbreken. We willen niet alleen nadenken over hoe we een gebouw bouwen, maar ook over wat we er later nog mee kunnen.\nWant een gebouw kan aan het einde van zijn levensduur zijn, terwijl onze betonelementen nog jarenlang mee kunnen.",
-  "levenscyclus-van-betonproducten-E": "En precies vanuit die gedachte hebben we bij Willy Naessens The Circle ontwikkeld.\nEen circulair bouwconcept waarbij we al bij het ontwerp rekening houden met de toekomst.\nWe ontwerpen onze prefab betonelementen zo dat ze niet alleen lang meegaan, maar ook losmaakbaar zijn en opnieuw kunnen worden toegepast.\nDaarmee bouwen we niet alleen voor vandaag, maar ook met de gebouwen van morgen in gedachten. Willy zei zelf \"Wij bouwen voor onze achterkleinkinderen\"",
-  "levenscyclus-van-betonproducten-F": "De eerste stap is dan zorgvuldig demonteren, zodat het element heel blijft en opnieuw inzetbaar is.",
-  "levenscyclus-van-betonproducten-G": "Vervolgens moet dat element worden vervoerd. Ook die stap hoort bij het verhaal; hergebruik is alleen zinvol als we de hele keten bekijken.",
-  "levenscyclus-van-betonproducten-H": "Soms is het element niet meteen opnieuw nodig. Dan moet het veilig worden opgeslagen en goed herkenbaar blijven.",
-  "levenscyclus-van-betonproducten-I": "En uiteindelijk krijgt het een plek in een volgend gebouw. Zo maken we van een eindpunt een nieuw begin. Daar komen we straks bij The Circle uitgebreid op terug.",
+  "levenscyclus-van-betonproducten-A": "We hebben gezien welke fasen een gebouw doorloopt. In onze LCA-berekening telt elke stap mee: de grondstoffen en de productie, het transport en de montage, het gebruik en het einde van de levensduur.\nOnze prefab betonelementen gaan minstens 100 jaar mee, vaak veel langer dan het gebouw zelf.\nToch eindigt een gebouw in de traditionele bouw met de sloop, en daarmee gaat de waarde van die elementen verloren.",
+  "levenscyclus-van-betonproducten-B": "Die keten willen we doorbreken. Daarom hebben we bij Willy Naessens The Circle ontwikkeld: we ontwerpen onze elementen zo dat ze lang meegaan, losmaakbaar zijn en opnieuw kunnen worden toegepast.\nOf zoals Willy zelf zei: \"Wij bouwen voor onze achterkleinkinderen.\"",
+  "levenscyclus-van-betonproducten-C": "In plaats van slopen: zorgvuldig demonteren, zodat het element heel blijft. Dan het transport, de opslag, en uiteindelijk een plek in een volgend gebouw.\nZo maken we van een eindpunt een nieuw begin.",
   "levenscyclusanalyse-A": "We hebben nu gezien hoe we bij Willy Naessens anders omgaan met de levensduur van onze betonelementen. Maar hoe maken we inzichtelijk wat onze keuzes daadwerkelijk opleveren voor het milieu?\nDat begint bij de materialen die we inkopen.\nVan onze leveranciers verzamelen we gegevens over de grondstoffen, zoals de herkomst, het transport en de bijbehorende CO₂-uitstoot.\nDie informatie leggen we vast in een database, die jullie hier rechts in beeld zien.\nMaar daarmee weten we nog niet wat de milieu-impact van een compleet betonelement is. Daarvoor moeten we ook weten welke grondstoffen en hoeveelheden we in onze betonmengsels gebruiken.",
   "levenscyclusanalyse-B": "En dat is precies wat jullie hier zien: onze eigen betonrecepturen.\nBij Willy Naessens weten we exact hoe ieder betonmengsel is samengesteld. Hoeveel cement, welke bindmiddelen en hoeveel zand en grind we gebruiken.\nDie samenstelling verschilt per toepassing en bepaalt mede de sterkte, de eigenschappen en de milieubelasting van het beton.\nOok deze gegevens leggen we vast in een database.\nZo hebben we nu twee belangrijke gegevensverzamelingen: wat we inkopen én wat we daadwerkelijk in onze betonproducten verwerken.",
   "levenscyclusanalyse-C": "En hier brengen we beide databases samen.\nWe combineren de milieu-impact van onze grondstoffen met de exacte samenstelling van onze betonmengsels.\nZo kunnen we voor ieder betonelement berekenen wat de milieubelasting is.\nEn belangrijker nog: we kunnen zien wat er verandert als we bijvoorbeeld minder cement of andere bindmiddelen gebruiken.\nDaarmee kunnen we onze betonproducten gericht verduurzamen en het resultaat ook daadwerkelijk aantonen.",
@@ -123,7 +117,7 @@
   "recyclage-C": "Hier zien jullie wat er bij recycling daadwerkelijk gebeurt.\nHet betonelement wordt gebroken en verwerkt tot betongranulaat. Dat granulaat kan vervolgens opnieuw worden gebruikt, bijvoorbeeld als toeslagmateriaal in nieuw beton.\nZo vervangen we een deel van de nieuwe grondstoffen door gerecycled materiaal.\nMaar er is ook een belangrijk nadeel: we vernietigen een compleet betonelement dat technisch mogelijk nog jarenlang mee had gekund.\nEn dat roept bij ons een andere vraag op: kunnen we niet méér behouden dan alleen de grondstoffen?",
   "recyclage-D": "Als we een element heel kunnen houden, hoeven we een belangrijk deel van het maakproces niet opnieuw te doorlopen. Dat is de gedachte achter losmaakbaar bouwen.",
   "recyclage-E": "En hier zien jullie wat we uiteindelijk willen bereiken: een betonelement dat opnieuw wordt toegepast, zonder dat we het eerst hoeven te breken.\nDaarmee slaan we een aantal stappen over die bij recycling wel nodig zijn, zoals het breken, zeven en opnieuw produceren.\nDat bespaart nieuwe grondstoffen en zal dus de milieubelasting aanzienlijk verminderen.",
-  "projecthighlight-3-A": "Hoe ziet onze manier van bouwen er in de praktijk uit? Hier zien jullie een pand van onze opdrachtgever WDP; waar Kivits huurder is: een logistiek gebouw waarin onze prefab aanpak en de verticale integratie volledig tot zijn recht komt. Binnen planning gebouwd en binnen budget gebouwd.",
+  "projecthighlight-3-A": "Hoe ziet onze manier van bouwen er in de praktijk uit? Hier zien jullie een pand van onze opdrachtgever WDP (Geertjan en Jorgen); waar Kivits huurder is: een logistiek gebouw waarin onze prefab aanpak en de verticale integratie volledig tot zijn recht komt. Binnen planning gebouwd en binnen budget gebouwd.",
   "projecthighlight-3-B": "Voor opdrachtgevers draait het uiteindelijk om een goed gebouw, met zekerheid over uitvoering en kwaliteit. En voor ons hoort daar steeds vaker een aantoonbaar lagere milieu-impact bij.",
   "kernboodschap-3-A": "De kern van dit hoofdstuk is eenvoudig: we blijven bouwen met beton, maar we verbeteren het recept, het productieproces en de manier waarop we met elementen omgaan. Straks laat ik jullie zien hoe we dat laatste met The Circle verder brengen. Nu geef ik weer het woord aan Else, voor de toelichting op de volgende gang.",
   "we-bouwen-vandaag-A": "We hebben gezien hoe we beton verbeteren en de impact ervan berekenen. Maar er is nog een grotere vraag: waarom zouden we een goed betonelement na einde levensduur niet meer gebruiken? Daarmee komen we bij het laatste hoofdstuk en die gaat over ons nieuwe duurzame en circulaire concept: The Circle.",
@@ -231,7 +225,7 @@
   "studiobuik-dessert-A": [
    "Else licht het dessert toe; klik als ze klaar is"
   ],
-  "sketch-kit-two-screens-wn-landscape-jump-cuts-A": [
+  "sketch-kit-two-screens-wn-jump-cuts-on-the-click-A": [
    "Einde presentatie · de wand blijft staan"
   ]
  },
@@ -273,29 +267,34 @@
    "from": "En C gaat over het einde van de levensduur van het gebouw; de vraag is dan demonteren of slopen. Juist daar over de verwerking van dit afval willen we anders over gaan nadenken. Want de vraag is; is dit wel afval? Samenvattend ziet u nog even de hele levensloop overzichtelijk bij elkaar."
   },
   "levenscyclus-van-betonproducten-A": {
-   "at": "2026-10-21T09:34:52.852Z",
+   "at": "2026-10-28T12:32:50.000Z",
    "edited": "2026-10-21T07:43:40.521+00:00",
-   "from": "We beginnen bij A, bij de grondstoffen. Iedere stap vraagt energie en materialen en heeft dus een eigen milieu-impact."
+   "from": "We beginnen bij A, bij de grondstoffen. Iedere stap vraagt energie en materialen en heeft dus een eigen milieu-impact.",
+   "note": "28 oktober: de levenscyclus staat nu in drie klikken. Deze tekst is ingekort en verwerkt in de nieuwe klikken A, B en C."
   },
   "levenscyclus-van-betonproducten-B": {
-   "at": "2026-10-21T09:34:52.852Z",
+   "at": "2026-10-28T12:32:50.000Z",
    "edited": "2026-10-21T08:23:44.186+00:00",
-   "from": "Vervolgens maken we het element in de fabriek en brengen we het naar de bouwplaats. Ook productie, transport en montage tellen mee in de milieubelasting."
+   "from": "Vervolgens maken we het element in de fabriek en brengen we het naar de bouwplaats. Ook productie, transport en montage tellen mee in de milieubelasting.",
+   "note": "28 oktober: de levenscyclus staat nu in drie klikken. Deze tekst is ingekort en verwerkt in de nieuwe klikken A, B en C."
   },
   "levenscyclus-van-betonproducten-C": {
-   "at": "2026-10-21T09:34:52.852Z",
+   "at": "2026-10-28T12:32:50.000Z",
    "edited": "2026-10-21T08:25:49.339+00:00",
-   "from": "Daarna wordt het gebouw gebruikt. In deze lange fase kijken we naar onderhoud, reparaties en veranderingen die nodig zijn om het gebouw bruikbaar te houden."
+   "from": "Daarna wordt het gebouw gebruikt. In deze lange fase kijken we naar onderhoud, reparaties en veranderingen die nodig zijn om het gebouw bruikbaar te houden.",
+   "note": "28 oktober: de levenscyclus staat nu in drie klikken. Deze tekst is ingekort en verwerkt in de nieuwe klikken A, B en C."
   },
   "levenscyclus-van-betonproducten-D": {
-   "at": "2026-10-21T09:34:52.852Z",
+   "at": "2026-10-28T12:32:50.000Z",
    "edited": "2026-10-21T08:30:43.313+00:00",
-   "from": "En aan het einde van de traditionele route volgt sloop en afvalverwerking. Dat noemen we een lineaire keten: maken, gebruiken en afdanken. Take, Make, Waste."
+   "from": "En aan het einde van de traditionele route volgt sloop en afvalverwerking. Dat noemen we een lineaire keten: maken, gebruiken en afdanken. Take, Make, Waste.",
+   "note": "28 oktober: de levenscyclus staat nu in drie klikken. Deze tekst is ingekort en verwerkt in de nieuwe klikken A, B en C."
   },
   "levenscyclus-van-betonproducten-E": {
-   "at": "2026-10-21T09:34:52.852Z",
+   "at": "2026-10-28T12:32:50.000Z",
    "edited": "2026-10-21T08:32:52.965+00:00",
-   "from": "Maar waarom zouden we een goed betonelement na één gebouw afschrijven? Hier begint ons andere denken: niet afdanken wat nog functioneel is dus nog waarde heeft."
+   "from": "Maar waarom zouden we een goed betonelement na één gebouw afschrijven? Hier begint ons andere denken: niet afdanken wat nog functioneel is dus nog waarde heeft.",
+   "note": "28 oktober: de levenscyclus staat nu in drie klikken. Deze tekst is ingekort en verwerkt in de nieuwe klikken A, B en C."
   },
   "levenscyclusanalyse-A": {
    "at": "2026-10-21T09:34:52.852Z",

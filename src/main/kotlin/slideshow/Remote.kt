@@ -845,7 +845,10 @@ class Remote(
             // Whose lines are on the autocue besides Erik's in this show (SLIDES_SPEAKERS).
             put("speakers", JsonArray(catalogue.settings.speakers.map { JsonPrimitive(it) }))
             // The sound design's files by slide and state, read off its folders now — see CueSheet.files.
-            val cueFiles = catalogue.settings.cueSheet?.files(catalogueIds.zip(catalogue.slides).associate { (id, s) -> id to s.steps }).orEmpty()
+            val cueFiles = catalogue.settings.cueSheet?.files(
+                catalogueIds.zip(catalogue.slides).associate { (id, s) -> id to s.steps },
+                catalogueIds.zip(catalogue.slides).mapNotNull { (id, s) -> s.cueFold?.let { id to it } }.toMap()
+            ).orEmpty()
             put("catalogue", JsonArray(catalogueIds.mapIndexed { i, id -> slideJson(catalogue, i, id, cueFiles[id].orEmpty()) }))
             put("order", order.toJson())
             put("declared", declared.toJson())

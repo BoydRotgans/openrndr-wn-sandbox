@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Header, { type Update } from './components/Header'
 import { type Counts } from './components/Minimap'
 import Player, { type Dot, type PlayerHandle } from './components/Player'
@@ -545,7 +545,8 @@ export default function App() {
   // --- the page --------------------------------------------------------------------- //
 
   return (
-    <div className="app">
+    <div className="app" style={release?.manifest.width && release.manifest.height
+      ? { '--film-ratio': release.manifest.width / release.manifest.height } as CSSProperties : undefined}>
       <Header
         releases={releases}
         release={release}

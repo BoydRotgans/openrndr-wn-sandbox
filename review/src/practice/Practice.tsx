@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode, type CSSProperties } from 'react'
 import Film, { type FilmHandle, type FilmState } from './Film'
 import Overview from './Overview'
 import { copy, sectionName, slideTitle, type Lang } from './copy'
@@ -275,7 +275,7 @@ export default function Practice() {
   const adoptions = script.adoptions()
 
   return (
-    <div className={`practice phase-${phase}`}>
+    <div className={`practice phase-${phase}`} style={{ '--film-ratio': cut.ratio } as CSSProperties}>
       <Head t={t} lang={lang} onLang={setLang} created={cut.created}>
         <Clock t={t} startedAt={startedAt} onReset={() => setStartedAt(null)} />
         <button className="ghost" onClick={() => setOverview(true)} title={`${t.overview} (O)`}>

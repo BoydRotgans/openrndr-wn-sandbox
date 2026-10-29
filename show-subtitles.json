@@ -83,7 +83,7 @@
       "levenscyclus-van-betonproducten": {
         "heading": "Levenscyclus",
         "text": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt.\nBeton als materiaal in transitie, niet als statisch gegeven.",
-        "note": "Tweede zin op de laatste staat, waar de levenscyclus overgaat in The Circle."
+        "note": "Tweede zin op de laatste staat, C, waar The Circle zijn stappen krijgt (drie staten sinds 28 oktober 2026)."
       },
       "levenscyclusanalyse": {
         "heading": "Bij database betonmengsels",
@@ -254,7 +254,7 @@
     },
     "levenscyclus-van-betonproducten": {
       "A": "Wérkelijk duurzaam bouwen betekent niet dat je beton negeert, maar dat je het heruitvindt.",
-      "F": "Beton als materiaal in transitie, niet als statisch gegeven."
+      "C": "Beton als materiaal in transitie, niet als statisch gegeven."
     },
     "levenscyclusanalyse": {
       "A": "Levenscyclus analyse laat objectief toe om verduurzaming van betonproducten in kaart te brengen.",

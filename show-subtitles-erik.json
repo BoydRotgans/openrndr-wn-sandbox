@@ -183,7 +183,7 @@
       },
       "director-is-speaking": {
         "heading": "Erik autocue · klik 002 · OPENING · Karim Weiss",
-        "note": "A is klik 002. B is toegevoegd. C is toegevoegd. D is toegevoegd. E is toegevoegd. F is toegevoegd. G is toegevoegd. H is toegevoegd."
+        "note": "A is klik 002. B is toegevoegd."
       },
       "who-is-speaking": {
         "heading": "Erik autocue · klik 003 · OPENING · Erik Koremans",
@@ -307,7 +307,7 @@
       },
       "levenscyclus-van-betonproducten": {
         "heading": "Erik autocue · klik 102–110 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
-        "note": "A is klik 102. B is klik 103. C is klik 104. D is klik 105. E is klik 106. F is klik 107. G is klik 108. H is klik 109. I is klik 110."
+        "note": "Drie klikken sinds 28 oktober 2026, kort gehouden: A is klik 102, met 103 tot 105 erin (de vier fasen komen in één keer); B is klik 106 (The Circle); C is klik 107, met 108 tot 110 erin (de vier stappen in één klik)."
       },
       "levenscyclusanalyse": {
         "heading": "Erik autocue · klik 111–115 · HOOFDSTUK 3 · BETON: RUGGENGRAAT EN TRANSITIE · Erik Koremans",
@@ -395,7 +395,7 @@
       },
       "ending": {
         "heading": "Erik autocue · klik 175 · UITLOOP · Karim Weiss",
-        "note": "A is klik 175. B is toegevoegd. C is toegevoegd."
+        "note": ""
       },
       "sketch-kit-two-screens-wn-landscape-jump-cuts": {
         "heading": "Erik autocue · klik 176 · UITLOOP",
@@ -405,19 +405,10 @@
   },
   "speakers": {
     "director-is-speaking": {
-      "A": "Karim Weiss",
-      "B": "Karim Weiss",
-      "C": "Karim Weiss",
-      "D": "Karim Weiss",
-      "E": "Karim Weiss",
-      "F": "Karim Weiss",
-      "G": "Karim Weiss",
-      "H": "Karim Weiss"
+      "A": "Karim Weiss"
     },
     "ending": {
-      "A": "Karim Weiss",
-      "B": "Karim Weiss",
-      "C": "Karim Weiss"
+      "A": "Karim Weiss"
     }
   },
   "replaced": {
@@ -444,7 +435,7 @@
       "A": "Klik als iedereen zit"
     },
     "director-is-speaking": {
-      "H": "Brug naar Erik"
+      "B": "Brug naar Erik; klik als Erik klaar staat"
     },
     "het-programma": {
       "B": "Else stelt StudioBuik voor · daarna klik: aftellen naar hoofdstuk 1"
@@ -488,20 +479,13 @@
     "studiobuik-dessert": {
       "A": "Else licht het dessert toe; klik als ze klaar is"
     },
-    "sketch-kit-two-screens-wn-landscape-jump-cuts": {
+    "sketch-kit-two-screens-wn-jump-cuts-on-the-click": {
       "A": "Einde presentatie · de wand blijft staan"
     }
   },
   "subtitles": {
     "director-is-speaking": {
-      "A": "Dames en heren, beste gasten,\n\nVan harte welkom bij Willy Naessens.\nWat fijn dat jullie vanavond met zoveel mensen aanwezig zijn.\nNamens onze hele organisatie wil ik jullie hartelijk danken voor jullie komst.",
-      "B": "Voor degenen die mij nog niet kennen: ik ben Karim Weiss. Per 1 maart heb ik als algemeen directeur het stokje overgenomen van Jeroen de Bonth.\nJeroen heeft een stapje terug gedaan, maar blijft gelukkig commercieel betrokken bij onze organisatie.\nOok blijft hij met zijn kennis en ervaring bijdragen aan de verdere ontwikkeling van onze visie en strategie.",
-      "C": "Als we naar de huisvestingsmarkt kijken, zien we dat de uitdagingen steeds groter worden.\nWe hebben te maken met:\n– netcongestie\n– de beschikbare vierkante meters worden steeds schaarser\n– vergunningstrajecten duren vaak langer.\n– Tegelijkertijd worden de eisen op het gebied van duurzaamheid steeds hoger.",
-      "D": "En ondanks al die uitdagingen moeten gebouwen natuurlijk functioneel, flexibel én financieel haalbaar blijven.\nDat roept interessante vragen op.\n– Hoe kunnen we bedrijfsruimte stapelen zonder in te leveren op functionaliteit?\n– Hoe maken we gestapelde logistiek rendabel?\n– Hoe combineren we bedrijfsruimte met andere stedelijke functies, zoals tijdelijk wonen?\n– En hoe kunnen we duurzame en modulaire bedrijfsgebouwen blijven ontwikkelen én financieren?",
-      "E": "Dit zijn vraagstukken die we niet alleen kunnen oplossen.\nDaarvoor hebben we elkaar nodig: opdrachtgevers, ontwikkelaars, adviseurs, gebruikers en bouwpartners.\nJuist wanneer we onze kennis vroeg bij elkaar brengen, ontstaan betere plannen.\nDan krijgen we eerder inzicht in de mogelijkheden, de haalbaarheid, de kosten en de risico’s.",
-      "F": "Willy Naessens heeft inmiddels ruim 65 jaar ervaring.\nMet onze geïntegreerde bouwaanpak en onze dertien eigen betonfabrieken hebben we veel kennis en capaciteit zelf in huis.\nDaardoor kunnen wij niet alleen bouwen.\nWe kunnen juist al vanaf het eerste idee meedenken over het ontwerp, de maakbaarheid, de planning, de kosten en de duurzaamheid.",
-      "G": "Vanavond willen we jullie op een bijzondere manier meenemen in onze wereld.\nNiet alleen door te vertellen wie we zijn en wat we doen, maar vooral door te laten zien hoe wij samen met onze opdrachtgevers complexe huisvestingsvragen kunnen vertalen naar concrete en haalbare oplossingen.",
-      "H": "Om jullie door het programma van vanavond te leiden, geef ik graag het woord aan Erik Koremans.\nErik neemt jullie mee langs de verschillende onderdelen van het programma.\nEen avond waarin kennis, inspiratie en ontmoeting bij elkaar komen.\nIk wens iedereen een inspirerende en vooral plezierige avond toe. Geniet van het programma, van de gesprekken en natuurlijk: laat het jullie smaken.\nErik, aan jou het woord."
+      "A": "Dames en heren, beste gasten,\n\nVan harte welkom bij Willy Naessens.\nWat fijn dat jullie vanavond met zoveel mensen aanwezig zijn.\nNamens onze hele organisatie wil ik jullie hartelijk danken voor jullie komst.\n\nVoor degenen die mij nog niet kennen: ik ben Karim Weiss. Per 1 maart heb ik als algemeen directeur het stokje overgenomen van Jeroen de Bonth.\nJeroen heeft een stapje terug gedaan, maar blijft gelukkig commercieel betrokken bij onze organisatie.\nOok blijft hij met zijn kennis en ervaring bijdragen aan de verdere ontwikkeling van onze visie en strategie.\n\nAls we naar de huisvestingsmarkt kijken, zien we dat de uitdagingen steeds groter worden.\nWe hebben te maken met:\n– netcongestie\n– de beschikbare vierkante meters worden steeds schaarser\n– vergunningstrajecten duren vaak langer.\n– Tegelijkertijd worden de eisen op het gebied van duurzaamheid steeds hoger.\n\nEn ondanks al die uitdagingen moeten gebouwen natuurlijk functioneel, flexibel én financieel haalbaar blijven.\nDat roept interessante vragen op.\n– Hoe kunnen we bedrijfsruimte stapelen zonder in te leveren op functionaliteit?\n– Hoe maken we gestapelde logistiek rendabel?\n– Hoe combineren we bedrijfsruimte met andere stedelijke functies, zoals tijdelijk wonen?\n– En hoe kunnen we duurzame en modulaire bedrijfsgebouwen blijven ontwikkelen én financieren?\n\nDit zijn vraagstukken die we niet alleen kunnen oplossen.\nDaarvoor hebben we elkaar nodig: opdrachtgevers, ontwikkelaars, adviseurs, gebruikers en bouwpartners.\nJuist wanneer we onze kennis vroeg bij elkaar brengen, ontstaan betere plannen.\nDan krijgen we eerder inzicht in de mogelijkheden, de haalbaarheid, de kosten en de risico’s.\n\nWilly Naessens heeft inmiddels ruim 65 jaar ervaring.\nMet onze geïntegreerde bouwaanpak en onze dertien eigen betonfabrieken hebben we veel kennis en capaciteit zelf in huis.\nDaardoor kunnen wij niet alleen bouwen.\nWe kunnen juist al vanaf het eerste idee meedenken over het ontwerp, de maakbaarheid, de planning, de kosten en de duurzaamheid.\n\nVanavond willen we jullie op een bijzondere manier meenemen in onze wereld.\nNiet alleen door te vertellen wie we zijn en wat we doen, maar vooral door te laten zien hoe wij samen met onze opdrachtgevers complexe huisvestingsvragen kunnen vertalen naar concrete en haalbare oplossingen.\n\nOm jullie door het programma van vanavond te leiden, geef ik graag het woord aan Erik Koremans.\nErik neemt jullie mee langs de verschillende onderdelen van het programma.\nEen avond waarin kennis, inspiratie en ontmoeting bij elkaar komen.\nIk wens iedereen een inspirerende en vooral plezierige avond toe. Geniet van het programma, van de gesprekken en natuurlijk: laat het jullie smaken.\nErik, aan jou het woord."
     },
     "who-is-speaking": {
       "A": "Goedenavond allemaal, goed dat jullie er zijn. Leuk om hier vanavond zo'n mooi gezelschap van mensen bij elkaar te zien. Ik ben Erik Koremans en binnen Willy Naessens Nederland houd ik me bezig met commercie en duurzaamheid. Vanavond wil ik jullie vooral iets laten zien: hoe wij bouwen, welke keuzes we daarbij maken en hoe we samen kunnen bouwen aan de toekomst. Geen traditionele presentatie, maar een verhaal in de vorm van een beleving, waarbij we alle prefab betonelementen die wij zelf produceren steeds centraal laten staan. Want juist die elementen vormen letterlijk én figuurlijk de bouwstenen van ons verhaal."
@@ -568,7 +552,7 @@
       "B": "We realiseerden hier een afhaalmagazijn met kantoor van ruim dertienduizend vierkante meter. In vierendertig weken. Dankzij onze eigen kolommen, productie en uitvoering konden we snelheid en zekerheid combineren."
     },
     "kernboodschap-1": {
-      "A": "En daarmee zijn we terug bij de kern van dit eerste hoofdstuk. Achter ieder gebouw zit een wereld van keuzes. Onze kracht is dat we die keuzes in samenhang kunnen maken. Mijn vraag aan jullie is dan ook: waar liggen jullie zelf wakker van bij jullie bouwplannen? Daarover praten we straks graag verder. Maar eerst geef ik het woord aan Else de Bruin van StudioBuik, voor de eerste gang."
+      "A": "En daarmee zijn we terug bij de kern van dit eerste hoofdstuk. Achter ieder gebouw zit een wereld van keuzes. Onze kracht is dat we die keuzes in samenhang kunnen maken. Mijn vraag aan jullie is dan ook: waar liggen jullie zelf wakker van bij jullie bouwplannen? Daarover praten we straks graag verder. Nu gaan we over naar de eerste gang."
     },
     "esg-is-geen-checklist": {
       "A": "Welkom terug. In het eerste hoofdstuk hebben we gezien hoeveel keuzes er bij één gebouw komen kijken. Maar hoe bepalen we nu of we de goede keuzes maken? Daarover gaat dit tweede hoofdstuk.",
@@ -615,12 +599,12 @@
       "E": "Als jullie deze beelden samen zien, is dit eigenlijk de kern van ESG: milieu, mensen en goed bestuur. Geen drie losse onderwerpen, maar drie kanten van dezelfde verantwoordelijkheid."
     },
     "projecthighlight-2": {
-      "A": "Kijk Gijs; Een mooi voorbeeld is VGP Park Nijmegen, gebouw B en C. Hier komen schaal, uitvoering en aandacht voor duurzaamheid samen in een logistiek project van ruim 130.000 vierkante meter.",
+      "A": "Kijk Gijs en Ramon; Een mooi voorbeeld is VGP Park Nijmegen, gebouw B en C. Hier komen schaal, uitvoering en aandacht voor duurzaamheid samen in een logistiek project van ruim 130.000 vierkante meter.",
       "B": "Het project is in 104 weken gebouwd voor VGP Group. Dat laat zien hoe we onze kennis en organisatie inzetten bij grote opgaven en ook binnen planning en budget kunnen bouwen.",
       "C": "En kijken jullie naar het dak: zonnepanelen maken opwekking van groene stroom mogelijk. Zo wordt de E van ESG zichtbaar in een echt gebouw."
     },
     "kernboodschap-2": {
-      "A": "Wat ik jullie uit dit hoofdstuk wil meegeven: duurzaamheid is voor ons geen apart onderwerp naast het bouwen. Het bepaalt mede hoe we bouwen. En de vraag voor straks aan tafel is: welke keuze die we vandaag maken, is over twintig jaar nog steeds de juiste? Ik geef graag het woord aan Else voor de volgende gang."
+      "A": "Wat ik jullie uit dit hoofdstuk wil meegeven: duurzaamheid is voor ons geen apart onderwerp naast het bouwen. Het bepaalt mede hoe we bouwen. En de vraag voor straks aan tafel is: welke keuze die we vandaag maken, is over twintig jaar nog steeds de juiste? Nu gaan we over naar de tweede gang."
     },
     "we-gieten-kennis": {
       "A": "In de vorige hoofdstukken hebben we gezien hoe Willy Naessens bouwt en welke verantwoordelijkheid we daarbij nemen. Nu gaan we naar het materiaal waar ons bedrijf groot mee is geworden: prefab beton. Ik wil jullie laten zien hoe we dat materiaal steeds verder verduurzamen.",
@@ -635,15 +619,9 @@
       "C": "En dan komen we bij fase C: het einde van de levensduur van het gebouw.\nOp dat moment zijn er twee mogelijkheden.\nDe eerste is slopen. Daarbij kunnen we het vrijgekomen beton recyclen. We breken het beton en gebruiken het materiaal opnieuw, bijvoorbeeld als grondstof voor nieuw beton.\nDe tweede mogelijkheid is demonteren. Daarbij halen we de betonelementen zorgvuldig uit het gebouw, zodat we ze als geheel opnieuw kunnen gebruiken in een volgend gebouw.\nEn dat is een wezenlijk verschil. Bij recycling geven we het materiaal een nieuw leven. Bij hergebruik geven we het complete betonelement een nieuw leven.\nZo zien jullie hier de volledige levenscyclus: van grondstof en productie tot gebruik en uiteindelijk recycling of hergebruik."
     },
     "levenscyclus-van-betonproducten": {
-      "A": "We hebben nu gezien welke fasen een gebouw doorloopt. Maar hoe bepalen we wat de milieubelasting daarvan is?\nDaarvoor kijken we naar iedere stap afzonderlijk. We beginnen bij de grondstoffen, zoals zand, grind en cement.\nHet winnen en produceren van deze grondstoffen kost energie en veroorzaakt uitstoot. Die milieubelasting brengen we in kaart en nemen we mee in onze LCA-berekening.",
-      "B": "Na de productie in onze fabrieken komen we bij fase A4: het transport naar de bouwplaats.\nOnze prefab betonelementen worden met vrachtwagens naar de bouwplaats vervoerd. Daarbij kijken we naar de afstanden, het brandstofverbruik en de uitstoot.\nVervolgens komt fase A5: de montage. Met onze eigen montageploegen en kranen bouwen we de elementen samen tot een gebouw. Ook dat kost energie.\nAl deze activiteiten hebben invloed op het milieu en tellen daarom mee in de totale milieubelasting van het gebouw.",
-      "C": "Wat deze fase voor ons zo interessant maakt, is de lange levensduur van beton.\nOnze prefab betonelementen zijn ontworpen om minstens 100 jaar mee te gaan. Dat betekent dat de materialen die we vandaag gebruiken, heel lang hun waarde kunnen behouden.\nEn als een gebouw na bijvoorbeeld 30 jaar niet meer voldoet aan de wensen van de gebruiker, betekent dat nog niet dat onze betonelementen aan het einde van hun levensduur zijn.\nEn juist daar liggen kansen voor circulariteit.",
-      "D": "En dan de laatste fase, einde levensduur gebouw. Hier zit voor ons een belangrijke uitdaging.\nIn de traditionele bouw eindigt de levensduur van een gebouw vaak met de sloop. Daarmee gaat ook een groot deel van de waarde van de oorspronkelijke bouwelementen verloren.\nBij Willy Naessens willen we die keten doorbreken. We willen niet alleen nadenken over hoe we een gebouw bouwen, maar ook over wat we er later nog mee kunnen.\nWant een gebouw kan aan het einde van zijn levensduur zijn, terwijl onze betonelementen nog jarenlang mee kunnen.",
-      "E": "En precies vanuit die gedachte hebben we bij Willy Naessens The Circle ontwikkeld.\nEen circulair bouwconcept waarbij we al bij het ontwerp rekening houden met de toekomst.\nWe ontwerpen onze prefab betonelementen zo dat ze niet alleen lang meegaan, maar ook losmaakbaar zijn en opnieuw kunnen worden toegepast.\nDaarmee bouwen we niet alleen voor vandaag, maar ook met de gebouwen van morgen in gedachten. Willy zei zelf \"Wij bouwen voor onze achterkleinkinderen\"",
-      "F": "De eerste stap is dan zorgvuldig demonteren, zodat het element heel blijft en opnieuw inzetbaar is.",
-      "G": "Vervolgens moet dat element worden vervoerd. Ook die stap hoort bij het verhaal; hergebruik is alleen zinvol als we de hele keten bekijken.",
-      "H": "Soms is het element niet meteen opnieuw nodig. Dan moet het veilig worden opgeslagen en goed herkenbaar blijven.",
-      "I": "En uiteindelijk krijgt het een plek in een volgend gebouw. Zo maken we van een eindpunt een nieuw begin. Daar komen we straks bij The Circle uitgebreid op terug."
+      "A": "We hebben gezien welke fasen een gebouw doorloopt. In onze LCA-berekening telt elke stap mee: de grondstoffen en de productie, het transport en de montage, het gebruik en het einde van de levensduur.\nOnze prefab betonelementen gaan minstens 100 jaar mee, vaak veel langer dan het gebouw zelf.\nToch eindigt een gebouw in de traditionele bouw met de sloop, en daarmee gaat de waarde van die elementen verloren.",
+      "B": "Die keten willen we doorbreken. Daarom hebben we bij Willy Naessens The Circle ontwikkeld: we ontwerpen onze elementen zo dat ze lang meegaan, losmaakbaar zijn en opnieuw kunnen worden toegepast.\nOf zoals Willy zelf zei: \"Wij bouwen voor onze achterkleinkinderen.\"",
+      "C": "In plaats van slopen: zorgvuldig demonteren, zodat het element heel blijft. Dan het transport, de opslag, en uiteindelijk een plek in een volgend gebouw.\nZo maken we van een eindpunt een nieuw begin."
     },
     "levenscyclusanalyse": {
       "A": "We hebben nu gezien hoe we bij Willy Naessens anders omgaan met de levensduur van onze betonelementen. Maar hoe maken we inzichtelijk wat onze keuzes daadwerkelijk opleveren voor het milieu?\nDat begint bij de materialen die we inkopen.\nVan onze leveranciers verzamelen we gegevens over de grondstoffen, zoals de herkomst, het transport en de bijbehorende CO₂-uitstoot.\nDie informatie leggen we vast in een database, die jullie hier rechts in beeld zien.\nMaar daarmee weten we nog niet wat de milieu-impact van een compleet betonelement is. Daarvoor moeten we ook weten welke grondstoffen en hoeveelheden we in onze betonmengsels gebruiken.",
@@ -670,11 +648,11 @@
       "E": "En hier zien jullie wat we uiteindelijk willen bereiken: een betonelement dat opnieuw wordt toegepast, zonder dat we het eerst hoeven te breken.\nDaarmee slaan we een aantal stappen over die bij recycling wel nodig zijn, zoals het breken, zeven en opnieuw produceren.\nDat bespaart nieuwe grondstoffen en zal dus de milieubelasting aanzienlijk verminderen."
     },
     "projecthighlight-3": {
-      "A": "Hoe ziet onze manier van bouwen er in de praktijk uit? Hier zien jullie een pand van onze opdrachtgever WDP; waar Kivits huurder is: een logistiek gebouw waarin onze prefab aanpak en de verticale integratie volledig tot zijn recht komt. Binnen planning gebouwd en binnen budget gebouwd.",
+      "A": "Hoe ziet onze manier van bouwen er in de praktijk uit? Hier zien jullie een pand van onze opdrachtgever WDP (Geertjan en Jorgen); waar Kivits huurder is: een logistiek gebouw waarin onze prefab aanpak en de verticale integratie volledig tot zijn recht komt. Binnen planning gebouwd en binnen budget gebouwd.",
       "B": "Voor opdrachtgevers draait het uiteindelijk om een goed gebouw, met zekerheid over uitvoering en kwaliteit. En voor ons hoort daar steeds vaker een aantoonbaar lagere milieu-impact bij."
     },
     "kernboodschap-3": {
-      "A": "De kern van dit hoofdstuk is eenvoudig: we blijven bouwen met beton, maar we verbeteren het recept, het productieproces en de manier waarop we met elementen omgaan. Straks laat ik jullie zien hoe we dat laatste met The Circle verder brengen. Nu geef ik weer het woord aan Else, voor de toelichting op de volgende gang."
+      "A": "De kern van dit hoofdstuk is eenvoudig: we blijven bouwen met beton, maar we verbeteren het recept, het productieproces en de manier waarop we met elementen omgaan. Straks laat ik jullie zien hoe we dat laatste met The Circle verder brengen. Maar nu gaan we eerst over naar de derde gang."
     },
     "we-bouwen-vandaag": {
       "A": "We hebben gezien hoe we beton verbeteren en de impact ervan berekenen. Maar er is nog een grotere vraag: waarom zouden we een goed betonelement na einde levensduur niet meer gebruiken? Daarmee komen we bij het laatste hoofdstuk en die gaat over ons nieuwe duurzame en circulaire concept: The Circle.",
@@ -716,7 +694,7 @@
       "C": "Van buiten zien jullie een volwaardig gebouw. Het bijzondere zit voor een groot deel in wat jullie níét zien: de manier waarop de elementen zijn ontworpen om ook na deze gebruiksfase waarde te houden."
     },
     "kernboodschap-4": {
-      "A": "Daarmee zijn we aan het einde van onze vier hoofdstukken. Jullie hebben gezien hoe we de bouwketen organiseren, hoe we onze keuzes beoordelen, hoe we beton verbeteren en hoe we met The Circle vooruitkijken. Uiteindelijk gaat het om één vraag: hoe bouwen we vandaag goed, zonder de mogelijkheden van morgen uit het oog te verliezen?"
+      "A": "Daarmee zijn we aan het einde van onze vier hoofdstukken. Jullie hebben gezien hoe we de bouwketen organiseren, hoe we onze keuzes beoordelen, hoe we beton verbeteren en hoe we met The Circle vooruitkijken. Uiteindelijk gaat het om één vraag: hoe bouwen we vandaag goed, zonder de mogelijkheden van morgen uit het oog te verliezen? Nu gaan we over naar de vierde gang."
     },
     "case-studies": {
       "A": "Tot slot een paar projecten, telkens met de vraag waar de klant mee zat en ons antwoord daarop. Panattoni Almelo: 55.000 vierkante meter warehouse. Panattoni bouwde hier op risico, nog zonder huurder.",
@@ -730,12 +708,10 @@
       "I": "Ons antwoord: zekerheid over de prijs, en een planning die we haalden. Dit gebouw hebben we in 52 weken kunnen bouwen.",
       "J": "Intervest in Herstal: vier loodsen, samen 40.000 vierkante meter. Intervest wilde vooral betaalbaar bouwen: binnen budget, snel en flexibel.",
       "K": "Want met de groei moet het gebouw snel kunnen worden aangepast. Ons antwoord was The Circle: een gebouw uit vaste bouwstenen.",
-      "L": "Losmaakbaar en terugneembaar: dat maakte hier het verschil. Zo bouwen we: binnen planning, binnen budget en met kwaliteit."
+      "L": "Losmaakbaar en terugneembaar: dat maakte hier het verschil. Zo bouwen we: binnen planning, binnen budget en met kwaliteit. Nu gaan we over naar de vijfde gang: het dessert."
     },
     "ending": {
-      "A": "Dames en heren,\nWe zijn alweer aan het einde gekomen van deze bijzondere avond.\nAllereerst wil ik Erik bedanken voor de begeleiding van het programma.\nDaarnaast wil ik alle collega’s en betrokkenen bedanken die deze avond mogelijk hebben gemaakt.\nEn natuurlijk dank aan jullie. Voor jullie komst, jullie belangstelling en de waardevolle gesprekken.",
-      "B": "Als er één boodschap is die ik jullie vanavond graag wil meegeven, dan is het deze:\nWanneer jullie nadenken over een nieuw huisvestingsvraagstuk, betrek ons dan vroegtijdig en daag ons uit!\n\nJuist aan de voorkant kunnen wij met onze kennis, ervaring en geïntegreerde aanpak echt waarde toevoegen.",
-      "C": "Nogmaals hartelijk dank voor jullie komst en voor het vertrouwen in Willy Naessens.\nIk hoop dat we elkaar bij een volgend huisvestingsvraagstuk opnieuw weten te vinden.\n\nIk wens jullie een goede en veilige reis naar huis. Dank jullie wel en graag tot ziens."
+      "A": "Dames en heren,\nWe zijn alweer aan het einde gekomen van deze bijzondere avond.\nAllereerst wil ik Erik bedanken voor de begeleiding van het programma.\nDaarnaast wil ik alle collega’s en betrokkenen bedanken die deze avond mogelijk hebben gemaakt.\nEn natuurlijk dank aan jullie. Voor jullie komst, jullie belangstelling en de waardevolle gesprekken.\n\nAls er één boodschap is die ik jullie vanavond graag wil meegeven, dan is het deze:\nWanneer jullie nadenken over een nieuw huisvestingsvraagstuk, betrek ons dan vroegtijdig en daag ons uit!\n\nJuist aan de voorkant kunnen wij met onze kennis, ervaring en geïntegreerde aanpak echt waarde toevoegen.\n\nNogmaals hartelijk dank voor jullie komst en voor het vertrouwen in Willy Naessens.\nIk hoop dat we elkaar bij een volgend huisvestingsvraagstuk opnieuw weten te vinden.\n\nIk wens jullie een goede en veilige reis naar huis. Dank jullie wel en graag tot ziens."
     },
     "course-transition-to-chapter-3": {
       "A": "van"

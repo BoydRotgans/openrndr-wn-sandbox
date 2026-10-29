@@ -72,7 +72,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
 .main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
 .stage { flex: none; display: flex; flex-direction: column; padding: 14px 14px 6px; gap: 10px; }
 .side { flex: none; display: flex; flex-direction: column; margin: 0 auto 14px; width: min(900px, calc(100% - 2 * 14px)); border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
-.player { position: relative; width: 100%; aspect-ratio: 32 / 9; background: black; border-radius: 6px; overflow: visible; display: flex; align-items: center; justify-content: center; }
+.player { position: relative; width: 100%; aspect-ratio: var(--film-ratio, 32 / 9); background: black; border-radius: 6px; overflow: visible; display: flex; align-items: center; justify-content: center; }
 .player video { width: 100%; height: 100%; display: block; cursor: pointer; border-radius: 6px; }
 .empty-stage { color: var(--muted); padding: 20px; text-align: center; }
 .controls { display: flex; align-items: center; gap: 8px; }
@@ -126,7 +126,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
   position: relative; width: 128px; padding: 0; background: var(--panel-2); border: 2px solid transparent; border-radius: 4px;
   display: flex; flex-direction: column; align-items: stretch; overflow: hidden; flex: none;
 }
-.thumb img { width: 100%; aspect-ratio: 32 / 9; object-fit: cover; display: block; background: black; }
+.thumb img { width: 100%; aspect-ratio: var(--film-ratio, 32 / 9); object-fit: cover; display: block; background: black; }
 .thumb-label { font-size: 10px; color: var(--muted); padding: 3px 5px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .thumb.current { border-color: var(--accent); }
 .thumb.current .thumb-label { color: var(--text); }
@@ -183,7 +183,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
 .tl-played { position: absolute; left: 0; top: 0; height: 100%; background: rgba(0,0,0,0.06); pointer-events: none; }
 .tl-head { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
 .tl-hover { position: absolute; bottom: calc(100% + 8px); transform: translateX(-50%); pointer-events: none; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.tl-hover img { width: 200px; aspect-ratio: 32 / 9; object-fit: cover; display: block; border-radius: 4px; background: black; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 2px solid white; }
+.tl-hover img { width: 200px; aspect-ratio: var(--film-ratio, 32 / 9); object-fit: cover; display: block; border-radius: 4px; background: black; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 2px solid white; }
 .tl-hover span { background: var(--text); color: white; font-size: 11px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 /* --- voice-over -------------------------------------------------------------- */
@@ -234,7 +234,7 @@ button.big { padding: 8px 16px; border-radius: 8px; font-weight: 600; }
 
 /* --- commenting on ----------------------------------------------------------- */
 .commenting-on { display: flex; gap: 10px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); }
-.commenting-on img { flex: none; width: 72px; aspect-ratio: 32 / 9; object-fit: cover; border-radius: 3px; background: black; border: 1.5px solid var(--accent); }
+.commenting-on img { flex: none; width: 72px; aspect-ratio: var(--film-ratio, 32 / 9); object-fit: cover; border-radius: 3px; background: black; border: 1.5px solid var(--accent); }
 .co-hint { display: none; }
 .commenting-on .co-key { white-space: nowrap; }
 .commenting-on .co-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

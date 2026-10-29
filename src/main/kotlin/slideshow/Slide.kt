@@ -161,6 +161,13 @@ abstract class Slide : MidiTimed {
     open fun cuesBetween(from: Int, until: Int): List<Sound> = emptyList()
 
     /**
+     * Where the sound design's letters land when this slide has fewer states than it was delivered
+     * for: the n-th delivered letter plays on its [CueFold.state], [CueFold.seconds] into it. Null where
+     * every letter is its own state, which is every slide that was not folded. See [CueSheet].
+     */
+    open val cueFold: List<CueFold>? get() = null
+
+    /**
      * Whether the playlist of the moment this slide stands in plays under it (see
      * `ShowBuilder.music`). True for every wall; false for one that takes the room *out* of its
      * moment, which lets the playlist go rather than carrying it on.

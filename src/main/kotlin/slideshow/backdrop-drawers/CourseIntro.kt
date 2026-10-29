@@ -36,10 +36,12 @@ class CourseIntro(
     accent: ColorRGBa = ColorRGBa.WHITE,
     /** Who introduces it, under the rule with the dish set small below; empty (the show's) puts the dish there. */
     host: String = "",
+    /** Where the block stands in the left projector, the lines ranged left either way: [NameTag]'s `align`. */
+    align: Double = 0.0,
     override val background: ColorRGBa = ColorRGBa.BLACK
 ) : Backdrop() {
     private val tag = NameTag(presenter = course, organisation = host.ifBlank { idea }, role = if (host.isBlank()) "" else idea,
-        fontPath = fontPath, accent = accent)
+        fontPath = fontPath, accent = accent, align = align)
 
     override val name = "Course intro"
     // Its title is an id from before the menu numbered the courses; the autocue reads the course as the menu has it.

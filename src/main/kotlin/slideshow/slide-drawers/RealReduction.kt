@@ -51,7 +51,9 @@ class Measure(val kind: Kind, val caption: String, val column: Int) {
  * same box and stood on its foot, so a column reads as a set whatever their proportions. A kind
  * with no file, or no converter on the machine, falls back to a drawn pictogram in rectangles,
  * lines and circles. The certificate is type on a
- * white sheet; the mark at its foot is set as type until the WN mark arrives as an svg.
+ * white sheet in A4's proportion, upright, so it reads as a document: its width is read off its
+ * height, since on the 730-high wall a share of the width made it nearly square (28 October 2026).
+ * The mark at its foot is set as type until the WN mark arrives as an svg.
  *
  * Everything is a window on `position`: the certificate leaves on `on(1)`, the n-th measure
  * arrives on `on(2 + n)`.
@@ -151,8 +153,9 @@ class RealReduction(
 
         // The certificate: a sheet with its lines, shrinking to nothing on the first click.
         val sheetScale = arrived * (1.0 - smoothstep(gone))
+        val sheetW = h * SHEET_H * A4
         if (sheetScale > 0.0) {
-            val sheet = Rectangle(w / 2.0 - w * SHEET_W / 2.0 * sheetScale, h * SHEET_Y + h * SHEET_H / 2.0 * (1.0 - sheetScale), w * SHEET_W * sheetScale, h * SHEET_H * sheetScale)
+            val sheet = Rectangle(w / 2.0 - sheetW / 2.0 * sheetScale, h * SHEET_Y + h * SHEET_H / 2.0 * (1.0 - sheetScale), sheetW * sheetScale, h * SHEET_H * sheetScale)
             drawer.fill = paper
             drawer.rectangle(sheet)
             drawer.isolated {
@@ -162,7 +165,7 @@ class RealReduction(
                 drawer.fill = accent
                 drawer.setLine(certificate.getOrElse(0) { "" }, bold, Vector2(w / 2.0, h * (SHEET_Y + 0.085)), h * HEAD, SIZE, align = 0.5)
                 drawer.fill = blue
-                val lines = bold.wrapped(certificate.getOrElse(1) { "" }, (w * SHEET_W * 0.86) * SIZE / (h * BODY))
+                val lines = bold.wrapped(certificate.getOrElse(1) { "" }, (sheetW * 0.86) * SIZE / (h * BODY))
                 val top = h * (SHEET_Y + SHEET_H * 0.5) - (lines.size - 1) * h * BODY_LEAD / 2.0
                 lines.forEachIndexed { i, l -> drawer.setLine(l, bold, Vector2(w / 2.0, top + i * h * BODY_LEAD), h * BODY, SIZE, align = 0.5) }
                 // PLACEHOLDER for the WN mark: its name in the red until the svg arrives.
@@ -271,8 +274,9 @@ class RealReduction(
         const val SIZE = 200.0
         const val TITLE = 0.036
         const val TITLE_Y = 0.06
-        const val SHEET_W = 0.28
+        /** The sheet's height against the pane's, and its width against its own height: A4, 210 by 297. */
         const val SHEET_H = 0.68
+        const val A4 = 210.0 / 297.0
         const val SHEET_Y = 0.16
         const val HEAD = 0.04
         const val BODY = 0.036

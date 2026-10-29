@@ -58,8 +58,8 @@ class EndingScene(
     private val qr: Boolean = true,
     /**
      * How many states the wall stands for. Nothing on it changes on a click — it plays on its own clock — so
-     * the clicks are the speaker's: the closing words read off the autocue a section a click, as Karim Weiss's
-     * are (19 October 2026), while the call to action stands.
+     * the clicks are the speaker's: closing words read off the autocue a section a click, as Karim Weiss's
+     * were from 19 to 28 October 2026, while the call to action stands.
      */
     private val clicks: Int = 1,
     /** Nothing drawn and no moment music under it: the bare ground. */

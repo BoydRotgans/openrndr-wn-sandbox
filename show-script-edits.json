@@ -1,5 +1,5 @@
 {
   "about": "The rehearsal page's edits to Erik's autocue text, pulled by review/scripts/pull-script.mjs: each click whose text was changed there, with the text it was edited from (original) and the text it became (text). Not read by the show: pnpm adopt-script takes them into show-subtitles-erik.json and show-autocue-additions.json; an edit may first be given adopt (the text to take in instead) and note (why, shown on the page).",
-  "pulled": "2026-10-27T08:14:13.825Z",
+  "pulled": "2026-10-28T12:56:20.986Z",
   "edits": []
 }

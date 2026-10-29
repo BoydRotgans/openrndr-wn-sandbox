@@ -244,10 +244,12 @@ private fun org.openrndr.ApplicationBuilder.present(
         // the running order, so a slide the order has archived still carries its cues when it is
         // dragged back in. Once, here, because the binding prints what it matched and a report
         // repeated every time the order changed would say nothing new.
-        val cueSheet = settings.cueSheet?.boundTo(
-            (catalogue.slideIds.zip(catalogue.slides) + show.slideIds.zip(show.slides))
-                .associate { (id, slide) -> id to slide.steps }
-        )
+        val cueSheet = (catalogue.slideIds.zip(catalogue.slides) + show.slideIds.zip(show.slides)).let { all ->
+            settings.cueSheet?.boundTo(
+                all.associate { (id, slide) -> id to slide.steps },
+                all.mapNotNull { (id, slide) -> slide.cueFold?.let { id to it } }.toMap()
+            )
+        }
 
         /** The id the sheet knows a slide by, which is the id the order file names it by. */
         fun idAt(index: Int) = ids.getOrElse(index) { "" }
@@ -259,6 +261,19 @@ private fun org.openrndr.ApplicationBuilder.present(
         fun cueAt(index: Int, step: Int) =
             slides.getOrNull(index)?.let { soundAt(it, idAt(index), step, cueSheet) }
                 ?.let { settings.gains?.at(it, "${idAt(index)}-${letter(step)}") ?: it }
+
+        /**
+         * The cues a folded state fires after its own (see [Slide.cueFold]), on the frames they fall due
+         * from [now], at the state's reviewed level. Kept until due, and dropped on a step back or as the
+         * slide is left, with the picture they were timed to.
+         */
+        val laterCues = mutableListOf<Pair<Int, Sound>>()
+        fun queueLater(index: Int, step: Int, now: Int) {
+            val sheet = cueSheet ?: return
+            sheet.later(idAt(index), step).forEach { (sound, at) ->
+                laterCues += (now + frames(at)) to (settings.gains?.at(sound, "${idAt(index)}-${letter(step)}") ?: sound)
+            }
+        }
 
         /** The playlist of the moment the slide at [index] stands in, where the moment has one and the slide takes it. */
         fun momentBed(index: Int): Sound? = slides.getOrNull(index)?.takeIf { it.momentMusic }
@@ -1298,6 +1313,7 @@ private fun org.openrndr.ApplicationBuilder.present(
                 }
                 // Off the front of a slide going back, whatever it was still sounding goes with it at once.
                 if (leaving != null && deck.index < soundedFrom) hushBack()
+                laterCues.clear()
 
                 // The slide's own cue, unless it is a bed and the moment has a playlist of its own
                 // to play instead; then the playlist, which asked for again does not restart.
@@ -1313,6 +1329,8 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // The way in, beside the state's cue: coming forward, or opening on it — not going back,
                 // which lands a slide built.
                 if (!deck.arrivedBack) speakers.play(deck.slide.leadIn, restart = saidAgain(deck.slide.leadIn, carried))
+                // A folded opening state sounds the rest of what it builds at their moments, coming forward or opening on it.
+                if (!deck.arrivedBack && deck.step == 0) queueLater(deck.index, 0, frame)
                 // The bed under the talk: up on any slide of a chapter, let go while a wall
                 // or a scene is up. Asking for it again on the next slide does not restart it —
                 // a held loop only picks its fade up from where it stands — so it runs on
@@ -1327,9 +1345,12 @@ private fun org.openrndr.ApplicationBuilder.present(
                 // Forward only — clicking back through a build is a correction, and re-firing
                 // the marks would say it is being built when it is being taken apart.
                 // A click made again after a step back is said again from its top, for the reason above.
-                if (deck.step > soundedStep) cueAt(deck.index, deck.step).let { speakers.play(it, restart = saidAgain(it)) }
+                if (deck.step > soundedStep) {
+                    cueAt(deck.index, deck.step).let { speakers.play(it, restart = saidAgain(it)) }
+                    queueLater(deck.index, deck.step, frame)
+                }
                 // A step back cuts the picture back, and the click's sound fades away with it (hushBack).
-                else hushBack()
+                else { hushBack(); laterCues.clear() }
                 soundedStep = deck.step
             }
 
@@ -1339,6 +1360,8 @@ private fun org.openrndr.ApplicationBuilder.present(
             if (deck.index != clockSlide || deck.startedAt != clockStart) {
                 clockSlide = deck.index; clockStart = deck.startedAt; clockAsked = 0
             }
+            // What a folded state fires after its own cue, as each falls due.
+            laterCues.removeAll { (at, sound) -> (frame >= at).also { due -> if (due) speakers.play(sound, restart = saidAgain(sound)) } }
             val clockFrame = frame - deck.startedAt
             if (clockFrame > clockAsked) {
                 deck.slide.cuesBetween(clockAsked, clockFrame).forEach { speakers.play(it) }
@@ -2381,7 +2404,9 @@ private const val EXPORT_BUDGET = 20L
  * cannot see it; it has to be asked for by step.
  */
 private fun cuesOf(slide: Slide, id: String, sheet: CueSheet?): List<Sound> =
-    (0 until slide.steps.coerceAtLeast(1)).mapNotNull { soundAt(slide, id, it, sheet) }
+    (0 until slide.steps.coerceAtLeast(1)).flatMap { step ->
+        listOfNotNull(soundAt(slide, id, step, sheet)) + sheet?.later(id, step).orEmpty().map { it.first }
+    }
 
 /**
  * What one state of one slide sounds like: the sheet's cue where a sheet speaks for the slide,

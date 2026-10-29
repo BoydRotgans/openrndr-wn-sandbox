@@ -321,9 +321,10 @@ data class Settings(
     /**
      * The mix: a gain per track of the sound — voice, design, music — see [Layer]. All three play
      * at once; this is how loud each is, and 0 mutes one. The organizer's `mix` panel moves them
-     * live, and a filmed run's soundtrack is made at the mix it was played at.
+     * live, and a filmed run's soundtrack is made at the mix it was played at. The music starts at
+     * −18.5 dB (0.1189).
      */
-    val levels: Map<Layer, Double> = mapOf(Layer.VOICE to 0.3, Layer.DESIGN to 1.0, Layer.MUSIC to 1.0),
+    val levels: Map<Layer, Double> = mapOf(Layer.VOICE to 0.3, Layer.DESIGN to 1.0, Layer.MUSIC to 0.1189),
     /**
      * Trace the voice: print each line as it is asked for and, a fifth of a second later, whether
      * OpenAL is really playing it — how a voice that "sometimes does not play" is caught.

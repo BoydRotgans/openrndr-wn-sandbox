@@ -33,25 +33,35 @@ import javax.sound.sampled.AudioSystem
  * it. Falling back state by state would put the old sheet's sound under the new one on exactly
  * the states the new design left clear. Slides the sheet does not name keep whatever
  * `Slideshow.kt` declares for them, which is what keeps chapters 2 to 4 sounding as they did.
+ *
+ * **A slide folded into fewer states keeps every sound it was delivered with** (28 October 2026). Its
+ * [Slide.cueFold] says where each delivered letter now lands: on which state, and how many seconds into
+ * it. The first at no delay is the state's cue as before; the rest are [later], fired by the driver at
+ * their moment, so a build that now happens on one click still sounds each of its pieces.
  */
 class CueSheet private constructor(
     /** The folders read, for the report. */
     private val folders: List<File>,
     /** Cue by name — a slug while the sheet is unbound, a slide's id once [boundTo] has run. */
-    private val states: Map<String, Map<Int, Sound>>
+    private val states: Map<String, Map<Int, Sound>>,
+    /** The cues a folded state fires after its first, with the seconds into the state each falls at. */
+    private val laterCues: Map<String, Map<Int, List<Pair<Sound, Double>>>> = emptyMap()
 ) {
 
     /** The cue for [step] of the slide called [id], or null where the sheet leaves it bare. */
     operator fun get(id: String, step: Int): Sound? = states[id]?.get(step)
 
+    /** The cues [step] of the slide called [id] fires after its own, each with the seconds into the state it falls at. */
+    fun later(id: String, step: Int): List<Pair<Sound, Double>> = laterCues[id]?.get(step).orEmpty()
+
     /**
      * Whether this sheet speaks for [id] at all — and so whether what `Slideshow.kt` declares
      * for that slide is heard. See the note on ownership above.
      */
-    fun owns(id: String): Boolean = id in states
+    fun owns(id: String): Boolean = id in states || id in laterCues
 
     /** Every cue in the sheet, for [Speakers.load] to decode before the first frame. */
-    val all: List<Sound> get() = states.values.flatMap { it.values }
+    val all: List<Sound> get() = states.values.flatMap { it.values } + laterCues.values.flatMap { it.values.flatten().map { (sound, _) -> sound } }
 
     val isEmpty: Boolean get() = states.isEmpty()
 
@@ -64,10 +74,13 @@ class CueSheet private constructor(
      * matches none, or more than one, is **dropped with a line saying so**. Silently guessing
      * would put a chapter's sound design on the wrong slide, which is worse than leaving it off:
      * a missing cue is heard immediately and a misplaced one is not heard as a fault at all.
+     *
+     * A slide in [folds] has its letters laid onto the states its fold names rather than one a state.
      */
-    fun boundTo(states: Map<String, Int>): CueSheet {
+    fun boundTo(states: Map<String, Int>, folds: Map<String, List<CueFold>> = emptyMap()): CueSheet {
         val ids = states.keys
         val bound = mutableMapOf<String, Map<Int, Sound>>()
+        val later = mutableMapOf<String, Map<Int, List<Pair<Sound, Double>>>>()
         val report = mutableListOf<String>()
 
         for ((slug, cues) in this.states) {
@@ -78,6 +91,17 @@ class CueSheet private constructor(
                     report += "  $slug — no slide of that name; ${cues.size} cue(s) ignored"
                 id == null ->
                     report += "  $slug — matches ${hits.joinToString(", ")}; ${cues.size} cue(s) ignored"
+                id in folds -> {
+                    val (first, rest, over) = folded(cues, folds.getValue(id), states.getValue(id))
+                    bound[id] = first
+                    later[id] = rest
+                    val on = (first.keys + rest.keys).sorted().joinToString(" ") { s ->
+                        (listOfNotNull(first[s]?.let { 0.0 to it }) + rest[s].orEmpty().map { (sound, at) -> at to sound })
+                            .sortedBy { it.first }.joinToString("+") { (_, sound) -> letterOf(sound) }
+                    }
+                    report += "  %-34s %s  (folded)".format(id, on)
+                    if (over.isNotEmpty()) report += "  %-34s %s past its fold; ignored".format("", over.sorted().joinToString(" ") { letter(it) })
+                }
                 else -> {
                     // A cue for a state the slide does not have would simply never fire, which is
                     // a sheet and a deck that have drifted apart — a click taken out of a slide,
@@ -95,28 +119,63 @@ class CueSheet private constructor(
             }
         }
 
-        println("cues: ${folders.joinToString(", ") { it.path }} — ${bound.size} slides, ${bound.values.sumOf { it.size }} cues")
+        println("cues: ${folders.joinToString(", ") { it.path }} — ${bound.size} slides, " +
+                "${bound.values.sumOf { it.size } + later.values.sumOf { it.values.sumOf { l -> l.size } }} cues")
         report.forEach { println(it) }
-        return CueSheet(folders, bound)
+        return CueSheet(folders, bound, later)
     }
+
+    /**
+     * A slide's delivered cues laid onto its folded states: per state the cue at no delay, the rest with
+     * their seconds, and the letters the fold has no place for. A state with several cues at no delay
+     * keeps the first as its own and fires the others with it.
+     */
+    private fun folded(cues: Map<Int, Sound>, fold: List<CueFold>, steps: Int):
+            Triple<Map<Int, Sound>, Map<Int, List<Pair<Sound, Double>>>, List<Int>> {
+        val first = mutableMapOf<Int, Sound>()
+        val rest = mutableMapOf<Int, MutableList<Pair<Sound, Double>>>()
+        val over = mutableListOf<Int>()
+        for ((delivered, sound) in cues.entries.sortedBy { it.key }) {
+            val to = fold.getOrNull(delivered)?.takeIf { it.state < steps }
+            when {
+                to == null -> over += delivered
+                to.seconds <= 0.0 && to.state !in first -> first[to.state] = sound
+                else -> rest.getOrPut(to.state) { mutableListOf() } += sound to to.seconds
+            }
+        }
+        return Triple(first, rest.mapValues { (_, l) -> l.sortedBy { it.second } }, over)
+    }
+
+    /** The letter a cue was delivered under, off its file name, for the report. */
+    private fun letterOf(sound: Sound): String = sound.file.nameWithoutExtension.substringAfterLast('-')
 
     /**
      * The files the folders hold now for the slides in [states] (id to state count), by state: what the
      * organizer shows beside the name a sound for each state is to have (12 October 2026). Read off the
      * folders again each time, so a delivery shows without a restart, and matched by the rule [boundTo]
-     * binds by — quietly, where [boundTo] reports. Later folders win, as in [read].
+     * binds by — quietly, where [boundTo] reports. Later folders win, as in [read]. A state a [folds] slide
+     * stacks several cues on names the first file and the letters laid on it after: `…-A + B + C + D.wav`.
      */
-    fun files(states: Map<String, Int>): Map<String, Map<Int, String>> {
-        val out = mutableMapOf<String, MutableMap<Int, String>>()
+    fun files(states: Map<String, Int>, folds: Map<String, List<CueFold>> = emptyMap()): Map<String, Map<Int, String>> {
+        val found = mutableMapOf<String, MutableMap<Int, String>>()
         for (folder in folders) {
             val wavs = folder.listFiles { f: File -> f.isFile && f.extension.equals("wav", true) }?.sortedBy { it.name }.orEmpty()
             for (file in wavs) {
                 val (slug, step) = parse(file.nameWithoutExtension) ?: continue
                 val id = idOf(slug, hitsFor(slug, states.keys)) ?: continue
-                if (step < states.getValue(id)) out.getOrPut(id) { mutableMapOf() }[step] = file.name
+                if (step < states.getValue(id) || id in folds) found.getOrPut(id) { mutableMapOf() }[step] = file.name
             }
         }
-        return out
+        return found.mapValues { (id, byLetter) ->
+            val fold = folds[id] ?: return@mapValues byLetter.toMap()
+            byLetter.entries.mapNotNull { (delivered, name) -> fold.getOrNull(delivered)?.let { Triple(it.state, it.seconds, name) } }
+                .filter { it.first < states.getValue(id) }
+                .groupBy { it.first }
+                .mapValues { (_, on) ->
+                    val names = on.sortedBy { it.second }.map { it.third.removeSuffix(".wav") }
+                    (listOf(names.first()) + names.drop(1).map { it.substringAfterLast('-') }).joinToString(" + ") + ".wav"
+                }
+        }
     }
 
     /** The ids a cue's slug could stand for: the id itself, or one it is a tail of on a dash boundary, or the other way round. */
@@ -209,3 +268,8 @@ class CueSheet private constructor(
         }.getOrDefault(0.0)
     }
 }
+
+/**
+ * Where one delivered letter of a folded slide plays: on [state], [seconds] into it. See [Slide.cueFold].
+ */
+class CueFold(val state: Int, val seconds: Double = 0.0)

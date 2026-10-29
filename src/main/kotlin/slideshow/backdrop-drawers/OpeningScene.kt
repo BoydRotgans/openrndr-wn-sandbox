@@ -93,6 +93,18 @@ class OpeningScene(
      */
     private val keep: Int = 0,
     /**
+     * Pieces never drawn, by the mesh's name in `data/objects` — the register's name with `/`, spaces and `=` as
+     * `_`, a repeat numbered `_2`, `_3` — so the circle catalogue's list of round pieces serves here unchanged.
+     * Left out before [keep] counts, and only with the register paired, since the sheet itself carries no names.
+     */
+    private val exclude: Set<String> = emptySet(),
+    /**
+     * The count the wall shows, 0 for the pieces' own. Given, the pieces are numbered evenly from 1 to it, so a
+     * pass still ends on it and a few numbers are skipped on the way. A stand-in: the show says "/ 100" while it
+     * draws the 91 pieces that are not round (28 October 2026, "just fake it and make it 100 for now").
+     */
+    private val counted: Int = 0,
+    /**
      * A concrete texture the filled pieces are cut out of, tiled to cover the wall. Null
      * fills them flat in [ink].
      */
@@ -292,15 +304,26 @@ class OpeningScene(
                 println("${details?.name}: ${register.size} rows against ${all.size} on " +
                         "${sheet.name} — not the same catalogue, so the details are left off")
         }
-        // The smallest left out, by the register's longest side and then its volume; the rest in the sheet's order.
-        val kept = if (keep <= 0 || keep >= all.size) all.indices.toList()
-            else if (paired) all.indices.sortedWith(compareByDescending<Int> { i ->
+        // The excluded left out by name, then the smallest, by the register's longest side and then its volume;
+        // the rest in the sheet's order.
+        val seen = mutableMapOf<String, Int>()
+        val meshNames = register.map { piece ->
+            val base = piece.name.replace(Regex("[/ =]"), "_")
+            val n = seen.merge(base, 1, Int::plus)!!
+            if (n == 1) base else "${base}_$n"
+        }
+        if (exclude.isNotEmpty() && !paired) println("\"$name\": no register, so nothing can be left out by name")
+        val allowed = all.indices.filter { !paired || meshNames[it] !in exclude }
+        if (allowed.size < all.size) println("\"$name\": ${all.size - allowed.size} pieces left out by name: " +
+            (all.indices - allowed.toSet()).joinToString(", ") { meshNames[it] })
+        val kept = if (keep <= 0 || keep >= allowed.size) allowed
+            else if (paired) allowed.sortedWith(compareByDescending<Int> { i ->
                     register[i].let { maxOf(it.widthMm, it.heightMm, it.depthMm) } }
                 .thenByDescending { i -> register[i].let { it.widthMm * it.heightMm * it.depthMm } })
                 .take(keep).sorted()
-            else all.indices.take(keep)
-        if (kept.size < all.size) println("\"$name\": ${kept.size} of the ${all.size} pieces, the smallest left out" +
-            if (paired) ": " + (all.indices - kept.toSet()).joinToString(", ") { register[it].name } else "")
+            else allowed.take(keep)
+        if (kept.size < allowed.size) println("\"$name\": ${kept.size} of the ${allowed.size} pieces, the smallest left out" +
+            if (paired) ": " + (allowed - kept.toSet()).joinToString(", ") { register[it].name } else "")
         pieces = kept.withIndex().mapNotNull { (place, index) ->
             val element = all[index]
             // Every outline of the piece, resampled to one spacing. The budget is shared out
@@ -316,8 +339,8 @@ class OpeningScene(
             }
             Drawn(element, strokes, PieceMeta(
                 title = title,
-                number = place + 1,
-                of = kept.size,
+                number = if (counted > 0) ((place + 1) * counted.toDouble() / kept.size).roundToInt() else place + 1,
+                of = if (counted > 0) counted else kept.size,
                 ratio = element.aspect,
                 detail = if (paired) register.getOrNull(index) else null
             ))

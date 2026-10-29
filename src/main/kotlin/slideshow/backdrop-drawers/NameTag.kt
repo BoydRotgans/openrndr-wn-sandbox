@@ -25,9 +25,12 @@ import kotlin.math.min
  * other slide here is made of something — components, a city, a turning globe — and this one
  * is type on a black ground, because the only job it has is to be read once and remembered.
  *
- * **Ranged left, not centred**, which is the one thing that separates it from [QuoteSlide]:
+ * **Ranged to an edge, not centred**, which is the one thing that separates it from [QuoteSlide]:
  * a quote is a passage and sits in the middle of its measure, where a name tag is a label and
- * hangs off an edge. They share [advanceOf] and nothing else.
+ * hangs off an edge. They share [advanceOf] and nothing else. The lines are always ranged left;
+ * [align] only moves the block as a whole: the show stands the left projector's tags against its
+ * right margin and Else's in the right projector against its left (28 October 2026), so the names
+ * stand either side of the seam.
  *
  * **The three fields are stated separately rather than as one line.** Written out as
  * "Erik Koremans - Willy Naessens NEDERLAND" it is one string that has to be broken by hand
@@ -55,12 +58,17 @@ class NameTag(
     private val pane: Int = 0,
     /** The whole tag's size against the one it was designed at. */
     private val scale: Double = 1.0,
+    /**
+     * Where the block stands in the pane's measure: 0 against its left margin, 1 with its widest line
+     * against its right margin. The lines inside it, and the rule, are ranged left whichever it is.
+     */
+    private val align: Double = 0.0,
     override val background: ColorRGBa = ColorRGBa.BLACK,
     override val sound: Sound? = null,
     /**
      * How many states the tag stands for. The tag itself never changes on a click — it builds on its own
-     * clock — so the clicks are the speaker's: a speech read off the autocue a section a click, as Karim
-     * Weiss's welcome is (19 October 2026), steps through them while the tag stands.
+     * clock — so the clicks are the speaker's: a speech read off the autocue a section a click steps through
+     * them while the tag stands, as Karim Weiss's welcome did from 19 to 28 October 2026.
      */
     private val clicks: Int = 1
 ) : Backdrop() {
@@ -103,6 +111,9 @@ class NameTag(
         val big = fit(presenter, stage.height * NAME * scale, measure)
         val mid = fit(organisation, stage.height * ORGANISATION * scale, measure)
         val small = fit(role, stage.height * ROLE * scale, measure)
+        // Every line starts on one left edge: the block's, which [align] moves along the measure by its widest line.
+        val widest = maxOf(widthOf(presenter, big), widthOf(organisation, mid), widthOf(role, small))
+        val left = inset + (measure - widest) * align
 
         // The block is built from the top down and then centred as a whole, so adding a
         // field or resetting a size re-balances it rather than shifting everything by hand.
@@ -117,22 +128,25 @@ class NameTag(
         val arrived = easeInOutCubic(since(0.0, 0.9))
         drawer.fill = ink.opacify(arrived)
         // A hand's breadth of rise as it comes up, so the card settles rather than appears
-        line(drawer, presenter, inset, y - (1.0 - arrived) * stage.height * 0.015 * scale, big)
+        line(drawer, presenter, left, y - (1.0 - arrived) * stage.height * 0.015 * scale, big)
 
         y += gapToRule
         val drawn = easeInOutCubic(since(0.35, 0.7))
         drawer.stroke = null
         drawer.fill = accent
-        drawer.rectangle(inset, y, big * face.advanceWithSubscripts(presenter) * RULE * drawn, stage.height * WEIGHT * scale.coerceAtLeast(0.6))
+        drawer.rectangle(left, y, widthOf(presenter, big) * RULE * drawn, stage.height * WEIGHT * scale.coerceAtLeast(0.6))
 
         y += gapAfterRule
         drawer.fill = ink.opacify(easeInOutCubic(since(0.7, 0.6)))
-        line(drawer, organisation, inset, y + mid * SIZE, mid)
+        line(drawer, organisation, left, y + mid * SIZE, mid)
 
         y += mid * SIZE + gapToRole
         drawer.fill = ink.opacify(0.62 * easeInOutCubic(since(0.95, 0.6)))
-        line(drawer, role, inset, y + small * SIZE, small)
+        line(drawer, role, left, y + small * SIZE, small)
     }
+
+    /** How wide [text] is set at [scale] of the atlas, in pane pixels. */
+    private fun widthOf(text: String, scale: Double) = scale * face.advanceWithSubscripts(text)
 
     /**
      * The scale that sets [text] at [height], or smaller where that would run past [measure].
@@ -143,7 +157,7 @@ class NameTag(
     private fun fit(text: String, height: Double, measure: Double): Double =
         min(height / SIZE, measure / face.advanceWithSubscripts(text).coerceAtLeast(1.0))
 
-    /** One line, ranged left from [x], sitting on the baseline [y]; through [setLine], so a course's "1ᵉ" is set. */
+    /** One line from [x], sitting on the baseline [y]; through [setLine], so a course's "1ᵉ" is set. */
     private fun line(drawer: Drawer, text: String, x: Double, y: Double, scale: Double) =
         drawer.setLine(text, face, Vector2(x, y), scale * SIZE, SIZE)
 

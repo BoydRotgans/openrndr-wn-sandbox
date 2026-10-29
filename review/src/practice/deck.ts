@@ -35,6 +35,8 @@ export interface Cut {
   thumbBase: string
   fps: number
   duration: number
+  /** The film's width over its height: 32:9 on the 1080 wall, 3840:730 since 27 October. */
+  ratio: number
   states: StateInfo[]
   /** What is said over each click, by its key: the extended line, else the standard one; none where silent. */
   lines: Record<string, string>
@@ -75,6 +77,7 @@ export async function loadCut(): Promise<Cut | null> {
     thumbBase: `${folder}/`,
     fps: m.fps,
     duration: m.duration,
+    ratio: m.width && m.height ? m.width / m.height : 32 / 9,
     // The lines are kept apart from the states, for the subtitle over the film; nothing is played.
     states: m.states.map(({ voiceover: _v, voiceoverExtended: _x, voiceoverAligned: _a, voiceoverErik: _e, ...s }) => s),
     lines: Object.fromEntries(m.states.flatMap((s) => {

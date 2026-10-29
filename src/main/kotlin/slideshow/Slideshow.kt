@@ -552,6 +552,24 @@ val yardObjects = File(Env["SLIDES_YARD_OBJECTS"] ?: "data/objects")
  * three slides, so each cut between them is the next frame of one picture. Named above [show] for the city's
  * reason: the three slides hold the one scene, and whichever loads first loads it. See CircleCatalogue.
  */
+/**
+ * The catalogue's round pieces, by their mesh names, left out of the circle catalogue and the opening wall. Asked for
+ * at the meeting of 30 September and again on 15 October (the catalogue) and 28 October (the opening wall): they are
+ * fittings rather than building elements, and discs at a sheet's size. Read off the meshes — faces turning through
+ * many directions about one axis — and then every one of the 115 looked at, which is what caught the second line:
+ * the connector anchors and their end rods, the two cone symbols and the point-load cone, which the first pass had
+ * let through. Left in on purpose, with a round detail on a straight piece: the column shoe HPKM39's bend and the
+ * angles' fillets.
+ */
+val roundPieces = setOf(
+    "DRST_M16", "DRST_M24", "DRST_M24_1500", "HIJSOOG_DIAM_63", "HIJSOOG_DIAM_63_2", "HPKM39_ORANJE",
+    "KOGELKOPANKER_2.5T_85", "KOGELKOPANKER_7.5T_20", "KUNSTSTOFUITSPARING", "KUNSTSTOFUITSPARING_2",
+    "KUNSTSTOFUITSPARING_3", "PAAL", "PAAL_2",
+    "KONN_ANKER_M16_D12_DB", "KONN_ANKER_M20_D16", "KONN_ANKER_M20_D16_2", "KONN_ANKER_M24_D20",
+    "KONN_ANKER_M30_D25", "KONN_ANKER_M30_D25_2", "KONN_EIND_M20_D16", "KONN_EIND_M30_D25",
+    "DOORSTORTSYMBOOL", "DOORSTORTSYMBOOL_2", "PUNTLAST_P2"
+)
+
 val circleCatalogue = CircleCatalogue(
     objects = yardObjects,
     path = File(Env["SLIDES_MARK"] ?: "data/logo/wn-mark.svg"),   // the mark's centreline, tools/trace_wn_mark.py
@@ -561,20 +579,8 @@ val circleCatalogue = CircleCatalogue(
     personName = Env["SLIDES_CIRCLE_PERSON"],                       // empty: the adult standing stillest
     // The longest piece kept on the sheet to scale, in metres: the long beams and columns shrink away.
     largest = Env["SLIDES_CIRCLE_SCALE_MAX"]?.toDoubleOrNull() ?: 10.0,
-    // No round pieces, asked for at the meeting of 30 September and again on 15 October: they are fittings
-    // rather than building elements, and discs at the sheet's size. Read off the meshes — faces turning
-    // through many directions about one axis — and then every one of the 115 looked at, which is what
-    // caught the second line: the connector anchors and their end rods, the two cone symbols and the
-    // point-load cone, which the first pass had let through. Left in on purpose, with a round detail on
-    // a straight piece: the column shoe HPKM39's bend and the angles' fillets.
-    exclude = setOf(
-        "DRST_M16", "DRST_M24", "DRST_M24_1500", "HIJSOOG_DIAM_63", "HIJSOOG_DIAM_63_2", "HPKM39_ORANJE",
-        "KOGELKOPANKER_2.5T_85", "KOGELKOPANKER_7.5T_20", "KUNSTSTOFUITSPARING", "KUNSTSTOFUITSPARING_2",
-        "KUNSTSTOFUITSPARING_3", "PAAL", "PAAL_2",
-        "KONN_ANKER_M16_D12_DB", "KONN_ANKER_M20_D16", "KONN_ANKER_M20_D16_2", "KONN_ANKER_M24_D20",
-        "KONN_ANKER_M30_D25", "KONN_ANKER_M30_D25_2", "KONN_EIND_M20_D16", "KONN_EIND_M30_D25",
-        "DOORSTORTSYMBOOL", "DOORSTORTSYMBOOL_2", "PUNTLAST_P2"
-    )
+    // No round pieces: see roundPieces.
+    exclude = roundPieces
 )
 
 /**
@@ -822,7 +828,7 @@ fun slideshow.ChapterBuilder.opening(start: ChapterStart, title: String, notes: 
  * to say. The sentences are DRAFTS from the script plan's bridges, for WN to approve; the
  * slide's id is `kernboodschap-<n>`.
  */
-fun slideshow.ChapterBuilder.takeaway(n: Int, sentence: String, lines: Int = 4) = slide(
+fun slideshow.ChapterBuilder.takeaway(n: Int, sentence: String, lines: Int? = null) = slide(
     QuoteSlide(sentence, boldFont, lines = lines),
     title = "Kernboodschap $n",
     notes = "De kernboodschap van hoofdstuk $n, vóór de gang: één zin, en een vraag voor aan tafel " +
@@ -1019,8 +1025,11 @@ val openingWall = OpeningScene(
     fontPath = textFont,
     // No concrete of its own: the show lays one over every frame (SLIDES_CONCRETE).
     details = openingDetails,
-    // A hundred of the iso sheet's 115, the fittings left out, so the wall counts to the talk's hundred elements.
-    keep = 100,
+    // No round pieces (28 October): the 91 of the iso sheet's 115 that are not, every one. It drew the talk's hundred
+    // until then, the 15 smallest left out, 17 of them round; a hundred cannot be reached without round ones.
+    exclude = roundPieces,
+    // So the count is a stand-in for now: the 91 are numbered evenly to "/ 100", the talk's hundred elements.
+    counted = 100,
     // the room the wall stands in, fading up under it and out as the talk starts
     sound = ambience
 )
@@ -1233,11 +1242,14 @@ val show = slideshow {
             role = "Chief Executive Officer (CEO)",
             fontPath = boldFont,
             accent = wnRed,
-            // With Karim among SLIDES_SPEAKERS, his welcome is on the autocue a section a click
-            // (show-autocue-additions.json, A to H): the tag stands through all eight, and the last hands over to
-            // Erik; change the count with the file, or the import refuses. Without him (the default, 20 October) he
-            // speaks his own words, the autocue being Erik's alone, and the tag is the one click of the Word file.
-            clicks = if (karimWeiss in speakersInShow()) 8 else 1
+            // Against the left projector's right margin, toward the seam (28 October 2026), as Erik's tags are;
+            // the lines in it still ranged left.
+            align = 1.0,
+            // With Karim among SLIDES_SPEAKERS his whole welcome stands on the autocue at once (28 October 2026; it
+            // was a section a click, A to H), and one more click holds the tag before Erik's comes up: B, a pause
+            // with only a direction (show-autocue-additions.json). Without him he speaks his own words and the tag
+            // is the Word file's one click, as it always was. Change the count with the file, or the import refuses.
+            clicks = if (karimWeiss in speakersInShow()) 2 else 1
         ),
         title = "Director is speaking",
         notes = "Het eerste welkom, door Karim Weiss, CEO van Willy Naessens Nederland; de click erna is Erik. " +
@@ -1250,7 +1262,11 @@ val show = slideshow {
             organisation = "Willy Naessens NEDERLAND",
             role = "Chief Commercial and Sustainability Officer (CCSO)",
             fontPath = boldFont,
-            accent = wnRed
+            accent = wnRed,
+            // Against the left projector's right margin (28 October 2026), the lines ranged left, so on the intro
+            // wall Erik and Else stand either side of the seam; the intro wall's host is set the same, or the cut
+            // into it would show.
+            align = 1.0
         ),
         title = "Who is speaking",
         notes = "Opens the talk, ahead of the first chapter. Builds on its own frame count " +
@@ -1271,7 +1287,8 @@ val show = slideshow {
                 organisation = "Willy Naessens NEDERLAND",
                 role = "Chief Commercial and Sustainability Officer (CCSO)",
                 fontPath = boldFont,
-                accent = wnRed
+                accent = wnRed,
+                align = 1.0
             ),
             programme = Programme(
                 entries = listOf(
@@ -1305,6 +1322,7 @@ val show = slideshow {
                 role = "",
                 fontPath = boldFont,
                 accent = wnRed,
+                // Against the right projector's left margin, facing Erik across the seam.
                 pane = 1
             )
         ),
@@ -1328,7 +1346,8 @@ val show = slideshow {
         Triple("5ᵉ gang", "Reflectie", "dessert")
     ).forEach { (course, idea, name) ->
         backdrop(
-            CourseIntro(course, idea, fontPath = boldFont, accent = wnRed),
+            // Against the left projector's right margin, the lines ranged left, as the name tags stand (28 October 2026).
+            CourseIntro(course, idea, fontPath = boldFont, accent = wnRed, align = 1.0),
             title = "StudioBuik: $name",
             notes = "De stille wand voor de gang: Else de Bruin van StudioBuik licht het gerecht toe, zonder muziek. " +
                     "De click erna is de wand van de gang, met de playlist eronder."
@@ -1337,7 +1356,7 @@ val show = slideshow {
 
     // Each chapter opens on one wall: the card's field across both projectors, the title up on
     // the left, then the quote on the right — see ChapterStart. Its card is the left pane of it.
-    val chapter1 = ChapterStart("\u201C" + chapterMessages[0] + "\u201D", lines = 4)
+    val chapter1 = ChapterStart("\u201C" + chapterMessages[0] + "\u201D")
     chapter("De wereld van bouwen", panel = chapter1::card) {
         opening(
             chapter1,
@@ -1490,7 +1509,7 @@ val show = slideshow {
     // "verantwoor-delijkheid" is hyphenated so the card may break it there; written
     // whole it is one unbreakable word and the type shrinks to carry it on a line.
     // One wording, shared with the programme wall (see `chapterMessages`).
-    val chapter2 = ChapterStart("\u201C" + chapterMessages[1] + "\u201D", lines = 4)
+    val chapter2 = ChapterStart("\u201C" + chapterMessages[1] + "\u201D")
     chapter("Waardekader en verantwoor-delijkheid", panel = chapter2::card) {
         opening(
             chapter2,
@@ -1673,10 +1692,10 @@ val show = slideshow {
                     "externe audits, certificering en lange-termijnrelaties met partners als " +
                     "de structuur achter de waarden."
         )
-        // The linear life cycle drawn in full, a phase a click, and then contradicted: the
-        // end-of-life column is taken away and The Circle put in its place. Read off
-        // data/ref/Levenscyclus van betonproducten.pdf, whose six states are these six
-        // clicks. See LifeCycle for the layout, which is a function of the column count.
+        // The linear life cycle drawn in full, and then contradicted: the end-of-life column is
+        // taken away and The Circle put in its place. Read off data/ref/Levenscyclus van
+        // betonproducten.pdf. Three states since 28 October 2026 — the four columns in one go, The
+        // Circle, its four steps named — where it was nine. See LifeCycle.
         // The phases, declared once: the A·B·C slide before the life cycle reads the same list, so the
         // two cannot disagree about what a letter holds.
         val lifePhases = listOf(
@@ -1738,12 +1757,12 @@ val show = slideshow {
                 pieces = listOf("WAND_27", "TANDBALK", "PREDAL", "FUND"),
                 // Stepped into from the road, the road hands over: A1 to A3 travel into their boxes.
                 from = lifeKey,
-                stepCues = List(5) { markCue }      // a mark as each column lands: a counted build
+                stepCues = List(2) { markCue }      // without the sound design: a mark on each click
             ),
             title = "Levenscyclus van betonproducten",
-            notes = "Four phases, a click each, then the end-of-life column is replaced by " +
-                    "The Circle — four boxes with a catalogue piece turning in each — and a " +
-                    "click a step names them. Zonder sloop: demonteren, transport, opslag, " +
+            notes = "The four phases in one go, then the end-of-life column is replaced by " +
+                    "The Circle — four boxes with a catalogue piece turning in each — and one " +
+                    "click names its steps. Zonder sloop: demonteren, transport, opslag, " +
                     "opnieuw gebruiken."
         )
         // The B half of the same reference: the two databases feeding one calculation, and
@@ -1778,10 +1797,7 @@ val show = slideshow {
     // questions "ruggengraat" in the chapter title; the quote stands either way. Broken by
     // sentence and clause: searched to four lines it left "en" at the end of a short line with a
     // gap after it (review of 22 September).
-    val chapter3 = ChapterStart(
-        "\u201C" + chapterMessages[2] + "\u201D",
-        breaks = listOf("beton.", "onderzoek", "verantwoordelijkheid")
-    )
+    val chapter3 = ChapterStart("\u201C" + chapterMessages[2] + "\u201D")
     chapter("Beton: ruggengraat en transitie", panel = chapter3::card) {
         opening(
             chapter3,
@@ -1934,8 +1950,7 @@ val show = slideshow {
     val chapter4 = ChapterStart(
         "\u201CWe bouwen vandaag, met het oog op wie na ons komt. Elke kolom, elke " +
                 "balk, elke plaat is niet alleen een drager van lasten, maar ook een " +
-                "drager van verantwoordelijkheid, kansen en toekomst.\u201D",
-        lines = 6
+                "drager van verantwoordelijkheid, kansen en toekomst.\u201D"
     )
     chapter("The Circle: een nieuwe manier van denken", panel = chapter4::card) {
         opening(
@@ -2200,9 +2215,9 @@ val show = slideshow {
         )
         // In line with what Erik says over it (27 October 2026, the voice-over leading): his four themes in a line,
         // then his closing question word for word, where the wall had said "met wie bouwt u verder?" and the
-        // toegevoegde waarde, which he no longer says. Six lines, so the question stands on lines of its own.
+        // toegevoegde waarde, which he no longer says.
         takeaway(4, "De bouwketen, onze keuzes, beter beton en The Circle. Uiteindelijk gaat het om één vraag: " +
-                "hoe bouwen we vandaag goed, zonder de mogelijkheden van morgen uit het oog te verliezen?", lines = 6)
+                "hoe bouwen we vandaag goed, zonder de mogelijkheden van morgen uit het oog te verliezen?")
     }
 
     // The yard: the catalogue's pieces in the round, side by side at one height on a
@@ -2769,11 +2784,10 @@ val show = slideshow {
             // wall after it, which opens where the letters begin to come apart and arrives with no build: the click
             // into the Exit starts the explode and the ending track together. Move another wall into the Exit and this
             // wants naming again, or the click jumps.
-            still = courseWalls.firstOrNull { it.second == "Sketch: Kit, two screens, WN jump cuts, on the click" }?.first,
-            // Karim Weiss's closing, a section a click on the autocue (show-autocue-additions.json, A to C):
-            // the thanks, the message, the farewell. The wall stands through all three. Without him the ending
-            // is the one click it is in the Word file, with Erik's own thanks (20 October 2026).
-            clicks = if (karimWeiss in speakersInShow()) 3 else 1
+            still = courseWalls.firstOrNull { it.second == "Sketch: Kit, two screens, WN jump cuts, on the click" }?.first
+            // One click (28 October 2026): Karim Weiss's whole closing on the autocue at once, the thanks, the
+            // message and the farewell, where it was a section a click, A to C. Without him it is Erik's own thanks
+            // (20 October 2026), the one click of the Word file.
         ),
         title = "Ending",
         notes = "The call to action, before the exit wall. Sentence, action and address are " +
